@@ -44,21 +44,29 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     super.dispose();
   }
 
-  /// US3：数据/设置/提醒行任一变化 → 全量重建 pending 通知
-  /// （T033 已达标剔除；跨天由 dayTicker invalidate statsProvider 走同路）。
-  void _replanReminders() {
+  /// US3/US4：数据/设置/提醒行任一变化 → 周结算（幂等，概要内容
+  /// 依赖其留痕判断）→ 全量重建 pending 通知（T033 已达标剔除；
+  /// 跨天由 dayTicker invalidate statsProvider 走同路）。
+  Future<void> _replanReminders() async {
     final stats = ref.read(statsProvider);
     final goals = ref.read(goalsProvider).value;
     final settings = ref.read(settingsProvider).value;
     if (stats == null || goals == null || settings == null) return;
     final now = DateTime.now();
-    unawaited(ref.read(reminderServiceProvider).replan(
+    final today = ref.read(todayProvider);
+    // 结算在概要调度前（FR-008 周一晨顺序）；失败不阻塞提醒。
+    try {
+      await ref
+          .read(settlementServiceProvider)
+          .settleLastWeekIfNeeded(today: today, now: now);
+    } catch (_) {}
+    await ref.read(reminderServiceProvider).replan(
           settings: settings,
           goals: goals,
           stats: stats,
-          today: ref.read(todayProvider),
+          today: today,
           nowTime: LocalTime.fromDateTime(now),
-        ));
+        );
   }
 
   /// 首启引导（SC-001）：未完成 + 无目标 → 进引导页（一次性判定）。

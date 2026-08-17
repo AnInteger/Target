@@ -128,14 +128,14 @@ description: "Task list for feature implementation"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T036 [P] [US4] Unit tests for weekly settlement & busy mode (R4/R8) in `test/settlement_test.dart`: weekly(N) 全周适用/达标口径、周一晨结算快照幂等防重、忙碌周按降档口径结算 busyModeApplied、恢复后回落原频率、decision=adjust 生成下周 userEdit 版本、decision=pause 置 paused
+- [X] T036 [P] [US4] Unit tests for weekly settlement & busy mode (R4/R8) in `test/settlement_test.dart`: weekly(N) 全周适用/达标口径、周一晨结算快照幂等防重、忙碌周按降档口径结算 busyModeApplied、恢复后回落原频率、decision=adjust 生成下周 userEdit 版本、decision=pause 置 paused
 
 ### Implementation for User Story 4
 
-- [ ] T037 [US4] Implement WeeklySettlementService（周一晨结算上一周、存 WeeklyReview 快照、幂等; 触发=应用启动 + 概要提醒前）in `lib/core/stats/settlement_service.dart`（research D11）
-- [ ] T038 [US4] Implement ReviewView in `lib/features/review/review_view.dart`: 各目标完成率卡、近 4 周趋势、补签次数透明呈现、忙碌标注、反思输入框、决策三选（继续/调频下周生效/暂停）、<50% 目标呈现教练式建议（FR-008; 展示实时重算, 快照仅留痕）——文案取 `lib/core/copy.dart`
-- [ ] T039 [US4] Implement BusyMode in `lib/features/busy_mode/busy_mode_view.dart` + `lib/core/stats/busy_mode_service.dart`: 选择目标→逐个降档预览→一键开启（插入本周 busyMode 频率版本, 当周生效豁免 FR-002）→一键恢复（移除版本）; 今日列表与周回顾"忙碌模式"徽标（FR-018）
-- [ ] T040 [US4] Wire deep links `target://today` / `target://review` / `target://goal/{id}` in `lib/app/router.dart`（go_router, research D14; 小组件/通知深链落点）
+- [X] T037 [US4] Implement WeeklySettlementService（周一晨结算上一周、存 WeeklyReview 快照、幂等; 触发=应用启动 + 概要提醒前）in `lib/core/stats/settlement_service.dart`（research D11）
+- [X] T038 [US4] Implement ReviewView in `lib/features/review/review_view.dart`: 各目标完成率卡、近 4 周趋势、补签次数透明呈现、忙碌标注、反思输入框、决策三选（继续/调频下周生效/暂停）、<50% 目标呈现教练式建议（FR-008; 展示实时重算, 快照仅留痕）——文案取 `lib/core/copy.dart`
+- [X] T039 [US4] Implement BusyMode in `lib/features/busy_mode/busy_mode_view.dart` + `lib/core/stats/busy_mode_service.dart`: 选择目标→逐个降档预览→一键开启（插入本周 busyMode 频率版本, 当周生效豁免 FR-002）→一键恢复（移除版本）; 今日列表与周回顾"忙碌模式"徽标（FR-018）
+- [X] T040 [US4] Wire deep links `target://today` / `target://review` / `target://goal/{id}` in `lib/app/router.dart`（go_router, research D14; 小组件/通知深链落点）
 
 **Checkpoint**: US4 独立可用——目标按周被重新审视而非腐烂
 

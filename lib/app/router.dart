@@ -9,11 +9,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/copy.dart';
+import '../features/busy_mode/busy_mode_view.dart';
 import '../features/goals/goal_editor.dart';
 import '../features/goals/goal_templates.dart';
 import '../features/goals/goals_view.dart';
 import '../features/goals/onboarding.dart';
 import '../features/settings/settings_view.dart';
+import '../features/review/review_view.dart';
 import '../features/today/today_view.dart';
 
 
@@ -49,8 +51,8 @@ GoRouter _build() => GoRouter(
             path: '/milestone/:id',
             builder: (_, s) => _Placeholder('里程碑 ${s.pathParameters['id']}')),
         GoRoute(
-            path: '/review', builder: (_, _) => const _Placeholder(Copy.reviewTitle)),
-        GoRoute(path: '/busy', builder: (_, _) => const _Placeholder(Copy.busyTitle)),
+            path: '/review', builder: (_, _) => const ReviewView()),
+        GoRoute(path: '/busy', builder: (_, _) => const BusyModeView()),
       ],
     );
 

@@ -52,6 +52,17 @@ abstract final class Copy {
   static const busyStartHint = '本周生效';
   static const busyResume = '恢复正常';
   static const busyResumed = '已恢复，节奏回来了';
+  static const busySelectHint = '选要降档的目标，忙完一键恢复';
+  static const busyFloorNote = '已是最低档';
+  static const busyActiveNow = '忙碌模式进行中';
+
+  // ---- 周回顾补充（FR-008，与上节文案表合并使用）----
+
+  static const reviewDecisionTitle = '下周怎么走？';
+  static const reviewAdjustHint = '新频率下周一生效';
+  static const reviewSave = '记下这一周';
+  static const reviewSaved = '已记下';
+  static String reviewMetDays(int met, int applicable) => '$met/$applicable 天';
 
   // ---- 目标创建 / 编辑（FR-001/011/012）----
 

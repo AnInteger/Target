@@ -43,7 +43,23 @@ class TodayView extends ConsumerWidget {
     final allDone = habits.isNotEmpty && metCount == habits.length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text(Copy.appName)),
+      appBar: AppBar(
+        title: const Text(Copy.appName),
+        actions: [
+          // 周一晨 dailyBrief 深链之外的常驻入口（FR-008）。
+          IconButton(
+            tooltip: Copy.reviewTitle,
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () => context.push('/review'),
+          ),
+          // 忙碌模式快捷入口（FR-018，ui-contract 今日页）。
+          IconButton(
+            tooltip: Copy.busyTitle,
+            icon: const Icon(Icons.bolt_outlined),
+            onPressed: () => context.push('/busy'),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [

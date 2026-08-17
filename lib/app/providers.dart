@@ -19,7 +19,9 @@ import '../core/platform/gateways.dart';
 import '../core/platform/notification_gateway.dart';
 import '../core/platform/share_gateway.dart';
 import '../core/platform/widget_gateway.dart';
+import '../core/stats/busy_mode_service.dart';
 import '../core/stats/check_in_service.dart';
+import '../core/stats/settlement_service.dart';
 import '../core/stats/stats_engine.dart';
 import '../features/settings/reminder_service.dart';
 
@@ -45,6 +47,20 @@ final reminderRepoProvider =
     Provider((ref) => ReminderRepository(ref.watch(dbProvider)));
 final reviewRepoProvider =
     Provider((ref) => ReviewRepository(ref.watch(dbProvider)));
+
+/// 周回顾流（回顾页 + 结算幂等查询）。
+final reviewsProvider = StreamProvider<List<WeeklyReview>>(
+    (ref) => ref.watch(reviewRepoProvider).watchAll());
+
+/// 周结算（US4）：启动/数据变化时幂等结算上一周。
+final settlementServiceProvider = Provider((ref) => WeeklySettlementService(
+    ref.watch(goalRepoProvider),
+    ref.watch(checkInRepoProvider),
+    ref.watch(reviewRepoProvider)));
+
+/// 忙碌模式（US4）：一键降档/恢复。
+final busyModeServiceProvider =
+    Provider((ref) => BusyModeService(ref.watch(goalRepoProvider)));
 final settingsRepoProvider =
     Provider((ref) => SettingsRepository(ref.watch(dbProvider)));
 

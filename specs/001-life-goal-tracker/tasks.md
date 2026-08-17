@@ -161,12 +161,12 @@ description: "Task list for feature implementation"
 
 **Purpose**: 备份闭环、数据风险明示、调试工具、文案审校与端到端验收
 
-- [ ] T045 [P] Implement backup exporter（全量实体+Settings → 版本化 JSON `.targetbackup`; iOS 分享面板 + UTType 声明 `com.target.backup`; Web 浏览器下载）in `lib/core/backup/backup_exporter.dart` per contracts/backup-format.md（FR-015）
-- [ ] T046 [P] Implement backup importer in `lib/core/backup/backup_importer.dart`: schema 逐实体校验（缺失/类型错误明确报错不部分导入）、更高版本拒绝、冲突弹窗"覆盖本地/取消"绝不静默合并、原子替换、记录数摘要; Web 文件选择; UI 接入 `lib/features/settings/settings_view.dart`
-- [ ] T047 Unit tests for backup round-trip + 冲突拒绝 + 损坏文件拒绝 in `test/backup_test.dart`
-- [ ] T048 Add data-risk & privacy disclosure（换机/重装需备份、数据仅存本地、备份文件含全部数据, FR-014）to `lib/features/settings/settings_view.dart` 与首启引导
-- [ ] T049 Implement Debug 时钟菜单（开发构建显示; 时间旅行验证周结算, research D6）in `lib/features/settings/debug_clock.dart` 接入 `lib/features/settings/settings_view.dart`
-- [ ] T050 Copy tone review pass（教练式非指责全局审校: 40% 完成率/连击断裂/低电量表达）over `lib/core/copy.dart` per ui-contract.md 文案与语气
+- [X] T045 [P] Implement backup exporter（全量实体+Settings → 版本化 JSON `.targetbackup`; iOS 分享面板 + UTType 声明 `com.target.backup`; Web 浏览器下载）in `lib/core/backup/backup_exporter.dart` per contracts/backup-format.md（FR-015）
+- [X] T046 [P] Implement backup importer in `lib/core/backup/backup_importer.dart`: schema 逐实体校验（缺失/类型错误明确报错不部分导入）、更高版本拒绝、冲突弹窗"覆盖本地/取消"绝不静默合并、原子替换、记录数摘要; Web 文件选择; UI 接入 `lib/features/settings/settings_view.dart`
+- [X] T047 Unit tests for backup round-trip + 冲突拒绝 + 损坏文件拒绝 in `test/backup_test.dart`
+- [X] T048 Add data-risk & privacy disclosure（换机/重装需备份、数据仅存本地、备份文件含全部数据, FR-014）to `lib/features/settings/settings_view.dart` 与首启引导
+- [X] T049 Implement Debug 时钟菜单（开发构建显示; 时间旅行验证周结算, research D6）in `lib/features/settings/debug_clock.dart` 接入 `lib/features/settings/settings_view.dart`
+- [X] T050 Copy tone review pass（教练式非指责全局审校: 40% 完成率/连击断裂/低电量表达）over `lib/core/copy.dart` per ui-contract.md 文案与语气
 - [ ] T051 End-to-end acceptance walkthrough per quickstart.md V1–V8: Web 全功能走查（含刷新持久化）+ push 触发 Codemagic 构建绿 → TestFlight iPhone 实机验收（含小组件 V3、系统通知 V8）
 
 ---

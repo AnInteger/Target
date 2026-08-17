@@ -2,15 +2,20 @@
 /// 每日概要时间与开关、逐目标提醒开关与时间。
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
+import '../../core/backup/backup_exporter.dart';
+import '../../core/backup/backup_importer.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
+import 'debug_clock.dart';
 
 /// dailyBrief 提醒行固定 id（goalId=null ⇔ 概要）。
 const _briefRowId = 'daily-brief';
@@ -90,6 +95,16 @@ class SettingsView extends ConsumerWidget {
                 ],
               ),
             ),
+          const SizedBox(height: 16),
+          _SectionTitle(Copy.backupHeader),
+          const _BackupCard(),
+          const SizedBox(height: 16),
+          const _DataRiskCard(),
+          if (kDebugMode) ...[
+            const SizedBox(height: 16),
+            _SectionTitle(Copy.debugClock),
+            Card(child: const DebugClockTile()),
+          ],
           if (kIsWeb) ...[
             const SizedBox(height: 16),
             Text(Copy.widgetIosOnly,
@@ -132,6 +147,137 @@ class _SectionTitle extends StatelessWidget {
         padding: const EdgeInsets.only(left: 4, bottom: 8),
         child: Text(text, style: Theme.of(context).textTheme.titleSmall),
       );
+}
+
+/// 备份卡（T045/T046，FR-015）：导出（Web 下载 / iOS 分享面板）、
+/// 导入（校验 → 冲突弹窗"覆盖本地/取消" → 原子替换 → 摘要）。
+class _BackupCard extends ConsumerStatefulWidget {
+  const _BackupCard();
+
+  @override
+  ConsumerState<_BackupCard> createState() => _BackupCardState();
+}
+
+class _BackupCardState extends ConsumerState<_BackupCard> {
+
+  static const _entityLabels = {
+    'goals': '目标',
+    'frequencyVersions': '频率版本',
+    'busySessions': '忙碌记录',
+    'checkIns': '打卡',
+    'milestoneSteps': '里程碑步骤',
+    'reminders': '提醒',
+    'weeklyReviews': '周回顾',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Column(children: [
+        ListTile(
+          leading: const Icon(Icons.file_upload_outlined),
+          title: Text(Copy.backupExport),
+          subtitle: Text(Copy.dataRiskNote.split('。').first),
+          onTap: _export,
+        ),
+        const Divider(height: 1),
+        ListTile(
+          leading: const Icon(Icons.file_download_outlined),
+          title: Text(Copy.backupImport),
+          onTap: _import,
+        ),
+      ]),
+    );
+  }
+
+  Future<void> _export() async {
+    final now = DateTime.now();
+    final json = await BackupExporter(ref.read(dbProvider))
+        .exportString(now: now);
+    await ref.read(shareGatewayProvider).exportFile(
+          fileName: backupFileName(now),
+          bytes: utf8.encode(json),
+          mime: 'application/json',
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text(Copy.backupExported)));
+  }
+
+  Future<void> _import() async {
+    final picked = await ref.read(filePickGatewayProvider).pickBackupFile();
+    if (picked == null) return;
+    final importer = BackupImporter(ref.read(dbProvider));
+    final BackupData data;
+    try {
+      data = importer.parse(utf8.decode(picked.bytes));
+    } on BackupFormatException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${Copy.backupImportCorrupt}：${e.message}')));
+      return;
+    }
+
+    // 本地已有数据 → 必须显式选择覆盖，绝不静默合并（FR-015）。
+    if (await importer.hasLocalData()) {
+      if (!mounted) return;
+      final overwrite = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text(Copy.backupImportConflictTitle),
+          content: const Text(Copy.backupImportConflictBody),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text(Copy.backupImportCancel)),
+            FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text(Copy.backupImportOverwrite)),
+          ],
+        ),
+      );
+      if (overwrite != true) return;
+    }
+
+    final summary = await importer.apply(data, overwriteLocal: true);
+    if (!mounted) return;
+    final detail = summary.counts.entries
+        .where((e) => e.value > 0)
+        .map((e) => '${_entityLabels[e.key] ?? e.key} ${e.value}')
+        .join(' · ');
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('${Copy.backupImportDone}：$detail')));
+  }
+}
+
+/// 数据风险与隐私说明卡（T048，FR-014）。
+class _DataRiskCard extends StatelessWidget {
+  const _DataRiskCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.lock_outline),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Text(Copy.dataRiskTitle,
+                      style: Theme.of(context).textTheme.titleSmall)),
+            ]),
+            const SizedBox(height: 6),
+            Text(Copy.dataRiskNote,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// 通知权限卡（T034，FR-007）：被拒 → 全功能可用 + 开启指引，

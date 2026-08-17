@@ -24,7 +24,6 @@ abstract final class Copy {
 
   static String streakDays(int n) => '连击 $n 天';
   static const streakBroken = '忙就先降档，线还在'; // 连击断裂，配忙碌模式入口
-  static const freqEditTakesEffect = '新频率下周一生效，本周仍按原计划';
   static String todayProgress(int done, int target) => '$done/$target';
 
   // ---- 周回顾（FR-008，R6 补签透明）----
@@ -131,7 +130,7 @@ abstract final class Copy {
       : '还有 $unmet 件小事在等你，不着急。';
   static const dailyBriefReviewLine = '上周回顾已生成，花两分钟看看这一周';
   static String goalReminderBody(int done, int target) =>
-      '还差一点点：今日 $done/$target';
+      '今天 $done/$target，不着急';
   static const remindersHeader = '目标提醒';
   static const reminderGoalHint = '到点轻轻提醒，不催促';
   static const reminderMondayHint = '周一的概要会带上上周回顾';
@@ -145,7 +144,18 @@ abstract final class Copy {
   static const backupImportOverwrite = '覆盖本地';
   static const backupImportCorrupt = '备份文件不完整，已取消导入';
   static const backupImportDone = '导入完成';
+  static const backupImportCancel = '取消';
+  static const backupHeader = '备份与数据';
+  static const backupExported = '备份已生成';
   static const backupHint = '数据只存在这台设备上，记得定期导出备份';
+
+  // ---- 数据风险与隐私（FR-014）----
+
+  static const dataRiskTitle = '数据只在这台设备上';
+  static const dataRiskNote =
+      '所有数据仅存本地、不上传。换机或删除应用前，请先导出备份；'
+      '备份文件包含全部目标数据，请妥善保管。';
+  static const onboardingDataNote = '数据只存在这台设备上，不上传云端';
 
   // ---- 设置 / 其他 ----
 
@@ -158,7 +168,7 @@ abstract final class Copy {
   // ---- 今日页（FR-017/US2）----
 
   static const backfillCalendarTitle = '补一补过去两周';
-  static const backfillHint = '点缺卡的日期补上，线接回来';
+  static const backfillHint = '点想补的日期，线就接回来';
   static const todayNav = '今日';
   static const goalsNav = '目标';
   static const settingsNav = '设置';

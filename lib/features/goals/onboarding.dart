@@ -77,6 +77,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   child: const Text(Copy.onboardingSkip),
                 ),
               ),
+              const SizedBox(height: 8),
+              Center(
+                // 数据风险首启明示（FR-014）：本地存储、不上传。
+                child: Text(Copy.onboardingDataNote,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ),
             ],
           ),
         ),

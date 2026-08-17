@@ -25,10 +25,10 @@ import '../core/stats/settlement_service.dart';
 import '../core/stats/stats_engine.dart';
 import '../features/settings/reminder_service.dart';
 
-/// 注入时钟（research D6）；Debug 时钟菜单（T049）运行时切换实现。
-final dateProviderProvider = Provider<DateProvider>((ref) {
-  return SystemDateProvider();
-});
+/// 注入时钟（research D6）；Debug 时钟菜单（T049）运行时切换实现
+/// （StateProvider：debug 菜单换 FixedDateProvider 后 invalidate today/stats）。
+final dateProviderProvider =
+    StateProvider<DateProvider>((ref) => const SystemDateProvider());
 
 final dbProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase(openConnection());

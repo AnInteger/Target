@@ -21,6 +21,7 @@ import '../core/platform/share_gateway.dart';
 import '../core/platform/widget_gateway.dart';
 import '../core/stats/check_in_service.dart';
 import '../core/stats/stats_engine.dart';
+import '../features/settings/reminder_service.dart';
 
 /// 注入时钟（research D6）；Debug 时钟菜单（T049）运行时切换实现。
 final dateProviderProvider = Provider<DateProvider>((ref) {
@@ -50,6 +51,14 @@ final settingsRepoProvider =
 /// Settings 单例行流（今日占位/各页共用）。
 final settingsProvider = StreamProvider<Settings>(
     (ref) => ref.watch(settingsRepoProvider).watch());
+
+/// 提醒行流（设置页展示 + app 层 replan 触发）。
+final remindersProvider = StreamProvider<List<Reminder>>(
+    (ref) => ref.watch(reminderRepoProvider).watchAll());
+
+/// 提醒调度（US3）：数据/设置变化后全量重建 pending 通知。
+final reminderServiceProvider = Provider((ref) => ReminderService(
+    ref.watch(notificationGatewayProvider), ref.watch(reminderRepoProvider)));
 
 // ---------------------------------------------------------------------------
 // 领域数据流 → 统计引擎（research D13：仓储转发重算，UI 只读结果）

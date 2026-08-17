@@ -1,4 +1,6 @@
 // App Shell 冒烟测试（T014 + T022）：内存库启动 → 空库首启进引导页（SC-001）。
+import 'dart:async';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -13,14 +15,42 @@ import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/frequency_pattern.dart';
+import 'package:target/core/platform/gateways.dart';
+
+/// 测试假通知网关：记录调度、零平台副作用。
+class FakeNotificationGateway implements NotificationGateway {
+  final scheduled = <int>[];
+
+  @override
+  Future<bool> requestPermission() async => true;
+  @override
+  Future<bool> get isPermissionGranted async => true;
+  @override
+  Future<void> scheduleDaily(
+      {required int id,
+      required LocalTime time,
+      required String title,
+      required String body}) async {
+    scheduled.add(id);
+  }
+
+  @override
+  Future<void> cancel(int id) async {}
+  @override
+  Future<void> cancelAll() async {}
+  @override
+  Stream<NotificationBanner> get banners => const Stream.empty();
+}
 
 void main() {
   testWidgets('空库首启 → 引导页（SC-001）', (WidgetTester tester) async {
     final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -35,6 +65,7 @@ void main() {
 
   testWidgets('已完成引导 → 直接今日页', (WidgetTester tester) async {
     final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
     final settings = await (db.select(db.settingsRows)).get();
     expect(settings, isNotEmpty);
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -43,6 +74,7 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -58,6 +90,7 @@ void main() {
 
   testWidgets('US2 微缩验收：打卡 → 进度/成就即时刷新 → 撤销回退', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
     final goal = await repo.create(Goal(
@@ -75,6 +108,7 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),

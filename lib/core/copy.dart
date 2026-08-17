@@ -100,7 +100,23 @@ abstract final class Copy {
 
   static const notifDeniedTitle = '通知未开启';
   static const notifDeniedBody = '不开通知也能用全部功能；想开的话，去系统设置里找 Target。';
+  static const notifEnable = '开启通知';
+  static const notifEnabled = '通知已开启';
+  static const notifAck = '知道了';
+
+  // ---- 每日概要 / 逐目标提醒（FR-006/008）----
+
   static const dailyBriefTitle = '今天的小事';
+  static const dailyBriefAllDone = '都照顾到了，安心过今天。';
+  static String dailyBriefSummary(int unmet) => unmet == 1
+      ? '还有 1 件小事在等你，不着急。'
+      : '还有 $unmet 件小事在等你，不着急。';
+  static const dailyBriefReviewLine = '上周回顾已生成，花两分钟看看这一周';
+  static String goalReminderBody(int done, int target) =>
+      '还差一点点：今日 $done/$target';
+  static const remindersHeader = '目标提醒';
+  static const reminderGoalHint = '到点轻轻提醒，不催促';
+  static const reminderMondayHint = '周一的概要会带上上周回顾';
 
   // ---- 备份（FR-015）----
 

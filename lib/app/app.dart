@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/copy.dart';
+import '../core/models/calendar_types.dart';
 import '../core/platform/gateways.dart';
 import '../core/platform/widgets/widget_snapshot.dart';
 import 'design_tokens.dart';
@@ -43,6 +44,23 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     super.dispose();
   }
 
+  /// US3：数据/设置/提醒行任一变化 → 全量重建 pending 通知
+  /// （T033 已达标剔除；跨天由 dayTicker invalidate statsProvider 走同路）。
+  void _replanReminders() {
+    final stats = ref.read(statsProvider);
+    final goals = ref.read(goalsProvider).value;
+    final settings = ref.read(settingsProvider).value;
+    if (stats == null || goals == null || settings == null) return;
+    final now = DateTime.now();
+    unawaited(ref.read(reminderServiceProvider).replan(
+          settings: settings,
+          goals: goals,
+          stats: stats,
+          today: ref.read(todayProvider),
+          nowTime: LocalTime.fromDateTime(now),
+        ));
+  }
+
   /// 首启引导（SC-001）：未完成 + 无目标 → 进引导页（一次性判定）。
   void _maybeShowOnboarding() {
     if (_onboardingChecked) return;
@@ -65,6 +83,8 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     // T031：数据变更 → 小组件快照重写（跨天由 dayTicker invalidate 触发
     // statsProvider 重算，走同一监听）。Web 网关为 no-op。
     ref.watch(dayTickerProvider);
+    ref.listen(remindersProvider, (_, _) => _replanReminders());
+    ref.listen(settingsProvider, (_, _) => _replanReminders());
     ref.listen(statsProvider, (_, next) {
       final goals = ref.read(goalsProvider).value;
       if (next == null || goals == null) return;
@@ -75,6 +95,7 @@ class _TargetAppState extends ConsumerState<TargetApp> {
         today: ref.read(todayProvider),
         now: DateTime.now(),
       );
+      _replanReminders();
     });
     return MaterialApp.router(
       title: Copy.appName,

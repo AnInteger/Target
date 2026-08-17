@@ -110,10 +110,10 @@ description: "Task list for feature implementation"
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Implement ReminderService in `lib/features/settings/reminder_service.dart`: 经 T012 通知接口调度 scope=goal/dailyBrief 本地通知（FR-006）; Web 实现为页内横幅模拟; dailyBrief 默认 08:00 内容含各目标当日状态概览
-- [ ] T033 [US3] Implement no-push-when-met filtering in `lib/features/settings/reminder_service.dart`: 数据变更后重建 pending 请求，剔除当日已达标目标的催促（FR-006, SC-005）
-- [ ] T034 [US3] Implement notification-permission degradation in `lib/features/settings/settings_view.dart`: 被拒时全功能可用 + "如何开启通知"说明、不反复弹窗（FR-007）
-- [ ] T035 [US3] Implement reminder settings UI（每日概要时间、逐目标提醒开关与时间）in `lib/features/settings/settings_view.dart`; 周一晨概要附带周回顾深链入口（FR-008 联动, 页面在 US4）
+- [X] T032 [US3] Implement ReminderService in `lib/features/settings/reminder_service.dart`: 经 T012 通知接口调度 scope=goal/dailyBrief 本地通知（FR-006）; Web 实现为页内横幅模拟; dailyBrief 默认 08:00 内容含各目标当日状态概览
+- [X] T033 [US3] Implement no-push-when-met filtering in `lib/features/settings/reminder_service.dart`: 数据变更后重建 pending 请求，剔除当日已达标目标的催促（FR-006, SC-005）
+- [X] T034 [US3] Implement notification-permission degradation in `lib/features/settings/settings_view.dart`: 被拒时全功能可用 + "如何开启通知"说明、不反复弹窗（FR-007）
+- [X] T035 [US3] Implement reminder settings UI（每日概要时间、逐目标提醒开关与时间）in `lib/features/settings/settings_view.dart`; 周一晨概要附带周回顾深链入口（FR-008 联动, 页面在 US4）
 
 **Checkpoint**: US3 独立可用——目标会在设定时间主动浮现
 

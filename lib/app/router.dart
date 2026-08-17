@@ -13,6 +13,7 @@ import '../features/goals/goal_editor.dart';
 import '../features/goals/goal_templates.dart';
 import '../features/goals/goals_view.dart';
 import '../features/goals/onboarding.dart';
+import '../features/settings/settings_view.dart';
 import '../features/today/today_view.dart';
 
 
@@ -35,7 +36,7 @@ GoRouter _build() => GoRouter(
             StatefulShellBranch(routes: [
               GoRoute(
                   path: '/settings',
-                  builder: (_, _) => const _Placeholder(Copy.settingsTitle)),
+                  builder: (_, _) => const SettingsView()),
             ]),
           ],
         ),

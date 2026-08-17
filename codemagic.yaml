@@ -1,0 +1,74 @@
+# Codemagic CI —— Target iOS 构建门禁（research D15 / spec CI 门禁假设）
+#
+# 行为：push 到 main → iOS 构建（含 TargetWidgets 小组件扩展）→ 绿即自动分发 TestFlight。
+# 用户 iPhone 经 TestFlight 实机验收（quickstart V3/V8 等 iOS 专属场景）。
+#
+# 首次接入需要在 Codemagic 应用设置中配置（encrypted variables）：
+#   APP_STORE_CONNECT_ISSUER_ID       —— App Store Connect API 密钥 Issuer ID
+#   APP_STORE_CONNECT_KEY_IDENTIFIER  —— 密钥 Key ID
+#   APP_STORE_CONNECT_PRIVATE_KEY     —— 密钥 .p8 内容（或改用 *_FILE_PATH）
+# 另需在 Apple Developer Portal 手动注册一次 App Group：group.com.target.shared
+# （两个 target 的 entitlements 均引用它；签名 profile 需包含该能力）。
+
+workflows:
+  ios-testflight:
+    name: iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    when:
+      changeset:
+        includes:
+          - "lib/**"
+          - "ios/**"
+          - "pubspec.yaml"
+          - "pubspec.lock"
+          - "codemagic.yaml"
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: false
+      cancel_previous_builds: true
+    environment:
+      flutter: 3.47.0
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier:
+          - com.target.app
+          - com.target.targetwidgets
+      vars:
+        # 使用 Flutter 中国镜像无关紧要（CI 在海外），保持默认源
+        FLUTTER_BUILD_NAME: "1.0.0"
+    scripts:
+      - name: 强制 CocoaPods 路线（本项目小组件扩展依赖 pod 链接 home_widget）
+        script: |
+          flutter config --no-enable-swift-package-manager
+      - name: 依赖获取
+        script: |
+          flutter pub get
+      - name: 静态分析
+        script: |
+          flutter analyze
+      - name: 单元测试（统计引擎 R1–R9 / 备份 / 频率版本口径）
+        script: |
+          flutter test
+      - name: 应用签名配置
+        script: |
+          xcode-project use-profiles
+      - name: 构建 IPA（自动包含 TargetWidgets 扩展）
+        script: |
+          flutter build ipa --release
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        # 构建绿 → 自动分发 TestFlight（不自动提交审核）
+        submit_to_testflight: true

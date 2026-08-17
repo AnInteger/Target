@@ -148,10 +148,10 @@ description: "Task list for feature implementation"
 
 ### Implementation for User Story 5
 
-- [ ] T041 [P] [US5] Implement milestone editor extension（deadline、步骤增删改; 复用 GoalEditor 的里程碑分支）in `lib/features/milestones/milestone_editor.dart`
-- [ ] T042 [US5] Implement MilestoneView detail in `lib/features/milestones/milestone_view.dart`: 步骤勾选可回退、进度 done/total、截止倒计时、过期温和"顺延/关闭"选项（FR-013, US5-3）
-- [ ] T043 [US5] Integrate milestones into TodayView（进度概要与倒计时）and GoalsView cards; 全部步骤完成 → 一键 achieved in `lib/features/today/today_view.dart`
-- [ ] T044 [P] [US5] Add milestone rows to widget medium family（只读进度概要）in `ios/TargetWidgets/TodayWidgetBundle.swift` + snapshot goals keys 扩展 in `lib/core/platform/widgets/widget_snapshot.dart`
+- [X] T041 [P] [US5] Implement milestone editor extension（deadline、步骤增删改; 复用 GoalEditor 的里程碑分支）in `lib/features/milestones/milestone_editor.dart`
+- [X] T042 [US5] Implement MilestoneView detail in `lib/features/milestones/milestone_view.dart`: 步骤勾选可回退、进度 done/total、截止倒计时、过期温和"顺延/关闭"选项（FR-013, US5-3）
+- [X] T043 [US5] Integrate milestones into TodayView（进度概要与倒计时）and GoalsView cards; 全部步骤完成 → 一键 achieved in `lib/features/today/today_view.dart`
+- [X] T044 [P] [US5] Add milestone rows to widget medium family（只读进度概要）in `ios/TargetWidgets/TodayWidgetBundle.swift` + snapshot goals keys 扩展 in `lib/core/platform/widgets/widget_snapshot.dart`
 
 **Checkpoint**: 全部用户故事独立可用
 

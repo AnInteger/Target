@@ -14,6 +14,8 @@ import '../features/goals/goal_editor.dart';
 import '../features/goals/goal_templates.dart';
 import '../features/goals/goals_view.dart';
 import '../features/goals/onboarding.dart';
+import '../features/milestones/milestone_editor.dart';
+import '../features/milestones/milestone_view.dart';
 import '../features/settings/settings_view.dart';
 import '../features/review/review_view.dart';
 import '../features/today/today_view.dart';
@@ -49,7 +51,12 @@ GoRouter _build() => GoRouter(
                 template: s.extra is GoalTemplate ? s.extra as GoalTemplate : null)),
         GoRoute(
             path: '/milestone/:id',
-            builder: (_, s) => _Placeholder('里程碑 ${s.pathParameters['id']}')),
+            builder: (_, s) =>
+                MilestoneView(goalId: s.pathParameters['id']!)),
+        GoRoute(
+            path: '/milestone-editor',
+            builder: (_, s) => MilestoneEditorPage(
+                goalId: s.uri.queryParameters['id']!)),
         GoRoute(
             path: '/review', builder: (_, _) => const ReviewView()),
         GoRoute(path: '/busy', builder: (_, _) => const BusyModeView()),
@@ -102,16 +109,4 @@ String? mapDeepLink(Uri uri) {
     default:
       return null;
   }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(title)),
-        body: Center(child: Text(title, style: Theme.of(context).textTheme.headlineSmall)),
-      );
 }

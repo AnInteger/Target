@@ -18,10 +18,31 @@ struct WidgetGoal: Codable, Identifiable {
     let name: String
     let colorKey: String
     let iconKey: String
-    let targetCount: Int
-    let doneCount: Int
-    let met: Bool
-    let busyMode: Bool
+    // 习惯行必有；里程碑行为 nil（T044 可选键，兼容旧快照）。
+    let targetCount: Int?
+    let doneCount: Int?
+    let met: Bool?
+    let busyMode: Bool?
+    // T044 里程碑扩展（可选）：kind == "milestone" 时有效。
+    let kind: String?
+    let stepsDone: Int?
+    let stepsTotal: Int?
+    let deadline: String?
+
+    var isMilestone: Bool { kind == "milestone" }
+
+    /// 距截止剩余天数（-1 = 已过）；仅里程碑行有意义。
+    var daysLeft: Int? {
+        guard let deadline else { return nil }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone(identifier: "UTC")
+        guard let end = fmt.date(from: deadline) else { return nil }
+        let days = Calendar.current.dateComponents(
+            [.day], from: Calendar.current.startOfDay(for: Date()),
+            to: end).day ?? 0
+        return days
+    }
 }
 
 struct WeekProgress: Codable {
@@ -169,39 +190,67 @@ struct MediumView: View {
                 Spacer()
             } else {
                 ForEach(goals) { goal in
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(goalColor(goal.colorKey).opacity(0.22))
-                            .frame(width: 26, height: 26)
-                            .overlay(
-                                Text(String(goal.name.prefix(1)))
+                    if goal.isMilestone {
+                        // 里程碑（T044）：只读进度行 — 步骤 x/y + 倒计时，整行点击进详情。
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(goalColor(goal.colorKey).opacity(0.22))
+                                .frame(width: 26, height: 26)
+                                .overlay(
+                                    Text(String(goal.name.prefix(1)))
+                                        .font(.caption2)
+                                        .foregroundStyle(goalColor(goal.colorKey))
+                                )
+                            Text(goal.name)
+                                .font(.footnote)
+                                .lineLimit(1)
+                            Spacer()
+                            if let total = goal.stepsTotal, total > 0 {
+                                Text("\(goal.stepsDone ?? 0)/\(total)")
+                                    .font(.footnote.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                            if let days = goal.daysLeft {
+                                Text(days >= 0 ? "还剩\(days)天" : "过了\(-days)天")
                                     .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    } else {
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(goalColor(goal.colorKey).opacity(0.22))
+                                .frame(width: 26, height: 26)
+                                .overlay(
+                                    Text(String(goal.name.prefix(1)))
+                                        .font(.caption2)
+                                        .foregroundStyle(goalColor(goal.colorKey))
+                                )
+                            Text(goal.name)
+                                .font(.footnote)
+                                .lineLimit(1)
+                            if goal.busyMode == true {
+                                Text("忙碌中")
+                                    .font(.caption2)
+                                    .padding(.horizontal, 4)
+                                    .background(Capsule().fill(Color.secondary.opacity(0.2)))
+                            }
+                            Spacer()
+                            Text("\(goal.doneCount ?? 0)/\(goal.targetCount ?? 0)")
+                                .font(.footnote.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                            // iOS 17 交互：行内打卡 → Dart 回调（校验+写库+快照回写）
+                            Button(
+                                intent: HomeWidgetBackgroundIntent(
+                                    url: URL(string: "target://checkin?goalId=\(goal.id)")!)
+                            ) {
+                                Image(systemName: goal.met == true
+                                    ? "checkmark.circle.fill"
+                                    : "plus.circle")
                                     .foregroundStyle(goalColor(goal.colorKey))
-                            )
-                        Text(goal.name)
-                            .font(.footnote)
-                            .lineLimit(1)
-                        if goal.busyMode {
-                            Text("忙碌中")
-                                .font(.caption2)
-                                .padding(.horizontal, 4)
-                                .background(Capsule().fill(Color.secondary.opacity(0.2)))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        Spacer()
-                        Text("\(goal.doneCount)/\(goal.targetCount)")
-                            .font(.footnote.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                        // iOS 17 交互：行内打卡 → Dart 回调（校验+写库+快照回写）
-                        Button(
-                            intent: HomeWidgetBackgroundIntent(
-                                url: URL(string: "target://checkin?goalId=\(goal.id)")!)
-                        ) {
-                            Image(systemName: goal.met
-                                ? "checkmark.circle.fill"
-                                : "plus.circle")
-                                .foregroundStyle(goalColor(goal.colorKey))
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -233,13 +282,20 @@ struct AccessoryRectangularView: View {
     let entry: TodayEntry
 
     var body: some View {
-        let first = (entry.snapshot?.goals ?? []).first(where: { !$0.met })
+        let first = (entry.snapshot?.goals ?? []).first(where: { goal in
+            if goal.isMilestone { return true }
+            return goal.met != true
+        })
         if let goal = first {
             VStack(alignment: .leading) {
                 Text(goal.name)
                     .font(.headline)
                     .lineLimit(1)
-                Text("\(goal.doneCount)/\(goal.targetCount)")
+                Text(goal.isMilestone
+                    ? (goal.stepsTotal ?? 0) > 0
+                        ? "步骤 \(goal.stepsDone ?? 0)/\(goal.stepsTotal ?? 0)"
+                        : "里程碑"
+                    : "\(goal.doneCount ?? 0)/\(goal.targetCount ?? 0)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

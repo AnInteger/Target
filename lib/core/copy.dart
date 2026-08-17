@@ -106,6 +106,13 @@ abstract final class Copy {
       days >= 0 ? '还剩 $days 天' : '过了 ${-days} 天';
   static const milestoneOverdue = '不急，下一步是什么？'; // 过期温和提示
   static const milestoneDone = '达成了，恭喜！';
+  static const milestoneStepsHeader = '拆成小步';
+  static const milestoneAddStep = '加一步';
+  static const milestoneDeleteStep = '删除步骤';
+  static const milestoneStepHint = '一步就好，别贪多';
+  static const milestonePostponed = '截止日已更新';
+  static const milestoneCloseTitle = '先放下';
+  static const milestoneCloseAck = '这个目标先收进抽屉，不打分';
 
   // ---- 提醒 / 通知（FR-006/007）----
 

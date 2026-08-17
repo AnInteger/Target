@@ -17,6 +17,7 @@ import '../../core/models/entities.dart';
 import '../../core/models/frequency_pattern.dart';
 import '../../core/stats/stats_engine.dart';
 import '../../core/stats/versioning.dart';
+import '../goals/goal_lifecycle.dart';
 import 'backfill_calendar.dart';
 import 'undo_toast.dart';
 
@@ -290,7 +291,19 @@ class _MilestoneRow extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (steps != null && steps.isNotEmpty)
+              if (steps != null && steps.isNotEmpty && done == steps.length)
+                // 全部步骤完成 → 一键达成（FR-010，误触可经目标页恢复）。
+                FilledButton.tonal(
+                  onPressed: () async {
+                    await achieveGoal(ref, goal);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text(Copy.milestoneDone)));
+                    }
+                  },
+                  child: Text(Copy.milestoneDone),
+                )
+              else if (steps != null && steps.isNotEmpty)
                 Text(Copy.milestoneProgress(done, steps.length),
                     style: Theme.of(context).textTheme.titleSmall),
             ],

@@ -20,8 +20,12 @@ snapshot keys（App Group 共享存储）:
   battery       → Int?            // 生活电量百分比；nil/缺失 = 空态"—"
   updatedAt     → ISO 8601 时刻   // 快照生成时间
   goals         → [ { id, name, colorKey, iconKey,
-                      targetCount, doneCount, met, busyMode } ]   // 仅活跃 habit，排序与今日视图一致
-  weekProgress  → { weekStart, metGoals, totalGoals }             // 今日总进度用
+                      targetCount, doneCount, met, busyMode } ]   // 活跃 habit 行，排序与今日视图一致
+                                    // T044 里程碑扩展（可选键，Swift 侧全部可选解码，兼容旧快照）:
+                                    //   kind: "milestone", stepsDone: Int, stepsTotal: Int, deadline: "yyyy-MM-dd"
+                                    // 里程碑行不含 targetCount/doneCount/met/busyMode；
+                                    // medium 家族渲染为只读进度行（步骤 x/y + 倒计时），无打卡按钮
+  weekProgress  → { weekStart, metGoals, totalGoals }             // 今日总进度用（只统计 habit）
 
 Swift 侧（TargetWidgets 扩展）只做两件事：读快照 → 渲染 families；把按钮点击转发给 home_widget 的交互回调。
 ```

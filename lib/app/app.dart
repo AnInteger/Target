@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/copy.dart';
 import '../core/models/calendar_types.dart';
+import '../core/models/entities.dart';
 import '../core/platform/gateways.dart';
 import '../core/platform/widgets/widget_snapshot.dart';
 import 'design_tokens.dart';
@@ -69,6 +70,29 @@ class _TargetAppState extends ConsumerState<TargetApp> {
         );
   }
 
+  /// T044：里程碑步骤属另一张表，先取全（同步闭包喂给快照构建），
+  /// 再写快照 + 重建提醒。
+  Future<void> _writeSnapshot(List<Goal> goals) async {
+    final stats = ref.read(statsProvider);
+    if (stats == null) return;
+    final repo = ref.read(goalRepoProvider);
+    final stepsByGoal = <String, List<MilestoneStep>>{};
+    for (final g
+        in goals.where((g) => g.isMilestone && g.status == GoalStatus.active)) {
+      stepsByGoal[g.id] = await repo.stepsOf(g.id);
+    }
+    if (!mounted) return;
+    await writeTodaySnapshot(
+      gateway: ref.read(widgetGatewayProvider),
+      goals: goals,
+      stats: stats,
+      today: ref.read(todayProvider),
+      now: DateTime.now(),
+      stepsOf: (id) => stepsByGoal[id] ?? const <MilestoneStep>[],
+    );
+    await _replanReminders();
+  }
+
   /// 首启引导（SC-001）：未完成 + 无目标 → 进引导页（一次性判定）。
   void _maybeShowOnboarding() {
     if (_onboardingChecked) return;
@@ -96,14 +120,7 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     ref.listen(statsProvider, (_, next) {
       final goals = ref.read(goalsProvider).value;
       if (next == null || goals == null) return;
-      writeTodaySnapshot(
-        gateway: ref.read(widgetGatewayProvider),
-        goals: goals,
-        stats: next,
-        today: ref.read(todayProvider),
-        now: DateTime.now(),
-      );
-      _replanReminders();
+      _writeSnapshot(goals);
     });
     return MaterialApp.router(
       title: Copy.appName,

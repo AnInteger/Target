@@ -1,7 +1,9 @@
-/// 小组件快照（T028，contracts/widget-intent.md）：纯构建 + 经网关落 App Group。
+/// 小组件快照（T028/T044，contracts/widget-intent.md）：纯构建 + 经网关落
+/// App Group。
 ///
 /// schema：battery / updatedAt / goals[{id,name,colorKey,iconKey,
-/// targetCount,doneCount,met,busyMode}] / weekProgress{weekStart,
+/// targetCount,doneCount,met,busyMode,kind?,stepsDone?,stepsTotal?,
+/// deadline?}]（T044 里程碑扩展，可选键兼容旧快照）/ weekProgress{weekStart,
 /// metGoals,totalGoals}。本文件 Web 可达（无 home_widget 依赖）；
 /// 原生写盘由 WidgetGateway 完成，Web 网关为 no-op。
 library;
@@ -16,24 +18,40 @@ Map<String, Object?> buildTodaySnapshot({
   required StatsEvaluation stats,
   required LocalDate today,
   required DateTime now,
+  List<MilestoneStep> Function(String goalId)? stepsOf,
 }) {
-  final habits =
-      goals.where((g) => g.isHabit && g.status == GoalStatus.active).toList();
+  final active =
+      goals.where((g) => g.status == GoalStatus.active).toList();
   final rows = <Map<String, Object?>>[];
   var metGoals = 0;
-  for (final g in habits) {
-    final st = stats.dayStatusOf(g.id);
-    if (st.met) metGoals++;
-    rows.add({
-      'id': g.id,
-      'name': g.name,
-      'colorKey': g.colorKey,
-      'iconKey': g.iconKey,
-      'targetCount': st.targetCount,
-      'doneCount': st.doneCount,
-      'met': st.met,
-      'busyMode': st.busyMode,
-    });
+  for (final g in active) {
+    if (g.isHabit) {
+      final st = stats.dayStatusOf(g.id);
+      if (st.met) metGoals++;
+      rows.add({
+        'id': g.id,
+        'name': g.name,
+        'colorKey': g.colorKey,
+        'iconKey': g.iconKey,
+        'targetCount': st.targetCount,
+        'doneCount': st.doneCount,
+        'met': st.met,
+        'busyMode': st.busyMode,
+      });
+    } else {
+      // 里程碑（T044）：medium 家族只读行 — 步骤进度 + 倒计时。
+      final steps = stepsOf?.call(g.id) ?? const <MilestoneStep>[];
+      rows.add({
+        'id': g.id,
+        'name': g.name,
+        'colorKey': g.colorKey,
+        'iconKey': g.iconKey,
+        'kind': 'milestone',
+        'stepsDone': steps.where((s) => s.isDone).length,
+        'stepsTotal': steps.length,
+        if (g.deadline != null) 'deadline': g.deadline!.isoString,
+      });
+    }
   }
   return {
     'battery': stats.battery.percent,
@@ -42,7 +60,7 @@ Map<String, Object?> buildTodaySnapshot({
     'weekProgress': {
       'weekStart': today.weekStart.isoString,
       'metGoals': metGoals,
-      'totalGoals': rows.length,
+      'totalGoals': active.where((g) => g.isHabit).length,
     },
   };
 }
@@ -54,6 +72,11 @@ Future<void> writeTodaySnapshot({
   required StatsEvaluation stats,
   required LocalDate today,
   required DateTime now,
+  List<MilestoneStep> Function(String goalId)? stepsOf,
 }) =>
     gateway.saveSnapshot(buildTodaySnapshot(
-        goals: goals, stats: stats, today: today, now: now));
+        goals: goals,
+        stats: stats,
+        today: today,
+        now: now,
+        stepsOf: stepsOf));

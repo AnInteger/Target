@@ -121,21 +121,24 @@ class _DayCell extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: done ? null : Border.all(color: theme.colorScheme.outlineVariant),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('周${day.weekday.zhLabel}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant)),
-            Text('${day.day}', style: theme.textTheme.titleSmall),
-            Icon(
-              done ? Icons.check : Icons.add,
-              size: 16,
-              color: done
-                  ? theme.colorScheme.onPrimaryContainer
-                  : theme.colorScheme.outline,
-            ),
-          ],
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('周${day.weekday.zhLabel}',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant)),
+              Text('${day.day}', style: theme.textTheme.titleSmall),
+              Icon(
+                done ? Icons.check : Icons.add,
+                size: 16,
+                color: done
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.outline,
+              ),
+            ],
+          ),
         ),
       ),
     );

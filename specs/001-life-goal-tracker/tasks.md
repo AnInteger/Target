@@ -167,7 +167,7 @@ description: "Task list for feature implementation"
 - [X] T048 Add data-risk & privacy disclosure（换机/重装需备份、数据仅存本地、备份文件含全部数据, FR-014）to `lib/features/settings/settings_view.dart` 与首启引导
 - [X] T049 Implement Debug 时钟菜单（开发构建显示; 时间旅行验证周结算, research D6）in `lib/features/settings/debug_clock.dart` 接入 `lib/features/settings/settings_view.dart`
 - [X] T050 Copy tone review pass（教练式非指责全局审校: 40% 完成率/连击断裂/低电量表达）over `lib/core/copy.dart` per ui-contract.md 文案与语气
-- [ ] T051 End-to-end acceptance walkthrough per quickstart.md V1–V8: Web 全功能走查（含刷新持久化）+ push 触发 Codemagic 构建绿 → TestFlight iPhone 实机验收（含小组件 V3、系统通知 V8）
+- [X] T051 End-to-end acceptance walkthrough per quickstart.md V1–V8: Web 全功能走查（含刷新持久化）+ push 触发 Codemagic 构建绿 → TestFlight iPhone 实机验收（含小组件 V3、系统通知 V8）
 
 ---
 

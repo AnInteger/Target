@@ -55,3 +55,6 @@ ios/Pods/
 ios/.symlinks/
 ios/Flutter/ephemeral
 show.encryption_key
+
+# Playwright MCP 会话产物（本地走查用）
+.playwright-mcp/

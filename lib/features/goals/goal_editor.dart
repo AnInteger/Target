@@ -220,6 +220,8 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
           TextField(
             controller: _name,
             maxLength: 30,
+            // 输入即刷新 SMART 建议 chip（FR-001：模糊名要当场提示）。
+            onChanged: (_) => setState(() {}),
             decoration: const InputDecoration(hintText: '比如：23 点前上床'),
           ),
           _smartCard(theme),

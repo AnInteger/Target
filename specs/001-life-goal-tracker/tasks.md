@@ -25,10 +25,10 @@ description: "Task list for feature implementation"
 **Purpose**: Flutter 工程初始化、iOS 原生孤岛与 CI 门禁
 
 - [X] T001 Initialize Flutter project at repo root: `flutter create . --project-name target --platforms=ios,android,web`（仓库根即项目根, plan.md Structure Decision）；verify `flutter build web` succeeds
-- [ ] T002 [P] Add dependencies to `pubspec.yaml` per plan.md whitelist（flutter_riverpod, drift, sqlite3_flutter_libs, path_provider, home_widget, flutter_local_notifications, go_router, share_plus, file_picker, clock; dev: drift_dev, build_runner, flutter_test, flutter_lints）and run `flutter pub get`
-- [ ] T003 Add widget extension target `TargetWidgets` to `ios/Runner.xcodeproj`（home_widget 官方模板, Swift 仅渲染）; configure App Group `group.com.target.shared` entitlements for Runner + TargetWidgets; bump IPHONEOS_DEPLOYMENT_TARGET to 17.0 in `ios/`
-- [ ] T004 [P] Create `codemagic.yaml` at repo root: push 触发 iOS 构建（含 TargetWidgets 扩展）+ 构建绿即自动 TestFlight 分发（CI 门禁, research D15）
-- [ ] T005 [P] Add `.gitignore`（Flutter/Dart: .dart_tool/, build/, *.iml 等）与 `analysis_options.yaml`（flutter_lints）at repo root; commit initial skeleton
+- [X] T002 [P] Add dependencies to `pubspec.yaml` per plan.md whitelist（flutter_riverpod, drift, sqlite3_flutter_libs, path_provider, home_widget, flutter_local_notifications, go_router, share_plus, file_picker, clock; dev: drift_dev, build_runner, flutter_test, flutter_lints）and run `flutter pub get`
+- [X] T003 Add widget extension target `TargetWidgets` to `ios/Runner.xcodeproj`（home_widget 官方模板, Swift 仅渲染）; configure App Group `group.com.target.shared` entitlements for Runner + TargetWidgets; bump IPHONEOS_DEPLOYMENT_TARGET to 17.0 in `ios/`
+- [X] T004 [P] Create `codemagic.yaml` at repo root: push 触发 iOS 构建（含 TargetWidgets 扩展）+ 构建绿即自动 TestFlight 分发（CI 门禁, research D15）
+- [X] T005 [P] Add `.gitignore`（Flutter/Dart: .dart_tool/, build/, *.iml 等）与 `analysis_options.yaml`（flutter_lints）at repo root; commit initial skeleton
 
 ---
 
@@ -38,12 +38,12 @@ description: "Task list for feature implementation"
 
 **⚠️ CRITICAL**: 本阶段完成前不得开始任何用户故事
 
-- [ ] T006 Implement value types `LocalDate`, `LocalTime`, `WeekStart`（周一锚定）, `Weekday` in `lib/core/models/calendar_types.dart` per `specs/001-life-goal-tracker/data-model.md`（设备本地时区换算、ISO 解析）
-- [ ] T007 [P] Implement `FrequencyPattern` (daily/weekly/weekdays) with applicability query in `lib/core/models/frequency_pattern.dart`
-- [ ] T008 Implement domain entities Goal, FrequencyVersion, BusyModeSession, CheckIn, MilestoneStep, Reminder, WeeklyReview(+GoalWeekStat), Settings as pure Dart classes in `lib/core/models/entities.dart` per data-model.md（含状态迁移与校验规则：活跃≤5 两类共享、CheckIn isBackfill 推导、同一 effectiveFromWeek 唯一非 busyMode 版本）
-- [ ] T009 [P] Implement `DateProvider` on `clock` package injection in `lib/core/models/date_provider.dart`（时钟注入, research D6）
-- [ ] T010 Implement drift schema + database in `lib/core/db/`（tables 与实体 1:1; 平台条件初始化：iOS=App Group 容器 NativeDatabase / Android=应用私有目录 / Web=WasmDatabase+IndexedDB, research D3）+ run build_runner codegen
-- [ ] T011 Implement repositories with stream queries (GoalRepository, CheckInRepository, ReminderRepository, ReviewRepository, SettingsRepository) in `lib/core/db/repositories.dart`
+- [X] T006 Implement value types `LocalDate`, `LocalTime`, `WeekStart`（周一锚定）, `Weekday` in `lib/core/models/calendar_types.dart` per `specs/001-life-goal-tracker/data-model.md`（设备本地时区换算、ISO 解析）
+- [X] T007 [P] Implement `FrequencyPattern` (daily/weekly/weekdays) with applicability query in `lib/core/models/frequency_pattern.dart`
+- [X] T008 Implement domain entities Goal, FrequencyVersion, BusyModeSession, CheckIn, MilestoneStep, Reminder, WeeklyReview(+GoalWeekStat), Settings as pure Dart classes in `lib/core/models/entities.dart` per data-model.md（含状态迁移与校验规则：活跃≤5 两类共享、CheckIn isBackfill 推导、同一 effectiveFromWeek 唯一非 busyMode 版本）
+- [X] T009 [P] Implement `DateProvider` on `clock` package injection in `lib/core/models/date_provider.dart`（时钟注入, research D6）
+- [X] T010 Implement drift schema + database in `lib/core/db/`（tables 与实体 1:1; 平台条件初始化：iOS=App Group 容器 NativeDatabase / Android=应用私有目录 / Web=WasmDatabase+IndexedDB, research D3）+ run build_runner codegen
+- [X] T011 Implement repositories with stream queries (GoalRepository, CheckInRepository, ReminderRepository, ReviewRepository, SettingsRepository) in `lib/core/db/repositories.dart`
 - [ ] T012 Implement platform capability interfaces + per-platform impls in `lib/core/platform/`: notifications（flutter_local_notifications / Web 页内横幅模拟）、widget bridge（home_widget / Web 占位说明）、share（share_plus / Web 浏览器下载）、file pick（file_picker / Web 文件选择）——UI 与业务逻辑只面向接口（plan.md Structure Decision #2）
 - [ ] T013 [P] Create design tokens (iconKey/colorKey 枚举与色板) in `lib/app/design_tokens.dart` and copy table skeleton `lib/core/copy.dart`（教练式语气文案统一入口, ui-contract.md）
 - [ ] T014 Implement app shell: `lib/main.dart`（ProviderScope、通知注册、小组件后台回调注册）+ `lib/app/app.dart`（MaterialApp、主题）+ go_router skeleton with Today placeholder in `lib/app/router.dart` per ui-contract.md

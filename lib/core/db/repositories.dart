@@ -95,6 +95,18 @@ class GoalRepository {
           .map(_toVersion)
           .get();
 
+  /// 创建目标时的初始版本（source=initial，生效周=创建周）。
+  Future<void> addInitial(String goalId, FrequencyPattern pattern,
+          WeekStart creationWeek) =>
+      _db.into(_db.frequencyVersions).insert(
+          db.FrequencyVersionsCompanion.insert(
+            id: newId(),
+            goalId: goalId,
+            effectiveFromWeek: creationWeek,
+            pattern: pattern,
+            source: FrequencySource.initial,
+          ));
+
   /// 用户编辑频率：[effectiveFrom]（= 下周一，服务层按注入时钟算出）生效；
   /// 同周已有待生效非 busyMode 版本则覆盖（FR-002：当前周仍按旧口径）。
   Future<void> addUserEdit(

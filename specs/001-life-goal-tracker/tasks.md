@@ -62,7 +62,7 @@ description: "Task list for feature implementation"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T016 [P] [US1] Unit tests for frequency versioning rules in `test/frequency_version_test.dart`: R2 版本选择（effectiveFromWeek ≤ 目标周取最新）、用户编辑追加下周一生效版本、同周覆盖待生效版本、busyMode 版本并存与恢复移除（contracts/stats-engine.md R2, research D7）
+- [X] T016 [P] [US1] Unit tests for frequency versioning rules in `test/frequency_version_test.dart`: R2 版本选择（effectiveFromWeek ≤ 目标周取最新）、用户编辑追加下周一生效版本、同周覆盖待生效版本、busyMode 版本并存与恢复移除（contracts/stats-engine.md R2, research D7）
 
 ### Implementation for User Story 1
 

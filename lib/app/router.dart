@@ -13,53 +13,77 @@ import '../features/goals/goal_editor.dart';
 import '../features/goals/goal_templates.dart';
 import '../features/goals/goals_view.dart';
 import '../features/goals/onboarding.dart';
-import 'providers.dart';
+import '../features/today/today_view.dart';
+
 
 final routerProvider = Provider<GoRouter>((ref) => _build());
 
 GoRouter _build() => GoRouter(
-  initialLocation: '/today',
-  routes: [
-    GoRoute(
-        path: '/onboarding', builder: (_, _) => const OnboardingPage()),
-    GoRoute(path: '/today', builder: (_, _) => const _TodayPlaceholder()),
-    GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
-    GoRoute(
-        path: '/goal-editor',
-        builder: (_, s) => GoalEditorPage(
-            goalId: s.uri.queryParameters['id'],
-            template: s.extra is GoalTemplate ? s.extra as GoalTemplate : null)),
-    GoRoute(
-        path: '/milestone/:id',
-        builder: (_, s) => _Placeholder('里程碑 ${s.pathParameters['id']}')),
-    GoRoute(
-        path: '/review', builder: (_, _) => const _Placeholder(Copy.reviewTitle)),
-    GoRoute(path: '/busy', builder: (_, _) => const _Placeholder(Copy.busyTitle)),
-    GoRoute(
-        path: '/settings',
-        builder: (_, _) => const _Placeholder(Copy.settingsTitle)),
-  ],
-);
+      initialLocation: '/today',
+      routes: [
+        GoRoute(
+            path: '/onboarding', builder: (_, _) => const OnboardingPage()),
+        StatefulShellRoute.indexedStack(
+          builder: (_, _, shell) => _AppShell(navigationShell: shell),
+          branches: [
+            StatefulShellBranch(routes: [
+              GoRoute(path: '/today', builder: (_, _) => const TodayView()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(
+                  path: '/settings',
+                  builder: (_, _) => const _Placeholder(Copy.settingsTitle)),
+            ]),
+          ],
+        ),
+        GoRoute(
+            path: '/goal-editor',
+            builder: (_, s) => GoalEditorPage(
+                goalId: s.uri.queryParameters['id'],
+                template: s.extra is GoalTemplate ? s.extra as GoalTemplate : null)),
+        GoRoute(
+            path: '/milestone/:id',
+            builder: (_, s) => _Placeholder('里程碑 ${s.pathParameters['id']}')),
+        GoRoute(
+            path: '/review', builder: (_, _) => const _Placeholder(Copy.reviewTitle)),
+        GoRoute(path: '/busy', builder: (_, _) => const _Placeholder(Copy.busyTitle)),
+      ],
+    );
 
-/// 今日占位（T014/T015 骨架）：订阅 Settings 流——真实打开 drift
-/// WasmDatabase/IndexedDB，页面呈现"每日概要时间"即持久化基座工作的证据。
-class _TodayPlaceholder extends ConsumerWidget {
-  const _TodayPlaceholder();
+/// 底部导航壳：今日 / 目标 / 设置。
+class _AppShell extends StatelessWidget {
+  const _AppShell({required this.navigationShell});
+
+  final StatefulNavigationShell navigationShell;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider);
-    return Scaffold(
-      appBar: AppBar(title: const Text(Copy.appName)),
-      body: Center(
-        child: settings.hasValue
-            ? Text(
-                '${Copy.dailyBriefTimeLabel} ${settings.value!.dailyBriefTime}',
-                style: Theme.of(context).textTheme.headlineSmall)
-            : const CircularProgressIndicator(),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Scaffold(
+        body: navigationShell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: navigationShell.currentIndex,
+          onDestinationSelected: (i) => navigationShell.goBranch(
+            i,
+            initialLocation: i == navigationShell.currentIndex,
+          ),
+          destinations: const [
+            NavigationDestination(
+                icon: Icon(Icons.today_outlined),
+                selectedIcon: Icon(Icons.today),
+                label: Copy.todayNav),
+            NavigationDestination(
+                icon: Icon(Icons.flag_outlined),
+                selectedIcon: Icon(Icons.flag),
+                label: Copy.goalsNav),
+            NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings),
+                label: Copy.settingsNav),
+          ],
+        ),
+      );
 }
 
 /// 深链 target:// → 内部路由。

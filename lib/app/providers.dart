@@ -17,6 +17,7 @@ import '../core/platform/gateways.dart';
 import '../core/platform/notification_gateway.dart';
 import '../core/platform/share_gateway.dart';
 import '../core/platform/widget_gateway.dart';
+import '../core/stats/check_in_service.dart';
 import '../core/stats/stats_engine.dart';
 
 /// 注入时钟（research D6）；Debug 时钟菜单（T049）运行时切换实现。
@@ -33,6 +34,10 @@ final dbProvider = Provider<AppDatabase>((ref) {
 final goalRepoProvider = Provider((ref) => GoalRepository(ref.watch(dbProvider)));
 final checkInRepoProvider =
     Provider((ref) => CheckInRepository(ref.watch(dbProvider)));
+
+/// 打卡服务（T025）：统一注入时钟入口。
+final checkInServiceProvider = Provider(
+    (ref) => CheckInService(ref.watch(checkInRepoProvider), ref.watch(dateProviderProvider)));
 final reminderRepoProvider =
     Provider((ref) => ReminderRepository(ref.watch(dbProvider)));
 final reviewRepoProvider =

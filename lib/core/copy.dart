@@ -120,4 +120,12 @@ abstract final class Copy {
   static const widgetIosOnly = '桌面小组件与提醒推送为 iPhone 专属功能';
   static const debugClock = 'Debug 时钟';
   static const appName = 'Target';
+
+  // ---- 今日页（FR-017/US2）----
+
+  static const backfillCalendarTitle = '补一补过去两周';
+  static const backfillHint = '点缺卡的日期补上，线接回来';
+  static const todayNav = '今日';
+  static const goalsNav = '目标';
+  static const settingsNav = '设置';
 }

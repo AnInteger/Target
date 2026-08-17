@@ -91,9 +91,9 @@ description: "Task list for feature implementation"
 ### Implementation for User Story 2
 
 - [X] T024 [US2] Implement `StatsEngine.evaluate` (DayStatus/Streak/WeekStats 实时版/LifeBattery) in `lib/core/stats/stats_engine.dart` per contracts/stats-engine.md（纯函数, 无 Flutter 依赖; 消费 T006–T011）
-- [ ] T025 [US2] Implement CheckInService（打卡+1、当日/补签撤销、任意过去日期补签并标记"补", FR-004）in `lib/core/stats/check_in_service.dart`; 补签日历 UI in `lib/features/today/backfill_calendar.dart`
-- [ ] T026 [US2] Implement TodayView in `lib/features/today/today_view.dart`: 生活电量环为视觉核心（FR-017, 空态"—"）、今日目标列表 x/y + 打卡按钮、全部达标成就态（US2-6）、打卡后连击/周进度经 Riverpod 流即时刷新
-- [ ] T027 [US2] Implement inline undo toast（当日/补签打卡均可撤销, FR-004; 撤销后统计即时回退 R7）in `lib/features/today/undo_toast.dart`
+- [X] T025 [US2] Implement CheckInService（打卡+1、当日/补签撤销、任意过去日期补签并标记"补", FR-004）in `lib/core/stats/check_in_service.dart`; 补签日历 UI in `lib/features/today/backfill_calendar.dart`
+- [X] T026 [US2] Implement TodayView in `lib/features/today/today_view.dart`: 生活电量环为视觉核心（FR-017, 空态"—"）、今日目标列表 x/y + 打卡按钮、全部达标成就态（US2-6）、打卡后连击/周进度经 Riverpod 流即时刷新
+- [X] T027 [US2] Implement inline undo toast（当日/补签打卡均可撤销, FR-004; 撤销后统计即时回退 R7）in `lib/features/today/undo_toast.dart`
 - [ ] T028 [P] [US2] Implement widget snapshot writer in `lib/core/platform/widgets/widget_snapshot.dart`: battery/updatedAt/goals/weekProgress keys 经 HomeWidget.saveWidgetData 写 App Group 并触发刷新（contracts/widget-intent.md 快照 schema, research D13）
 - [ ] T029 [P] [US2] Implement native widget timeline + families in `ios/TargetWidgets/TodayWidgetBundle.swift`: 读快照渲染 systemSmall（电量环）/systemMedium（今日列表+打卡按钮）/accessoryCircular/accessoryRectangular; 预生成次日 0 点切换条目; 过期快照按缓存渲染不崩溃（纯渲染, 无业务逻辑）
 - [ ] T030 [US2] Implement widget interactive check-in: 注册 home_widget 后台 isolate Dart 回调 in `lib/core/platform/widgets/widget_checkin.dart`（校验 active/未达标 → 写 CheckIn → 重算 → 重写快照）; 降级路径 = 深链 `target://goal/{id}` 打开对应目标（contracts/widget-intent.md, research D13）

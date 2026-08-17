@@ -19,7 +19,10 @@ void main() {
     final db = AppDatabase(NativeDatabase.memory());
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [dbProvider.overrideWithValue(db)],
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
         child: const TargetApp(),
       ),
     );
@@ -38,7 +41,10 @@ void main() {
         const SettingsRowsCompanion(onboardingCompleted: Value(true)));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [dbProvider.overrideWithValue(db)],
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
         child: const TargetApp(),
       ),
     );
@@ -67,7 +73,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [dbProvider.overrideWithValue(db)],
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
         child: const TargetApp(),
       ),
     );

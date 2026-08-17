@@ -4,6 +4,8 @@
 /// DB→NativeDatabase.memory）。
 library;
 
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/db/app_database.dart' show AppDatabase;
@@ -72,6 +74,23 @@ final stepsProvider = StreamProvider.family<List<MilestoneStep>, String>(
 /// 注入时钟的"今天"（自然日，本地时区）。
 final todayProvider = Provider<LocalDate>(
     (ref) => ref.watch(dateProviderProvider).today);
+
+/// 跨天 0 点 ticker（research D13）：到点 invalidate todayProvider →
+/// statsProvider 重算 → app 层快照监听器重写小组件快照。
+/// 被 app.dart watch 以激活；widget 测试用 overrideWith((ref) {}) 关闭。
+final dayTickerProvider = Provider<void>((ref) {
+  Timer? timer;
+  void schedule() {
+    final now = DateTime.now();
+    final next = DateTime(now.year, now.month, now.day + 1);
+    timer = Timer(next.difference(now), () {
+      ref.invalidate(todayProvider);
+      schedule();
+    });
+  }
+  schedule();
+  ref.onDispose(() => timer?.cancel());
+});
 
 /// 统计评估（全部就绪前为 null，UI 呈现加载态）。
 final statsProvider = Provider<StatsEvaluation?>((ref) {

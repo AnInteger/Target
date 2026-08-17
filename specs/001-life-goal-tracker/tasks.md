@@ -44,10 +44,10 @@ description: "Task list for feature implementation"
 - [X] T009 [P] Implement `DateProvider` on `clock` package injection in `lib/core/models/date_provider.dart`（时钟注入, research D6）
 - [X] T010 Implement drift schema + database in `lib/core/db/`（tables 与实体 1:1; 平台条件初始化：iOS=App Group 容器 NativeDatabase / Android=应用私有目录 / Web=WasmDatabase+IndexedDB, research D3）+ run build_runner codegen
 - [X] T011 Implement repositories with stream queries (GoalRepository, CheckInRepository, ReminderRepository, ReviewRepository, SettingsRepository) in `lib/core/db/repositories.dart`
-- [ ] T012 Implement platform capability interfaces + per-platform impls in `lib/core/platform/`: notifications（flutter_local_notifications / Web 页内横幅模拟）、widget bridge（home_widget / Web 占位说明）、share（share_plus / Web 浏览器下载）、file pick（file_picker / Web 文件选择）——UI 与业务逻辑只面向接口（plan.md Structure Decision #2）
-- [ ] T013 [P] Create design tokens (iconKey/colorKey 枚举与色板) in `lib/app/design_tokens.dart` and copy table skeleton `lib/core/copy.dart`（教练式语气文案统一入口, ui-contract.md）
-- [ ] T014 Implement app shell: `lib/main.dart`（ProviderScope、通知注册、小组件后台回调注册）+ `lib/app/app.dart`（MaterialApp、主题）+ go_router skeleton with Today placeholder in `lib/app/router.dart` per ui-contract.md
-- [ ] T015 Verify Web 全功能验证基座: `flutter run -d chrome` 跑通 app shell 且刷新后数据保留（drift WasmDatabase/IndexedDB 持久化）; iOS 专属能力呈现占位说明（research D15; quickstart 前置条件）
+- [X] T012 Implement platform capability interfaces + per-platform impls in `lib/core/platform/`: notifications（flutter_local_notifications / Web 页内横幅模拟）、widget bridge（home_widget / Web 占位说明）、share（share_plus / Web 浏览器下载）、file pick（file_picker / Web 文件选择）——UI 与业务逻辑只面向接口（plan.md Structure Decision #2）
+- [X] T013 [P] Create design tokens (iconKey/colorKey 枚举与色板) in `lib/app/design_tokens.dart` and copy table skeleton `lib/core/copy.dart`（教练式语气文案统一入口, ui-contract.md）
+- [X] T014 Implement app shell: `lib/main.dart`（ProviderScope、通知注册、小组件后台回调注册）+ `lib/app/app.dart`（MaterialApp、主题）+ go_router skeleton with Today placeholder in `lib/app/router.dart` per ui-contract.md
+- [X] T015 Verify Web 全功能验证基座: `flutter run -d chrome` 跑通 app shell 且刷新后数据保留（drift WasmDatabase/IndexedDB 持久化）; iOS 专属能力呈现占位说明（research D15; quickstart 前置条件）
 
 **Checkpoint**: 基础就绪——可并行开始各用户故事
 

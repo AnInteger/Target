@@ -1,10 +1,11 @@
-/// MaterialApp：主题、路由、Web 模拟通知横幅（ui-contract.md）。
+/// MaterialApp：主题、路由、Web 模拟通知横幅（ui-contract.md）、首启引导。
 library;
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 
 import '../core/copy.dart';
 import '../core/platform/gateways.dart';
@@ -21,6 +22,7 @@ class TargetApp extends ConsumerStatefulWidget {
 
 class _TargetAppState extends ConsumerState<TargetApp> {
   StreamSubscription<NotificationBanner>? _banners;
+  bool _onboardingChecked = false;
 
   @override
   void initState() {
@@ -40,11 +42,30 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     super.dispose();
   }
 
+  /// 首启引导（SC-001）：未完成 + 无目标 → 进引导页（一次性判定）。
+  void _maybeShowOnboarding() {
+    if (_onboardingChecked) return;
+    final settings = ref.read(settingsProvider).value;
+    final goals = ref.read(goalsProvider).value;
+    if (settings == null || goals == null) return; // 数据未就绪，等下一次流事件
+    _onboardingChecked = true;
+    if (!settings.onboardingCompleted && goals.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(routerProvider).go('/onboarding');
+      });
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => MaterialApp.router(
-        title: Copy.appName,
-        theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
-        routerConfig: router,
-      );
+  Widget build(BuildContext context) {
+    ref.listen(settingsProvider, (_, _) => _maybeShowOnboarding());
+    ref.listen(goalsProvider, (_, _) => _maybeShowOnboarding());
+    _maybeShowOnboarding();
+    return MaterialApp.router(
+      title: Copy.appName,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      routerConfig: ref.watch(routerProvider),
+    );
+  }
 }

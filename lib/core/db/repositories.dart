@@ -60,9 +60,24 @@ class GoalRepository {
     return goal;
   }
 
-  Future<void> update(Goal goal) =>
-      (_db.update(_db.goals)..where((t) => t.id.equals(goal.id)))
-          .write(_fromGoal(goal));
+  /// 更新；paused → active 的"恢复"同样受活跃上限约束（FR-011）。
+  Future<void> update(Goal goal) async {
+    final rows = await (_db.select(_db.goals)
+          ..where((t) => t.id.equals(goal.id)))
+        .get();
+    final old = rows.isEmpty ? null : _toGoal(rows.first);
+    if (goal.status == GoalStatus.active &&
+        (old == null || old.status != GoalStatus.active)) {
+      final active = await (_db.select(_db.goals)
+            ..where((t) => t.status.equalsValue(GoalStatus.active)))
+          .get();
+      if (active.length >= kMaxActiveGoals) {
+        throw const ActiveGoalLimitException(kMaxActiveGoals);
+      }
+    }
+    await (_db.update(_db.goals)..where((t) => t.id.equals(goal.id)))
+        .write(_fromGoal(goal));
+  }
 
   static Goal _toGoal(db.Goal r) => Goal(
         id: r.id,
@@ -94,6 +109,13 @@ class GoalRepository {
             ..orderBy([(t) => OrderingTerm.asc(t.effectiveFromWeek)]))
           .map(_toVersion)
           .get();
+
+  /// 全量版本流（统计引擎供货）。
+  Stream<List<FrequencyVersion>> watchAllVersions() =>
+      (_db.select(_db.frequencyVersions)
+            ..orderBy([(t) => OrderingTerm.asc(t.effectiveFromWeek)]))
+          .map(_toVersion)
+          .watch();
 
   /// 创建目标时的初始版本（source=initial，生效周=创建周）。
   Future<void> addInitial(String goalId, FrequencyPattern pattern,

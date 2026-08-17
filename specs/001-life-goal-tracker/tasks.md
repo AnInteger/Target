@@ -67,11 +67,11 @@ description: "Task list for feature implementation"
 ### Implementation for User Story 1
 
 - [X] T017 [P] [US1] Create goal template library data (好好吃饭/规律运动/早睡/屏幕休息/个人项目等, FR-012) in `lib/features/goals/goal_templates.dart`
-- [ ] T018 [US1] Implement GoalEditor flow in `lib/features/goals/goal_editor.dart`: 类型选择（习惯/里程碑）→ 模板或自定义 → 频率编辑（每天 N 次/每周 N 次/指定星期几, FR-002）→ 图标/颜色（FR-001）; 编辑进行中目标频率提示"下周一生效"
-- [ ] T019 [US1] Implement SMART guidance（模糊名称"变健康"→具体化建议一键采用, FR-001）in `lib/features/goals/smart_suggestion.dart` + 接入 GoalEditor
-- [ ] T020 [US1] Implement GoalsView management screen（活跃≤5/暂停/已归档分区、目标卡片连击与周完成率）in `lib/features/goals/goals_view.dart`
-- [ ] T021 [US1] Implement goal lifecycle in `lib/features/goals/goal_lifecycle.dart`: 暂停/恢复（FR-009）、达成关闭与归档保留历史（FR-010）、活跃上限 5 两类共享 + 聚焦引导弹层（FR-011）
-- [ ] T022 [US1] Implement first-launch onboarding（模板引导建首个目标, SC-001）in `lib/features/goals/onboarding.dart` + Settings.onboardingCompleted 落库
+- [X] T018 [US1] Implement GoalEditor flow in `lib/features/goals/goal_editor.dart`: 类型选择（习惯/里程碑）→ 模板或自定义 → 频率编辑（每天 N 次/每周 N 次/指定星期几, FR-002）→ 图标/颜色（FR-001）; 编辑进行中目标频率提示"下周一生效"
+- [X] T019 [US1] Implement SMART guidance（模糊名称"变健康"→具体化建议一键采用, FR-001）in `lib/features/goals/smart_suggestion.dart` + 接入 GoalEditor
+- [X] T020 [US1] Implement GoalsView management screen（活跃≤5/暂停/已归档分区、目标卡片连击与周完成率）in `lib/features/goals/goals_view.dart`
+- [X] T021 [US1] Implement goal lifecycle in `lib/features/goals/goal_lifecycle.dart`: 暂停/恢复（FR-009）、达成关闭与归档保留历史（FR-010）、活跃上限 5 两类共享 + 聚焦引导弹层（FR-011）
+- [X] T022 [US1] Implement first-launch onboarding（模板引导建首个目标, SC-001）in `lib/features/goals/onboarding.dart` + Settings.onboardingCompleted 落库
 
 **Checkpoint**: US1 独立可用——空应用 30 秒建出首个目标
 

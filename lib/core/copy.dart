@@ -60,11 +60,33 @@ abstract final class Copy {
   static const editorKindMilestone = '里程碑';
   static const editorCustom = '自定义';
   static const editorFromTemplate = '从模板开始';
+  static const editorNextWeekEffect = '新频率下周一生效，本周仍按原口径';
+  static const editorFrequency = '频率';
+  static const editorIconColor = '图标与颜色';
+  static const editorDeadline = '截止日期';
+  static const editorDeadlineRequired = '选一个日子，给里程碑一个锚点';
+  static const editorSave = '保存';
   static String smartSuggest(String suggestion) => '换成更具体的？「$suggestion」';
   static const smartApply = '采用建议';
   static const focusLimitTitle = '先照顾好这 5 个';
   static const focusLimitBody = '目标贵在聚焦。暂停或归档一个，再放新的进来。';
   static const goalArchived = '已归档，历史记录都在';
+
+  // ---- 目标管理页 ----
+
+  static const goalsTitle = '目标';
+  static String goalsActiveHeader(int n) => '进行中 $n/5';
+  static const goalsPausedHeader = '暂停中';
+  static const goalsClosedHeader = '已结束';
+  static const goalsEmpty = '还没有目标，从一件小事开始';
+  static const goalsEmptyCta = '创建第一个目标';
+  static const goalsWeekRate = '本周';
+
+  // ---- 首启引导（SC-001）----
+
+  static const onboardingTitle = '先照顾好一件小事';
+  static const onboardingSubtitle = '选一个想守护的习惯，30 秒就能开始';
+  static const onboardingSkip = '先随便看看';
 
   // ---- 里程碑（FR-013）----
 

@@ -66,7 +66,7 @@ description: "Task list for feature implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T017 [P] [US1] Create goal template library data (好好吃饭/规律运动/早睡/屏幕休息/个人项目等, FR-012) in `lib/features/goals/goal_templates.dart`
+- [X] T017 [P] [US1] Create goal template library data (好好吃饭/规律运动/早睡/屏幕休息/个人项目等, FR-012) in `lib/features/goals/goal_templates.dart`
 - [ ] T018 [US1] Implement GoalEditor flow in `lib/features/goals/goal_editor.dart`: 类型选择（习惯/里程碑）→ 模板或自定义 → 频率编辑（每天 N 次/每周 N 次/指定星期几, FR-002）→ 图标/颜色（FR-001）; 编辑进行中目标频率提示"下周一生效"
 - [ ] T019 [US1] Implement SMART guidance（模糊名称"变健康"→具体化建议一键采用, FR-001）in `lib/features/goals/smart_suggestion.dart` + 接入 GoalEditor
 - [ ] T020 [US1] Implement GoalsView management screen（活跃≤5/暂停/已归档分区、目标卡片连击与周完成率）in `lib/features/goals/goals_view.dart`
@@ -86,11 +86,11 @@ description: "Task list for feature implementation"
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T023 [P] [US2] Unit tests for stats engine R1–R3/R5–R7/R9 in `test/stats_engine_test.dart`: 跨天归属（23:59/00:01）、当日次数封顶、连击（非适用日跳过不断链/今天未达标截至昨天）、补签计入与断链回接、撤销回退、电量=活跃习惯当日完成度均值、无活跃 habit→null 空态（时钟注入时间旅行, contracts/stats-engine.md）
+- [X] T023 [P] [US2] Unit tests for stats engine R1–R3/R5–R7/R9 in `test/stats_engine_test.dart`: 跨天归属（23:59/00:01）、当日次数封顶、连击（非适用日跳过不断链/今天未达标截至昨天）、补签计入与断链回接、撤销回退、电量=活跃习惯当日完成度均值、无活跃 habit→null 空态（时钟注入时间旅行, contracts/stats-engine.md）
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Implement `StatsEngine.evaluate` (DayStatus/Streak/WeekStats 实时版/LifeBattery) in `lib/core/stats/stats_engine.dart` per contracts/stats-engine.md（纯函数, 无 Flutter 依赖; 消费 T006–T011）
+- [X] T024 [US2] Implement `StatsEngine.evaluate` (DayStatus/Streak/WeekStats 实时版/LifeBattery) in `lib/core/stats/stats_engine.dart` per contracts/stats-engine.md（纯函数, 无 Flutter 依赖; 消费 T006–T011）
 - [ ] T025 [US2] Implement CheckInService（打卡+1、当日/补签撤销、任意过去日期补签并标记"补", FR-004）in `lib/core/stats/check_in_service.dart`; 补签日历 UI in `lib/features/today/backfill_calendar.dart`
 - [ ] T026 [US2] Implement TodayView in `lib/features/today/today_view.dart`: 生活电量环为视觉核心（FR-017, 空态"—"）、今日目标列表 x/y + 打卡按钮、全部达标成就态（US2-6）、打卡后连击/周进度经 Riverpod 流即时刷新
 - [ ] T027 [US2] Implement inline undo toast（当日/补签打卡均可撤销, FR-004; 撤销后统计即时回退 R7）in `lib/features/today/undo_toast.dart`

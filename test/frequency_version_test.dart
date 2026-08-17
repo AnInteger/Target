@@ -67,7 +67,6 @@ void main() {
   group('仓储规则（内存库）', () {
     late AppDatabase db;
     late GoalRepository repo;
-    final now = DateTime(2026, 8, 18, 12);
 
     setUp(() {
       db = AppDatabase(NativeDatabase.memory());

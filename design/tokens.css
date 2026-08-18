@@ -4,9 +4,8 @@
    依据：contracts/design-language.md（schema）
          design/reviews.md FR-009 定稿（direction-g.html v3，2026-08-19）
    消费者：design/prototypes/screen-*.html（只准 import 本文件取值）
-   同步：T006 落地后 design_tokens.dart 为真源，本文件为镜像，
-         文件头届时注明"同步自 design_tokens.dart"；当前方向刚定稿，
-   暂由本文件承载定稿值（探索期豁免条款 §2-5 的收敛终点）。
+   同步：**镜像文件，同步自 lib/app/design_tokens.dart（Dart 为真源）**；
+         改色必须一次提交内完成双侧同步（契约 §2-4）。
    ============================================================ */
 
 /* Inter 可变字体（latin 子集，woff2 data URI 内嵌——保持原型自包含零外链）

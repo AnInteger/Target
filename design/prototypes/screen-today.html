@@ -7,12 +7,14 @@
 <link rel="stylesheet" href="../tokens.css">
 <style>
   /* ============================================================
-     今日屏深化原型（T007）
+     今日屏深化原型（T007 · R2 修订）
      - 取值 100% 来自 ../tokens.css（SC-004）
      - 画板：典型(可交互)/空态/忙碌/全完成 + 深色并列
-     - 动效时长均标注令牌名；台面（评审环境灰底）与手机外框
-       属呈现 chrome，非屏内设计
+     - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
+
+  /* hidden 属性兜底：防止组件 display 覆盖 UA 的 [hidden]（R1 缺陷根因） */
+  [hidden] { display: none !important; }
 
   /* ---- 评审台面（呈现环境，非屏内设计） ---- */
   body {
@@ -33,26 +35,20 @@
     border-radius: var(--radius-lg); padding: var(--space-5);
     margin-bottom: var(--space-8);
   }
-  .shellmap h2 { font: var(--font-title-s); margin: 0 0 var(--space-3);
-                 color: #f2eff7; }
-  .shellmap .flow { display: flex; align-items: stretch; gap: var(--space-2);
-                    flex-wrap: wrap; }
+  .shellmap h2 { font: var(--font-title-s); margin: 0 0 var(--space-3); color: #f2eff7; }
+  .shellmap .flow { display: flex; align-items: stretch; gap: var(--space-2); flex-wrap: wrap; }
   .shellmap .node {
     border: 1px dashed rgba(255, 255, 255, .25); border-radius: var(--radius-md);
     padding: var(--space-2) var(--space-3); font: var(--font-body-s);
     color: rgba(242, 239, 247, .8); display: flex; flex-direction: column;
     gap: var(--space-1); justify-content: center;
   }
-  .shellmap .node b { font: var(--font-label); color: var(--positive-fill);
-                      letter-spacing: .04em; }
-  .shellmap .arrow { align-self: center; color: rgba(255, 255, 255, .3);
-                     font: var(--font-body-m); }
+  .shellmap .node b { font: var(--font-label); color: var(--positive-fill); letter-spacing: .04em; }
+  .shellmap .arrow { align-self: center; color: rgba(255, 255, 255, .3); font: var(--font-body-m); }
 
   /* ---- 画板行 ---- */
-  .row { display: flex; flex-wrap: wrap; gap: var(--space-8);
-         justify-content: center; }
-  .board { display: flex; flex-direction: column; align-items: center;
-           gap: var(--space-3); }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center; }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
   .board h3 { font: var(--font-title-s); margin: 0; }
   .board .desc { font: var(--font-body-s); color: rgba(242, 239, 247, .55);
                  max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
@@ -82,117 +78,147 @@
 
   /* ---- 屏内内容 ---- */
   .st-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
-               padding: var(--space-12) var(--space-6) var(--space-6); }
+               padding: var(--space-6) var(--space-6) var(--space-6);
+               display: flex; flex-direction: column; }
   .st-scroll::-webkit-scrollbar { display: none; }
 
-  .st-status { display: flex; justify-content: space-between; align-items: center;
-               padding: var(--space-2) var(--space-6) 0;
-               font: var(--font-body-s); font-weight: 600; color: var(--on-surface); }
+  .st-status { height: 52px; flex: none; display: flex; align-items: flex-end;
+               justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+               font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
   .st-status svg { display: block; }
 
-  /* 顶栏 */
-  .st-top { display: flex; align-items: center; gap: var(--space-3);
-            margin-bottom: var(--space-5); }
-  .st-avatar { width: 36px; height: 36px; border-radius: var(--radius-full);
-               background: var(--glass-card); border: 1px solid var(--glass-border);
-               display: grid; place-items: center; font-size: 16px; }
-  .st-hello { display: flex; flex-direction: column; gap: var(--space-1); }
-  .st-hello small { font: var(--font-label); color: var(--on-surface-variant); }
-  .st-hello b { font: var(--font-title-s); }
-  .st-top .grow { flex: 1; }
-  .st-btn-primary {
-    height: 36px; padding: 0 var(--space-4); border: none; cursor: pointer;
-    border-radius: var(--radius-full); background: var(--accent);
-    color: var(--accent-on); font: var(--font-body-s); font-weight: 500;
-    display: inline-flex; align-items: center; gap: var(--space-1);
-    transition: transform var(--motion-fast) var(--ease-standard);
+  /* 顶栏：头像 + 双行问候（.hi 600/16 主色 · .who 400/14 次级） + 双层级按钮 */
+  .st-top { display: flex; align-items: center; gap: var(--space-2);
+            padding: var(--space-4) 0 0; }
+  .st-avatar {
+    width: 44px; height: 44px; border-radius: var(--radius-full); flex: none;
+    background: linear-gradient(135deg, var(--goal-amber), var(--goal-coral));
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent-on); font: var(--font-body-l); font-weight: 700;
   }
-  .st-btn-primary:active { transform: scale(.94); }
-  .st-btn-ghost {
-    width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer;
-    background: var(--glass-card); color: var(--on-surface);
-    border: 1px solid var(--divider); display: inline-grid; place-items: center;
+  .st-hello { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .st-hello .hi { font: var(--font-title-s); font-weight: 600; line-height: 1.25;
+                  color: var(--on-surface); }
+  .st-hello .who { font: var(--font-body-m); line-height: 1.35; margin-top: 2px;
+                   color: var(--on-surface-variant); }
+  .st-btn {
+    width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+    flex: none; display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: transform var(--motion-base) var(--ease-standard);
+  }
+  .st-btn:active { transform: scale(.88); }
+  .st-btn svg { width: 18px; height: 18px; }
+  .st-btn-primary { background: var(--accent); color: var(--accent-on);
+                    box-shadow: 0 4px 12px rgba(23, 24, 28, .3); }
+  [data-theme="dark"] .st-btn-primary { box-shadow: var(--shadow-mid); }
+  .st-btn-ghost { background: var(--surface); color: var(--on-surface);
+                  border: 1px solid var(--divider); box-shadow: var(--shadow-low);
+                  position: relative; }
+  .st-btn-ghost::after { /* 未读小红点 */
+    content: ""; position: absolute; top: -2px; right: -2px;
+    width: 7px; height: 7px; border-radius: var(--radius-full);
+    background: var(--goal-coral); border: 1.5px solid var(--surface);
   }
 
   /* 忙碌横幅 */
   .st-busy {
     display: flex; align-items: center; gap: var(--space-2);
-    padding: var(--space-2) var(--space-3); margin-bottom: var(--space-5);
+    padding: var(--space-2) var(--space-3); margin-top: var(--space-3);
     border-radius: var(--radius-md); background: var(--surface);
     border: 1px solid var(--divider);
     font: var(--font-body-s); color: var(--warning);
     box-shadow: var(--shadow-low);
   }
 
-  /* display 大标题 */
+  /* display 大标题（36/800 两行，模块级留白） */
   .st-display { font: var(--font-display-l); letter-spacing: var(--ls-display-l);
-                color: var(--on-surface); margin: 0 0 var(--space-5); }
+                color: var(--on-surface); margin: var(--space-5) 0 var(--space-8); }
 
-  /* 进度主卡（accent 反色卡） */
+  /* 进度主卡（浅色 = accent 黑卡 / 深色 = 深底幕黑卡，同 direction-g 定稿） */
   .st-hero {
     background: var(--accent); color: var(--accent-on);
     border-radius: var(--radius-lg); padding: var(--space-5);
-    display: flex; align-items: center; gap: var(--space-6);
-    margin-bottom: var(--space-5); box-shadow: var(--shadow-mid);
+    margin-bottom: var(--space-6); box-shadow: var(--shadow-mid);
   }
-  .st-ring { position: relative; width: 110px; height: 110px; flex: none; }
-  .st-ring svg { transform: rotate(-90deg); display: block; }
+  [data-theme="dark"] .st-hero {
+    background: var(--bg-grad-4); color: var(--on-surface);
+    border: 1px solid var(--glass-border);
+  }
+  .st-hero-title { font: var(--font-body-m); font-weight: 600;
+                   color: var(--on-surface-variant); margin-bottom: var(--space-3); }
+  [data-theme="dark"] .st-hero-title { color: var(--on-surface-variant); }
+  .st-hero-body { display: flex; align-items: center; gap: var(--space-6); }
+  .st-ring { position: relative; width: 130px; height: 130px; flex: none; }
+  .st-ring svg { display: block; }
   .st-ring .track { stroke: var(--accent-on); opacity: .15; }
-  .st-ring .bar { stroke: var(--positive-fill); transition: stroke-dashoffset var(--motion-slow) var(--ease-standard); }
+  [data-theme="dark"] .st-ring .track { stroke: var(--on-surface); opacity: .15; }
+  .st-ring .bar { stroke: var(--positive-fill);
+                  transition: stroke-dashoffset var(--motion-slow) var(--ease-standard); }
   .st-ring .center { position: absolute; inset: 0; display: grid; place-items: center;
                      text-align: center; }
-  .st-ring .center b { display: block; font: var(--font-title-m); font-variant-numeric: tabular-nums; }
-  .st-ring .center small { display: block; font: var(--font-label); opacity: .65; margin-top: var(--space-1); }
+  .st-ring .center b { display: block; font: var(--font-title-m); font-weight: 700;
+                       font-variant-numeric: tabular-nums; }
+  .st-ring .center small { display: block; font: var(--font-label);
+                           color: var(--on-surface-variant); margin-top: var(--space-1); }
   .st-stats { flex: 1; display: flex; flex-direction: column; gap: var(--space-3); }
   .st-stat { display: flex; align-items: center; gap: var(--space-2); }
-  .st-stat svg { flex: none; opacity: .75; }
-  .st-stat small { font: var(--font-body-s); opacity: .75; flex: 1; }
-  .st-stat b { font: var(--font-title-s); font-variant-numeric: tabular-nums; }
-  .st-cheer { font: var(--font-body-s); opacity: .7; margin: 0;
-              padding-top: var(--space-2); border-top: 1px solid var(--divider); }
+  .st-stat svg { flex: none; width: 14px; height: 14px; color: var(--on-surface-variant); }
+  .st-stat b { font: var(--font-body-s); font-weight: 600; font-variant-numeric: tabular-nums;
+               min-width: 16px; color: var(--on-surface); }
+  [data-theme="dark"] .st-stat b { color: var(--on-surface); }
+  .st-stat span { font: var(--font-body-s); color: var(--on-surface-variant); }
+
+  /* 节头（今日目标 / 查看全部） */
+  .st-sect { display: flex; align-items: baseline; justify-content: space-between;
+             margin-bottom: var(--space-3); }
+  .st-sect h4 { font: var(--font-title-s); font-weight: 700; margin: 0;
+                color: var(--on-surface); }
+  .st-sect a { font: var(--font-body-m); color: var(--on-surface-variant);
+               text-decoration: none; }
 
   /* 状态胶囊（计数在前） */
-  .st-pills { display: flex; gap: var(--space-2); margin-bottom: var(--space-5); }
+  .st-pills { display: flex; gap: var(--space-2); margin-bottom: var(--space-6); }
   .st-pill {
     display: inline-flex; align-items: center; gap: var(--space-1);
-    height: 32px; padding: 0 var(--space-3); border-radius: var(--radius-full);
-    font: var(--font-body-s); cursor: default;
+    padding: var(--space-2) var(--space-4); border-radius: var(--radius-full);
+    font: var(--font-body-m); font-weight: 500; cursor: default;
+    transition: all var(--motion-base) var(--ease-standard);
   }
   .st-pill b { font-variant-numeric: tabular-nums; font-weight: 700; }
   .st-pill.todo { background: var(--positive-fill); color: var(--positive-on); }
-  .st-pill.done { background: var(--glass-card); color: var(--on-surface);
+  .st-pill.done { background: var(--surface); color: var(--on-surface-variant);
                   border: 1px solid var(--divider); }
 
-  /* 分节头 */
-  .st-sect { display: flex; align-items: baseline; justify-content: space-between;
-             margin-bottom: var(--space-3); }
-  .st-sect h4 { font: var(--font-title-m); margin: 0; }
-  .st-sect span { font: var(--font-body-s); color: var(--on-surface-variant); }
-
-  /* 目标卡 */
+  /* 目标卡（direction-g 定稿解剖：圆点行 → 标题 → 时间+计数+进度点+打卡钮） */
   .st-cards { display: flex; flex-direction: column; gap: var(--space-3);
-              margin-bottom: var(--space-5); }
+              margin-bottom: var(--space-6); }
   .st-card {
     background: var(--glass-card); border: 1px solid var(--divider);
-    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg); padding: var(--space-5);
     cursor: pointer; box-shadow: var(--shadow-low);
+    display: flex; flex-direction: column; gap: var(--space-3);
     transition: transform var(--motion-fast) var(--ease-standard),
                 box-shadow var(--motion-base) var(--ease-standard);
   }
   .st-card:active { transform: scale(.985); }
   .st-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .st-row1 { display: flex; align-items: center; gap: var(--space-2);
-             margin-bottom: var(--space-2); }
+  .st-row1 { display: flex; align-items: center; gap: var(--space-1); }
   .st-dot { width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); }
-  .st-cat { font: var(--font-body-s); color: var(--on-surface-variant); flex: 1; }
-  .st-arrow { color: var(--on-surface-variant); opacity: .6; background: none;
-              border: none; cursor: pointer; padding: 0; display: grid; place-items: center; }
-  .st-title { font: var(--font-title-s); color: var(--on-surface); margin: 0 0 var(--space-2); }
+  .st-cat { font: var(--font-body-s); font-weight: 500; color: var(--on-surface-variant);
+            flex: 1; }
+  .st-arrow { color: var(--on-surface-variant); background: none; border: none;
+              cursor: pointer; padding: 0; display: grid; place-items: center; }
+  .st-arrow svg { width: 14px; height: 14px; }
+  .st-title { font: var(--font-title-s); color: var(--on-surface); margin: 0; }
+  .st-card.done .st-title { color: var(--goal-sky); }
   .st-row3 { display: flex; align-items: center; gap: var(--space-2); }
-  .st-time { font: var(--font-body-s); color: var(--on-surface-variant);
-             font-variant-numeric: tabular-nums; }
+  .st-time { display: flex; align-items: center; gap: var(--space-1);
+             font: var(--font-body-s); color: var(--on-surface-variant); }
+  .st-time svg { width: 13px; height: 13px; }
   .st-count { font: var(--font-body-s); color: var(--on-surface-variant);
               margin-left: auto; font-variant-numeric: tabular-nums; }
+  .st-count b { font-weight: 700; color: var(--on-surface); }
   .st-pips { display: flex; gap: var(--space-1); }
   .st-pip { width: 6px; height: 6px; border-radius: var(--radius-full);
             background: var(--divider); }
@@ -219,12 +245,12 @@
     border: 1.5px dashed var(--divider); border-radius: var(--radius-lg);
     padding: var(--space-8) var(--space-5); text-align: center;
     display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
-    margin-bottom: var(--space-5);
+    margin-bottom: var(--space-6);
   }
   .st-empty .plus { width: 48px; height: 48px; border-radius: var(--radius-full);
                     background: var(--surface); border: 1px solid var(--divider);
                     display: grid; place-items: center; color: var(--on-surface-variant); }
-  .st-empty b { font: var(--font-title-m); }
+  .st-empty b { font: var(--font-title-m); color: var(--on-surface); }
   .st-empty p { font: var(--font-body-s); color: var(--on-surface-variant); margin: 0;
                 line-height: 1.7; }
 
@@ -234,33 +260,46 @@
     border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
     box-shadow: var(--shadow-low); margin-bottom: var(--space-6);
   }
-  .st-year-head { display: flex; align-items: baseline; justify-content: space-between;
-                  margin-bottom: var(--space-3); }
-  .st-year-head h5 { font: var(--font-title-s); margin: 0; }
-  .st-year-head span { font: var(--font-body-s); color: var(--on-surface-variant);
-                       font-variant-numeric: tabular-nums; }
+  .st-year-head { display: flex; align-items: baseline; margin-bottom: var(--space-3); }
+  .st-year-head h5 { font: var(--font-title-s); font-weight: 700; margin: 0;
+                     color: var(--on-surface); }
   .st-band { display: flex; gap: 1px; align-items: flex-end; height: 28px; }
   .st-tick { flex: 1; height: 40%; border-radius: 1px; background: var(--divider); }
   .st-tick.past { background: var(--on-surface-variant); opacity: .35; }
   .st-tick.hit { opacity: 1; }
-  .st-tick.today { height: 100%; width: 3px; border-radius: 2px;
-                   background: var(--accent); }
+  .st-tick.today { height: 100%; width: 3px; border-radius: 2px; background: var(--accent); }
+  .st-year-legend { display: flex; gap: var(--space-3); margin-top: var(--space-2);
+                    font: var(--font-label); color: var(--on-surface-variant); }
+  .st-year-legend i { display: inline-block; width: var(--space-2); height: var(--space-2);
+                      border-radius: var(--radius-full); vertical-align: -1px;
+                      margin-right: var(--space-1); }
+  .st-year-legend .l1 i { background: var(--goal-sage); }
+  .st-year-legend .l2 i { background: var(--divider); }
+  .st-year-legend .l3 i { background: var(--accent); }
 
-  /* 底部导航 */
-  .st-tabbar {
-    display: flex; background: var(--glass-card);
-    backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
-    border-top: 1px solid var(--divider); padding: var(--space-2) var(--space-2)
-                calc(var(--space-2) + env(safe-area-inset-bottom, 0));
+  /* 底部导航（复刻原图：白色悬浮圆角条，选中 = 黑胶囊白图标白字） */
+  .st-navwrap { flex: none; padding: var(--space-2) var(--space-4) var(--space-4); }
+  .st-nav {
+    display: flex; align-items: center; justify-content: space-around;
+    background: var(--surface); border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-mid); padding: var(--space-2);
   }
-  .st-tab { flex: 1; display: flex; flex-direction: column; align-items: center;
-            gap: var(--space-1); padding: var(--space-1) 0; cursor: pointer;
-            color: var(--on-surface-variant); background: none; border: none;
-            font: var(--font-label);
-          }
-  .st-tab.active { color: var(--on-surface); font-weight: 600; }
-  .st-tab.active .ic { transform: translateY(-1px); }
-  .st-tab .ic { transition: transform var(--motion-fast) var(--ease-standard); }
+  .st-tab {
+    background: none; border: none; cursor: pointer; padding: var(--space-1);
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+    color: var(--on-surface-variant); font: var(--font-label);
+    transition: color var(--motion-base) var(--ease-standard);
+  }
+  .st-tab svg { width: 22px; height: 22px; }
+  .st-tab.active { color: var(--on-surface); }
+  .st-tab .chipx {
+    display: flex; align-items: center; gap: var(--space-1);
+    background: var(--accent); color: var(--accent-on);
+    border-radius: var(--radius-full); padding: var(--space-1) var(--space-3);
+    font-weight: 600;
+  }
+  .st-tab.active { flex-direction: row; }
+  .st-tab.active .chipx svg { width: 18px; height: 18px; }
 
   /* 成就时刻覆盖层 */
   .st-cele {
@@ -320,10 +359,9 @@
     <div class="node"><b>壳层</b>底部导航四页签</div><span class="arrow">→</span>
     <div class="node"><b>今日页</b>顶栏（问候 / 新建 / 提醒）</div><span class="arrow">→</span>
     <div class="node"><b>display</b>两行编辑级标题</div><span class="arrow">→</span>
-    <div class="node"><b>进度主卡</b>圆环 + 竖排统计</div><span class="arrow">→</span>
-    <div class="node"><b>状态胶囊</b>N 待打卡 / N 已完成</div><span class="arrow">→</span>
-    <div class="node"><b>目标卡列表</b>打卡主操作</div><span class="arrow">→</span>
-    <div class="node"><b>年度时间带</b>今年 · 还剩 N 天</div>
+    <div class="node"><b>今日进度</b>圆环 + 竖排统计</div><span class="arrow">→</span>
+    <div class="node"><b>今日目标</b>状态胶囊 + 目标卡</div><span class="arrow">→</span>
+    <div class="node"><b>年度守护</b>365 天时间带</div>
   </div>
 </nav>
 
@@ -340,12 +378,16 @@
   </div>
   <div class="st-scroll">
     <div class="st-top">
-      <div class="st-avatar">🌿</div>
-      <div class="st-hello"><small data-hi>早上好</small><b>今天也来照顾自己</b></div>
-      <div class="grow"></div>
-      <button class="st-btn-primary" type="button">＋ 新建</button>
-      <button class="st-btn-ghost" type="button" aria-label="提醒与设置">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      <div class="st-avatar">星</div>
+      <div class="st-hello">
+        <span class="hi">早上好</span>
+        <span class="who">星行</span>
+      </div>
+      <button class="st-btn st-btn-primary" type="button" aria-label="新建目标">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button class="st-btn st-btn-ghost" type="button" aria-label="提醒">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
       </button>
     </div>
     <div class="st-busy" data-busy hidden>
@@ -354,34 +396,38 @@
     </div>
     <h2 class="st-display" data-display>把今天<br>照顾好</h2>
     <div class="st-hero">
-      <div class="st-ring">
-        <svg width="110" height="110" viewBox="0 0 110 110">
-          <circle class="track" cx="55" cy="55" r="44" fill="none" stroke-width="10"/>
-          <circle class="bar" data-ringbar cx="55" cy="55" r="44" fill="none" stroke-width="10" stroke-linecap="round"/>
-        </svg>
-        <div class="center"><b data-pct>0%</b><small>今日</small></div>
+      <div class="st-hero-title">今日进度</div>
+      <div class="st-hero-body">
+        <div class="st-ring">
+          <svg width="130" height="130" viewBox="0 0 130 130">
+            <circle class="track" cx="65" cy="65" r="52" fill="none" stroke-width="10"/>
+            <circle class="bar" data-ringbar cx="65" cy="65" r="52" fill="none" stroke-width="10" stroke-linecap="round"/>
+          </svg>
+          <div class="center"><b data-pct>0%</b><small>完成率</small></div>
+        </div>
+        <div class="st-stats">
+          <div class="st-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <b data-total>0</b><span>总次数</span>
+          </div>
+          <div class="st-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <b data-done>0</b><span>已完成</span>
+          </div>
+          <div class="st-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <b data-todo>0</b><span>待打卡</span>
+          </div>
+        </div>
       </div>
-      <div class="st-stats">
-        <div class="st-stat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M4 12h16M4 17h7"/></svg>
-          <small>总次数</small><b data-total>0</b>
-        </div>
-        <div class="st-stat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          <small>已完成</small><b data-done>0</b>
-        </div>
-        <div class="st-stat">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-          <small>待打卡</small><b data-todo>0</b>
-        </div>
-        <p class="st-cheer" data-cheer>从第一次打卡开始</p>
-      </div>
+    </div>
+    <div class="st-sect">
+      <h4>今日目标</h4><a href="javascript:void(0)">查看全部</a>
     </div>
     <div class="st-pills" data-pills>
       <span class="st-pill todo"><b data-ptodo>0</b> 待打卡</span>
       <span class="st-pill done"><b data-pdone>0</b> 已完成</span>
     </div>
-    <div class="st-sect"><h4>今天的目标</h4><span data-sect-note></span></div>
     <div class="st-cards" data-cards></div>
     <div class="st-empty" data-empty hidden>
       <div class="plus">
@@ -389,21 +435,39 @@
       </div>
       <b>新建第一个目标</b>
       <p>两分钟定义一件今天能完成的小事，<br>打卡会出现在这里。</p>
-      <button class="st-btn-primary" type="button">＋ 新建目标</button>
     </div>
     <div class="st-year">
-      <div class="st-year-head">
-        <h5>今年</h5><span data-year-note></span>
-      </div>
+      <div class="st-year-head"><h5>年度守护</h5></div>
       <div class="st-band" data-band></div>
+      <div class="st-year-legend">
+        <span class="l1"><i></i>达成日</span>
+        <span class="l2"><i></i>未达成</span>
+        <span class="l3"><i></i>今天</span>
+      </div>
     </div>
   </div>
-  <nav class="st-tabbar">
-    <button class="st-tab active" type="button"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg></span>今日</button>
-    <button class="st-tab" type="button"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>目标</button>
-    <button class="st-tab" type="button"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg></span>周回顾</button>
-    <button class="st-tab" type="button"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg></span>我的</button>
-  </nav>
+  <div class="st-navwrap">
+    <nav class="st-nav">
+      <button class="st-tab active" type="button">
+        <span class="chipx">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日
+        </span>
+      </button>
+      <button class="st-tab" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        目标
+      </button>
+      <button class="st-tab" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+        周回顾
+      </button>
+      <button class="st-tab" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+        我的
+      </button>
+    </nav>
+  </div>
   <div class="st-cele" data-cele>
     <span class="badge"><b>🎉 今天全部完成</b><small data-cele-note>8/8 次 · 为自己鼓掌</small></span>
   </div>
@@ -412,17 +476,17 @@
 <script>
 /* ---------- 演示数据（与 direction-g 同构） ---------- */
 const GOALS = [
-  { key: 'meal',  cat: '饮食', title: '好好吃饭',     time: '三餐',       color: 'var(--goal-coral)' },
-  { key: 'fit',   cat: '运动', title: '规律运动',     time: '晚间 19:00', color: 'var(--goal-sage)'  },
-  { key: 'sleep', cat: '作息', title: '23 点前上床',  time: '每晚 23:00', color: 'var(--goal-indigo)' },
-  { key: 'read',  cat: '学习', title: '读 20 页书',   time: '睡前 · 20 页', color: 'var(--goal-amber)' },
+  { key: 'meal',  cat: '饮食', title: '好好吃饭',    time: '三餐',       color: 'var(--goal-coral)' },
+  { key: 'fit',   cat: '运动', title: '规律运动',    time: '晚间 19:00', color: 'var(--goal-sage)'  },
+  { key: 'sleep', cat: '作息', title: '23 点前上床', time: '每晚 23:00', color: 'var(--goal-indigo)' },
+  { key: 'read',  cat: '学习', title: '读 20 页书',  time: '睡前 · 20 页', color: 'var(--goal-amber)' },
 ];
-const RING_CIRC = 2 * Math.PI * 44;
+const RING_CIRC = 2 * Math.PI * 52;
 
 const BOARDS = [
   { id: 'typical', theme: 'light', state: 'typical', interactive: true, annot: true,
     title: '① 典型态（可交互）',
-    desc: '点击目标卡打卡：按钮 fast 150 缩放 + base 250 变青柠对勾，圆环 slow 450 推进；全部完成触发成就时刻。' },
+    desc: '首屏恰好一屏一卡，下滑看其余；点击目标卡打卡：fast 150 缩放 + base 250 青柠对勾，圆环 slow 450 推进；全部完成触发成就时刻。' },
   { id: 'empty', theme: 'light', state: 'empty',
     title: '② 空态',
     desc: '无目标：display 转为邀请语，列表位让给虚线邀请卡；年度带只剩今日标记。' },
@@ -431,10 +495,10 @@ const BOARDS = [
     desc: 'display 下方出现忙碌横幅（warning 语义），各目标按最低档 1 次计，圆环分母随之变化。' },
   { id: 'alldone', theme: 'light', state: 'alldone',
     title: '④ 全完成态',
-    desc: '圆环 100%、胶囊切换到「N 已完成」、目标卡全部青柠；成就时刻覆盖层常驻展示（点击可体会 dismiss）。' },
+    desc: '圆环 100%、胶囊切到「N 已完成」、目标卡标题转晴空蓝；成就覆盖层常驻展示（点击体会 dismiss）。' },
   { id: 'typical-dark', theme: 'dark', state: 'typical', interactive: true,
     title: '⑤ 典型态 · 深色',
-    desc: '暗紫底幕 + 深玻璃卡；强调反转为白实心，青柠进度在高对比下更亮。同样可点击打卡。' },
+    desc: '暗紫底幕 + 深玻璃卡；主操作反转为白实心，进度主卡保持深色，青柠环更亮。同样可点击打卡。' },
   { id: 'alldone-dark', theme: 'dark', state: 'alldone',
     title: '⑥ 全完成态 · 深色',
     desc: '成就时刻在深色下的呈现：青柠辐射光晕 + 反色徽章。' },
@@ -479,12 +543,15 @@ function scaffoldCard(g, board, st) {
       <span class="st-dot" style="background:${g.color}"></span>
       <span class="st-cat">${g.cat}</span>
       <button class="st-arrow" type="button" aria-label="目标详情">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
       </button>
     </div>
     <h3 class="st-title">${g.title}</h3>
     <div class="st-row3">
-      <span class="st-time">${g.time}</span>
+      <span class="st-time">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        ${g.time}
+      </span>
       <span class="st-pips">${'<span class="st-pip"></span>'.repeat(st.targets[idx])}</span>
       <span class="st-count"></span>
       <button class="st-check" type="button" aria-label="打卡">
@@ -527,43 +594,31 @@ function render(board) {
   q('[data-pdone]').textContent = GOALS.filter((g, i) => st.counts[i] >= st.targets[i]).length;
 
   // 胶囊选中态随完成度切换
-  const pTodo = q('.st-pill.todo'), pDone = q('.st-pill.done');
-  pTodo.style.opacity = todo ? '1' : '.45';
-  pDone.style.opacity = total && !todo ? '1' : '.75';
-
-  // 文案
-  q('[data-cheer]').textContent =
-    !total ? '从一个目标开始' :
-    pct === 0 ? '从第一次打卡开始' :
-    pct < 50 ? `已经完成 ${done} 次，稳稳推进` :
-    pct < 100 ? `还差 ${todo} 次，就快完成了` :
-    '今天全部完成，好好休息';
+  q('.st-pill.todo').style.opacity = todo ? '1' : '.45';
+  q('.st-pill.done').style.opacity = total && !todo ? '1' : '.75';
 
   // 目标卡
   const cardsBox = q('[data-cards]');
   if (st.targets.length === 0) {
-    cardsBox.hidden = true;
     q('[data-empty]').hidden = false;
     q('[data-pills]').style.visibility = 'hidden';
-    q('[data-sect-note]').textContent = '';
     q('[data-display]').innerHTML = '从一个<br>小目标开始';
   } else {
     const cards = [...cardsBox.children];
     st.targets.forEach((tg, i) => {
       const card = cards[i], g = GOALS[i], c = st.counts[i];
-      card.querySelector('.st-count').textContent = `${c}/${tg} 次`;
+      card.querySelector('.st-count').innerHTML = `<b>${c}/${tg}</b> 次`;
       [...card.querySelectorAll('.st-pip')].forEach((p, j) => {
         p.classList.toggle('on', j < c);
         p.style.background = j < c ? g.color : '';
       });
       card.querySelector('.st-check').classList.toggle('done', c >= tg);
       card.querySelector('.st-check').setAttribute('aria-pressed', c >= tg);
-      card.style.opacity = c >= tg ? '.78' : '1';
+      card.classList.toggle('done', c >= tg);
     });
-    q('[data-sect-note]').textContent = st.busy ? '忙碌模式 · 最低档' : `共 ${total} 次打卡`;
     q('[data-busy]').hidden = !st.busy;
     q('[data-display]').innerHTML = st.busy
-      ? '今天很忙<br>也没关系'
+      ? '今天很忙，也没关系'
       : (total > 0 && todo === 0)
           ? '全部完成<br>为自己鼓掌'
           : '把今天<br>照顾好';
@@ -581,7 +636,7 @@ function render(board) {
         const d = document.createElement('span');
         d.className = 'dot';
         const ang = (Math.PI * 2 * i) / 14 + 0.4;
-        const r = 90 + (i % 3) * 26;
+        const r = 100 + (i % 3) * 26;
         d.style.setProperty('--dx', (Math.cos(ang) * r).toFixed(0) + 'px');
         d.style.setProperty('--dy', (Math.sin(ang) * r * .7).toFixed(0) + 'px');
         d.style.background = palette[i % 7];
@@ -635,26 +690,28 @@ for (const cfg of BOARDS) {
   const cardsBox = phone.querySelector('[data-cards]');
   board.st.targets.forEach((_, i) => cardsBox.appendChild(scaffoldCard(GOALS[i], board, board.st)));
   buildBand(phone.querySelector('[data-band]'), today0);
-  const dayN = today0 + 1, left = 365 - dayN;
-  phone.querySelector('[data-year-note]').textContent = `第 ${dayN} 天 · 还剩 ${left} 天`;
 
   // 成就覆盖层：点击关闭（dismissible）
   phone.querySelector('[data-cele]').addEventListener('click', () =>
     phone.querySelector('[data-cele]').classList.remove('on'));
 
-  // 动效令牌标注（仅典型态浅色画板）
-  if (cfg.annot) {
-    const t1 = document.createElement('span');
-    t1.className = 'st-tag'; t1.textContent = '↳ fast 150 / base 250';
-    t1.style.cssText = 'top:558px;right:26px';
-    const t2 = document.createElement('span');
-    t2.className = 'st-tag'; t2.textContent = '↳ slow 450';
-    t2.style.cssText = 'top:300px;left:26px';
-    phone.appendChild(t1); phone.appendChild(t2);
-  }
-
   render(board);
 }
+
+/* 动效令牌标注（仅典型态浅色画板，锚定到目标元素旁） */
+(() => {
+  const phone = document.querySelector('.board .phone');
+  const place = (text, anchor, dx, dy) => {
+    const tag = document.createElement('span');
+    tag.className = 'st-tag'; tag.textContent = text;
+    phone.appendChild(tag);
+    const a = anchor.getBoundingClientRect(), p = phone.getBoundingClientRect();
+    tag.style.left = Math.max(8, Math.min(390 - 150, a.left - p.left + dx)) + 'px';
+    tag.style.top = (a.top - p.top + dy) + 'px';
+  };
+  place('↳ slow 450', phone.querySelector('[data-ringbar]'), -96, 52);
+  place('↳ fast 150 / base 250', phone.querySelector('.st-card .st-check'), -140, 44);
+})();
 </script>
 </body>
 </html>

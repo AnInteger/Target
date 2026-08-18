@@ -707,6 +707,13 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = TargetWidgets/TargetWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				/* 未签名构建回路（Codemagic --no-codesign → iLoader 本地自签）：
+				   flutter 的全局 CODE_SIGNING_ALLOWED=NO 不覆盖内嵌扩展 target，
+				   Automatic 签名在 archive 时仍要求 development team——
+				   在扩展 target 显式关闭签名（Codemagic 官方排障配方）。 */
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
 				/* 扩展 target 不含 Flutter xcconfig 链（$(FLUTTER_BUILD_NAME) 解析为空，
 				   TestFlight 校验拒绝）；与 home_widget 官方 example 一致直接硬编码，
@@ -779,6 +786,13 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = TargetWidgets/TargetWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				/* 未签名构建回路（Codemagic --no-codesign → iLoader 本地自签）：
+				   flutter 的全局 CODE_SIGNING_ALLOWED=NO 不覆盖内嵌扩展 target，
+				   Automatic 签名在 archive 时仍要求 development team——
+				   在扩展 target 显式关闭签名（Codemagic 官方排障配方）。 */
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
 				/* 扩展 target 不含 Flutter xcconfig 链（$(FLUTTER_BUILD_NAME) 解析为空，
 				   TestFlight 校验拒绝）；与 home_widget 官方 example 一致直接硬编码，
@@ -845,6 +859,13 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_ENTITLEMENTS = TargetWidgets/TargetWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
+				/* 未签名构建回路（Codemagic --no-codesign → iLoader 本地自签）：
+				   flutter 的全局 CODE_SIGNING_ALLOWED=NO 不覆盖内嵌扩展 target，
+				   Automatic 签名在 archive 时仍要求 development team——
+				   在扩展 target 显式关闭签名（Codemagic 官方排障配方）。 */
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
 				COPY_PHASE_STRIP = NO;
 				/* 扩展 target 不含 Flutter xcconfig 链（$(FLUTTER_BUILD_NAME) 解析为空，
 				   TestFlight 校验拒绝）；与 home_widget 官方 example 一致直接硬编码，

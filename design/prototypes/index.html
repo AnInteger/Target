@@ -20,18 +20,48 @@
   li a {
     display: flex; align-items: center; gap: 12px; text-decoration: none;
     background: var(--surface); border: 1px solid var(--divider);
-    border-radius: var(--radius-md); padding: 14px 16px; color: var(--on-surface);
+    border-radius: var(--radius-md); padding: 12px 16px; color: var(--on-surface);
     font: var(--font-body-l); transition: transform var(--motion-fast) var(--ease-standard);
   }
   li a:hover { transform: translateY(-1px); box-shadow: var(--shadow-mid); }
-  .status { margin-left: auto; font: var(--font-label); padding: 4px 10px;
+  .status { margin-left: auto; font: var(--font-label); padding: 4px 12px;
             border-radius: var(--radius-full); background: var(--surface-alt);
             color: var(--on-surface-variant); white-space: nowrap; }
-  .status.wait { background: #f6e8cf; color: #8a6413; }
+  .status.pass { background: var(--positive-fill); color: var(--positive-on); }
+  .status.wait { background: var(--surface-alt); color: var(--warning); }
   .note { color: var(--on-surface-variant); font: var(--font-body-s); margin-top: 24px;
           border-top: 1px solid var(--divider); padding-top: 16px; line-height: 1.7; }
-  code { background: var(--surface-alt); border-radius: 4px; padding: 1px 6px;
+  code { background: var(--surface-alt); border-radius: 4px; padding: 2px 4px;
          font-size: 12px; }
+
+  /* ---- 令牌总览区 ---- */
+  .theme-toggle {
+    float: right; font: var(--font-label); padding: 4px 12px; cursor: pointer;
+    border: 1px solid var(--divider); border-radius: var(--radius-full);
+    background: var(--surface); color: var(--on-surface-variant);
+  }
+  .tok-group { background: var(--surface); border: 1px solid var(--divider);
+               border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; }
+  .tok-group h3 { font: var(--font-title-s); margin: 0 0 12px; }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .sw { border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--divider); }
+  .sw i { display: block; height: 40px; }
+  .sw b { display: block; font: var(--font-label); font-weight: 500; padding: 4px 8px;
+          color: var(--on-surface-variant); background: var(--surface); }
+  .type-row { display: flex; align-items: baseline; gap: 12px; padding: 4px 0;
+              border-bottom: 1px solid var(--divider); }
+  .type-row:last-child { border-bottom: none; }
+  .type-row em { font: var(--font-label); font-style: normal; color: var(--on-surface-variant);
+                 width: 88px; flex: none; }
+  .scale-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .bar { height: 12px; background: var(--accent); border-radius: 2px; }
+  .scale-lab { font: var(--font-label); color: var(--on-surface-variant); }
+  .rbox { width: 56px; height: 56px; background: var(--surface-alt);
+          border: 1px solid var(--divider); }
+  .shbox { width: 100%; height: 44px; background: var(--surface);
+           border-radius: var(--radius-md); border: 1px solid var(--divider); }
+  .shrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; }
+  .shrow figcaption { font: var(--font-label); color: var(--on-surface-variant); margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -39,9 +69,9 @@
   <h1>Target · 原型评审入口</h1>
   <p class="sub">浏览器里看、点、挑——意见直接发给 Claude，会记入 <code>design/reviews.md</code></p>
 
-  <h2>① 风格方向对比（待拍板）</h2>
+  <h2>① 风格方向（已定稿）</h2>
   <ul>
-    <li><a href="direction-g.html">方向 G · 柔彩仪表盘（参照图复刻）<span class="status wait">第 3 轮</span></a></li>
+    <li><a href="direction-g.html">方向 G · 柔彩仪表盘（参照图复刻）<span class="status pass">已定稿 08-19</span></a></li>
   </ul>
   <h2>①′ 第 1/2 轮（已否决，留档）</h2>
   <ul>
@@ -62,10 +92,95 @@
     <li><a href="screen-settings.html">设置<span class="status">未开始</span></a></li>
   </ul>
 
+  <h2>③ 设计令牌总览 ·「柔彩仪表盘」<button class="theme-toggle" id="themeBtn" type="button">切换深色</button></h2>
+
+  <div class="tok-group">
+    <h3>语义色（浅/深成对，深色点右上角切换）</h3>
+    <div class="swatches">
+      <div class="sw"><i style="background:linear-gradient(var(--bg-grad-angle),var(--bg-grad-1),var(--bg-grad-2),var(--bg-grad-3),var(--bg-grad-4))"></i><b>background</b></div>
+      <div class="sw"><i style="background:var(--surface)"></i><b>surface</b></div>
+      <div class="sw"><i style="background:var(--surface-alt)"></i><b>surfaceAlt</b></div>
+      <div class="sw"><i style="background:var(--on-surface)"></i><b>onSurface</b></div>
+      <div class="sw"><i style="background:var(--on-surface-variant)"></i><b>onSurfaceVariant</b></div>
+      <div class="sw"><i style="background:var(--accent)"></i><b>accent</b></div>
+      <div class="sw"><i style="background:var(--positive)"></i><b>positive</b></div>
+      <div class="sw"><i style="background:var(--positive-fill)"></i><b>positiveFill</b></div>
+      <div class="sw"><i style="background:var(--warning)"></i><b>warning</b></div>
+      <div class="sw"><i style="background:var(--divider)"></i><b>divider</b></div>
+    </div>
+  </div>
+
+  <div class="tok-group">
+    <h3>目标色板（8 色键名冻结 · Goal.colorKey）</h3>
+    <div class="swatches">
+      <div class="sw"><i style="background:var(--goal-coral)"></i><b>coral</b></div>
+      <div class="sw"><i style="background:var(--goal-amber)"></i><b>amber</b></div>
+      <div class="sw"><i style="background:var(--goal-sage)"></i><b>sage</b></div>
+      <div class="sw"><i style="background:var(--goal-teal)"></i><b>teal</b></div>
+      <div class="sw"><i style="background:var(--goal-sky)"></i><b>sky</b></div>
+      <div class="sw"><i style="background:var(--goal-indigo)"></i><b>indigo</b></div>
+      <div class="sw"><i style="background:var(--goal-plum)"></i><b>plum</b></div>
+      <div class="sw"><i style="background:var(--goal-stone)"></i><b>stone</b></div>
+    </div>
+  </div>
+
+  <div class="tok-group">
+    <h3>字阶（九档 · 数字 tabular）</h3>
+    <div class="type-row"><em>displayLarge</em><span style="font:var(--font-display-l);letter-spacing:var(--ls-display-l)">把今天照顾好</span></div>
+    <div class="type-row"><em>displayMedium</em><span style="font:var(--font-display-m)">把今天照顾好</span></div>
+    <div class="type-row"><em>titleLarge</em><span style="font:var(--font-title-l)">规律运动 3×/周</span></div>
+    <div class="type-row"><em>titleMedium</em><span style="font:var(--font-title-m)">规律运动 3×/周</span></div>
+    <div class="type-row"><em>titleSmall</em><span style="font:var(--font-title-s)">23 点前上床</span></div>
+    <div class="type-row"><em>bodyLarge</em><span style="font:var(--font-body-l)">今天已完成 2/3 次</span></div>
+    <div class="type-row"><em>bodyMedium</em><span style="font:var(--font-body-m)">今天已完成 2/3 次</span></div>
+    <div class="type-row"><em>bodySmall</em><span style="font:var(--font-body-s)">今年还剩 134 天</span></div>
+    <div class="type-row"><em>labelSmall</em><span style="font:var(--font-label)">5 待打卡</span></div>
+    <div class="type-row"><em>tnum</em><span class="tnum" style="font:var(--font-display-l)">38% · 2/3 · 12:04</span></div>
+  </div>
+
+  <div class="tok-group">
+    <h3>间距 / 圆角 / 阴影 / 动效刻度</h3>
+    <div class="scale-row" style="margin-bottom:12px">
+      <span class="bar" style="width:var(--space-1)"></span><span class="scale-lab">4</span>
+      <span class="bar" style="width:var(--space-2)"></span><span class="scale-lab">8</span>
+      <span class="bar" style="width:var(--space-3)"></span><span class="scale-lab">12</span>
+      <span class="bar" style="width:var(--space-4)"></span><span class="scale-lab">16</span>
+      <span class="bar" style="width:var(--space-5)"></span><span class="scale-lab">20</span>
+      <span class="bar" style="width:var(--space-6)"></span><span class="scale-lab">24</span>
+      <span class="bar" style="width:var(--space-8)"></span><span class="scale-lab">32</span>
+      <span class="bar" style="width:var(--space-12)"></span><span class="scale-lab">48</span>
+    </div>
+    <div class="scale-row" style="margin-bottom:12px">
+      <span class="rbox" style="border-radius:var(--radius-sm)"></span>
+      <span class="rbox" style="border-radius:var(--radius-md)"></span>
+      <span class="rbox" style="border-radius:var(--radius-lg)"></span>
+      <span class="rbox" style="border-radius:var(--radius-xl)"></span>
+      <span class="rbox" style="border-radius:var(--radius-full)"></span>
+    </div>
+    <div class="shrow" style="margin-bottom:12px">
+      <figure style="margin:0"><div class="shbox" style="box-shadow:var(--shadow-low)"></div><figcaption>shadow·low</figcaption></figure>
+      <figure style="margin:0"><div class="shbox" style="box-shadow:var(--shadow-mid)"></div><figcaption>shadow·mid</figcaption></figure>
+      <figure style="margin:0"><div class="shbox" style="box-shadow:var(--shadow-high)"></div><figcaption>shadow·high</figcaption></figure>
+    </div>
+    <div class="scale-row">
+      <span class="scale-lab">motion：fast <span class="tnum">150ms</span> · base <span class="tnum">250ms</span> · slow <span class="tnum">450ms</span> · celebration <span class="tnum">1000ms</span> · 标准减速曲线</span>
+    </div>
+  </div>
+
   <p class="note">
     状态列与 <code>design/reviews.md</code> 同步维护；「通过」即解锁对应屏的 Flutter 实现（评审门禁）。<br>
+    令牌真值见 <code>design/tokens.css</code>（本页 ③ 区为其可视化；T006 后 Dart 侧 <code>design_tokens.dart</code> 为真源）。<br>
     每页均按 393×852 手机视口设计，可直接点击交互。
   </p>
 </div>
+<script>
+  const btn = document.getElementById('themeBtn');
+  btn.addEventListener('click', () => {
+    const root = document.documentElement;
+    const dark = root.getAttribute('data-theme') === 'dark';
+    root.setAttribute('data-theme', dark ? 'light' : 'dark');
+    btn.textContent = dark ? '切换深色' : '切换浅色';
+  });
+</script>
 </body>
 </html>

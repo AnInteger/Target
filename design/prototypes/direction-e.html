@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>方向 E · 活力数据</title>
+<style>
+  /* ============================================================
+     方向 E · 活力数据（Apple 现代风格 · Fitness/健康编辑风）
+     语义根：Apple 健身 App 的数字活力——超大半粗数字、
+     目标色渐变（填充条/数字/圆环）、无描边纯色卡。
+     深度来自"数据被郑重对待"：每个数字都大而清晰，
+     颜色为数据服务。年度时间带做成绿色浓淡热力带。
+     ============================================================ */
+  :root {
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC",
+            "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e6e6ea; color: #1c1c1e; font-family: var(--sans);
+    min-height: 100vh; padding: 40px 24px 80px; }
+  .dir-head { max-width: 1280px; margin: 0 auto 28px; }
+  .dir-head .eyebrow { font: 600 12px/1 var(--sans); letter-spacing: .18em;
+    color: #8e8e93; margin-bottom: 10px; }
+  .dir-head h1 { font: 700 32px/1.2 var(--sans); letter-spacing: -.02em; }
+  .dir-head .thesis { font: 400 15px/1.8 var(--sans); color: #57575c; max-width: 660px; margin-top: 8px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--sans);
+    color: #3a3a3e; background: #fff; border: 1px solid #d9d9de; border-radius: 8px; padding: 6px 10px; }
+  .chip i { width: 12px; height: 12px; border-radius: 4px; display: inline-block;
+    background: linear-gradient(135deg, #0a84ff, #5ac8fa); }
+  .boards { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; }
+  .board > .board-label { text-align: center; font: 600 12px/1 var(--sans);
+    letter-spacing: .12em; color: #8e8e93; margin-bottom: 12px; }
+  .phone { width: 393px; height: 852px; border-radius: 44px; padding: 10px;
+    background: #0a0a0c; box-shadow: 0 24px 60px rgb(10 10 12 / 40%); flex: none; }
+  .screen { position: relative; width: 100%; height: 100%; border-radius: 36px;
+    overflow: hidden; display: flex; flex-direction: column;
+    background: var(--p-bg); color: var(--p-label); }
+  .phone.light { --p-bg: #ffffff; --p-card: #ffffff; --p-label: #1c1c1e;
+    --p-label2: rgb(60 60 67 / 62%); --p-label3: rgb(60 60 67 / 32%);
+    --p-sep: rgb(60 60 67 / 12%); --p-fill: #f2f2f7;
+    --p-heat0: #e8e8ed; --p-ok: #34c759; }
+  .phone.dark { --p-bg: #000000; --p-card: #1c1c1e; --p-label: #f2f2f7;
+    --p-label2: rgb(235 235 245 / 60%); --p-label3: rgb(235 235 245 / 30%);
+    --p-sep: rgb(84 84 88 / 40%); --p-fill: #1c1c1e;
+    --p-heat0: #232326; --p-ok: #30d158; }
+  .statusbar { flex: none; height: 54px; display: flex; align-items: center;
+    justify-content: space-between; padding: 6px 28px 0; font: 600 15px var(--sans); }
+  .content { flex: 1; overflow-y: auto; padding: 6px 20px 16px; }
+  /* ---- 顶部：渐变大数字 ---- */
+  .hero { padding: 6px 2px 2px; }
+  .hero .cap { font: 500 14px/1 var(--sans); color: var(--p-label2); letter-spacing: .01em; }
+  .hero .line { display: flex; align-items: baseline; gap: 8px; margin-top: 2px; }
+  .hero .num { font: 800 64px/1.05 var(--sans); letter-spacing: -.035em;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(135deg, #0a84ff 8%, #5ac8fa 58%, #34d399 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero .num::selection { background: rgb(10 132 255 / 25%); }
+  .hero .unit { font: 500 17px/1.3 var(--sans); color: var(--p-label2); }
+  .hero .streak { font: 500 13px/1 var(--sans); color: var(--p-label2); margin-top: 6px; }
+  .hero .streak b { color: var(--p-ok); font-weight: 700;
+    font-variant-numeric: tabular-nums; }
+  .hero.settled .num { background: linear-gradient(135deg, #34c759, #66d4a3);
+    -webkit-background-clip: text; background-clip: text; }
+  /* ---- 年度热力带 ---- */
+  .year { margin-top: 14px; background: var(--p-card); border-radius: 14px;
+    padding: 13px 14px 11px; border: .5px solid var(--p-sep); }
+  .phone.dark .year { border-color: transparent; }
+  .year-head { display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 9px; }
+  .year-head .a { font: 600 13px/1 var(--sans); }
+  .year-head .a b { color: #0a84ff; }
+  .year-head .b { font: 400 11.5px/1 var(--sans); color: var(--p-label2);
+    font-variant-numeric: tabular-nums; }
+  .heat { display: flex; gap: 1.5px; height: 26px; align-items: stretch; }
+  .heat i { flex: 1; border-radius: 2px; background: var(--p-heat0); }
+  .heat i.l1 { background: color-mix(in srgb, var(--p-ok) 34%, var(--p-heat0)); }
+  .heat i.l2 { background: color-mix(in srgb, var(--p-ok) 64%, var(--p-heat0)); }
+  .heat i.l3 { background: var(--p-ok); }
+  .heat i.today { background: #0a84ff; box-shadow: 0 0 0 1.5px var(--p-card),
+    0 0 7px rgb(10 132 255 / 60%); }
+  .year-cap { display: flex; justify-content: space-between; margin-top: 8px;
+    font: 400 10.5px/1 var(--sans); color: var(--p-label3); }
+  /* ---- 忙碌提示 ---- */
+  .busy-chip { display: none; margin-top: 12px; width: fit-content;
+    font: 500 12px/1 var(--sans); color: #a86a00; background: rgb(255 159 10 / 14%);
+    border-radius: 999px; padding: 8px 13px; }
+  .phone.is-busy .busy-chip { display: inline-block; }
+  /* ---- 目标大卡 ---- */
+  .cards { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+  .gcard { position: relative; background: var(--p-card); border-radius: 20px;
+    padding: 16px 16px 15px; border: .5px solid var(--p-sep);
+    display: flex; gap: 14px; align-items: center;
+    transition: transform 200ms cubic-bezier(.3, 1.3, .4, 1), box-shadow 200ms ease; }
+  .phone.dark .gcard { border-color: transparent; }
+  .gcard.bump { animation: bump 420ms cubic-bezier(.3, 1.5, .5, 1); }
+  @keyframes bump { 0% { transform: scale(1); } 35% { transform: scale(1.025); }
+    100% { transform: scale(1); } }
+  .gc-main { flex: 1; min-width: 0; }
+  .gc-name { font: 600 17px/1.2 var(--sans); letter-spacing: -.01em; display: flex;
+    align-items: center; gap: 8px; }
+  .gc-name .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--g1);
+    background-image: var(--g2); flex: none; }
+  .gc-meta { font: 400 12.5px/1 var(--sans); color: var(--p-label2); margin-top: 4px; }
+  .gc-fig { display: flex; align-items: baseline; gap: 4px; margin-top: 9px; }
+  .gc-fig .cur { font: 750 38px/1 var(--sans); letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+    background: var(--g2); -webkit-background-clip: text; background-clip: text;
+    color: transparent; }
+  .gc-fig .tgt { font: 500 16px/1 var(--sans); color: var(--p-label3);
+    font-variant-numeric: tabular-nums; }
+  .bar { height: 8px; border-radius: 999px; background: var(--p-fill);
+    margin-top: 9px; overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: inherit; width: var(--w, 0%);
+    background: var(--g2); transition: width 560ms cubic-bezier(.3, 1.1, .4, 1); }
+  .gcard[data-goal="meal"]  { --g1: #ff6b4a; --g2: linear-gradient(90deg, #ff8a66, #f0482b); }
+  .gcard[data-goal="fit"]   { --g1: #34c759; --g2: linear-gradient(90deg, #52d573, #1e9e49); }
+  .gcard[data-goal="sleep"] { --g1: #5e5ce6; --g2: linear-gradient(90deg, #8a87f5, #4b48c9); }
+  .gcard[data-goal="read"]  { --g1: #ff9f0a; --g2: linear-gradient(90deg, #ffb340, #e8870a); }
+  .gcard.full .gc-name .dot { background: var(--p-ok); background-image: none; }
+  .gcard.full .gc-fig .cur { background: var(--p-ok); -webkit-background-clip: text;
+    background-clip: text; }
+  /* 加号按钮 */
+  .plus { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 0;
+    cursor: pointer; position: relative; overflow: hidden;
+    background: var(--g2); color: #fff;
+    box-shadow: 0 6px 14px color-mix(in srgb, var(--g1) 42%, transparent);
+    display: grid; place-items: center;
+    transition: transform 160ms cubic-bezier(.3, 1.5, .5, 1); }
+  .plus svg { width: 22px; height: 22px; stroke: #fff; stroke-width: 2.4;
+    stroke-linecap: round; }
+  .plus:hover { transform: scale(1.06); }
+  .plus:active { transform: scale(.9); }
+  .plus:focus-visible { outline: 3px solid #0a84ff; outline-offset: 3px; }
+  .gcard.full .plus { background: var(--p-fill); color: var(--p-ok);
+    box-shadow: none; pointer-events: none; }
+  .gcard.full .plus svg { stroke: var(--p-ok); }
+  /* ---- 集齐卡 ---- */
+  .win { display: none; margin-top: 12px; background: var(--p-card);
+    border: .5px solid var(--p-sep); border-radius: 20px; padding: 18px 16px;
+    text-align: center; }
+  .phone.dark .win { border-color: transparent; }
+  .phone.all-complete .win { display: block; animation: winIn 520ms cubic-bezier(.3, 1.4, .4, 1); }
+  @keyframes winIn { from { opacity: 0; transform: translateY(10px) scale(.97); }
+    to { opacity: 1; } }
+  .win .ringwrap { width: 74px; height: 74px; margin: 0 auto 10px; border-radius: 50%;
+    background: conic-gradient(#34c759 0 100%);
+    display: grid; place-items: center; animation: ringGrow 800ms cubic-bezier(.3,1.2,.4,1); }
+  .win .ringwrap::after { content: "✓"; width: 60px; height: 60px; border-radius: 50%;
+    background: var(--p-card); display: grid; place-items: center;
+    font: 700 24px/1 var(--sans); color: #34c759; }
+  @keyframes ringGrow { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .win .t { font: 700 19px/1.3 var(--sans); letter-spacing: -.01em; }
+  .win .s { font: 400 13px/1.5 var(--sans); color: var(--p-label2); margin-top: 3px; }
+  /* ---- 底部 Tab ---- */
+  .tabbar { flex: none; display: flex; background: var(--p-card);
+    border-top: .5px solid var(--p-sep); padding: 8px 10px calc(16px + 10px); }
+  .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    text-decoration: none; color: var(--p-label3); font: 500 10px/1 var(--sans); }
+  .tabbar a svg { width: 24px; height: 24px; stroke: currentColor; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tabbar a.active { color: #0a84ff; font-weight: 600; }
+  /* ---- 控制条 ---- */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  .controls button { font: 500 13px/1 var(--sans); color: #1c1c1e; background: #fff;
+    border: 1px solid #d3d3d8; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
+  .controls button:hover { background: #f5f5f7; }
+  .review-note { max-width: 880px; margin: 48px auto 0; font: 400 13px/1.9 var(--sans);
+    color: #57575c; border-top: 1px solid #d5d5da; padding-top: 18px; }
+  .review-note b { color: #1c1c1e; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="dir-head">
+  <div class="eyebrow">TARGET · 风格方向 E · APPLE 现代风格</div>
+  <h1>活力数据</h1>
+  <p class="thesis">Apple 健身 App 的那股数字活力：超大半粗数字、只属于目标色的渐变（数字、填充条、按钮）、无描边的纯色卡。深度来自"数据被郑重对待"——每个数字都够大、够清楚，颜色永远为数据服务。年度时间带在 这里是绿色浓淡的热力带，一眼看到这一年的守护密度。</p>
+  <div class="chips">
+    <span class="chip"><i></i>目标色渐变</span>
+    <span class="chip"><i style="background:#fff;border:1px solid #d9d9de"></i>无描边大卡</span>
+    <span class="chip"><i style="background:linear-gradient(90deg,#52d573,#1e9e49)"></i>守护绿热力</span>
+    <span class="chip">64pt 渐变剩余数 + 38pt 计数</span>
+  </div>
+</header>
+
+<main class="boards">
+  <!-- 浅色 -->
+  <section class="board">
+    <div class="board-label">浅色</div>
+    <div class="phone light" data-phone>
+      <div class="screen">
+        <div class="statusbar"><span>20:14</span><span>◉◉◉</span></div>
+        <div class="content">
+          <div class="hero">
+            <div class="cap">今天还剩</div>
+            <div class="line"><span class="num" data-remain>4</span><span class="unit">项</span></div>
+            <div class="streak">已连续守护 <b>12</b> 天 · 距年度目标 <b>200</b> 天还差 <b>52</b> 天</div>
+          </div>
+
+          <div class="year">
+            <div class="year-head">
+              <span class="a"><b>第 230 天</b> · 年度守护密度</span>
+              <span class="b" data-year-left>今年还剩 135 天</span>
+            </div>
+            <div class="heat" data-year></div>
+            <div class="year-cap"><span>1月</span><span>4月</span><span>7月</span><span>10月</span><span>12月</span></div>
+          </div>
+
+          <div class="busy-chip">忙碌模式 · 「好好吃饭」今日 1 次即可</div>
+
+          <div class="cards">
+            <div class="gcard" data-goal="meal" data-cur="2" data-target="3">
+              <div class="gc-main">
+                <div class="gc-name"><span class="dot"></span>好好吃饭</div>
+                <div class="gc-meta">每日 3 次 · 提醒 8:00 / 13:00 / 19:00</div>
+                <div class="gc-fig"><span class="cur">2</span><span class="tgt">/ 3</span></div>
+                <div class="bar"><i></i></div>
+              </div>
+              <button class="plus" aria-label="记录好好吃饭一次"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard" data-goal="fit" data-cur="1" data-target="3">
+              <div class="gc-main">
+                <div class="gc-name"><span class="dot"></span>规律运动</div>
+                <div class="gc-meta">每周 3 次 · 本周第 2 次进行中</div>
+                <div class="gc-fig"><span class="cur">1</span><span class="tgt">/ 3</span></div>
+                <div class="bar"><i></i></div>
+              </div>
+              <button class="plus" aria-label="记录规律运动一次"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard" data-goal="sleep" data-cur="0" data-target="1">
+              <div class="gc-main">
+                <div class="gc-name"><span class="dot"></span>23 点前上床</div>
+                <div class="gc-meta">每日 1 次 · 提醒 22:15</div>
+                <div class="gc-fig"><span class="cur">0</span><span class="tgt">/ 1</span></div>
+                <div class="bar"><i></i></div>
+              </div>
+              <button class="plus" aria-label="记录 23 点前上床"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard" data-goal="read" data-cur="0" data-target="1">
+              <div class="gc-main">
+                <div class="gc-name"><span class="dot"></span>读 20 页书</div>
+                <div class="gc-meta">每日 1 次 · 最佳时段 21:00</div>
+                <div class="gc-fig"><span class="cur">0</span><span class="tgt">/ 1</span></div>
+                <div class="bar"><i></i></div>
+              </div>
+              <button class="plus" aria-label="记录读 20 页书"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+          </div>
+
+          <div class="win" aria-live="polite">
+            <div class="ringwrap"></div>
+            <div class="t">完美一天</div>
+            <div class="s">6 次记录 · 连续第 12 天 · 今年第 149 个绿格</div>
+          </div>
+        </div>
+        <nav class="tabbar">
+          <a class="active" href="#"><svg viewBox="0 0 24 24"><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/><circle cx="12" cy="12" r="6.5"/></svg>今日</a>
+          <a href="#"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>目标</a>
+          <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/></svg>设置</a>
+        </nav>
+      </div>
+    </div>
+    <div class="controls">
+      <button data-act="reset">重置演示</button>
+      <button data-act="busy">切换忙碌模式</button>
+    </div>
+  </section>
+
+  <!-- 深色 -->
+  <section class="board">
+    <div class="board-label">深色</div>
+    <div class="phone dark" data-phone>
+      <div class="screen">
+        <div class="statusbar"><span>20:14</span><span>◉◉◉</span></div>
+        <div class="content">
+          <div class="hero">
+            <div class="cap">今天还剩</div>
+            <div class="line"><span class="num" data-remain>4</span><span class="unit">项</span></div>
+            <div class="streak">已连续守护 <b>12</b> 天 · 距年度目标 <b>200</b> 天还差 <b>52</b> 天</div>
+          </div>
+
+          <div class="year">
+            <div class="year-head">
+              <span class="a"><b>第 230 天</b> · 年度守护密度</span>
+              <span class="b" data-year-left>今年还剩 135 天</span>
+            </div>
+            <div class="heat" data-year></div>
+            <div class="year-cap"><span>1月</span><span>4月</span><span>7月</span><span>10月</span><span>12月</span></div>
+          </div>
+
+          <div class="busy-chip">忙碌模式 · 「好好吃饭」今日 1 次即可</div>
+
+          <div class="cards">
+            <div class="gcard" data-goal="meal" data-cur="2" data-target="3">
+              <div class="gc-main">
+                <div class="gc-name"><span class="dot"></span>好好吃饭</div>
+                <div class="gc-meta">每日 3 次 · 提醒 8:00 / 13:00 / 19:00</div>
+                <div class="gc-fig"><span class="cur">2</span><span class="tgt">/ 3</span></div>
+                <div class="bar"><i></i></div>
+              </div>
+              <button class="plus" aria-label="记录好好吃饭一次"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard" data-goal="fit" data-cur="1" data-target="3">
+              <div class="gc-main">
+                <div class="gc-name"><span class="dot"></span>规律运动</div>
+                <div class="gc-meta">每周 3 次 · 本周第 2 次进行中</div>
+                <div class="gc-fig"><span class="cur">1</span><span class="tgt">/ 3</span></div>
+                <div class="bar"><i></i></div>
+              </div>
+              <button class="plus" aria-label="记录规律运动一次"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard" data-goal="sleep" data-cur="0" data-target="1">
+              <div class="gc-main">
+                <div class="gc-name"><span class="dot"></span>23 点前上床</div>
+                <div class="gc-meta">每日 1 次 · 提醒 22:15</div>
+                <div class="gc-fig"><span class="cur">0</span><span class="tgt">/ 1</span></div>
+                <div class="bar"><i></i></div>
+              </div>
+              <button class="plus" aria-label="记录 23 点前上床"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard" data-goal="read" data-cur="0" data-target="1">
+              <div class="gc-main">
+                <div class="gc-name"><span class="dot"></span>读 20 页书</div>
+                <div class="gc-meta">每日 1 次 · 最佳时段 21:00</div>
+                <div class="gc-fig"><span class="cur">0</span><span class="tgt">/ 1</span></div>
+                <div class="bar"><i></i></div>
+              </div>
+              <button class="plus" aria-label="记录读 20 页书"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+          </div>
+
+          <div class="win" aria-live="polite">
+            <div class="ringwrap"></div>
+            <div class="t">完美一天</div>
+            <div class="s">6 次记录 · 连续第 12 天 · 今年第 149 个绿格</div>
+          </div>
+        </div>
+        <nav class="tabbar">
+          <a class="active" href="#"><svg viewBox="0 0 24 24"><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/><circle cx="12" cy="12" r="6.5"/></svg>今日</a>
+          <a href="#"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>目标</a>
+          <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/></svg>设置</a>
+        </nav>
+      </div>
+    </div>
+    <div class="controls">
+      <button data-act="reset">重置演示</button>
+      <button data-act="busy">切换忙碌模式</button>
+    </div>
+  </section>
+</main>
+
+<footer class="review-note">
+  <b>评审要点</b>：① 数字活力够不够"苹果健身"味——顶部 64pt 渐变剩余数、卡内 38pt 计数；② 年度热力带的浓淡节奏；③ 点「+」的弹簧感、填满一张卡时计数变绿；④ 四张卡全点满看「完美一天」渐变圆环；⑤ 深色黑底上的色彩饱和度。
+  意见直接告诉 Claude，会记入 design/reviews.md。
+</footer>
+
+<script>
+  // 年度热力带：365 格，三档绿色浓淡（确定性伪随机演示数据），今日蓝色
+  const TODAY = 229;
+  function buildYear(phone) {
+    const heat = phone.querySelector('[data-year]');
+    heat.innerHTML = '';
+    for (let i = 0; i < 365; i++) {
+      const c = document.createElement('i');
+      if (i < TODAY) {
+        const v = (i * 7919 + 13) % 97;
+        if (v >= 74) c.classList.add('l3');
+        else if (v >= 42) c.classList.add('l2');
+        else if (v >= 14) c.classList.add('l1');
+      }
+      if (i === TODAY) c.classList.add('today');
+      heat.appendChild(c);
+    }
+  }
+
+  const INIT = { meal: 2, fit: 1, sleep: 0, read: 0 };
+  const BUSY_TARGET = { meal: 1 };
+
+  function render(phone) {
+    let remaining = 0;
+    const wasComplete = phone.classList.contains('all-complete');
+    phone.querySelectorAll('.gcard').forEach(card => {
+      const key = card.dataset.goal;
+      const busy = phone.classList.contains('is-busy');
+      const target = busy && BUSY_TARGET[key] ? BUSY_TARGET[key] : +card.dataset.target;
+      const cur = Math.min(+card.dataset.cur, target);
+      card.querySelector('.gc-fig .cur').textContent = cur;
+      card.querySelector('.gc-fig .tgt').textContent = `/ ${target}`;
+      card.querySelector('.bar i').style.setProperty('--w', (cur / target * 100) + '%');
+      const full = cur >= target;
+      card.classList.toggle('full', full);
+      if (!full) remaining += target - cur;
+    });
+    phone.querySelector('[data-remain]').textContent = remaining;
+    phone.querySelector('.hero').classList.toggle('settled', remaining === 0);
+    phone.classList.toggle('all-complete', remaining === 0);
+    // 刚集齐：平滑滚到底部，让「完美一天」立刻进入视野
+    if (!wasComplete && remaining === 0) {
+      const content = phone.querySelector('.content');
+      content.scrollTo({ top: content.scrollHeight, behavior: 'smooth' });
+    }
+  }
+
+  document.querySelectorAll('[data-phone]').forEach(phone => {
+    buildYear(phone);
+    const board = phone.closest('.board');
+    phone.addEventListener('click', e => {
+      const btn = e.target.closest('.plus');
+      if (!btn) return;
+      const card = btn.closest('.gcard');
+      const busy = phone.classList.contains('is-busy');
+      const key = card.dataset.goal;
+      const target = busy && BUSY_TARGET[key] ? BUSY_TARGET[key] : +card.dataset.target;
+      if (+card.dataset.cur < target) {
+        card.dataset.cur = +card.dataset.cur + 1;
+        card.classList.remove('bump'); void card.offsetWidth; card.classList.add('bump');
+        render(phone);
+      }
+    });
+    board.querySelector('[data-act="reset"]').addEventListener('click', () => {
+      phone.querySelectorAll('.gcard').forEach(c => c.dataset.cur = INIT[c.dataset.goal] ?? 0);
+      phone.classList.remove('is-busy');
+      render(phone);
+    });
+    board.querySelector('[data-act="busy"]').addEventListener('click', () => {
+      phone.classList.toggle('is-busy');
+      render(phone);
+    });
+    render(phone);
+  });
+</script>
+</body>
+</html>

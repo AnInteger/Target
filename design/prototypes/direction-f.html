@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>方向 F · 玻璃层次</title>
+<style>
+  /* ============================================================
+     方向 F · 玻璃层次（Apple 现代风格 · visionOS 式景深）
+     语义根：visionOS 的通透——柔和的环境色场做底，卡片是
+     浮在上面的一层层玻璃（模糊+饱和+高光边）。深度是字面
+     意义的：层次、光、雾。年度时间带封装成玻璃胶囊。
+     ============================================================ */
+  :root {
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+            "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    --coral: #ff7052; --sage: #4cd574; --indigo: #8b88f8; --amber: #ffb547;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #dcdce4; color: #1c1c1e; font-family: var(--sans);
+    min-height: 100vh; padding: 40px 24px 80px; }
+  .dir-head { max-width: 1280px; margin: 0 auto 28px; }
+  .dir-head .eyebrow { font: 600 12px/1 var(--sans); letter-spacing: .18em;
+    color: #8e8e93; margin-bottom: 10px; }
+  .dir-head h1 { font: 700 32px/1.2 var(--sans); letter-spacing: -.02em; }
+  .dir-head .thesis { font: 400 15px/1.8 var(--sans); color: #57575c; max-width: 660px; margin-top: 8px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--sans);
+    color: #3a3a3e; background: rgb(255 255 255 / 55%); border: 1px solid rgb(255 255 255 / 80%);
+    border-radius: 8px; padding: 6px 10px; backdrop-filter: blur(10px); }
+  .chip i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+  .boards { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; }
+  .board > .board-label { text-align: center; font: 600 12px/1 var(--sans);
+    letter-spacing: .12em; color: #8e8e93; margin-bottom: 12px; }
+  .phone { width: 393px; height: 852px; border-radius: 44px; padding: 10px;
+    background: #08080c; box-shadow: 0 24px 60px rgb(8 8 12 / 40%); flex: none; }
+  .screen { position: relative; width: 100%; height: 100%; border-radius: 36px;
+    overflow: hidden; display: flex; flex-direction: column;
+    background: var(--p-bg); color: var(--p-label); }
+  /* 环境色场 */
+  .ambient { position: absolute; inset: 0; pointer-events: none;
+    transition: opacity 700ms ease; }
+  .ambient i { position: absolute; border-radius: 50%; filter: blur(70px); opacity: var(--o, .8); }
+  .ambient i.a1 { width: 320px; height: 320px; top: -90px; left: -80px; background: var(--ab1); }
+  .ambient i.a2 { width: 300px; height: 300px; top: 160px; right: -110px; background: var(--ab2); }
+  .ambient i.a3 { width: 340px; height: 340px; bottom: -80px; left: 40px; background: var(--ab3); }
+  .phone.all-complete .ambient { opacity: 1.25; filter: saturate(1.25); }
+  .phone.all-complete .ambient i { --o: 1; }
+  .phone.light { --p-bg: #eef0f6; --p-label: #202332; --p-label2: rgb(32 35 50 / 62%);
+    --ab1: rgb(120 160 255 / 42%); --ab2: rgb(255 150 160 / 32%); --ab3: rgb(140 220 200 / 38%);
+    --glass: rgb(255 255 255 / 58%); --glass-edge: rgb(255 255 255 / 85%);
+    --glass-edge2: rgb(255 255 255 / 28%); --bead: rgb(32 35 50 / 10%); }
+  .phone.dark { --p-bg: #0c0e1a; --p-label: #f0f2fa; --p-label2: rgb(240 242 250 / 62%);
+    --ab1: rgb(70 90 220 / 55%); --ab2: rgb(190 80 180 / 30%); --ab3: rgb(40 170 190 / 40%);
+    --glass: rgb(28 30 48 / 52%); --glass-edge: rgb(255 255 255 / 16%);
+    --glass-edge2: rgb(255 255 255 / 6%); --bead: rgb(240 242 250 / 12%); }
+  .statusbar { flex: none; height: 54px; display: flex; align-items: center;
+    justify-content: space-between; padding: 6px 28px 0; font: 600 15px var(--sans);
+    position: relative; z-index: 2; }
+  .content { flex: 1; overflow-y: auto; padding: 6px 18px 16px; position: relative; z-index: 2; }
+  /* ---- 标题 ---- */
+  .hello { display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 6px 4px 0; }
+  .hello .t { font: 700 30px/1.15 var(--sans); letter-spacing: -.02em; }
+  .hello .t b { font-variant-numeric: tabular-nums; }
+  .hello .chip-remaining { font: 600 13px/1 var(--sans); color: var(--p-label);
+    padding: 8px 13px; border-radius: 999px;
+    background: var(--glass); border: 1px solid var(--glass-edge);
+    backdrop-filter: blur(16px) saturate(1.5); -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    font-variant-numeric: tabular-nums; box-shadow: 0 4px 14px rgb(20 24 40 / 10%); }
+  .hello .sub { font: 400 14px/1.5 var(--sans); color: var(--p-label2); margin-top: 5px; padding: 0 4px; }
+  /* ---- 玻璃通用 ---- */
+  .glass { background: var(--glass); border: 1px solid var(--glass-edge);
+    backdrop-filter: blur(26px) saturate(1.7); -webkit-backdrop-filter: blur(26px) saturate(1.7);
+    border-radius: 24px; box-shadow: 0 10px 30px rgb(16 20 38 / 12%),
+      inset 0 1px 0 var(--glass-edge), inset 0 -1px 0 var(--glass-edge2); }
+  /* ---- 年度胶囊 ---- */
+  .year { margin-top: 14px; padding: 13px 15px 11px; border-radius: 20px; }
+  .year-head { display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 9px; }
+  .year-head .a { font: 600 13px/1 var(--sans); }
+  .year-head .a b { font-variant-numeric: tabular-nums; }
+  .year-head .b { font: 400 11.5px/1 var(--sans); color: var(--p-label2);
+    font-variant-numeric: tabular-nums; }
+  .year-strip { display: flex; gap: 1px; height: 14px; align-items: flex-end; }
+  .year-strip i { flex: 1; height: 7px; border-radius: 1.5px; background: var(--bead); }
+  .year-strip i.done { background: linear-gradient(180deg, #5ee08a, #2ea860); }
+  .year-strip i.today { height: 14px; border-radius: 2px;
+    background: linear-gradient(180deg, #9db4ff, #5a7cff);
+    box-shadow: 0 0 8px rgb(90 124 255 / 70%); }
+  .year-foot { display: flex; justify-content: space-between; margin-top: 8px;
+    font: 400 10.5px/1 var(--sans); color: var(--p-label2); }
+  /* ---- 忙碌 ---- */
+  .busy-chip { display: none; margin-top: 12px; width: fit-content;
+    font: 500 12px/1 var(--sans); color: #8a5a00; padding: 8px 13px; border-radius: 999px;
+    background: rgb(255 181 71 / 30%); border: 1px solid rgb(255 181 71 / 55%);
+    backdrop-filter: blur(12px); }
+  .phone.is-busy .busy-chip { display: inline-block; }
+  /* ---- 目标玻璃卡 ---- */
+  .cards { display: flex; flex-direction: column; gap: 13px; margin-top: 14px; }
+  .gcard { padding: 16px; display: flex; align-items: center; gap: 13px;
+    transition: transform 220ms cubic-bezier(.3, 1.25, .4, 1), box-shadow 220ms ease; }
+  .gcard:hover { transform: translateY(-2px);
+    box-shadow: 0 16px 38px rgb(16 20 38 / 18%), inset 0 1px 0 var(--glass-edge); }
+  .gcard.lit { box-shadow: 0 10px 34px color-mix(in srgb, var(--goal) 30%, transparent),
+    inset 0 1px 0 var(--glass-edge); }
+  .glyph { flex: none; width: 46px; height: 46px; border-radius: 16px;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--goal) 78%, #fff 22%), var(--goal));
+    box-shadow: inset 0 2px 3px rgb(255 255 255 / 45%), inset 0 -3px 6px rgb(0 0 0 / 18%),
+      0 6px 16px color-mix(in srgb, var(--goal) 38%, transparent);
+    display: grid; place-items: center; }
+  .glyph svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 1.8;
+    stroke-linecap: round; stroke-linejoin: round; }
+  .gcard[data-goal="meal"]  { --goal: var(--coral); }
+  .gcard[data-goal="fit"]   { --goal: var(--sage); }
+  .gcard[data-goal="sleep"] { --goal: var(--indigo); }
+  .gcard[data-goal="read"]  { --goal: var(--amber); }
+  .gc-main { flex: 1; min-width: 0; }
+  .gc-name { font: 600 17px/1.2 var(--sans); letter-spacing: -.01em; }
+  .gc-meta { font: 400 12.5px/1 var(--sans); color: var(--p-label2); margin-top: 4px; }
+  .beads { display: flex; gap: 7px; margin-top: 11px; }
+  .bead { width: 13px; height: 13px; border-radius: 50%;
+    background: var(--bead); border: 1px solid var(--glass-edge2);
+    box-shadow: inset 0 1px 1px rgb(255 255 255 / 25%); }
+  .bead.on { background: radial-gradient(circle at 32% 30%,
+      color-mix(in srgb, var(--goal) 45%, #fff), var(--goal));
+    border-color: transparent;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--goal) 55%, transparent); }
+  .gcard.full .gc-name { color: var(--p-label2); }
+  /* 玻璃加号（涟漪） */
+  .add { flex: none; width: 50px; height: 50px; border-radius: 50%;
+    position: relative; overflow: hidden; cursor: pointer; border: 1px solid var(--glass-edge);
+    background: var(--glass); color: var(--p-label);
+    backdrop-filter: blur(14px) saturate(1.6); -webkit-backdrop-filter: blur(14px) saturate(1.6);
+    display: grid; place-items: center;
+    box-shadow: inset 0 1px 0 var(--glass-edge), 0 6px 16px rgb(16 20 38 / 14%);
+    transition: transform 180ms cubic-bezier(.3, 1.6, .5, 1); }
+  .add svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2.2;
+    stroke-linecap: round; }
+  .add:hover { transform: scale(1.07); }
+  .add:active { transform: scale(.88); }
+  .add:focus-visible { outline: 3px solid #5a7cff; outline-offset: 3px; }
+  .gcard.full .add { pointer-events: none; color: #3ecf74; }
+  .ripple { position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(circle, color-mix(in srgb, var(--goal) 42%, transparent) 0%,
+      transparent 62%); animation: rip 560ms ease-out forwards; }
+  @keyframes rip { from { transform: scale(.35); opacity: .95; }
+    to { transform: scale(1.9); opacity: 0; } }
+  .gcard.bump { animation: bump 420ms cubic-bezier(.3, 1.4, .5, 1); }
+  @keyframes bump { 0% { transform: scale(1); } 35% { transform: scale(1.02); }
+    100% { transform: scale(1); } }
+  /* ---- 集齐浮层 ---- */
+  .win { display: none; margin-top: 14px; padding: 20px 16px 18px; text-align: center;
+    border-radius: 26px; }
+  .phone.all-complete .win { display: block; animation: winIn 560ms cubic-bezier(.3, 1.35, .4, 1); }
+  @keyframes winIn { from { opacity: 0; transform: translateY(12px) scale(.96); }
+    to { opacity: 1; } }
+  .win .halo { width: 66px; height: 66px; margin: 0 auto 10px; border-radius: 50%;
+    background: conic-gradient(from 180deg, #5ee08a, #9db4ff, #ffb547, #5ee08a);
+    padding: 3px; filter: drop-shadow(0 4px 14px rgb(94 224 138 / 45%)); }
+  .win .halo::after { content: "✓"; display: grid; place-items: center;
+    width: 60px; height: 60px; border-radius: 50%; background: var(--p-bg);
+    font: 700 22px/1 var(--sans); color: #2ea860; }
+  .win .t { font: 700 20px/1.3 var(--sans); letter-spacing: -.01em; }
+  .win .s { font: 400 13px/1.5 var(--sans); color: var(--p-label2); margin-top: 3px; }
+  /* ---- 悬浮玻璃 Tab ---- */
+  .tabdock { flex: none; padding: 6px 22px calc(18px + 10px); position: relative; z-index: 2; }
+  .tab { display: flex; gap: 4px; padding: 7px; border-radius: 999px; }
+  .tab a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    text-decoration: none; color: var(--p-label2); font: 500 10px/1 var(--sans);
+    padding: 7px 0 6px; border-radius: 999px; }
+  .tab a svg { width: 23px; height: 23px; stroke: currentColor; fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .tab a.active { color: var(--p-label); background: var(--glass);
+    border: 1px solid var(--glass-edge); font-weight: 600;
+    box-shadow: inset 0 1px 0 var(--glass-edge), 0 4px 12px rgb(16 20 38 / 12%); }
+  /* ---- 控制条 ---- */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  .controls button { font: 500 13px/1 var(--sans); color: #1c1c1e; background: #fff;
+    border: 1px solid #d3d3d8; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
+  .controls button:hover { background: #f5f5f7; }
+  .review-note { max-width: 880px; margin: 48px auto 0; font: 400 13px/1.9 var(--sans);
+    color: #57575c; border-top: 1px solid #d5d5da; padding-top: 18px; }
+  .review-note b { color: #1c1c1e; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="dir-head">
+  <div class="eyebrow">TARGET · 风格方向 F · APPLE 现代风格</div>
+  <h1>玻璃层次</h1>
+  <p class="thesis">visionOS 的通透感：底层是一层柔和流动的环境色场（雾化的蓝、珊瑚、薄荷），所有卡片是浮在色场上的玻璃——模糊、饱和、带一道高光边。深度是字面意义的：层次、光、雾。打卡按钮是玻璃圆钮，按下有目标色的涟漪；年度时间带封装进玻璃胶囊，集齐一天时整个色场会亮起来。</p>
+  <div class="chips">
+    <span class="chip"><i style="background:linear-gradient(135deg,#9db4ff,#e8a0aa)"></i>环境色场</span>
+    <span class="chip"><i style="background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.9)"></i>玻璃卡</span>
+    <span class="chip"><i style="background:radial-gradient(circle at 32% 30%,#ffd0c4,#ff7052)"></i>目标色玻璃珠</span>
+    <span class="chip">涟漪打卡 + 集齐点亮色场</span>
+  </div>
+</header>
+
+<main class="boards">
+  <!-- 浅色 -->
+  <section class="board">
+    <div class="board-label">浅色 · 晨雾</div>
+    <div class="phone light" data-phone>
+      <div class="screen">
+        <div class="ambient" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
+        <div class="statusbar"><span>20:14</span><span>◉◉◉</span></div>
+        <div class="content">
+          <div class="hello">
+            <div>
+              <div class="t">还剩 <b data-remain>4</b> 项</div>
+              <div class="sub">8 月 18 日 星期二 · 把今天的自己照顾好</div>
+            </div>
+            <span class="chip-remaining" data-badge>2 / 8</span>
+          </div>
+
+          <div class="year glass">
+            <div class="year-head">
+              <span class="a"><b>第 230 天</b> · 年度守护</span>
+              <span class="b" data-year-left>今年还剩 135 天</span>
+            </div>
+            <div class="year-strip" data-year></div>
+            <div class="year-foot"><span>1月</span><span>6月</span><span>12月</span></div>
+          </div>
+
+          <div class="busy-chip">忙碌模式 · 「好好吃饭」今日 1 次即可</div>
+
+          <div class="cards">
+            <div class="gcard glass" data-goal="meal" data-cur="2" data-target="3">
+              <span class="glyph"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.4" fill="#fff" stroke="none"/></svg></span>
+              <div class="gc-main">
+                <div class="gc-name">好好吃饭</div>
+                <div class="gc-meta">每日 3 次</div>
+                <div class="beads"><span class="bead on"></span><span class="bead on"></span><span class="bead"></span></div>
+              </div>
+              <button class="add" aria-label="记录好好吃饭一次"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard glass" data-goal="fit" data-cur="1" data-target="3">
+              <span class="glyph"><svg viewBox="0 0 24 24"><path d="M2.5 12.5h4l2.5-6 4.5 10 2.5-6h5.5"/></svg></span>
+              <div class="gc-main">
+                <div class="gc-name">规律运动</div>
+                <div class="gc-meta">每周 3 次</div>
+                <div class="beads"><span class="bead on"></span><span class="bead"></span><span class="bead"></span></div>
+              </div>
+              <button class="add" aria-label="记录规律运动一次"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard glass" data-goal="sleep" data-cur="0" data-target="1">
+              <span class="glyph"><svg viewBox="0 0 24 24"><path d="M13.5 3a8.5 8.5 0 1 0 7.5 12.4A8.5 8.5 0 0 1 13.5 3z"/></svg></span>
+              <div class="gc-main">
+                <div class="gc-name">23 点前上床</div>
+                <div class="gc-meta">每日 1 次</div>
+                <div class="beads"><span class="bead"></span></div>
+              </div>
+              <button class="add" aria-label="记录 23 点前上床"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard glass" data-goal="read" data-cur="0" data-target="1">
+              <span class="glyph"><svg viewBox="0 0 24 24"><path d="M3.5 5.5c3-1.2 5.5-.8 8.5 1.2 3-2 5.5-2.4 8.5-1.2v12.8c-3-1.2-5.5-.8-8.5 1.2-3-2-5.5-2.4-8.5-1.2z"/><path d="M12 6.7v12.8"/></svg></span>
+              <div class="gc-main">
+                <div class="gc-name">读 20 页书</div>
+                <div class="gc-meta">每日 1 次</div>
+                <div class="beads"><span class="bead"></span></div>
+              </div>
+              <button class="add" aria-label="记录读 20 页书"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+          </div>
+
+          <div class="win glass" aria-live="polite">
+            <div class="halo"></div>
+            <div class="t">今天，全部照顾到了</div>
+            <div class="s">6 次记录 · 色场为你亮起</div>
+          </div>
+        </div>
+        <div class="tabdock">
+          <nav class="tab glass">
+            <a class="active" href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none"/></svg>今日</a>
+            <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></svg>目标</a>
+            <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/></svg>设置</a>
+          </nav>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <button data-act="reset">重置演示</button>
+      <button data-act="busy">切换忙碌模式</button>
+    </div>
+  </section>
+
+  <!-- 深色 -->
+  <section class="board">
+    <div class="board-label">深色 · 夜航</div>
+    <div class="phone dark" data-phone>
+      <div class="screen">
+        <div class="ambient" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
+        <div class="statusbar"><span>20:14</span><span>◉◉◉</span></div>
+        <div class="content">
+          <div class="hello">
+            <div>
+              <div class="t">还剩 <b data-remain>4</b> 项</div>
+              <div class="sub">8 月 18 日 星期二 · 把今天的自己照顾好</div>
+            </div>
+            <span class="chip-remaining" data-badge>2 / 8</span>
+          </div>
+
+          <div class="year glass">
+            <div class="year-head">
+              <span class="a"><b>第 230 天</b> · 年度守护</span>
+              <span class="b" data-year-left>今年还剩 135 天</span>
+            </div>
+            <div class="year-strip" data-year></div>
+            <div class="year-foot"><span>1月</span><span>6月</span><span>12月</span></div>
+          </div>
+
+          <div class="busy-chip">忙碌模式 · 「好好吃饭」今日 1 次即可</div>
+
+          <div class="cards">
+            <div class="gcard glass" data-goal="meal" data-cur="2" data-target="3">
+              <span class="glyph"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.4" fill="#fff" stroke="none"/></svg></span>
+              <div class="gc-main">
+                <div class="gc-name">好好吃饭</div>
+                <div class="gc-meta">每日 3 次</div>
+                <div class="beads"><span class="bead on"></span><span class="bead on"></span><span class="bead"></span></div>
+              </div>
+              <button class="add" aria-label="记录好好吃饭一次"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard glass" data-goal="fit" data-cur="1" data-target="3">
+              <span class="glyph"><svg viewBox="0 0 24 24"><path d="M2.5 12.5h4l2.5-6 4.5 10 2.5-6h5.5"/></svg></span>
+              <div class="gc-main">
+                <div class="gc-name">规律运动</div>
+                <div class="gc-meta">每周 3 次</div>
+                <div class="beads"><span class="bead on"></span><span class="bead"></span><span class="bead"></span></div>
+              </div>
+              <button class="add" aria-label="记录规律运动一次"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard glass" data-goal="sleep" data-cur="0" data-target="1">
+              <span class="glyph"><svg viewBox="0 0 24 24"><path d="M13.5 3a8.5 8.5 0 1 0 7.5 12.4A8.5 8.5 0 0 1 13.5 3z"/></svg></span>
+              <div class="gc-main">
+                <div class="gc-name">23 点前上床</div>
+                <div class="gc-meta">每日 1 次</div>
+                <div class="beads"><span class="bead"></span></div>
+              </div>
+              <button class="add" aria-label="记录 23 点前上床"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+            <div class="gcard glass" data-goal="read" data-cur="0" data-target="1">
+              <span class="glyph"><svg viewBox="0 0 24 24"><path d="M3.5 5.5c3-1.2 5.5-.8 8.5 1.2 3-2 5.5-2.4 8.5-1.2v12.8c-3-1.2-5.5-.8-8.5 1.2-3-2-5.5-2.4-8.5-1.2z"/><path d="M12 6.7v12.8"/></svg></span>
+              <div class="gc-main">
+                <div class="gc-name">读 20 页书</div>
+                <div class="gc-meta">每日 1 次</div>
+                <div class="beads"><span class="bead"></span></div>
+              </div>
+              <button class="add" aria-label="记录读 20 页书"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+            </div>
+          </div>
+
+          <div class="win glass" aria-live="polite">
+            <div class="halo"></div>
+            <div class="t">今天，全部照顾到了</div>
+            <div class="s">6 次记录 · 色场为你亮起</div>
+          </div>
+        </div>
+        <div class="tabdock">
+          <nav class="tab glass">
+            <a class="active" href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5" fill="currentColor" stroke="none"/></svg>今日</a>
+            <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></svg>目标</a>
+            <a href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/></svg>设置</a>
+          </nav>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <button data-act="reset">重置演示</button>
+      <button data-act="busy">切换忙碌模式</button>
+    </div>
+  </section>
+</main>
+
+<footer class="review-note">
+  <b>评审要点</b>：① 深度感是否到位——环境色场 + 玻璃卡的层次（对比 D/E）；② 年度胶囊在玻璃里的观感；③ 点玻璃「+」钮的目标色涟漪、珠子点亮；④ 四张卡点满时色场变亮 + 「今天，全部照顾到了」；⑤ 深色「夜航」的发光氛围会不会太艳。
+  意见直接告诉 Claude，会记入 design/reviews.md。
+</footer>
+
+<script>
+  // 年度时间带：365 刻度，今日高亮（确定性伪随机演示数据）
+  const TODAY = 229;
+  function buildYear(phone) {
+    const strip = phone.querySelector('[data-year]');
+    strip.innerHTML = '';
+    for (let i = 0; i < 365; i++) {
+      const t = document.createElement('i');
+      if (i < TODAY && (i * 7919 + 13) % 97 < 62) t.classList.add('done');
+      if (i === TODAY) t.classList.add('today');
+      strip.appendChild(t);
+    }
+  }
+
+  const INIT = { meal: 2, fit: 1, sleep: 0, read: 0 };
+  const BUSY_TARGET = { meal: 1 };
+
+  function render(phone) {
+    let remaining = 0, filled = 0, total = 0;
+    const wasComplete = phone.classList.contains('all-complete');
+    phone.querySelectorAll('.gcard').forEach(card => {
+      const key = card.dataset.goal;
+      const busy = phone.classList.contains('is-busy');
+      const target = busy && BUSY_TARGET[key] ? BUSY_TARGET[key] : +card.dataset.target;
+      const cur = Math.min(+card.dataset.cur, target);
+      const beads = card.querySelectorAll('.bead');
+      beads.forEach((b, i) => {
+        b.style.display = i < target ? '' : 'none';
+        b.classList.toggle('on', i < cur);
+      });
+      const full = cur >= target;
+      card.classList.toggle('full', full);
+      card.classList.toggle('lit', full);
+      if (!full) remaining += target - cur;
+      filled += cur; total += target;
+    });
+    phone.querySelector('[data-remain]').textContent = remaining;
+    phone.querySelector('[data-badge]').textContent = `${filled} / ${total}`;
+    phone.classList.toggle('all-complete', remaining === 0);
+    // 刚集齐：平滑滚到底部，让庆祝卡立刻进入视野
+    if (!wasComplete && remaining === 0) {
+      const content = phone.querySelector('.content');
+      content.scrollTo({ top: content.scrollHeight, behavior: 'smooth' });
+    }
+  }
+
+  document.querySelectorAll('[data-phone]').forEach(phone => {
+    buildYear(phone);
+    const board = phone.closest('.board');
+    phone.addEventListener('click', e => {
+      const btn = e.target.closest('.add');
+      if (!btn) return;
+      const card = btn.closest('.gcard');
+      const busy = phone.classList.contains('is-busy');
+      const key = card.dataset.goal;
+      const target = busy && BUSY_TARGET[key] ? BUSY_TARGET[key] : +card.dataset.target;
+      if (+card.dataset.cur < target) {
+        card.dataset.cur = +card.dataset.cur + 1;
+        // 目标色涟漪
+        const rip = document.createElement('span');
+        rip.className = 'ripple';
+        btn.appendChild(rip);
+        setTimeout(() => rip.remove(), 600);
+        card.classList.remove('bump'); void card.offsetWidth; card.classList.add('bump');
+        render(phone);
+      }
+    });
+    board.querySelector('[data-act="reset"]').addEventListener('click', () => {
+      phone.querySelectorAll('.gcard').forEach(c => c.dataset.cur = INIT[c.dataset.goal] ?? 0);
+      phone.classList.remove('is-busy');
+      render(phone);
+    });
+    board.querySelector('[data-act="busy"]').addEventListener('click', () => {
+      phone.classList.toggle('is-busy');
+      render(phone);
+    });
+    render(phone);
+  });
+</script>
+</body>
+</html>

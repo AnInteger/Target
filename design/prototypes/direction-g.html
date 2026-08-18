@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>方向 G · 柔彩仪表盘（参照图复刻）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  @property --p { syntax: '<number>'; inherits: false; initial-value: 0; }
+  :root {
+    --font: "Inter", "SF Pro Text", "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  body {
+    font-family: var(--font);
+    background: #17131f;
+    color: #333;
+    display: flex; flex-wrap: wrap; gap: 40px;
+    justify-content: center; align-items: flex-start;
+    padding: 40px 24px;
+  }
+  .board-label {
+    width: 100%; text-align: center; color: #d8d2e4;
+    font: 600 13px/1 var(--font); letter-spacing: .14em;
+  }
+  .phone {
+    width: 393px; height: 852px; border-radius: 40px; overflow: hidden;
+    position: relative; display: flex; flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0,0,0,.45);
+    flex: none;
+  }
+  /* ============ 浅色（参照图复刻） ============ */
+  .phone.light {
+    background: linear-gradient(135deg, #f8e8f0 0%, #f0e8f8 100%);
+    color: #333;
+  }
+  /* ============ 深色（同语言适配） ============ */
+  .phone.dark {
+    background: linear-gradient(135deg, #241a2e 0%, #161424 100%);
+    color: #f0eef6;
+  }
+
+  .statusbar {
+    height: 54px; flex: none; display: flex; align-items: center;
+    justify-content: space-between; padding: 14px 28px 0;
+    font: 600 14px/1 var(--font);
+  }
+  .light .statusbar { color: #1a1a1a; }
+  .dark  .statusbar { color: #f0eef6; }
+
+  .content {
+    flex: 1; overflow-y: auto; overscroll-behavior: contain;
+    padding: 6px 20px 24px; scrollbar-width: none;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* ---------- 顶栏：头像 + 问候 + 圆形操作钮 ---------- */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 2px 4px;
+  }
+  .avatar {
+    width: 44px; height: 44px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, #f8a5a5, #b8a5f0);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font: 700 17px/1 var(--font);
+    border: 2px solid rgba(255,255,255,.85);
+    box-shadow: 0 2px 8px rgba(0,0,0,.10);
+  }
+  .greet { flex: 1; min-width: 0; }
+  .greet .hi { font: 400 12px/1.3 var(--font); }
+  .greet .name { font: 700 15px/1.3 var(--font); }
+  .light .greet .hi { color: #666; }
+  .light .greet .name { color: #1a1a1a; }
+  .dark  .greet .hi { color: #b6aec9; }
+  .dark  .greet .name { color: #f0eef6; }
+  .iconbtn {
+    width: 40px; height: 40px; border-radius: 50%; border: none; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+    transition: transform .25s ease, opacity .25s ease;
+  }
+  .iconbtn:active { transform: scale(.9); }
+  .iconbtn svg { width: 18px; height: 18px; }
+  .light .iconbtn { background: #1a1a1a; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+  .dark  .iconbtn { background: #f0eef6; color: #1a1622; box-shadow: 0 2px 10px rgba(0,0,0,.4); }
+  .iconbtn .dot {
+    position: absolute; top: 8px; right: 9px; width: 7px; height: 7px;
+    border-radius: 50%; background: #f8a5a5; border: 1.5px solid #1a1a1a;
+  }
+  .dark .iconbtn .dot { border-color: #f0eef6; }
+
+  .headline {
+    font: 700 21px/1.3 var(--font); letter-spacing: -.01em;
+    padding: 14px 2px 14px;
+  }
+  .light .headline { color: #1a1a1a; }
+  .dark  .headline { color: #f4f1fa; }
+
+  /* ---------- 深色进度主卡（参照图 signature 卡） ---------- */
+  .hero {
+    border-radius: 16px; padding: 18px;
+    display: flex; align-items: center; gap: 20px;
+    background: #1a1a1a;
+    box-shadow: 0 8px 24px rgba(26,26,26,.28);
+    transition: box-shadow .4s ease, transform .26s ease;
+  }
+  .dark .hero {
+    background: #100d1a;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .hero.all-complete { box-shadow: 0 8px 28px rgba(143,209,143,.4); }
+  .ring {
+    width: 84px; height: 84px; border-radius: 50%; flex: none; position: relative;
+    background: conic-gradient(#8fd18f calc(var(--p, 0) * 1%), #33333399 0);
+    transition: --p 1s ease-in-out;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ring::before {
+    content: ""; position: absolute; inset: 8px; border-radius: 50%;
+    background: #1a1a1a;
+  }
+  .dark .ring::before { background: #100d1a; }
+  .ring .pct {
+    position: relative; z-index: 1; color: #fff;
+    font: 700 20px/1.1 var(--font); font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+  .ring .pct small { display: block; font: 400 9px/1.4 var(--font); color: #999; letter-spacing: .06em; }
+  .hero-stats { flex: 1; display: flex; justify-content: space-around; gap: 6px; }
+  .stat { text-align: center; }
+  .stat b {
+    display: block; font: 700 22px/1.2 var(--font); color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat span { font: 400 11px/1.6 var(--font); color: #999; }
+  .hero-title { font: 600 12px/1 var(--font); color: #aaa; margin-bottom: 10px; letter-spacing: .04em; }
+  .hero-right { flex: 1; min-width: 0; }
+  .hero-cheer { font: 400 12px/1.5 var(--font); color: #8fd18f; margin-top: 10px; min-height: 18px; }
+
+  /* ---------- 区块标题 + 查看全部 ---------- */
+  .section-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 20px 2px 12px;
+  }
+  .section-head h2 { font: 600 17px/1 var(--font); }
+  .light .section-head h2 { color: #1a1a1a; }
+  .dark  .section-head h2 { color: #f0eef6; }
+  .section-head a { font: 400 12px/1 var(--font); text-decoration: none; }
+  .light .section-head a { color: #666; }
+  .dark  .section-head a { color: #b6aec9; }
+
+  /* ---------- 筛选 chips ---------- */
+  .chips { display: flex; gap: 8px; padding-bottom: 14px; overflow-x: auto; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    border-radius: 20px; padding: 7px 16px; font: 500 12px/1 var(--font);
+    white-space: nowrap; cursor: pointer; border: none;
+    background: rgba(255,255,255,.7); color: #555;
+    transition: all .25s ease;
+  }
+  .dark .chip { background: rgba(255,255,255,.08); color: #c6bfda; }
+  .chip.on { background: #1a1a1a; color: #fff; }
+  .dark .chip.on { background: #f0eef6; color: #1a1622; }
+
+  /* ---------- 目标卡（参照图任务卡语言） ---------- */
+  .cards { display: grid; gap: 12px; }
+  .card {
+    background: #fff; border-radius: 14px; padding: 14px 16px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    transition: box-shadow .3s ease, transform .3s ease, opacity .3s ease;
+    cursor: pointer;
+  }
+  .card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.12); transform: translateY(-1px); }
+  .dark .card {
+    background: rgba(255,255,255,.09);
+    box-shadow: 0 2px 10px rgba(0,0,0,.25);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .dark .card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+  .card.is-busy { opacity: .55; }
+  .card .info { flex: 1; min-width: 0; }
+  .card .row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .tag {
+    font: 600 10px/1 var(--font); padding: 4px 10px; border-radius: 12px;
+    letter-spacing: .02em; white-space: nowrap;
+  }
+  .light .tag { color: #7a4040; }
+  .dark  .tag { color: #453045; }
+  .tag.t-meal  { background: #f8a5a5; }
+  .tag.t-fit   { background: #8fd18f; }
+  .tag.t-sleep { background: #c3a5f0; }
+  .tag.t-read  { background: #f0b27a; }
+  .tag.t-done  { background: #8fd18f; color: #2d5a2d; }
+  .card .time { font: 400 11px/1 var(--font); margin-left: auto; }
+  .light .card .time { color: #999; }
+  .dark  .card .time { color: #9a92ae; }
+  .card .title { font: 600 15px/1.3 var(--font); margin-bottom: 4px; }
+  .light .card .title { color: #1a1a1a; }
+  .dark  .card .title { color: #f4f1fa; }
+  .card .meta { font: 400 12px/1 var(--font); }
+  .light .card .meta { color: #666; }
+  .dark  .card .meta { color: #b6aec9; }
+  .card .meta b { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .light .card .meta b { color: #1a1a1a; }
+  .dark  .card .meta b { color: #f0eef6; }
+  /* 打卡圆钮（参照图黑色圆形操作钮） */
+  .check {
+    width: 42px; height: 42px; border-radius: 50%; border: none; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+    background: #1a1a1a; color: #fff;
+    box-shadow: 0 3px 10px rgba(0,0,0,.2);
+    transition: background .3s ease, transform .2s ease;
+  }
+  .check:active { transform: scale(.85); }
+  .check svg { width: 18px; height: 18px; }
+  .check .plus { display: block; }
+  .check .tickmark { display: none; }
+  .card.done .check { background: #8fd18f; color: #24502a; }
+  .card.done .check .plus { display: none; }
+  .card.done .check .tickmark { display: block; }
+  .card .pips { display: flex; gap: 4px; margin-top: 8px; }
+  .pip {
+    width: 16px; height: 4px; border-radius: 2px;
+    background: rgba(0,0,0,.10);
+    transition: background .3s ease, width .3s ease;
+  }
+  .dark .pip { background: rgba(255,255,255,.14); }
+  .pip.fill { background: #8fd18f; }
+  .card.done .pip.fill { background: #6dbd6d; }
+  .light .card.done .title { color: #6aa0f0; }
+  .dark  .card.done .title { color: #9fc0f5; }
+
+  /* ---------- 年度时间带（用户认可元素，白卡承载） ---------- */
+  .year-card {
+    background: #fff; border-radius: 14px; padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .dark .year-card {
+    background: rgba(255,255,255,.09);
+    box-shadow: 0 2px 10px rgba(0,0,0,.25);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .year-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .year-head .t { font: 600 13px/1 var(--font); }
+  .light .year-head .t { color: #1a1a1a; }
+  .dark  .year-head .t { color: #f0eef6; }
+  .year-head .n { font: 400 11px/1 var(--font); }
+  .light .year-head .n { color: #666; }
+  .dark  .year-head .n { color: #b6aec9; }
+  .year-band { display: flex; gap: 1.5px; align-items: flex-end; height: 34px; }
+  .tick {
+    flex: 1; height: 12px; border-radius: 1px;
+    background: rgba(0,0,0,.07);
+    transition: height .3s ease, background .3s ease;
+  }
+  .dark .tick { background: rgba(255,255,255,.10); }
+  .tick.ok { background: #a8d8a0; height: 22px; }
+  .dark .tick.ok { background: #7bbd7b; }
+  .tick.today { background: #1a1a1a; height: 34px; }
+  .dark .tick.today { background: #f0eef6; }
+  .year-legend {
+    display: flex; gap: 14px; margin-top: 12px;
+    font: 400 10px/1 var(--font); color: #999; align-items: center;
+  }
+  .dark .year-legend { color: #9a92ae; }
+  .year-legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+  .year-legend .l1 i { background: #a8d8a0; }
+  .dark  .year-legend .l1 i { background: #7bbd7b; }
+  .year-legend .l2 i { background: rgba(0,0,0,.10); }
+  .dark  .year-legend .l2 i { background: rgba(255,255,255,.14); }
+  .year-legend .l3 i { background: #1a1a1a; }
+  .dark  .year-legend .l3 i { background: #f0eef6; }
+
+  /* ---------- 底部导航（参照图 4 标签） ---------- */
+  .tabbar {
+    flex: none; height: 76px; padding: 8px 12px 20px;
+    display: flex; justify-content: space-around; align-items: flex-start;
+    background: #fff;
+    box-shadow: 0 -2px 12px rgba(0,0,0,.06);
+  }
+  .dark .tabbar { background: #1d1a29; box-shadow: 0 -2px 16px rgba(0,0,0,.4); }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    font: 500 10px/1 var(--font); color: #999; cursor: pointer;
+    border: none; background: none; padding: 4px 10px; border-radius: 10px;
+  }
+  .tab svg { width: 22px; height: 22px; }
+  .tab.on { color: #1a1a1a; }
+  .dark .tab.on { color: #f0eef6; }
+
+  /* ---------- 演示控制条 ---------- */
+  .demo-bar {
+    flex: none; display: flex; gap: 8px; padding: 10px 16px 14px;
+    font: 500 11px/1 var(--font);
+  }
+  .light .demo-bar { background: rgba(255,255,255,.55); }
+  .dark  .demo-bar { background: rgba(255,255,255,.05); }
+  .demo-bar button {
+    border: none; border-radius: 14px; padding: 8px 14px;
+    font: 500 11px/1 var(--font); cursor: pointer;
+    background: rgba(26,26,26,.08); color: #555;
+    transition: all .25s ease;
+  }
+  .dark .demo-bar button { background: rgba(255,255,255,.1); color: #c6bfda; }
+  .demo-bar button:hover { background: rgba(26,26,26,.16); }
+  .dark .demo-bar button:hover { background: rgba(255,255,255,.18); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+  <p class="board-label">方向 G · 柔彩仪表盘 —— 参照图复刻（左：浅色 = 参照图原语言；右：深色 = 同语言适配）</p>
+
+  <!-- ================= 浅色 ================= -->
+  <div class="phone light" data-phone="light">
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="content">
+      <div class="topbar">
+        <div class="avatar">星</div>
+        <div class="greet">
+          <div class="hi">早上好</div>
+          <div class="name">星行</div>
+        </div>
+        <button class="iconbtn" aria-label="新建目标">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="iconbtn" aria-label="通知">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="dot"></span>
+        </button>
+      </div>
+
+      <h1 class="headline">把今天照顾好</h1>
+
+      <div class="hero" data-hero>
+        <div class="ring" data-ring>
+          <div class="pct"><span data-pct>0</span>%<small>今日</small></div>
+        </div>
+        <div class="hero-right">
+          <div class="hero-title">今日进度</div>
+          <div class="hero-stats">
+            <div class="stat"><b data-total>0</b><span>总次数</span></div>
+            <div class="stat"><b data-done>0</b><span>已完成</span></div>
+            <div class="stat"><b data-todo>0</b><span>待打卡</span></div>
+          </div>
+          <div class="hero-cheer" data-cheer></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>今日目标</h2><a href="javascript:void(0)">查看全部</a>
+      </div>
+      <div class="chips">
+        <button class="chip on">全部</button>
+        <button class="chip">饮食</button>
+        <button class="chip">运动</button>
+        <button class="chip">睡眠</button>
+        <button class="chip">阅读</button>
+      </div>
+      <div class="cards" data-cards></div>
+
+      <div class="section-head"><h2>年度守护</h2><a href="javascript:void(0)">今年还剩 <span data-left>135</span> 天</a></div>
+      <div class="year-card">
+        <div class="year-band" data-year></div>
+        <div class="year-legend">
+          <span class="l1"><i></i>达成日</span>
+          <span class="l2"><i></i>未达成</span>
+          <span class="l3"><i></i>今天</span>
+        </div>
+      </div>
+    </div>
+    <div class="demo-bar">
+      <button data-act="busy">切换忙碌模式</button>
+      <button data-act="reset">重置</button>
+    </div>
+    <div class="tabbar">
+      <button class="tab on">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>
+        首页
+      </button>
+      <button class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+        日历
+      </button>
+      <button class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="8.5" r="1.4" fill="currentColor" stroke="none"/><path d="M12 12v5M12 11.5l-3.4 2M12 11.5l3.4 2"/></svg>
+        目标
+      </button>
+      <button class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+        我的
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= 深色 ================= -->
+  <div class="phone dark" data-phone="dark">
+    <div class="statusbar"><span>9:41</span><span>●●● ⌁ ▮</span></div>
+    <div class="content">
+      <div class="topbar">
+        <div class="avatar">星</div>
+        <div class="greet">
+          <div class="hi">早上好</div>
+          <div class="name">星行</div>
+        </div>
+        <button class="iconbtn" aria-label="新建目标">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="iconbtn" aria-label="通知">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="dot"></span>
+        </button>
+      </div>
+
+      <h1 class="headline">把今天照顾好</h1>
+
+      <div class="hero" data-hero>
+        <div class="ring" data-ring>
+          <div class="pct"><span data-pct>0</span>%<small>今日</small></div>
+        </div>
+        <div class="hero-right">
+          <div class="hero-title">今日进度</div>
+          <div class="hero-stats">
+            <div class="stat"><b data-total>0</b><span>总次数</span></div>
+            <div class="stat"><b data-done>0</b><span>已完成</span></div>
+            <div class="stat"><b data-todo>0</b><span>待打卡</span></div>
+          </div>
+          <div class="hero-cheer" data-cheer></div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>今日目标</h2><a href="javascript:void(0)">查看全部</a>
+      </div>
+      <div class="chips">
+        <button class="chip on">全部</button>
+        <button class="chip">饮食</button>
+        <button class="chip">运动</button>
+        <button class="chip">睡眠</button>
+        <button class="chip">阅读</button>
+      </div>
+      <div class="cards" data-cards></div>
+
+      <div class="section-head"><h2>年度守护</h2><a href="javascript:void(0)">今年还剩 <span data-left>135</span> 天</a></div>
+      <div class="year-card">
+        <div class="year-band" data-year></div>
+        <div class="year-legend">
+          <span class="l1"><i></i>达成日</span>
+          <span class="l2"><i></i>未达成</span>
+          <span class="l3"><i></i>今天</span>
+        </div>
+      </div>
+    </div>
+    <div class="demo-bar">
+      <button data-act="busy">切换忙碌模式</button>
+      <button data-act="reset">重置</button>
+    </div>
+    <div class="tabbar">
+      <button class="tab on">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>
+        首页
+      </button>
+      <button class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+        日历
+      </button>
+      <button class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="8.5" r="1.4" fill="currentColor" stroke="none"/><path d="M12 12v5M12 11.5l-3.4 2M12 11.5l3.4 2"/></svg>
+        目标
+      </button>
+      <button class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg>
+        我的
+      </button>
+    </div>
+  </div>
+
+<script>
+  // ---- 演示数据（与 A–F 保持同构，便于横向对比） ----
+  const GOALS = [
+    { key: 'meal',  title: '好好吃饭',      tag: '饮食', cls: 't-meal',  target: 3, time: '8:00' },
+    { key: 'fit',   title: '规律运动',      tag: '运动', cls: 't-fit',   target: 3, time: '18:30' },
+    { key: 'sleep', title: '23点前上床',    tag: '睡眠', cls: 't-sleep', target: 1, time: '22:50' },
+    { key: 'read',  title: '读20页书',      tag: '阅读', cls: 't-read',  target: 1, time: '21:00' },
+  ];
+  let INIT = { meal: 2, fit: 1, sleep: 0, read: 0 };
+  let BUSY_TARGET = { meal: 1 };
+  let state, busy;
+  const TODAY = 229; // 0-based：8月19日 = 第230天
+  const TOTAL_DAYS = 365;
+
+  function reset() { state = { ...INIT }; busy = false; }
+
+  function yearOk(i) { return (i * 7919 + 13) % 97 < 62; }
+
+  function buildYear(phone) {
+    const band = phone.querySelector('[data-year]');
+    band.innerHTML = '';
+    for (let i = 0; i < TOTAL_DAYS; i++) {
+      const t = document.createElement('i');
+      t.className = 'tick' + (i === TODAY ? ' today' : (i < TODAY && yearOk(i) ? ' ok' : ''));
+      band.appendChild(t);
+    }
+  }
+
+  function buildCards(phone) {
+    const wrap = phone.querySelector('[data-cards]');
+    wrap.innerHTML = '';
+    GOALS.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.key = g.key;
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-label', `${g.title}，打卡`);
+      card.innerHTML = `
+        <div class="info">
+          <div class="row1">
+            <span class="tag ${g.cls}" data-tag>${g.tag}</span>
+            <span class="time">${g.time}</span>
+          </div>
+          <div class="title">${g.title}</div>
+          <div class="meta">已完成 <b data-count>0</b> / ${g.target} 次</div>
+          <div class="pips">${'<i class="pip"></i>'.repeat(g.target)}</div>
+        </div>
+        <button class="check" aria-label="${g.title} 打卡">
+          <svg class="plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <svg class="tickmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5 10 18 19.5 6.5"/></svg>
+        </button>`;
+      const doCheck = (e) => {
+        if (e) e.stopPropagation();
+        const cur = state[g.key];
+        const tgt = busy ? (BUSY_TARGET[g.key] ?? g.target) : g.target;
+        if (cur >= tgt) return;
+        state[g.key] = cur + 1;
+        render(phone);
+        // 完成瞬间从打卡钮冒出反馈
+        if (state[g.key] >= tgt) {
+          const hero = phone.querySelector('[data-hero]');
+          hero.style.transform = 'scale(1.012)';
+          setTimeout(() => { hero.style.transform = ''; }, 260);
+        }
+      };
+      card.addEventListener('click', () => doCheck(null));
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doCheck(null); }
+      });
+      wrap.appendChild(card);
+    });
+  }
+
+  function render(phone) {
+    let doneSum = 0, totalSum = 0;
+    phone.querySelectorAll('[data-cards] .card').forEach(card => {
+      const g = GOALS.find(x => x.key === card.dataset.key);
+      const tgt = busy ? (BUSY_TARGET[g.key] ?? g.target) : g.target;
+      const cur = Math.min(state[g.key], tgt);
+      const isDone = cur >= tgt;
+      const isBusyDown = busy && g.target > tgt;
+      doneSum += cur; totalSum += tgt;
+      card.classList.toggle('done', isDone);
+      card.classList.toggle('is-busy', isBusyDown && !isDone);
+      card.querySelector('[data-count]').textContent = cur;
+      card.querySelectorAll('.pip').forEach((p, i) => {
+        p.style.display = i < tgt ? '' : 'none';
+        p.classList.toggle('fill', i < cur);
+      });
+      const tag = card.querySelector('[data-tag]');
+      tag.textContent = isDone ? '已完成' : (isBusyDown ? '忙碌' : g.tag);
+      tag.className = 'tag ' + (isDone ? 't-done' : (isBusyDown ? 't-read' : g.cls));
+    });
+    const pct = totalSum ? Math.round(doneSum / totalSum * 100) : 0;
+    const allDone = totalSum > 0 && doneSum >= totalSum;
+    phone.querySelector('[data-ring]').style.setProperty('--p', pct);
+    phone.querySelector('[data-pct]').textContent = pct;
+    phone.querySelector('[data-total]').textContent = totalSum;
+    phone.querySelector('[data-done]').textContent = doneSum;
+    phone.querySelector('[data-todo]').textContent = totalSum - doneSum;
+    phone.querySelector('[data-hero]').classList.toggle('all-complete', allDone);
+    const cheer = phone.querySelector('[data-cheer]');
+    if (allDone) cheer.textContent = '今日全部完成，好好休息';
+    else if (pct >= 50) cheer.textContent = '过半了，保持节奏';
+    else if (doneSum > 0) cheer.textContent = '开个好头';
+    else cheer.textContent = '从第一件小事开始';
+  }
+
+  document.querySelectorAll('[data-phone]').forEach(phone => {
+    reset();
+    buildYear(phone);
+    buildCards(phone);
+    // 参照图动效：圆环 0 → N% 入场
+    phone.querySelector('[data-ring]').style.setProperty('--p', 0);
+    render(phone);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const pct = phone.querySelector('[data-pct]').textContent;
+      phone.querySelector('[data-ring]').style.setProperty('--p', pct);
+    }));
+
+    phone.querySelector('[data-act="busy"]').addEventListener('click', () => {
+      busy = !busy;
+      render(phone);
+    });
+    phone.querySelector('[data-act="reset"]').addEventListener('click', () => {
+      reset();
+      render(phone);
+    });
+    phone.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        phone.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+        chip.classList.add('on');
+      });
+    });
+    phone.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        phone.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+        tab.classList.add('on');
+      });
+    });
+  });
+</script>
+</body>
+</html>

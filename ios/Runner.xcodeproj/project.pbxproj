@@ -746,7 +746,10 @@
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.target.targetwidgets;
+				/* 内嵌扩展的 bundle ID 必须以父 App（com.target.app）为前缀，
+				   否则 archive 校验拒绝（"Embedded binary's bundle identifier
+				   is not prefixed with the parent app's bundle identifier"）。 */
+				PRODUCT_BUNDLE_IDENTIFIER = com.target.app.targetwidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -818,7 +821,10 @@
 				);
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.target.targetwidgets;
+				/* 内嵌扩展的 bundle ID 必须以父 App（com.target.app）为前缀，
+				   否则 archive 校验拒绝（"Embedded binary's bundle identifier
+				   is not prefixed with the parent app's bundle identifier"）。 */
+				PRODUCT_BUNDLE_IDENTIFIER = com.target.app.targetwidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -891,7 +897,10 @@
 				);
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.target.targetwidgets;
+				/* 内嵌扩展的 bundle ID 必须以父 App（com.target.app）为前缀，
+				   否则 archive 校验拒绝（"Embedded binary's bundle identifier
+				   is not prefixed with the parent app's bundle identifier"）。 */
+				PRODUCT_BUNDLE_IDENTIFIER = com.target.app.targetwidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;

@@ -45,7 +45,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 - [x] T004 [US1] 方向评审轮：用户浏览器查看对比 → 意见原话与结论记入 `design/reviews.md` → 未过则修订（轮次+1，至多 2 轮，超则升级口头对齐）→ 选定/融合结论作为 FR-009 决策记录（3 轮后定稿「柔彩仪表盘」direction-g.html v3，2026-08-19）
 - [x] T005 [US1] 收敛设计令牌 `design/tokens.css`：按契约 schema 全量写入——语义色浅/深成对、8 目标色校准（键名冻结）、九档字阶（数字 tnum）、间距/圆角/阴影刻度、动效时长与曲线；`design/prototypes/index.html` 增加令牌总览区（含深浅切换；G 标记已定稿；间距刻度增补 20 见契约变更记录）
 - [x] T006 [US1] 令牌翻译与主题基建 `lib/app/design_tokens.dart`：Dart 令牌全集（浅/深成对）+ `ThemeData` light/dark 由完整 ColorScheme（令牌组装，弃 fromSeed）+ 数字 `FontFeature.tabularFigures()`；全 App 引用点同步迁移（公共 API 兼容零改动：GoalColor 仅校准值、AppTheme.light/dark 签名不变；新增 TargetPalette/AppSpace/AppRadius/AppMotion/AppTextX 供 US2+ 使用）
-- [ ] T007 [US1] 深化"今日"屏原型 `design/prototypes/screen-today.html`：典型态/空态/忙碌态/全完成态/深色并列画板；打卡反馈与成就时刻动效可触发演示（标注令牌时长）；导航壳层（页面结构/底部导航）示意一并呈现
+- [x] T007 [US1] 深化"今日"屏原型 `design/prototypes/screen-today.html`：典型态/空态/忙碌态/全完成态/深色并列画板；打卡反馈与成就时刻动效可触发演示（标注令牌时长）；导航壳层（页面结构/底部导航）示意一并呈现（6 画板：四态浅色 + 典型/全完成深色；典型态可点击打卡至成就时刻，Playwright 计算样式逐项验证）
 - [ ] T008 [US1] "今日"屏原型评审：`design/reviews.md` 记录结论至"通过"（**门禁：通过后 US2 实现任务方可开工**）
 
 **Checkpoint**: 设计语言成立——方向已定、令牌双端就位、今日屏原型通过，可随时进入实现

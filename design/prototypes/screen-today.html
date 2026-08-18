@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>今日屏 · Target（柔彩仪表盘）</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  /* ============================================================
+     今日屏深化原型（T007）
+     - 取值 100% 来自 ../tokens.css（SC-004）
+     - 画板：典型(可交互)/空态/忙碌/全完成 + 深色并列
+     - 动效时长均标注令牌名；台面（评审环境灰底）与手机外框
+       属呈现 chrome，非屏内设计
+     ============================================================ */
+
+  /* ---- 评审台面（呈现环境，非屏内设计） ---- */
+  body {
+    margin: 0; min-height: 100vh; background: #1b191f;
+    font-family: var(--font-stack); color: #f2eff7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6); box-sizing: border-box;
+  }
+
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 239, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center; }
+
+  /* ---- 导航壳层示意 ---- */
+  .shellmap {
+    width: min(920px, 100%); box-sizing: border-box;
+    background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: var(--radius-lg); padding: var(--space-5);
+    margin-bottom: var(--space-8);
+  }
+  .shellmap h2 { font: var(--font-title-s); margin: 0 0 var(--space-3);
+                 color: #f2eff7; }
+  .shellmap .flow { display: flex; align-items: stretch; gap: var(--space-2);
+                    flex-wrap: wrap; }
+  .shellmap .node {
+    border: 1px dashed rgba(255, 255, 255, .25); border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3); font: var(--font-body-s);
+    color: rgba(242, 239, 247, .8); display: flex; flex-direction: column;
+    gap: var(--space-1); justify-content: center;
+  }
+  .shellmap .node b { font: var(--font-label); color: var(--positive-fill);
+                      letter-spacing: .04em; }
+  .shellmap .arrow { align-self: center; color: rgba(255, 255, 255, .3);
+                     font: var(--font-body-m); }
+
+  /* ---- 画板行 ---- */
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8);
+         justify-content: center; }
+  .board { display: flex; flex-direction: column; align-items: center;
+           gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 239, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 239, 247, .7); }
+  .chip.t { color: var(--positive-fill); }
+  .demo-btn {
+    font: var(--font-label); cursor: pointer; border: 1px solid rgba(255,255,255,.25);
+    background: transparent; color: rgba(242,239,247,.8);
+    padding: var(--space-1) var(--space-3); border-radius: var(--radius-full);
+  }
+  .demo-btn:hover { background: rgba(255,255,255,.08); }
+
+  /* ---- 手机外框（呈现 chrome） ---- */
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+
+  /* ---- 屏内内容 ---- */
+  .st-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
+               padding: var(--space-12) var(--space-6) var(--space-6); }
+  .st-scroll::-webkit-scrollbar { display: none; }
+
+  .st-status { display: flex; justify-content: space-between; align-items: center;
+               padding: var(--space-2) var(--space-6) 0;
+               font: var(--font-body-s); font-weight: 600; color: var(--on-surface); }
+  .st-status svg { display: block; }
+
+  /* 顶栏 */
+  .st-top { display: flex; align-items: center; gap: var(--space-3);
+            margin-bottom: var(--space-5); }
+  .st-avatar { width: 36px; height: 36px; border-radius: var(--radius-full);
+               background: var(--glass-card); border: 1px solid var(--glass-border);
+               display: grid; place-items: center; font-size: 16px; }
+  .st-hello { display: flex; flex-direction: column; gap: var(--space-1); }
+  .st-hello small { font: var(--font-label); color: var(--on-surface-variant); }
+  .st-hello b { font: var(--font-title-s); }
+  .st-top .grow { flex: 1; }
+  .st-btn-primary {
+    height: 36px; padding: 0 var(--space-4); border: none; cursor: pointer;
+    border-radius: var(--radius-full); background: var(--accent);
+    color: var(--accent-on); font: var(--font-body-s); font-weight: 500;
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    transition: transform var(--motion-fast) var(--ease-standard);
+  }
+  .st-btn-primary:active { transform: scale(.94); }
+  .st-btn-ghost {
+    width: 36px; height: 36px; border-radius: var(--radius-full); cursor: pointer;
+    background: var(--glass-card); color: var(--on-surface);
+    border: 1px solid var(--divider); display: inline-grid; place-items: center;
+  }
+
+  /* 忙碌横幅 */
+  .st-busy {
+    display: flex; align-items: center; gap: var(--space-2);
+    padding: var(--space-2) var(--space-3); margin-bottom: var(--space-5);
+    border-radius: var(--radius-md); background: var(--surface);
+    border: 1px solid var(--divider);
+    font: var(--font-body-s); color: var(--warning);
+    box-shadow: var(--shadow-low);
+  }
+
+  /* display 大标题 */
+  .st-display { font: var(--font-display-l); letter-spacing: var(--ls-display-l);
+                color: var(--on-surface); margin: 0 0 var(--space-5); }
+
+  /* 进度主卡（accent 反色卡） */
+  .st-hero {
+    background: var(--accent); color: var(--accent-on);
+    border-radius: var(--radius-lg); padding: var(--space-5);
+    display: flex; align-items: center; gap: var(--space-6);
+    margin-bottom: var(--space-5); box-shadow: var(--shadow-mid);
+  }
+  .st-ring { position: relative; width: 110px; height: 110px; flex: none; }
+  .st-ring svg { transform: rotate(-90deg); display: block; }
+  .st-ring .track { stroke: var(--accent-on); opacity: .15; }
+  .st-ring .bar { stroke: var(--positive-fill); transition: stroke-dashoffset var(--motion-slow) var(--ease-standard); }
+  .st-ring .center { position: absolute; inset: 0; display: grid; place-items: center;
+                     text-align: center; }
+  .st-ring .center b { display: block; font: var(--font-title-m); font-variant-numeric: tabular-nums; }
+  .st-ring .center small { display: block; font: var(--font-label); opacity: .65; margin-top: var(--space-1); }
+  .st-stats { flex: 1; display: flex; flex-direction: column; gap: var(--space-3); }
+  .st-stat { display: flex; align-items: center; gap: var(--space-2); }
+  .st-stat svg { flex: none; opacity: .75; }
+  .st-stat small { font: var(--font-body-s); opacity: .75; flex: 1; }
+  .st-stat b { font: var(--font-title-s); font-variant-numeric: tabular-nums; }
+  .st-cheer { font: var(--font-body-s); opacity: .7; margin: 0;
+              padding-top: var(--space-2); border-top: 1px solid var(--divider); }
+
+  /* 状态胶囊（计数在前） */
+  .st-pills { display: flex; gap: var(--space-2); margin-bottom: var(--space-5); }
+  .st-pill {
+    display: inline-flex; align-items: center; gap: var(--space-1);
+    height: 32px; padding: 0 var(--space-3); border-radius: var(--radius-full);
+    font: var(--font-body-s); cursor: default;
+  }
+  .st-pill b { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .st-pill.todo { background: var(--positive-fill); color: var(--positive-on); }
+  .st-pill.done { background: var(--glass-card); color: var(--on-surface);
+                  border: 1px solid var(--divider); }
+
+  /* 分节头 */
+  .st-sect { display: flex; align-items: baseline; justify-content: space-between;
+             margin-bottom: var(--space-3); }
+  .st-sect h4 { font: var(--font-title-m); margin: 0; }
+  .st-sect span { font: var(--font-body-s); color: var(--on-surface-variant); }
+
+  /* 目标卡 */
+  .st-cards { display: flex; flex-direction: column; gap: var(--space-3);
+              margin-bottom: var(--space-5); }
+  .st-card {
+    background: var(--glass-card); border: 1px solid var(--divider);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+    cursor: pointer; box-shadow: var(--shadow-low);
+    transition: transform var(--motion-fast) var(--ease-standard),
+                box-shadow var(--motion-base) var(--ease-standard);
+  }
+  .st-card:active { transform: scale(.985); }
+  .st-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .st-row1 { display: flex; align-items: center; gap: var(--space-2);
+             margin-bottom: var(--space-2); }
+  .st-dot { width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); }
+  .st-cat { font: var(--font-body-s); color: var(--on-surface-variant); flex: 1; }
+  .st-arrow { color: var(--on-surface-variant); opacity: .6; background: none;
+              border: none; cursor: pointer; padding: 0; display: grid; place-items: center; }
+  .st-title { font: var(--font-title-s); color: var(--on-surface); margin: 0 0 var(--space-2); }
+  .st-row3 { display: flex; align-items: center; gap: var(--space-2); }
+  .st-time { font: var(--font-body-s); color: var(--on-surface-variant);
+             font-variant-numeric: tabular-nums; }
+  .st-count { font: var(--font-body-s); color: var(--on-surface-variant);
+              margin-left: auto; font-variant-numeric: tabular-nums; }
+  .st-pips { display: flex; gap: var(--space-1); }
+  .st-pip { width: 6px; height: 6px; border-radius: var(--radius-full);
+            background: var(--divider); }
+  .st-pip.on { background: var(--goal-coral); }
+
+  .st-check {
+    width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+    background: var(--accent); color: var(--accent-on); cursor: pointer;
+    display: grid; place-items: center; flex: none;
+    transition: background-color var(--motion-base) var(--ease-standard),
+                transform var(--motion-fast) var(--ease-standard);
+  }
+  .st-check:active { transform: scale(.86); }
+  .st-check:focus-visible { outline: 2px solid var(--accent-on); outline-offset: 2px; }
+  .st-check.done { background: var(--positive-fill); color: var(--positive-on); }
+  .st-check .tickmark path {
+    stroke-dasharray: 24; stroke-dashoffset: 24;
+    transition: stroke-dashoffset var(--motion-base) var(--ease-standard);
+  }
+  .st-check.done .tickmark path { stroke-dashoffset: 0; }
+
+  /* 空态邀请卡 */
+  .st-empty {
+    border: 1.5px dashed var(--divider); border-radius: var(--radius-lg);
+    padding: var(--space-8) var(--space-5); text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+    margin-bottom: var(--space-5);
+  }
+  .st-empty .plus { width: 48px; height: 48px; border-radius: var(--radius-full);
+                    background: var(--surface); border: 1px solid var(--divider);
+                    display: grid; place-items: center; color: var(--on-surface-variant); }
+  .st-empty b { font: var(--font-title-m); }
+  .st-empty p { font: var(--font-body-s); color: var(--on-surface-variant); margin: 0;
+                line-height: 1.7; }
+
+  /* 年度时间带 */
+  .st-year {
+    background: var(--glass-card); border: 1px solid var(--divider);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+    box-shadow: var(--shadow-low); margin-bottom: var(--space-6);
+  }
+  .st-year-head { display: flex; align-items: baseline; justify-content: space-between;
+                  margin-bottom: var(--space-3); }
+  .st-year-head h5 { font: var(--font-title-s); margin: 0; }
+  .st-year-head span { font: var(--font-body-s); color: var(--on-surface-variant);
+                       font-variant-numeric: tabular-nums; }
+  .st-band { display: flex; gap: 1px; align-items: flex-end; height: 28px; }
+  .st-tick { flex: 1; height: 40%; border-radius: 1px; background: var(--divider); }
+  .st-tick.past { background: var(--on-surface-variant); opacity: .35; }
+  .st-tick.hit { opacity: 1; }
+  .st-tick.today { height: 100%; width: 3px; border-radius: 2px;
+                   background: var(--accent); }
+
+  /* 底部导航 */
+  .st-tabbar {
+    display: flex; background: var(--glass-card);
+    backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur));
+    border-top: 1px solid var(--divider); padding: var(--space-2) var(--space-2)
+                calc(var(--space-2) + env(safe-area-inset-bottom, 0));
+  }
+  .st-tab { flex: 1; display: flex; flex-direction: column; align-items: center;
+            gap: var(--space-1); padding: var(--space-1) 0; cursor: pointer;
+            color: var(--on-surface-variant); background: none; border: none;
+            font: var(--font-label);
+          }
+  .st-tab.active { color: var(--on-surface); font-weight: 600; }
+  .st-tab.active .ic { transform: translateY(-1px); }
+  .st-tab .ic { transition: transform var(--motion-fast) var(--ease-standard); }
+
+  /* 成就时刻覆盖层 */
+  .st-cele {
+    position: absolute; inset: 0; z-index: 30; display: grid; place-items: center;
+    background: radial-gradient(closest-side at 50% 38%, var(--positive-fill), transparent 70%);
+    opacity: 0; pointer-events: none; transition: opacity var(--motion-fast);
+    cursor: pointer;
+  }
+  .st-cele.on { opacity: .45; pointer-events: auto; }
+  .st-cele .badge {
+    position: absolute; top: 38%; left: 50%;
+    background: var(--accent); color: var(--accent-on);
+    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
+    box-shadow: var(--shadow-mid); text-align: center;
+    transform: translate(-50%, -50%) scale(.6); opacity: 0;
+    transition: transform var(--motion-celebration) var(--ease-standard),
+                opacity var(--motion-base);
+  }
+  .st-cele.on .badge { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  .st-cele .badge b { display: block; font: var(--font-title-m); margin-bottom: var(--space-1); }
+  .st-cele .badge small { font: var(--font-body-s); opacity: .75;
+                          font-variant-numeric: tabular-nums; }
+  .st-cele .dot {
+    position: absolute; top: 38%; left: 50%; width: var(--space-2);
+    height: var(--space-2); border-radius: var(--radius-full); opacity: 0;
+  }
+  .st-cele.on .dot { animation: burst var(--motion-celebration) var(--ease-standard) forwards; }
+  @keyframes burst {
+    0% { transform: translate(0, 0) scale(1) rotate(0); opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(.4) rotate(240deg); opacity: 0; }
+  }
+
+  /* 动效令牌标注（画在画板上的虚线小签） */
+  .st-tag {
+    position: absolute; z-index: 35; font: var(--font-label); white-space: nowrap;
+    padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm);
+    border: 1px dashed var(--on-surface-variant); color: var(--on-surface-variant);
+    background: var(--surface); pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 1ms !important; transition-duration: 1ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">今日屏 · 深化原型</h1>
+<p class="pt-sub">「柔彩仪表盘」定稿语言的今日屏四态画板 · 点击目标卡可触发打卡反馈（典型态画板）；<br>
+动效时长全部取自令牌：fast 150 / base 250 / slow 450 / celebration 1000 · 标准减速曲线</p>
+
+<nav class="shellmap">
+  <h2>导航壳层示意（页面结构）</h2>
+  <div class="flow">
+    <div class="node"><b>壳层</b>底部导航四页签</div><span class="arrow">→</span>
+    <div class="node"><b>今日页</b>顶栏（问候 / 新建 / 提醒）</div><span class="arrow">→</span>
+    <div class="node"><b>display</b>两行编辑级标题</div><span class="arrow">→</span>
+    <div class="node"><b>进度主卡</b>圆环 + 竖排统计</div><span class="arrow">→</span>
+    <div class="node"><b>状态胶囊</b>N 待打卡 / N 已完成</div><span class="arrow">→</span>
+    <div class="node"><b>目标卡列表</b>打卡主操作</div><span class="arrow">→</span>
+    <div class="node"><b>年度时间带</b>今年 · 还剩 N 天</div>
+  </div>
+</nav>
+
+<div class="row" id="boards"></div>
+
+<template id="tpl">
+  <div class="st-status">
+    <span class="tnum">9:41</span>
+    <span style="display:flex;gap:var(--space-1);align-items:center">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7" width="3" height="4" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M8 9.5a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6ZM8 6c1.5 0 2.9.6 3.9 1.6l-1.3 1.3A3.6 3.6 0 0 0 8 7.8c-1 0-2 .4-2.6 1.1L4.1 7.6C5.1 6.6 6.5 6 8 6Zm0-3.5c2.4 0 4.7 1 6.4 2.6l-1.3 1.3A7.1 7.1 0 0 0 8 4.3c-2 0-3.9.8-5.3 2.1L1.4 5.1A9.1 9.1 0 0 1 8 2.5Z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="15" height="8" rx="1.5" fill="currentColor"/><path d="M23 4v4a2.2 2.2 0 0 0 0-4Z" fill="currentColor" opacity=".4"/></svg>
+    </span>
+  </div>
+  <div class="st-scroll">
+    <div class="st-top">
+      <div class="st-avatar">🌿</div>
+      <div class="st-hello"><small data-hi>早上好</small><b>今天也来照顾自己</b></div>
+      <div class="grow"></div>
+      <button class="st-btn-primary" type="button">＋ 新建</button>
+      <button class="st-btn-ghost" type="button" aria-label="提醒与设置">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+      </button>
+    </div>
+    <div class="st-busy" data-busy hidden>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 11-13h-7l0-7Z"/></svg>
+      忙碌模式 · 今日各目标按最低档 1 次计
+    </div>
+    <h2 class="st-display" data-display>把今天<br>照顾好</h2>
+    <div class="st-hero">
+      <div class="st-ring">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle class="track" cx="55" cy="55" r="44" fill="none" stroke-width="10"/>
+          <circle class="bar" data-ringbar cx="55" cy="55" r="44" fill="none" stroke-width="10" stroke-linecap="round"/>
+        </svg>
+        <div class="center"><b data-pct>0%</b><small>今日</small></div>
+      </div>
+      <div class="st-stats">
+        <div class="st-stat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M4 12h16M4 17h7"/></svg>
+          <small>总次数</small><b data-total>0</b>
+        </div>
+        <div class="st-stat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          <small>已完成</small><b data-done>0</b>
+        </div>
+        <div class="st-stat">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          <small>待打卡</small><b data-todo>0</b>
+        </div>
+        <p class="st-cheer" data-cheer>从第一次打卡开始</p>
+      </div>
+    </div>
+    <div class="st-pills" data-pills>
+      <span class="st-pill todo"><b data-ptodo>0</b> 待打卡</span>
+      <span class="st-pill done"><b data-pdone>0</b> 已完成</span>
+    </div>
+    <div class="st-sect"><h4>今天的目标</h4><span data-sect-note></span></div>
+    <div class="st-cards" data-cards></div>
+    <div class="st-empty" data-empty hidden>
+      <div class="plus">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </div>
+      <b>新建第一个目标</b>
+      <p>两分钟定义一件今天能完成的小事，<br>打卡会出现在这里。</p>
+      <button class="st-btn-primary" type="button">＋ 新建目标</button>
+    </div>
+    <div class="st-year">
+      <div class="st-year-head">
+        <h5>今年</h5><span data-year-note></span>
+      </div>
+      <div class="st-band" data-band></div>
+    </div>
+  </div>
+  <nav class="st-tabbar">
+    <button class="st-tab active" type="button"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2.5"/></svg></span>今日</button>
+    <button class="st-tab" type="button"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></span>目标</button>
+    <button class="st-tab" type="button"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg></span>周回顾</button>
+    <button class="st-tab" type="button"><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg></span>我的</button>
+  </nav>
+  <div class="st-cele" data-cele>
+    <span class="badge"><b>🎉 今天全部完成</b><small data-cele-note>8/8 次 · 为自己鼓掌</small></span>
+  </div>
+</template>
+
+<script>
+/* ---------- 演示数据（与 direction-g 同构） ---------- */
+const GOALS = [
+  { key: 'meal',  cat: '饮食', title: '好好吃饭',     time: '三餐',       color: 'var(--goal-coral)' },
+  { key: 'fit',   cat: '运动', title: '规律运动',     time: '晚间 19:00', color: 'var(--goal-sage)'  },
+  { key: 'sleep', cat: '作息', title: '23 点前上床',  time: '每晚 23:00', color: 'var(--goal-indigo)' },
+  { key: 'read',  cat: '学习', title: '读 20 页书',   time: '睡前 · 20 页', color: 'var(--goal-amber)' },
+];
+const RING_CIRC = 2 * Math.PI * 44;
+
+const BOARDS = [
+  { id: 'typical', theme: 'light', state: 'typical', interactive: true, annot: true,
+    title: '① 典型态（可交互）',
+    desc: '点击目标卡打卡：按钮 fast 150 缩放 + base 250 变青柠对勾，圆环 slow 450 推进；全部完成触发成就时刻。' },
+  { id: 'empty', theme: 'light', state: 'empty',
+    title: '② 空态',
+    desc: '无目标：display 转为邀请语，列表位让给虚线邀请卡；年度带只剩今日标记。' },
+  { id: 'busy', theme: 'light', state: 'busy',
+    title: '③ 忙碌态',
+    desc: 'display 下方出现忙碌横幅（warning 语义），各目标按最低档 1 次计，圆环分母随之变化。' },
+  { id: 'alldone', theme: 'light', state: 'alldone',
+    title: '④ 全完成态',
+    desc: '圆环 100%、胶囊切换到「N 已完成」、目标卡全部青柠；成就时刻覆盖层常驻展示（点击可体会 dismiss）。' },
+  { id: 'typical-dark', theme: 'dark', state: 'typical', interactive: true,
+    title: '⑤ 典型态 · 深色',
+    desc: '暗紫底幕 + 深玻璃卡；强调反转为白实心，青柠进度在高对比下更亮。同样可点击打卡。' },
+  { id: 'alldone-dark', theme: 'dark', state: 'alldone',
+    title: '⑥ 全完成态 · 深色',
+    desc: '成就时刻在深色下的呈现：青柠辐射光晕 + 反色徽章。' },
+];
+
+const stateOf = (name) => ({
+  typical: { targets: [3, 3, 1, 1], counts: [2, 1, 0, 0], busy: false },
+  busy:    { targets: [1, 1, 1, 1], counts: [1, 1, 0, 0], busy: true },
+  alldone: { targets: [3, 3, 1, 1], counts: [3, 3, 1, 1], busy: false },
+  empty:   { targets: [], counts: [], busy: false },
+}[name]);
+
+/* 年度时间带：确定性伪随机（与 direction-g 同种子） */
+function buildBand(band, today0) {
+  band.innerHTML = '';
+  for (let i = 0; i < 365; i++) {
+    const t = document.createElement('span');
+    t.className = 'st-tick';
+    if (i < today0) {
+      if ((i * 7919 + 13) % 97 < 62) {
+        t.classList.add('past', 'hit');
+        t.style.background = ['var(--goal-coral)', 'var(--goal-amber)', 'var(--goal-sage)',
+          'var(--goal-teal)', 'var(--goal-sky)', 'var(--goal-indigo)', 'var(--goal-plum)'][i % 7];
+      } else {
+        t.classList.add('past');
+      }
+    } else if (i === today0) {
+      t.className = 'st-tick today';
+    }
+    band.appendChild(t);
+  }
+}
+
+function scaffoldCard(g, board, st) {
+  const idx = GOALS.indexOf(g);
+  const card = document.createElement('div');
+  card.className = 'st-card';
+  card.tabIndex = 0;
+  card.dataset.idx = idx;
+  card.innerHTML = `
+    <div class="st-row1">
+      <span class="st-dot" style="background:${g.color}"></span>
+      <span class="st-cat">${g.cat}</span>
+      <button class="st-arrow" type="button" aria-label="目标详情">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </button>
+    </div>
+    <h3 class="st-title">${g.title}</h3>
+    <div class="st-row3">
+      <span class="st-time">${g.time}</span>
+      <span class="st-pips">${'<span class="st-pip"></span>'.repeat(st.targets[idx])}</span>
+      <span class="st-count"></span>
+      <button class="st-check" type="button" aria-label="打卡">
+        <svg class="tickmark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg>
+      </button>
+    </div>`;
+  const doCheck = (e) => {
+    e.stopPropagation();
+    if (!board.interactive) return;
+    if (st.counts[idx] < st.targets[idx]) st.counts[idx]++;
+    render(board);
+  };
+  card.querySelector('.st-check').addEventListener('click', doCheck);
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.st-arrow')) return;
+    doCheck(e);
+  });
+  card.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doCheck(e); }
+  });
+  return card;
+}
+
+function render(board) {
+  const root = board.el, st = board.st, q = (s) => root.querySelector(s);
+  const total = st.targets.reduce((a, b) => a + b, 0);
+  const done = st.counts.reduce((a, b) => a + b, 0);
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const todo = total - done;
+
+  // 圆环：dashoffset 动画（slow 450）
+  const bar = q('[data-ringbar]');
+  bar.style.strokeDasharray = RING_CIRC.toFixed(1);
+  bar.style.strokeDashoffset = (RING_CIRC * (1 - pct / 100)).toFixed(1);
+  q('[data-pct]').textContent = pct + '%';
+  q('[data-total]').textContent = total;
+  q('[data-done]').textContent = done;
+  q('[data-todo]').textContent = todo;
+  q('[data-ptodo]').textContent = todo;
+  q('[data-pdone]').textContent = GOALS.filter((g, i) => st.counts[i] >= st.targets[i]).length;
+
+  // 胶囊选中态随完成度切换
+  const pTodo = q('.st-pill.todo'), pDone = q('.st-pill.done');
+  pTodo.style.opacity = todo ? '1' : '.45';
+  pDone.style.opacity = total && !todo ? '1' : '.75';
+
+  // 文案
+  q('[data-cheer]').textContent =
+    !total ? '从一个目标开始' :
+    pct === 0 ? '从第一次打卡开始' :
+    pct < 50 ? `已经完成 ${done} 次，稳稳推进` :
+    pct < 100 ? `还差 ${todo} 次，就快完成了` :
+    '今天全部完成，好好休息';
+
+  // 目标卡
+  const cardsBox = q('[data-cards]');
+  if (st.targets.length === 0) {
+    cardsBox.hidden = true;
+    q('[data-empty]').hidden = false;
+    q('[data-pills]').style.visibility = 'hidden';
+    q('[data-sect-note]').textContent = '';
+    q('[data-display]').innerHTML = '从一个<br>小目标开始';
+  } else {
+    const cards = [...cardsBox.children];
+    st.targets.forEach((tg, i) => {
+      const card = cards[i], g = GOALS[i], c = st.counts[i];
+      card.querySelector('.st-count').textContent = `${c}/${tg} 次`;
+      [...card.querySelectorAll('.st-pip')].forEach((p, j) => {
+        p.classList.toggle('on', j < c);
+        p.style.background = j < c ? g.color : '';
+      });
+      card.querySelector('.st-check').classList.toggle('done', c >= tg);
+      card.querySelector('.st-check').setAttribute('aria-pressed', c >= tg);
+      card.style.opacity = c >= tg ? '.78' : '1';
+    });
+    q('[data-sect-note]').textContent = st.busy ? '忙碌模式 · 最低档' : `共 ${total} 次打卡`;
+    q('[data-busy]').hidden = !st.busy;
+    q('[data-display]').innerHTML = st.busy
+      ? '今天很忙<br>也没关系'
+      : (total > 0 && todo === 0)
+          ? '全部完成<br>为自己鼓掌'
+          : '把今天<br>照顾好';
+    q('[data-cele-note]').textContent = `${done}/${total} 次 · 为自己鼓掌`;
+  }
+
+  // 成就时刻
+  const cele = q('[data-cele]');
+  const full = total > 0 && todo === 0;
+  if (full && !cele.classList.contains('on')) {
+    if (!cele.querySelector('.dot')) {
+      const palette = ['var(--goal-coral)', 'var(--goal-amber)', 'var(--goal-sage)',
+        'var(--goal-teal)', 'var(--goal-sky)', 'var(--goal-indigo)', 'var(--goal-plum)'];
+      for (let i = 0; i < 14; i++) {
+        const d = document.createElement('span');
+        d.className = 'dot';
+        const ang = (Math.PI * 2 * i) / 14 + 0.4;
+        const r = 90 + (i % 3) * 26;
+        d.style.setProperty('--dx', (Math.cos(ang) * r).toFixed(0) + 'px');
+        d.style.setProperty('--dy', (Math.sin(ang) * r * .7).toFixed(0) + 'px');
+        d.style.background = palette[i % 7];
+        d.style.animationDelay = (i % 5) * 40 + 'ms';
+        cele.appendChild(d);
+      }
+    }
+    cele.classList.add('on');
+  } else if (!full) {
+    cele.classList.remove('on');
+  }
+}
+
+const today0 = (() => {
+  const n = new Date();
+  return Math.floor((n - new Date(n.getFullYear(), 0, 0)) / 86400000) - 1; // 0-based
+})();
+
+const host = document.getElementById('boards');
+for (const cfg of BOARDS) {
+  const board = { ...cfg, st: stateOf(cfg.state) };
+  const wrap = document.createElement('section');
+  wrap.className = 'board';
+  wrap.innerHTML = `<h3>${cfg.title}</h3><p class="desc">${cfg.desc}</p>
+    <div class="chips">
+      <span class="chip t">打卡反馈 fast150/base250</span>
+      <span class="chip t">圆环 slow450</span>
+      <span class="chip t">成就 celebration1000</span>
+    </div>`;
+
+  const phone = document.createElement('div');
+  phone.className = 'phone';
+  if (cfg.theme === 'dark') phone.setAttribute('data-theme', 'dark');
+  phone.appendChild(document.getElementById('tpl').content.cloneNode(true));
+  wrap.appendChild(phone);
+  if (cfg.interactive) {
+    const reset = document.createElement('button');
+    reset.className = 'demo-btn'; reset.type = 'button'; reset.textContent = '↺ 重置演示';
+    reset.addEventListener('click', () => {
+      board.st = stateOf(cfg.state);
+      const cardsBox = phone.querySelector('[data-cards]');
+      cardsBox.innerHTML = '';
+      board.st.targets.forEach((_, i) => cardsBox.appendChild(scaffoldCard(GOALS[i], board, board.st)));
+      render(board);
+    });
+    wrap.appendChild(reset);
+  }
+  host.appendChild(wrap);
+  board.el = phone;
+
+  const cardsBox = phone.querySelector('[data-cards]');
+  board.st.targets.forEach((_, i) => cardsBox.appendChild(scaffoldCard(GOALS[i], board, board.st)));
+  buildBand(phone.querySelector('[data-band]'), today0);
+  const dayN = today0 + 1, left = 365 - dayN;
+  phone.querySelector('[data-year-note]').textContent = `第 ${dayN} 天 · 还剩 ${left} 天`;
+
+  // 成就覆盖层：点击关闭（dismissible）
+  phone.querySelector('[data-cele]').addEventListener('click', () =>
+    phone.querySelector('[data-cele]').classList.remove('on'));
+
+  // 动效令牌标注（仅典型态浅色画板）
+  if (cfg.annot) {
+    const t1 = document.createElement('span');
+    t1.className = 'st-tag'; t1.textContent = '↳ fast 150 / base 250';
+    t1.style.cssText = 'top:558px;right:26px';
+    const t2 = document.createElement('span');
+    t2.className = 'st-tag'; t2.textContent = '↳ slow 450';
+    t2.style.cssText = 'top:300px;left:26px';
+    phone.appendChild(t1); phone.appendChild(t2);
+  }
+
+  render(board);
+}
+</script>
+</body>
+</html>

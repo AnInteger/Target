@@ -41,7 +41,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 ### Implementation
 
-- [ ] T003 [US1] 用 frontend-design 技能产出 2–3 个风格方向的"今日"屏对比原型 `design/prototypes/direction-a.html` / `direction-b.html` / `direction-c.html`：393×852 手机视口、自包含零外链、点击可演示打卡反馈、各含深色画板（方向探索期允许内联试色，契约 §2-5）
+- [X] T003 [US1] 用 frontend-design 技能产出 2–3 个风格方向的"今日"屏对比原型 `design/prototypes/direction-a.html` / `direction-b.html` / `direction-c.html`：393×852 手机视口、自包含零外链、点击可演示打卡反馈、各含深色画板（方向探索期允许内联试色，契约 §2-5）
 - [ ] T004 [US1] 方向评审轮：用户浏览器查看对比 → 意见原话与结论记入 `design/reviews.md` → 未过则修订（轮次+1，至多 2 轮，超则升级口头对齐）→ 选定/融合结论作为 FR-009 决策记录
 - [ ] T005 [US1] 收敛设计令牌 `design/tokens.css`：按契约 schema 全量写入——语义色浅/深成对、8 目标色校准（键名冻结）、九档字阶（数字 tnum）、间距/圆角/阴影刻度、动效时长与曲线；`design/prototypes/index.html` 增加令牌总览区
 - [ ] T006 [US1] 令牌翻译与主题基建 `lib/app/design_tokens.dart`：Dart 令牌全集（浅/深成对）+ `ThemeData` light/dark 由完整 ColorScheme（令牌组装，弃 fromSeed）+ 数字 `FontFeature.tabularFigures()`；全 App 引用点同步迁移

@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>方向 A · 印记手账</title>
+<style>
+  /* ============================================================
+     方向 A · 印记手账（温暖生活感）
+     语义根：「打卡」的本义 = 盖章。印章 + 印泥朱砂红 + 和纸胶带 +
+     暖纸手账。目标卡是贴进手账的索引卡，打卡是往卡上盖一枚红章。
+     探索期试色（契约 §2-5），定稿后收敛进 tokens.css。
+     ============================================================ */
+  :root {
+    --paper: #faf6ef;        /* 暖米纸 */
+    --paper-card: #fffdf8;   /* 卡片纸（比底亮） */
+    --ink: #38322c;          /* 暖墨 */
+    --ink-soft: #8c7a5b;     /* 茶褐 · 元数据 */
+    --seal: #c4453c;         /* 印泥朱砂红 */
+    --seal-deep: #a93530;
+    --tape: color-mix(in srgb, var(--goal) 55%, #fffdf8);
+    --washi-opacity: .5;
+    --coral: #d97757; --sage: #7a9b76; --indigo: #6674ac; --amber: #c99334;
+    --serif: "Songti SC", "STSong", "Noto Serif CJK SC", serif;
+    --sans: "PingFang SC", system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #ece7dd; color: var(--ink); font-family: var(--sans);
+    min-height: 100vh; padding: 40px 24px 80px;
+  }
+  /* ---- 评审页头 ---- */
+  .dir-head { max-width: 1280px; margin: 0 auto 28px; }
+  .dir-head .eyebrow {
+    font: 500 12px/1 var(--sans); letter-spacing: .35em; color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+  .dir-head h1 { font: 700 30px/1.2 var(--serif); }
+  .dir-head .thesis { font: 400 15px/1.8 var(--sans); color: #5c5245; max-width: 640px; margin-top: 8px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--sans);
+    color: #5c5245; background: #f6f2e9; border: 1px solid #ddd5c6;
+    border-radius: 999px; padding: 6px 10px;
+  }
+  .chip i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+  /* ---- 画板区 ---- */
+  .boards { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; }
+  .board > .board-label {
+    text-align: center; font: 500 12px/1 var(--sans); letter-spacing: .2em;
+    color: #8a8070; margin-bottom: 12px;
+  }
+  /* ---- 手机框 ---- */
+  .phone {
+    width: 393px; height: 852px; border-radius: 44px; padding: 10px;
+    background: #17140f; box-shadow: 0 24px 60px rgb(23 20 15 / 35%);
+    flex: none;
+  }
+  .screen {
+    position: relative; width: 100%; height: 100%; border-radius: 36px;
+    overflow: hidden; display: flex; flex-direction: column;
+    background: var(--p-paper);
+    background-image:
+      repeating-linear-gradient(0deg, rgb(56 50 44 / 2%) 0 1px, transparent 1px 3px);
+    color: var(--p-ink);
+  }
+  .phone.light { --p-paper: var(--paper); --p-card: var(--paper-card);
+    --p-ink: var(--ink); --p-soft: var(--ink-soft); --p-seal: var(--seal);
+    --p-nav: #f3eee3; --p-line: #e4dccb; }
+  .phone.dark { --p-paper: #221c15; --p-card: #2c251c; --p-ink: #ece2cf;
+    --p-soft: #b7a78d; --p-seal: #e06a5f; --p-nav: #1b1610; --p-line: #3a3226; }
+  /* 状态栏 */
+  .statusbar { flex: none; height: 54px; display: flex; align-items: center;
+    justify-content: space-between; padding: 6px 28px 0;
+    font: 600 15px var(--sans); }
+  /* ---- 今日主体 ---- */
+  .sheet { flex: 1; overflow-y: auto; padding: 10px 20px 16px; }
+  .date-eyebrow {
+    font: 400 13px/1 var(--serif); letter-spacing: .5em; color: var(--p-soft);
+    margin: 6px 0 10px;
+  }
+  .greeting { font: 700 30px/1.35 var(--serif); margin-bottom: 4px; }
+  .greeting .num { color: var(--p-seal); }
+  .sub-greet { font: 400 13px/1.6 var(--sans); color: var(--p-soft); margin-bottom: 18px; }
+  /* 忙碌提示 */
+  .busy-chip {
+    display: none; align-items: center; gap: 8px; width: fit-content;
+    font: 500 12px/1 var(--sans); color: #7a5b17;
+    background: rgb(201 147 52 / 16%); border: 1px dashed rgb(201 147 52 / 55%);
+    border-radius: 999px; padding: 7px 12px; margin-bottom: 14px;
+  }
+  .phone.is-busy .busy-chip { display: inline-flex; }
+  .busy-chip i { width: 8px; height: 8px; border-radius: 50%; background: #c99334; }
+  /* ---- 目标卡（索引卡 + 和纸胶带） ---- */
+  .cards { display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    position: relative; background: var(--p-card); border: 1px solid var(--p-line);
+    border-radius: 6px; padding: 18px 16px 14px; box-shadow: 0 2px 8px rgb(56 50 44 / 8%);
+  }
+  .card:nth-child(odd) { transform: rotate(-.35deg); }
+  .card:nth-child(even) { transform: rotate(.3deg); }
+  .card::before {           /* 和纸胶带 */
+    content: ""; position: absolute; top: -9px; left: 50%; width: 74px; height: 20px;
+    transform: translateX(-50%) rotate(-2.5deg);
+    background: var(--tape); opacity: var(--washi-opacity);
+    box-shadow: 0 1px 2px rgb(56 50 44 / 12%);
+  }
+  .card[data-goal="meal"]   { --goal: var(--coral); }
+  .card[data-goal="fit"]    { --goal: var(--sage); }
+  .card[data-goal="sleep"]  { --goal: var(--indigo); }
+  .card[data-goal="read"]   { --goal: var(--amber); }
+  .card-row { display: flex; align-items: center; gap: 12px; }
+  .goal-glyph {
+    flex: none; width: 40px; height: 40px; border-radius: 50%;
+    border: 1.5px solid var(--goal); color: var(--goal);
+    display: grid; place-items: center; font: 700 17px/1 var(--serif);
+    background: color-mix(in srgb, var(--goal) 8%, transparent);
+  }
+  .goal-main { flex: 1; min-width: 0; }
+  .goal-name { font: 600 17px/1.3 var(--serif); letter-spacing: .02em; }
+  .goal-meta { font: 400 12px/1 var(--sans); color: var(--p-soft); margin-top: 5px; }
+  /* 墨点进度（每日 N 次 → N 个点，盖过章的点为实心红） */
+  .pips { display: flex; gap: 6px; margin-top: 9px; }
+  .pip { width: 11px; height: 11px; border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, var(--goal) 60%, var(--p-soft));
+    transition: background var(--motion-fast, 150ms) ease; }
+  .pip.on { background: var(--p-seal); border-color: var(--p-seal);
+    box-shadow: inset 0 0 0 2px var(--p-card), inset 0 0 0 3.5px var(--p-seal); }
+  /* 印章按钮 */
+  .seal-btn {
+    flex: none; width: 58px; height: 58px; border-radius: 50%;
+    border: 2px solid color-mix(in srgb, var(--p-seal) 75%, var(--p-card));
+    background: transparent; color: var(--p-seal); cursor: pointer;
+    font: 700 17px/1 var(--serif); letter-spacing: .1em;
+    transform: rotate(-6deg); transition: transform 150ms ease;
+    box-shadow: inset 0 0 0 3px var(--p-card), inset 0 0 0 4px color-mix(in srgb, var(--p-seal) 40%, transparent);
+  }
+  .seal-btn:hover { transform: rotate(-6deg) scale(1.05); }
+  .seal-btn:focus-visible { outline: 3px solid var(--p-seal); outline-offset: 3px; }
+  .seal-btn:active { transform: rotate(-6deg) scale(.92); }
+  .card.done .seal-btn {
+    background: var(--p-seal); color: #fdf6ee; pointer-events: none;
+    box-shadow: inset 0 0 0 2px var(--p-card), inset 0 0 0 4px var(--p-seal),
+      0 0 0 4px color-mix(in srgb, var(--p-seal) 18%, transparent);
+  }
+  .card.done .goal-name { color: var(--p-soft); }
+  /* 盖章动效：章从上方压下 */
+  .stamp-anim { animation: stampIn 450ms cubic-bezier(.2, 0, 0, 1); }
+  @keyframes stampIn {
+    0% { transform: rotate(-6deg) scale(1.7); opacity: 0; }
+    55% { transform: rotate(-6deg) scale(.94); opacity: 1; }
+    100% { transform: rotate(-6deg) scale(1); }
+  }
+  .phone.is-busy .card[data-goal="meal"] .goal-meta::after {
+    content: " · 宽松档"; color: #a8802a; font-weight: 600;
+  }
+  /* ---- 全部完成 · 印章题词 ---- */
+  .all-done {
+    display: none; margin-top: 18px; text-align: center; padding: 20px 12px 16px;
+    border: 1.5px solid color-mix(in srgb, var(--p-seal) 45%, var(--p-line));
+    border-radius: 6px; background: var(--p-card); position: relative;
+  }
+  .phone.all-complete .all-done { display: block; animation: riseIn 600ms cubic-bezier(.2,0,0,1); }
+  .all-done .big-seal {
+    width: 64px; height: 64px; margin: 0 auto 10px; border-radius: 50%;
+    border: 2.5px solid var(--p-seal); color: var(--p-seal);
+    display: grid; place-items: center; font: 700 26px/1 var(--serif);
+    transform: rotate(-8deg);
+    box-shadow: inset 0 0 0 3px var(--p-card), inset 0 0 0 5px color-mix(in srgb, var(--p-seal) 55%, transparent);
+  }
+  .all-done .line { font: 700 19px/1.4 var(--serif); }
+  .all-done .sub { font: 400 12px/1.6 var(--sans); color: var(--p-soft); margin-top: 3px; }
+  @keyframes riseIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+  /* ---- 底部导航（纸质 tab） ---- */
+  .nav { flex: none; display: flex; gap: 8px; padding: 10px 20px calc(18px + 10px);
+    background: var(--p-nav); border-top: 1px solid var(--p-line); }
+  .nav a {
+    flex: 1; text-align: center; text-decoration: none; color: var(--p-soft);
+    font: 500 13px/1 var(--sans); padding: 11px 0 9px; border-radius: 10px 10px 4px 4px;
+    border: 1px solid transparent;
+  }
+  .nav a.active {
+    color: var(--p-seal); background: var(--p-card); border-color: var(--p-line);
+    border-bottom: 2.5px solid var(--p-seal); font-weight: 700;
+  }
+  /* ---- 画板控制条 ---- */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  .controls button {
+    font: 500 13px/1 var(--sans); color: #4a4234; background: #f6f2e9;
+    border: 1px solid #cfc6b4; border-radius: 999px; padding: 9px 16px; cursor: pointer;
+  }
+  .controls button:hover { background: #efe9dc; }
+  .review-note {
+    max-width: 880px; margin: 48px auto 0; font: 400 13px/1.9 var(--sans);
+    color: #6a6055; border-top: 1px solid #d8d0bf; padding-top: 18px;
+  }
+  .review-note b { color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="dir-head">
+  <div class="eyebrow">TARGET · 风格方向 A</div>
+  <h1>印记手账</h1>
+  <p class="thesis">「打卡」的本义就是盖章。目标像索引卡贴进手账，每完成一次，就往卡上压一枚朱砂小章；全都完成的那天，页脚会落一方「今日已了」的题词印。温度来自纸、墨、印泥，不来自渐变。</p>
+  <div class="chips">
+    <span class="chip"><i style="background:#faf6ef"></i>暖米纸</span>
+    <span class="chip"><i style="background:#38322c"></i>暖墨</span>
+    <span class="chip"><i style="background:#c4453c"></i>印泥朱砂</span>
+    <span class="chip"><i style="background:#8c7a5b"></i>茶褐</span>
+    <span class="chip"><i style="background:#d97757"></i>和纸胶带=目标色</span>
+    <span class="chip">宋体展示 · 苹方正文</span>
+  </div>
+</header>
+
+<main class="boards">
+  <!-- 浅色画板 -->
+  <section class="board">
+    <div class="board-label">浅色 · 傍晚</div>
+    <div class="phone light" data-phone>
+      <div class="screen">
+        <div class="statusbar"><span>20:14</span><span>◉◉◉</span></div>
+        <div class="sheet">
+          <div class="date-eyebrow">八月十八 · 周二</div>
+          <h2 class="greeting">今天还剩 <span class="num" data-remain>3</span> 件小事</h2>
+          <p class="sub-greet">不急，一件一件来。</p>
+          <div class="busy-chip"><i></i>忙碌中 · 「好好吃饭」本周降为 1 次 / 天</div>
+          <div class="cards">
+            <div class="card" data-goal="meal" data-cur="2" data-target="3">
+              <div class="card-row">
+                <div class="goal-glyph">食</div>
+                <div class="goal-main">
+                  <div class="goal-name">好好吃饭</div>
+                  <div class="goal-meta">每天 3 次</div>
+                  <div class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip"></span></div>
+                </div>
+                <button class="seal-btn" aria-label="给好好吃饭盖章打卡">记</button>
+              </div>
+            </div>
+            <div class="card" data-goal="fit" data-cur="1" data-target="3">
+              <div class="card-row">
+                <div class="goal-glyph">动</div>
+                <div class="goal-main">
+                  <div class="goal-name">规律运动</div>
+                  <div class="goal-meta">每周 3 次 · 本周还剩 2 次</div>
+                  <div class="pips"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></div>
+                </div>
+                <button class="seal-btn" aria-label="给规律运动盖章打卡">记</button>
+              </div>
+            </div>
+            <div class="card" data-goal="sleep" data-cur="0" data-target="1">
+              <div class="card-row">
+                <div class="goal-glyph">寝</div>
+                <div class="goal-main">
+                  <div class="goal-name">23 点前上床</div>
+                  <div class="goal-meta">每天 1 次</div>
+                  <div class="pips"><span class="pip"></span></div>
+                </div>
+                <button class="seal-btn" aria-label="给 23 点前上床盖章打卡">记</button>
+              </div>
+            </div>
+            <div class="card" data-goal="read" data-cur="0" data-target="1">
+              <div class="card-row">
+                <div class="goal-glyph">阅</div>
+                <div class="goal-main">
+                  <div class="goal-name">读 20 页书</div>
+                  <div class="goal-meta">每天 1 次</div>
+                  <div class="pips"><span class="pip"></span></div>
+                </div>
+                <button class="seal-btn" aria-label="给读 20 页书盖章打卡">记</button>
+              </div>
+            </div>
+          </div>
+          <div class="all-done" aria-live="polite">
+            <div class="big-seal">了</div>
+            <div class="line">今天都照顾到了。</div>
+            <div class="sub">四枚小章，一枚不少。</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="active" href="#">今日</a><a href="#">目标</a><a href="#">设置</a>
+        </nav>
+      </div>
+    </div>
+    <div class="controls">
+      <button data-act="reset">重置演示</button>
+      <button data-act="busy">切换忙碌模式</button>
+    </div>
+  </section>
+
+  <!-- 深色画板 -->
+  <section class="board">
+    <div class="board-label">深色 · 夜里翻开的同一页</div>
+    <div class="phone dark" data-phone>
+      <div class="screen">
+        <div class="statusbar"><span>20:14</span><span>◉◉◉</span></div>
+        <div class="sheet">
+          <div class="date-eyebrow">八月十八 · 周二</div>
+          <h2 class="greeting">今天还剩 <span class="num" data-remain>3</span> 件小事</h2>
+          <p class="sub-greet">不急，一件一件来。</p>
+          <div class="busy-chip"><i></i>忙碌中 · 「好好吃饭」本周降为 1 次 / 天</div>
+          <div class="cards">
+            <div class="card" data-goal="meal" data-cur="2" data-target="3">
+              <div class="card-row">
+                <div class="goal-glyph">食</div>
+                <div class="goal-main">
+                  <div class="goal-name">好好吃饭</div>
+                  <div class="goal-meta">每天 3 次</div>
+                  <div class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip"></span></div>
+                </div>
+                <button class="seal-btn" aria-label="给好好吃饭盖章打卡">记</button>
+              </div>
+            </div>
+            <div class="card" data-goal="fit" data-cur="1" data-target="3">
+              <div class="card-row">
+                <div class="goal-glyph">动</div>
+                <div class="goal-main">
+                  <div class="goal-name">规律运动</div>
+                  <div class="goal-meta">每周 3 次 · 本周还剩 2 次</div>
+                  <div class="pips"><span class="pip on"></span><span class="pip"></span><span class="pip"></span></div>
+                </div>
+                <button class="seal-btn" aria-label="给规律运动盖章打卡">记</button>
+              </div>
+            </div>
+            <div class="card" data-goal="sleep" data-cur="0" data-target="1">
+              <div class="card-row">
+                <div class="goal-glyph">寝</div>
+                <div class="goal-main">
+                  <div class="goal-name">23 点前上床</div>
+                  <div class="goal-meta">每天 1 次</div>
+                  <div class="pips"><span class="pip"></span></div>
+                </div>
+                <button class="seal-btn" aria-label="给 23 点前上床盖章打卡">记</button>
+              </div>
+            </div>
+            <div class="card" data-goal="read" data-cur="0" data-target="1">
+              <div class="card-row">
+                <div class="goal-glyph">阅</div>
+                <div class="goal-main">
+                  <div class="goal-name">读 20 页书</div>
+                  <div class="goal-meta">每天 1 次</div>
+                  <div class="pips"><span class="pip"></span></div>
+                </div>
+                <button class="seal-btn" aria-label="给读 20 页书盖章打卡">记</button>
+              </div>
+            </div>
+          </div>
+          <div class="all-done" aria-live="polite">
+            <div class="big-seal">了</div>
+            <div class="line">今天都照顾到了。</div>
+            <div class="sub">四枚小章，一枚不少。</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="active" href="#">今日</a><a href="#">目标</a><a href="#">设置</a>
+        </nav>
+      </div>
+    </div>
+    <div class="controls">
+      <button data-act="reset">重置演示</button>
+      <button data-act="busy">切换忙碌模式</button>
+    </div>
+  </section>
+</main>
+
+<footer class="review-note">
+  <b>评审要点</b>：① 整体气质——像不像"照顾自己"而不是"填表"；② 点「记」盖章的手感（连点几张试试节奏）；③ 深色翻页感；④ 忙碌模式切换后的克制程度；⑤ 和纸胶带 / 印章元素会不会腻。
+  意见直接告诉 Claude（例："A 的印章好看但卡片太素"/"A+B 融合"），会记入 design/reviews.md。
+</footer>
+
+<script>
+  // 每块画板独立初始化：读 data-cur/target 渲染，点章 +1，全完成出题词印。
+  const INIT = { meal: 2, fit: 1, sleep: 0, read: 0 };
+  const BUSY_TARGET = { meal: 1 };
+
+  function render(phone) {
+    let remaining = 0;
+    phone.querySelectorAll('.card').forEach(card => {
+      const key = card.dataset.goal;
+      const busy = phone.classList.contains('is-busy');
+      const target = busy && BUSY_TARGET[key] ? BUSY_TARGET[key] : +card.dataset.target;
+      const cur = Math.min(+card.dataset.cur, target);
+      const pips = card.querySelectorAll('.pip');
+      pips.forEach((p, i) => {
+        p.style.display = i < target ? '' : 'none';  // 忙碌档降次后收起多余墨点
+        p.classList.toggle('on', i < cur);
+      });
+      const done = cur >= target;
+      card.classList.toggle('done', done);
+      if (!done) remaining += target - cur;
+    });
+    const remain = phone.querySelector('[data-remain]');
+    if (remain) remain.textContent = remaining;
+    phone.classList.toggle('all-complete', remaining === 0);
+  }
+
+  document.querySelectorAll('[data-phone]').forEach(phone => {
+    const board = phone.closest('.board');
+    phone.addEventListener('click', e => {
+      const btn = e.target.closest('.seal-btn');
+      if (!btn) return;
+      const card = btn.closest('.card');
+      const busy = phone.classList.contains('is-busy');
+      const key = card.dataset.goal;
+      const target = busy && BUSY_TARGET[key] ? BUSY_TARGET[key] : +card.dataset.target;
+      if (+card.dataset.cur < target) {
+        card.dataset.cur = +card.dataset.cur + 1;
+        btn.classList.remove('stamp-anim'); void btn.offsetWidth; // 重启动画
+        btn.classList.add('stamp-anim');
+        render(phone);
+      }
+    });
+    board.querySelector('[data-act="reset"]').addEventListener('click', () => {
+      phone.querySelectorAll('.card').forEach(c => c.dataset.cur = INIT[c.dataset.goal] ?? 0);
+      phone.classList.remove('is-busy');
+      render(phone);
+    });
+    board.querySelector('[data-act="busy"]').addEventListener('click', () => {
+      phone.classList.toggle('is-busy');
+      render(phone);
+    });
+    render(phone);
+  });
+</script>
+</body>
+</html>

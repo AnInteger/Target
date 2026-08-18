@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>方向 B · 制图账本</title>
+<style>
+  /* ============================================================
+     方向 B · 制图账本（极简冷静）
+     语义根：工程师的制图台。纸白、石墨、钢笔蓝墨；顶部一条
+     24 小时刻度尺（今天已过去多少），主体是账目行——每完成
+     一次，钢笔在行上划一条线。「剩余」是全页唯一的巨字。
+     探索期试色（契约 §2-5），定稿后收敛进 tokens.css。
+     ============================================================ */
+  :root {
+    --paper: #f4f4f2;       /* 冷纸白 */
+    --ink: #1f1f1e;         /* 石墨 */
+    --ink-soft: #6e6e6a;    /* 次级石墨 */
+    --ink-faint: #a8a8a2;   /* 点线/刻度 */
+    --blue: #2e5077;        /* 钢笔普鲁士蓝 */
+    --coral: #c96f5c; --sage: #6f8f6f; --indigo: #5c6b9e; --amber: #b58a2e;
+    --sans: "PingFang SC", system-ui, -apple-system, sans-serif;
+    --mono: "SF Mono", ui-monospace, "JetBrains Mono", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e6e6e3; color: var(--ink); font-family: var(--sans);
+    min-height: 100vh; padding: 40px 24px 80px; }
+  /* ---- 评审页头 ---- */
+  .dir-head { max-width: 1280px; margin: 0 auto 28px; }
+  .dir-head .eyebrow { font: 500 12px/1 var(--mono); letter-spacing: .35em;
+    color: var(--ink-soft); margin-bottom: 10px; }
+  .dir-head h1 { font: 300 34px/1.2 var(--sans); letter-spacing: .04em; }
+  .dir-head .thesis { font: 400 15px/1.8 var(--sans); color: #565650; max-width: 640px; margin-top: 8px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--mono);
+    color: #565650; background: #efefec; border: 1px solid #d6d6d1;
+    border-radius: 4px; padding: 6px 10px; }
+  .chip i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+  /* ---- 画板区 ---- */
+  .boards { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; }
+  .board > .board-label { text-align: center; font: 500 12px/1 var(--mono);
+    letter-spacing: .2em; color: #83837c; margin-bottom: 12px; }
+  /* ---- 手机框 ---- */
+  .phone { width: 393px; height: 852px; border-radius: 44px; padding: 10px;
+    background: #101110; box-shadow: 0 24px 60px rgb(16 17 16 / 35%); flex: none; }
+  .screen { position: relative; width: 100%; height: 100%; border-radius: 36px;
+    overflow: hidden; display: flex; flex-direction: column;
+    background: var(--p-paper); color: var(--p-ink); }
+  .phone.light { --p-paper: var(--paper); --p-ink: var(--ink); --p-soft: var(--ink-soft);
+    --p-faint: var(--ink-faint); --p-blue: var(--blue); --p-line: #d9d9d4; --p-hover: #ebebe7; }
+  .phone.dark { --p-paper: #16181a; --p-ink: #e8e9ea; --p-soft: #a8aaa6;
+    --p-faint: #55564f; --p-blue: #7fa8d9; --p-line: #2a2d30; --p-hover: #1d2023; }
+  .statusbar { flex: none; height: 54px; display: flex; align-items: center;
+    justify-content: space-between; padding: 6px 28px 0; font: 600 15px var(--sans); }
+  /* ---- 24 小时刻度尺 ---- */
+  .ruler-wrap { flex: none; padding: 8px 24px 0; }
+  .ruler { position: relative; height: 34px; }
+  .ruler .ticks { position: absolute; inset: 0; display: flex; justify-content: space-between; }
+  .ruler .tick { width: 1px; height: 8px; background: var(--p-faint); align-self: flex-end; }
+  .ruler .tick.major { height: 15px; background: var(--p-soft); }
+  .ruler .track { position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+    background: var(--p-line); }
+  .ruler .elapsed { position: absolute; left: 0; bottom: 0; height: 1.5px;
+    width: 84%; background: var(--p-blue); }
+  .ruler .now { position: absolute; bottom: 0; left: 84%; width: 2.5px; height: 24px;
+    background: var(--p-blue); border-radius: 2px; }
+  .ruler .now::before { content: ""; position: absolute; top: -3px; left: 50%;
+    transform: translateX(-50%); width: 7px; height: 7px; border-radius: 50%;
+    background: var(--p-blue); }
+  .ruler .now::after { content: "20:14"; position: absolute; top: -2px; left: 6px;
+    font: 500 9px/1 var(--mono); color: var(--p-blue); letter-spacing: .08em; }
+  .ruler-labels { display: flex; justify-content: space-between;
+    font: 400 9px/1 var(--mono); color: var(--p-faint); margin-top: 5px;
+    font-variant-numeric: tabular-nums; }
+  /* ---- 巨字「剩余」---- */
+  .hero { flex: none; padding: 18px 24px 6px; }
+  .hero .label { font: 500 11px/1 var(--mono); letter-spacing: .4em; color: var(--p-soft); }
+  .hero .figure { display: flex; align-items: baseline; gap: 10px; margin-top: 6px; }
+  .hero .num { font: 200 92px/1 var(--sans); letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums; }
+  .hero .unit { font: 400 15px/1.4 var(--sans); color: var(--p-soft); }
+  .hero.settled .num { color: var(--p-blue); }
+  .hero .settled-line { display: none; font: 500 15px/1 var(--sans); color: var(--p-blue);
+    letter-spacing: .3em; }
+  .hero.settled .settled-line { display: inline; }
+  /* 忙碌提示 */
+  .busy-chip { display: none; margin: 10px 24px 0; width: fit-content;
+    font: 500 11px/1 var(--mono); color: var(--p-soft);
+    border: 1px solid var(--p-faint); border-radius: 3px; padding: 6px 10px;
+    letter-spacing: .05em; }
+  .phone.is-busy .busy-chip { display: block; }
+  /* ---- 账目行 ---- */
+  .ledger { flex: 1; overflow-y: auto; padding: 10px 24px 12px; }
+  .ledger-head { display: flex; justify-content: space-between;
+    font: 500 10px/1 var(--mono); letter-spacing: .25em; color: var(--p-faint);
+    padding: 8px 0 10px; border-bottom: 1px solid var(--p-line); }
+  .row { display: flex; align-items: center; gap: 14px;
+    padding: 19px 0; border-bottom: 1px solid var(--p-line); }
+  .row .glyph { flex: none; width: 10px; height: 10px; border-radius: 2px;
+    background: var(--goal); }
+  .row[data-goal="meal"]  { --goal: var(--coral); }
+  .row[data-goal="fit"]   { --goal: var(--sage); }
+  .row[data-goal="sleep"] { --goal: var(--indigo); }
+  .row[data-goal="read"]  { --goal: var(--amber); }
+  .row .body { flex: 1; min-width: 0; position: relative; }
+  .row .name { font: 500 17px/1.3 var(--sans); letter-spacing: .01em;
+    display: inline-block; position: relative; }
+  .row .name .strike { position: absolute; left: -2px; top: 55%; height: 1.5px;
+    width: 0; background: var(--p-blue); transition: width 350ms cubic-bezier(.4,0,.2,1); }
+  .row.done .name .strike { width: calc(100% + 4px); }
+  .row .meta { font: 400 11.5px/1 var(--mono); color: var(--p-soft); margin-top: 6px;
+    letter-spacing: .03em; }
+  .row .count { flex: none; font: 400 17px/1 var(--mono);
+    font-variant-numeric: tabular-nums; color: var(--p-ink); min-width: 44px;
+    text-align: right; }
+  .row .count small { font-size: 11px; color: var(--p-faint); }
+  .row.done .count { color: var(--p-blue); }
+  /* 记一笔按钮 */
+  .row .mark { flex: none; width: 44px; height: 44px; border-radius: 10px;
+    border: 1px solid var(--p-faint); background: transparent; color: var(--p-soft);
+    font: 500 13px/1 var(--sans); letter-spacing: .1em; cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease; }
+  .row .mark:hover { background: var(--p-hover); border-color: var(--p-soft); color: var(--p-ink); }
+  .row .mark:focus-visible { outline: 2px solid var(--p-blue); outline-offset: 2px; }
+  .row .mark:active { transform: scale(.95); }
+  .row.done .mark { border-color: transparent; color: var(--p-blue); background: transparent;
+    pointer-events: none; }
+  .row .count small.busy-optional { text-decoration: line-through;
+    text-decoration-thickness: 1px; }
+  /* ---- 结清时刻 ---- */
+  .settled-note { display: none; padding: 26px 24px 8px; }
+  .phone.all-complete .settled-note { display: block; }
+  .settled-note .frame { border: 1.5px solid var(--p-blue); border-radius: 6px;
+    padding: 18px 16px; text-align: center; }
+  .settled-note .t { font: 500 17px/1.5 var(--sans); letter-spacing: .12em; color: var(--p-blue); }
+  .settled-note .s { font: 400 12px/1.6 var(--sans); color: var(--p-soft); margin-top: 4px; }
+  @keyframes settleIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+  .phone.all-complete .settled-note .frame { animation: settleIn 450ms cubic-bezier(.2,0,0,1); }
+  /* 数字滚动 */
+  @keyframes numTick { 0% { opacity: .2; transform: translateY(6px); }
+    100% { opacity: 1; transform: none; } }
+  .num.tick { animation: numTick 250ms cubic-bezier(.2,0,0,1); }
+  /* ---- 底部导航 ---- */
+  .nav { flex: none; display: flex; padding: 0 24px calc(18px + 10px); gap: 26px;
+    background: var(--p-paper); border-top: 1px solid var(--p-line); }
+  .nav a { position: relative; text-decoration: none; color: var(--p-soft);
+    font: 500 13px/1 var(--sans); letter-spacing: .2em; padding: 16px 2px 6px; flex: 1;
+    text-align: center; }
+  .nav a.active { color: var(--p-ink); }
+  .nav a.active::before { content: ""; position: absolute; top: -1px; left: 25%; right: 25%;
+    height: 2px; background: var(--p-blue); }
+  /* ---- 控制条 ---- */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  .controls button { font: 500 13px/1 var(--sans); color: #4b4b46; background: #efefec;
+    border: 1px solid #c9c9c3; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  .controls button:hover { background: #e5e5e0; }
+  .review-note { max-width: 880px; margin: 48px auto 0; font: 400 13px/1.9 var(--sans);
+    color: #5c5c56; border-top: 1px solid #d2d2cc; padding-top: 18px; }
+  .review-note b { color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .row.done .name .strike { width: calc(100% + 4px); }
+  }
+</style>
+</head>
+<body>
+
+<header class="dir-head">
+  <div class="eyebrow">TARGET · 风格方向 B</div>
+  <h1>制图账本</h1>
+  <p class="thesis">把「今天」当作一张待结清的账页：顶部刻度尺标出今天已经过去的部分，页面上唯一的大字是「还剩几项」。每记一笔，等宽字体计数 +1，钢笔蓝的横线慢慢划过完成的那一行；全部结清时，整页只剩一句平静的「今日事项已结清」。没有卡片、没有渐变、没有多余装饰。</p>
+  <div class="chips">
+    <span class="chip"><i style="background:#f4f4f2"></i>冷纸白</span>
+    <span class="chip"><i style="background:#1f1f1e"></i>石墨</span>
+    <span class="chip"><i style="background:#2e5077"></i>钢笔普鲁士蓝</span>
+    <span class="chip"><i style="background:#a8a8a2"></i>点线刻度</span>
+    <span class="chip">超轻巨字 + 等宽数字</span>
+  </div>
+</header>
+
+<main class="boards">
+  <!-- 浅色画板 -->
+  <section class="board">
+    <div class="board-label">浅色 · 制图台</div>
+    <div class="phone light" data-phone>
+      <div class="screen">
+        <div class="statusbar"><span>20:14</span><span>◉◉◉</span></div>
+        <div class="ruler-wrap">
+          <div class="ruler">
+            <div class="ticks">
+              <span class="tick major"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick major"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick major"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick major"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+            </div>
+            <div class="track"></div><div class="elapsed"></div><div class="now"></div>
+          </div>
+          <div class="ruler-labels"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        </div>
+        <div class="hero">
+          <div class="label">今日剩余</div>
+          <div class="figure">
+            <span class="num" data-remain>4</span>
+            <span class="unit">项待记录</span>
+            <span class="settled-line">今日已结清 ✓</span>
+          </div>
+        </div>
+        <div class="busy-chip">宽松档 · 「好好吃饭」今日记 1 次即可</div>
+        <div class="ledger">
+          <div class="ledger-head"><span>事项</span><span>进度</span></div>
+          <div class="row" data-goal="meal" data-cur="2" data-target="3">
+            <span class="glyph"></span>
+            <div class="body">
+              <span class="name">好好吃饭<span class="strike"></span></span>
+              <div class="meta">每日 · 3 次</div>
+            </div>
+            <span class="count">2<small> /3</small></span>
+            <button class="mark" aria-label="记录好好吃饭一次">记一笔</button>
+          </div>
+          <div class="row" data-goal="fit" data-cur="1" data-target="3">
+            <span class="glyph"></span>
+            <div class="body">
+              <span class="name">规律运动<span class="strike"></span></span>
+              <div class="meta">每周 · 3 次</div>
+            </div>
+            <span class="count">1<small> /3</small></span>
+            <button class="mark" aria-label="记录规律运动一次">记一笔</button>
+          </div>
+          <div class="row" data-goal="sleep" data-cur="0" data-target="1">
+            <span class="glyph"></span>
+            <div class="body">
+              <span class="name">23 点前上床<span class="strike"></span></span>
+              <div class="meta">每日 · 1 次</div>
+            </div>
+            <span class="count">0<small> /1</small></span>
+            <button class="mark" aria-label="记录 23 点前上床">记一笔</button>
+          </div>
+          <div class="row" data-goal="read" data-cur="0" data-target="1">
+            <span class="glyph"></span>
+            <div class="body">
+              <span class="name">读 20 页书<span class="strike"></span></span>
+              <div class="meta">每日 · 1 次</div>
+            </div>
+            <span class="count">0<small> /1</small></span>
+            <button class="mark" aria-label="记录读 20 页书">记一笔</button>
+          </div>
+        </div>
+        <div class="settled-note" aria-live="polite">
+          <div class="frame">
+            <div class="t">今日事项已结清</div>
+            <div class="s">8 月 18 日 周二 · 共 6 笔记录</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="active" href="#">今日</a><a href="#">目标</a><a href="#">设置</a>
+        </nav>
+      </div>
+    </div>
+    <div class="controls">
+      <button data-act="reset">重置演示</button>
+      <button data-act="busy">切换宽松档</button>
+    </div>
+  </section>
+
+  <!-- 深色画板 -->
+  <section class="board">
+    <div class="board-label">深色 · 夜班制图台</div>
+    <div class="phone dark" data-phone>
+      <div class="screen">
+        <div class="statusbar"><span>20:14</span><span>◉◉◉</span></div>
+        <div class="ruler-wrap">
+          <div class="ruler">
+            <div class="ticks">
+              <span class="tick major"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick major"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick major"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick major"></span><span class="tick"></span><span class="tick"></span>
+              <span class="tick"></span><span class="tick"></span><span class="tick"></span>
+            </div>
+            <div class="track"></div><div class="elapsed"></div><div class="now"></div>
+          </div>
+          <div class="ruler-labels"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        </div>
+        <div class="hero">
+          <div class="label">今日剩余</div>
+          <div class="figure">
+            <span class="num" data-remain>4</span>
+            <span class="unit">项待记录</span>
+            <span class="settled-line">今日已结清 ✓</span>
+          </div>
+        </div>
+        <div class="busy-chip">宽松档 · 「好好吃饭」今日记 1 次即可</div>
+        <div class="ledger">
+          <div class="ledger-head"><span>事项</span><span>进度</span></div>
+          <div class="row" data-goal="meal" data-cur="2" data-target="3">
+            <span class="glyph"></span>
+            <div class="body">
+              <span class="name">好好吃饭<span class="strike"></span></span>
+              <div class="meta">每日 · 3 次</div>
+            </div>
+            <span class="count">2<small> /3</small></span>
+            <button class="mark" aria-label="记录好好吃饭一次">记一笔</button>
+          </div>
+          <div class="row" data-goal="fit" data-cur="1" data-target="3">
+            <span class="glyph"></span>
+            <div class="body">
+              <span class="name">规律运动<span class="strike"></span></span>
+              <div class="meta">每周 · 3 次</div>
+            </div>
+            <span class="count">1<small> /3</small></span>
+            <button class="mark" aria-label="记录规律运动一次">记一笔</button>
+          </div>
+          <div class="row" data-goal="sleep" data-cur="0" data-target="1">
+            <span class="glyph"></span>
+            <div class="body">
+              <span class="name">23 点前上床<span class="strike"></span></span>
+              <div class="meta">每日 · 1 次</div>
+            </div>
+            <span class="count">0<small> /1</small></span>
+            <button class="mark" aria-label="记录 23 点前上床">记一笔</button>
+          </div>
+          <div class="row" data-goal="read" data-cur="0" data-target="1">
+            <span class="glyph"></span>
+            <div class="body">
+              <span class="name">读 20 页书<span class="strike"></span></span>
+              <div class="meta">每日 · 1 次</div>
+            </div>
+            <span class="count">0<small> /1</small></span>
+            <button class="mark" aria-label="记录读 20 页书">记一笔</button>
+          </div>
+        </div>
+        <div class="settled-note" aria-live="polite">
+          <div class="frame">
+            <div class="t">今日事项已结清</div>
+            <div class="s">8 月 18 日 周二 · 共 6 笔记录</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a class="active" href="#">今日</a><a href="#">目标</a><a href="#">设置</a>
+        </nav>
+      </div>
+    </div>
+    <div class="controls">
+      <button data-act="reset">重置演示</button>
+      <button data-act="busy">切换宽松档</button>
+    </div>
+  </section>
+</main>
+
+<footer class="review-note">
+  <b>评审要点</b>：① 冷静但不冷漠的分寸——巨字与留白够不够"贵"；② 「记一笔」后横线划过、顶部大数字减一的节奏（连点几次感受）；③ 24 小时刻度尺的信息价值；④ 深色版是否像夜班仪表；⑤ 会不会太素、缺一点"照顾自己"的温度。
+  意见直接告诉 Claude（例："B 的刻度尺很棒但整体太冷"/"B+A 融合"），会记入 design/reviews.md。
+</footer>
+
+<script>
+  // 每块画板独立初始化：剩余数 = Σ(target-cur)，记一笔 +1，
+  // 单行完成划蓝线，全部完成出现「今日已结清」。
+  const INIT = { meal: 2, fit: 1, sleep: 0, read: 0 };
+  const BUSY_TARGET = { meal: 1 };
+
+  function render(phone, tickNum) {
+    let remaining = 0;
+    phone.querySelectorAll('.row').forEach(row => {
+      const key = row.dataset.goal;
+      const busy = phone.classList.contains('is-busy');
+      const target = busy && BUSY_TARGET[key] ? BUSY_TARGET[key] : +row.dataset.target;
+      const cur = Math.min(+row.dataset.cur, target);
+      row.querySelector('.count').innerHTML =
+        `${cur}<small class="${busy && key === 'meal' ? 'busy-optional' : ''}"> /${target}</small>`;
+      const isDone = cur >= target;
+      row.classList.toggle('done', isDone);
+      if (!isDone) remaining += target - cur;
+    });
+    const num = phone.querySelector('.num[data-remain]');
+    const hero = phone.querySelector('.hero');
+    if (num) {
+      num.textContent = remaining === 0 ? '' : remaining;
+      num.style.display = remaining === 0 ? 'none' : '';
+      if (tickNum) { num.classList.remove('tick'); void num.offsetWidth; num.classList.add('tick'); }
+    }
+    phone.querySelector('.hero .unit').style.display = remaining === 0 ? 'none' : '';
+    hero.classList.toggle('settled', remaining === 0);
+    phone.classList.toggle('all-complete', remaining === 0);
+  }
+
+  document.querySelectorAll('[data-phone]').forEach(phone => {
+    const board = phone.closest('.board');
+    phone.addEventListener('click', e => {
+      const btn = e.target.closest('.mark');
+      if (!btn) return;
+      const row = btn.closest('.row');
+      const busy = phone.classList.contains('is-busy');
+      const key = row.dataset.goal;
+      const target = busy && BUSY_TARGET[key] ? BUSY_TARGET[key] : +row.dataset.target;
+      if (+row.dataset.cur < target) {
+        row.dataset.cur = +row.dataset.cur + 1;
+        render(phone, true);
+      }
+    });
+    board.querySelector('[data-act="reset"]').addEventListener('click', () => {
+      phone.querySelectorAll('.row').forEach(r => r.dataset.cur = INIT[r.dataset.goal] ?? 0);
+      phone.classList.remove('is-busy');
+      render(phone, false);
+    });
+    board.querySelector('[data-act="busy"]').addEventListener('click', () => {
+      phone.classList.toggle('is-busy');
+      render(phone, false);
+    });
+    render(phone, false);
+  });
+</script>
+</body>
+</html>

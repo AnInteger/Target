@@ -1,0 +1,95 @@
+/* ============================================================================
+   Target 设计令牌 · 原型侧源（Phase: 方向探索期占位）
+   ----------------------------------------------------------------------------
+   契约：specs/002-ui-ux-redesign/contracts/design-language.md
+   规则：
+   - 原型 HTML 只从这里取值（方向探索期 direction-*.html 允许内联试色，
+     转正 screen-*.html 时必须收敛为这里的令牌——契约 §2-5）
+   - 风格定稿后本文件收敛为最终令牌，并机械翻译到
+     lib/app/design_tokens.dart（此后 Dart 为真源，本文件降级为镜像）
+   - 颜色令牌一律浅/深成对（--xxx 浅色 / --xxx-dark 深色）
+   ========================================================================== */
+
+:root {
+  /* —— 语义色（占位：沿用现状近似值，定稿时按选定方向重写） —— */
+  --background: #faf8f5;
+  --surface: #ffffff;
+  --surface-alt: #f2eee8;
+  --on-surface: #2b2926;
+  --on-surface-variant: #6f6a63;
+  --accent: #4f9d8d;
+  --accent-on: #ffffff;
+  --positive: #7a9b76;
+  --warning: #d99a2b;
+  --divider: #e7e2da;
+
+  /* —— 目标色板（8 色键名冻结，色值待校准） —— */
+  --goal-coral: #e2725b;
+  --goal-amber: #d99a2b;
+  --goal-sage: #7a9b76;
+  --goal-teal: #4f9d8d;
+  --goal-sky: #5b8db8;
+  --goal-indigo: #6674ac;
+  --goal-plum: #9c6b9f;
+  --goal-stone: #8a8d8f;
+
+  /* —— 字阶（九档，占位；数字场景启用 tnum） —— */
+  --font-display-l: 700 34px/1.15 var(--font-stack);
+  --font-display-m: 700 28px/1.2 var(--font-stack);
+  --font-title-l: 600 22px/1.3 var(--font-stack);
+  --font-title-m: 600 18px/1.35 var(--font-stack);
+  --font-title-s: 600 15px/1.4 var(--font-stack);
+  --font-body-l: 400 17px/1.5 var(--font-stack);
+  --font-body-m: 400 15px/1.5 var(--font-stack);
+  --font-body-s: 400 13px/1.45 var(--font-stack);
+  --font-label: 500 11px/1.3 var(--font-stack);
+
+  --font-stack: system-ui, -apple-system, "PingFang SC", "Segoe UI",
+    "Microsoft YaHei", sans-serif;
+
+  /* —— 间距刻度（4 的倍数） —— */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* —— 圆角 —— */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  /* —— 阴影（深色模式以表面亮度差替代） —— */
+  --shadow-low: 0 1px 3px rgb(43 41 38 / 6%);
+  --shadow-mid: 0 4px 12px rgb(43 41 38 / 8%);
+  --shadow-high: 0 12px 32px rgb(43 41 38 / 12%);
+
+  /* —— 动效 —— */
+  --motion-fast: 150ms;
+  --motion-base: 250ms;
+  --motion-slow: 450ms;
+  --motion-celebration: 1200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* 深色（成对；画板并列或 [data-theme=dark] 切换） */
+:root[data-theme="dark"] {
+  --background: #1c1a18;
+  --surface: #262421;
+  --surface-alt: #312e2a;
+  --on-surface: #ece8e2;
+  --on-surface-variant: #a8a29a;
+  --accent: #8bc4b8;
+  --accent-on: #10201c;
+  --positive: #a9c3a6;
+  --warning: #e8c078;
+  --divider: #3a3631;
+
+  --shadow-low: none;
+  --shadow-mid: none;
+  --shadow-high: none;
+}

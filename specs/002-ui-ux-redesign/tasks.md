@@ -28,8 +28,8 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 **Purpose**: 设计资产与设计回归基建
 
-- [ ] T001 创建设计资产目录与评审基建：`design/tokens.css`（占位骨架，注释指向 contracts/design-language.md）、`design/prototypes/index.html`（评审入口：风格方向区/屏索引/各屏通过状态列）、`design/reviews.md`（评审记录模板：屏·轮次·日期·意见原话·结论·修订说明）、`design/brand/`
-- [ ] T002 [P] 令牌契约测试基建 `test/design/token_contract_test.dart`：扫描 `lib/features/` 与 `lib/app/`（`design_tokens.dart` 豁免）断言无 `Color(0x` 字面量与带 color/fontSize 的裸 `TextStyle(`；对现状代码做一次审计并建立**带注释白名单**（SC-004：白名单只减不增）
+- [X] T001 创建设计资产目录与评审基建：`design/tokens.css`（占位骨架，注释指向 contracts/design-language.md）、`design/prototypes/index.html`（评审入口：风格方向区/屏索引/各屏通过状态列）、`design/reviews.md`（评审记录模板：屏·轮次·日期·意见原话·结论·修订说明）、`design/brand/`
+- [X] T002 [P] 令牌契约测试基建 `test/design/token_contract_test.dart`：扫描 `lib/features/` 与 `lib/app/`（`design_tokens.dart` 豁免）断言无 `Color(0x` 字面量与带 color/fontSize 的裸 `TextStyle(`；对现状代码做一次审计并建立**带注释白名单**（SC-004：白名单只减不增）
 
 ---
 

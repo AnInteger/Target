@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Target · 原型评审入口</title>
+<link rel="stylesheet" href="../tokens.css">
+<style>
+  body {
+    margin: 0; background: var(--background); color: var(--on-surface);
+    font-family: var(--font-stack); min-height: 100vh;
+    display: flex; justify-content: center; padding: 48px 16px; box-sizing: border-box;
+  }
+  .wrap { width: 100%; max-width: 720px; }
+  h1 { font: var(--font-display-m); margin: 0 0 4px; }
+  .sub { color: var(--on-surface-variant); font: var(--font-body-m); margin-bottom: 32px; }
+  h2 { font: var(--font-title-s); color: var(--accent); margin: 32px 0 12px;
+       letter-spacing: .08em; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  li a {
+    display: flex; align-items: center; gap: 12px; text-decoration: none;
+    background: var(--surface); border: 1px solid var(--divider);
+    border-radius: var(--radius-md); padding: 14px 16px; color: var(--on-surface);
+    font: var(--font-body-l); transition: transform var(--motion-fast) var(--ease-standard);
+  }
+  li a:hover { transform: translateY(-1px); box-shadow: var(--shadow-mid); }
+  .status { margin-left: auto; font: var(--font-label); padding: 4px 10px;
+            border-radius: var(--radius-full); background: var(--surface-alt);
+            color: var(--on-surface-variant); white-space: nowrap; }
+  .status.wait { background: #f6e8cf; color: #8a6413; }
+  .note { color: var(--on-surface-variant); font: var(--font-body-s); margin-top: 24px;
+          border-top: 1px solid var(--divider); padding-top: 16px; line-height: 1.7; }
+  code { background: var(--surface-alt); border-radius: 4px; padding: 1px 6px;
+         font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Target · 原型评审入口</h1>
+  <p class="sub">浏览器里看、点、挑——意见直接发给 Claude，会记入 <code>design/reviews.md</code></p>
+
+  <h2>① 风格方向对比（待拍板）</h2>
+  <ul>
+    <li><a href="direction-a.html">方向 A<span class="status wait">待评审</span></a></li>
+    <li><a href="direction-b.html">方向 B<span class="status wait">待评审</span></a></li>
+    <li><a href="direction-c.html">方向 C<span class="status wait">待评审</span></a></li>
+  </ul>
+
+  <h2>② 核心屏原型（方向定稿后逐屏深化）</h2>
+  <ul>
+    <li><a href="screen-today.html">今日（打卡动线）<span class="status">未开始</span></a></li>
+    <li><a href="screen-editor.html">目标编辑器（定义模型候选）<span class="status">未开始</span></a></li>
+    <li><a href="screen-goals.html">目标列表<span class="status">未开始</span></a></li>
+    <li><a href="screen-review.html">周回顾<span class="status">未开始</span></a></li>
+    <li><a href="screen-settings.html">设置<span class="status">未开始</span></a></li>
+  </ul>
+
+  <p class="note">
+    状态列与 <code>design/reviews.md</code> 同步维护；「通过」即解锁对应屏的 Flutter 实现（评审门禁）。<br>
+    每页均按 393×852 手机视口设计，可直接点击交互。
+  </p>
+</div>
+</body>
+</html>

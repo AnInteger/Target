@@ -1,48 +1,22 @@
-# Codemagic CI —— Target iOS 构建门禁（research D15 / spec CI 门禁假设）
+# Codemagic CI —— Target iOS 未签名构建（与 hello_ios 已验证回路一致）。
 #
-# 行为：push 到 main → iOS 构建（含 TargetWidgets 小组件扩展）→ 绿即自动分发 TestFlight。
-# 用户 iPhone 经 TestFlight 实机验收（quickstart V3/V8 等 iOS 专属场景）。
+# 流程：Codemagic 手动触发 → 出 unsigned.ipa → 本地 iLoader 自签 → 实机验证。
+# 不配置 App Store Connect 密钥/签名/TestFlight —— 那条链路需要付费开发者
+# 账号与 APP_STORE_CONNECT_* 三个加密变量（自动签名 + 自动分发专用），
+# 未签名自签流程完全用不到。
 #
-# 首次接入需要在 Codemagic 应用设置中配置（encrypted variables）：
-#   APP_STORE_CONNECT_ISSUER_ID       —— App Store Connect API 密钥 Issuer ID
-#   APP_STORE_CONNECT_KEY_IDENTIFIER  —— 密钥 Key ID
-#   APP_STORE_CONNECT_PRIVATE_KEY     —— 密钥 .p8 内容（或改用 *_FILE_PATH）
-# 另需在 Apple Developer Portal 手动注册一次 App Group：group.com.target.shared
-# （两个 target 的 entitlements 均引用它；签名 profile 需包含该能力）。
+# 注意：App Group（group.com.target.shared）能否生效取决于本地自签证书——
+# 免费 Apple ID 证书不支持 App Groups，小组件将读不到共享数据（呈现空态）。
 
 workflows:
-  ios-testflight:
-    name: iOS → TestFlight
-    max_build_duration: 60
+  ios-unsigned:
+    name: iOS 未签名包
     instance_type: mac_mini_m2
-    when:
-      changeset:
-        includes:
-          - "lib/**"
-          - "ios/**"
-          - "pubspec.yaml"
-          - "pubspec.lock"
-          - "codemagic.yaml"
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: false
-      cancel_previous_builds: true
+    max_build_duration: 60
     environment:
       flutter: 3.47.0
       xcode: latest
       cocoapods: default
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier:
-          - com.target.app
-          - com.target.targetwidgets
-      vars:
-        # 使用 Flutter 中国镜像无关紧要（CI 在海外），保持默认源
-        FLUTTER_BUILD_NAME: "1.0.0"
     scripts:
       - name: 强制 CocoaPods 路线（本项目小组件扩展依赖 pod 链接 home_widget）
         script: |
@@ -56,19 +30,16 @@ workflows:
       - name: 单元测试（统计引擎 R1–R9 / 备份 / 频率版本口径）
         script: |
           flutter test
-      - name: 应用签名配置
+      - name: 构建未签名 archive（含 TargetWidgets 小组件扩展）
+        script: flutter build ipa --release --no-codesign
+      - name: 组装未签名 ipa
         script: |
-          xcode-project use-profiles
-      - name: 构建 IPA（自动包含 TargetWidgets 扩展）
-        script: |
-          flutter build ipa --release
+          set -e
+          mkdir -p /tmp/Payload
+          cp -R "$CM_BUILD_DIR"/build/ios/archive/*.xcarchive/Products/Applications/*.app /tmp/Payload/
+          cd /tmp
+          rm -f "$CM_BUILD_DIR/unsigned.ipa"
+          zip -r "$CM_BUILD_DIR/unsigned.ipa" Payload
     artifacts:
-      - build/ios/ipa/*.ipa
+      - unsigned.ipa
       - /tmp/xcodebuild_logs/*.log
-    publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        # 构建绿 → 自动分发 TestFlight（不自动提交审核）
-        submit_to_testflight: true

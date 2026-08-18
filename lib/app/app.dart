@@ -23,6 +23,10 @@ class TargetApp extends ConsumerStatefulWidget {
   ConsumerState<TargetApp> createState() => _TargetAppState();
 }
 
+/// Web 模拟通知横幅的宿主 key：MaterialApp 自建 ScaffoldMessenger，
+/// App 根 context 取不到（maybeOf 恒 null）——必须经 root key 显示。
+final rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 class _TargetAppState extends ConsumerState<TargetApp> {
   StreamSubscription<NotificationBanner>? _banners;
   bool _onboardingChecked = false;
@@ -31,9 +35,8 @@ class _TargetAppState extends ConsumerState<TargetApp> {
   void initState() {
     super.initState();
     // Web 模拟通知：到点横幅（原生实现恒为空流，等价无操作）。
-    final messenger = ScaffoldMessenger.maybeOf(context);
     _banners = ref.read(notificationGatewayProvider).banners.listen((b) {
-      messenger?.showSnackBar(
+      rootScaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(content: Text('${b.title}\n${b.body}')),
       );
     });
@@ -124,6 +127,7 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     });
     return MaterialApp.router(
       title: Copy.appName,
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       routerConfig: ref.watch(routerProvider),

@@ -9,7 +9,6 @@
 
 import SwiftUI
 import WidgetKit
-import home_widget
 
 // MARK: - Snapshot model（与 Dart buildTodaySnapshot 一一对应）
 
@@ -239,10 +238,13 @@ struct MediumView: View {
                             Text("\(goal.doneCount ?? 0)/\(goal.targetCount ?? 0)")
                                 .font(.footnote.monospacedDigit())
                                 .foregroundStyle(.secondary)
-                            // iOS 17 交互：行内打卡 → Dart 回调（校验+写库+快照回写）
+                            // iOS 17 交互：行内打卡 → Dart 回调（校验+写库+快照回写）。
+                            // home_widget 0.9.x 已移除 HomeWidgetBackgroundIntent，
+                            // 使用本项目双 target 编译的 WidgetCheckInIntent（BackgroundIntent.swift）。
                             Button(
-                                intent: HomeWidgetBackgroundIntent(
-                                    url: URL(string: "target://checkin?goalId=\(goal.id)")!)
+                                intent: WidgetCheckInIntent(
+                                    url: URL(string: "target://checkin?goalId=\(goal.id)")!,
+                                    appGroup: TodayProvider.appGroup)
                             ) {
                                 Image(systemName: goal.met == true
                                     ? "checkmark.circle.fill"

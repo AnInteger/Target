@@ -25,6 +25,10 @@ Future<void> widgetCheckInCallback(Uri? uri) async {
   final goalId = uri.queryParameters['goalId'];
   if (goalId == null) return;
 
+  // App 完全被杀时的冷启动进程未经 initialize()：插件侧 AppGroup 未设置，
+  // 不先设组则 saveWidgetData 抛 "AppGroupId not set"（官方 example 同位）。
+  await HomeWidget.setAppGroupId(HomeWidgetGateway.appGroupId);
+
   final db = AppDatabase(openConnection());
   try {
     final goalRepo = GoalRepository(db);

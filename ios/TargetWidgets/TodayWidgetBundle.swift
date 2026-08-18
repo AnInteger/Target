@@ -170,7 +170,9 @@ struct MediumView: View {
                 Text("Target")
                     .font(.caption.weight(.semibold))
                 if let battery = entry.snapshot?.battery {
-                    Text(battery.map { "· \($0)%" } ?? "· —")
+                    // if let 已解包（非 Optional，无 .map）——原写法把解包值当
+                    // Optional 用导致编译错误；nil 分支本就走不到这里。
+                    Text("· \(battery)%")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

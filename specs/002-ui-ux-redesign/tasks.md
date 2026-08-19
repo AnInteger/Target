@@ -46,7 +46,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 - [x] T005 [US1] 收敛设计令牌 `design/tokens.css`：按契约 schema 全量写入——语义色浅/深成对、8 目标色校准（键名冻结）、九档字阶（数字 tnum）、间距/圆角/阴影刻度、动效时长与曲线；`design/prototypes/index.html` 增加令牌总览区（含深浅切换；G 标记已定稿；间距刻度增补 20 见契约变更记录）
 - [x] T006 [US1] 令牌翻译与主题基建 `lib/app/design_tokens.dart`：Dart 令牌全集（浅/深成对）+ `ThemeData` light/dark 由完整 ColorScheme（令牌组装，弃 fromSeed）+ 数字 `FontFeature.tabularFigures()`；全 App 引用点同步迁移（公共 API 兼容零改动：GoalColor 仅校准值、AppTheme.light/dark 签名不变；新增 TargetPalette/AppSpace/AppRadius/AppMotion/AppTextX 供 US2+ 使用）
 - [x] T007 [US1] 深化"今日"屏原型 `design/prototypes/screen-today.html`：典型态/空态/忙碌态/全完成态/深色并列画板；打卡反馈与成就时刻动效可触发演示（标注令牌时长）；导航壳层（页面结构/底部导航）示意一并呈现（6 画板：四态浅色 + 典型/全完成深色；典型态可点击打卡至成就时刻，Playwright 计算样式逐项验证）
-- [ ] T008 [US1] "今日"屏原型评审：`design/reviews.md` 记录结论至"通过"（**门禁：通过后 US2 实现任务方可开工**）（R1 六项 + R2 九项已全改；2026-08-20 R3 自审再修复 6 项——含浅色板仪表卡文字隐形缺陷与头像渐变令牌对增补，R3 待评审）
+- [ ] T008 [US1] "今日"屏原型评审：`design/reviews.md` 记录结论至"通过"（**门禁：通过后 US2 实现任务方可开工**）（R1 六项 + R2 九项 + R3 自审六项已全改；2026-08-20 R4 三项已改——年度守护卡移除、导航条参照重做（inset 对齐/全圆角胶囊/图标等大）、浅色配色令牌级调淡与墨梅 accent，R4 待评审）
 
 **Checkpoint**: 设计语言成立——方向已定、令牌双端就位、今日屏原型通过，可随时进入实现
 

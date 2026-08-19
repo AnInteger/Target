@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>今日屏 · Target（柔彩仪表盘）</title>
-<link rel="stylesheet" href="../tokens.css?v=0820b">
+<link rel="stylesheet" href="../tokens.css?v=0820c">
 <style>
   /* ============================================================
      今日屏深化原型（T007 · R3 修订 · 努力记录模型）
@@ -111,7 +111,7 @@
   .st-btn:active { transform: scale(.88); }
   .st-btn svg { width: 18px; height: 18px; }
   .st-btn-primary { background: var(--accent); color: var(--accent-on);
-                    box-shadow: 0 4px 12px rgba(23, 24, 28, .3); }
+                    box-shadow: 0 4px 12px rgba(37, 34, 48, .3); }
   [data-theme="dark"] .st-btn-primary { box-shadow: var(--shadow-mid); }
   .st-btn-ghost { background: var(--surface); color: var(--on-surface);
                   border: 1px solid var(--divider); box-shadow: var(--shadow-low);
@@ -264,43 +264,22 @@
   .st-empty p { font: var(--font-body-s); color: var(--on-surface-variant); margin: 0;
                 line-height: 1.7; }
 
-  /* 年度时间带 */
-  .st-year {
-    background: var(--glass-card); border: 1px solid var(--divider);
-    border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5);
-    box-shadow: var(--shadow-low); margin-bottom: var(--space-6);
-  }
-  .st-year-head { display: flex; align-items: baseline; margin-bottom: var(--space-3); }
-  .st-year-head h5 { font: var(--font-title-s); margin: 0; color: var(--on-surface); }
-  .st-band { display: flex; gap: 1px; align-items: flex-end; height: 28px; }
-  .st-tick { flex: 1; height: 40%; border-radius: 1px; background: var(--divider); }
-  .st-tick.past { background: var(--on-surface-variant); opacity: .35; }
-  .st-tick.hit { opacity: 1; }
-  .st-tick.today { height: 100%; width: 3px; border-radius: 2px; background: var(--accent); }
-  .st-year-legend { display: flex; gap: var(--space-3); margin-top: var(--space-2);
-                    font: var(--font-label); color: var(--on-surface-variant); }
-  .st-year-legend i { display: inline-block; width: var(--space-2); height: var(--space-2);
-                      border-radius: var(--radius-full); vertical-align: -1px;
-                      margin-right: var(--space-1); }
-  .st-year-legend .l1 i { background: var(--goal-sage); }
-  .st-year-legend .l2 i { background: var(--divider); }
-  .st-year-legend .l3 i { background: var(--accent); }
-
-  /* 底部导航（复刻原图：白色悬浮圆角条 radius-lg，选中 = 黑色胶囊内图标上文字下） */
-  .st-navwrap { flex: none; padding: var(--space-2) var(--space-4) var(--space-4); }
+  /* 底部导航（R4 复刻原图）：白色悬浮全圆角胶囊条，左右 inset 与内容列
+     严格对齐（同 space-6）；选中 = 墨色胶囊内图标上文字下，条内四周留 4px 呼吸 */
+  .st-navwrap { flex: none; padding: var(--space-2) var(--space-6) var(--space-4); }
   .st-nav {
-    display: flex; align-items: center; justify-content: space-around;
-    background: var(--surface); border-radius: var(--radius-lg);
+    display: flex; align-items: center;
+    background: var(--surface); border-radius: var(--radius-full);
     box-shadow: var(--shadow-mid); padding: var(--space-1);
   }
   .st-tab {
-    background: none; border: none; cursor: pointer; padding: var(--space-1);
+    background: none; border: none; cursor: pointer; padding: var(--space-1) 0;
     flex: 1; /* 等分槽位：选中胶囊变宽不推挤邻页签 */
-    display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
     color: var(--on-surface-variant); font: var(--font-label);
     transition: color var(--motion-base) var(--ease-standard);
   }
-  .st-tab svg { width: 22px; height: 22px; }
+  .st-tab svg { width: 20px; height: 20px; }
   .st-tab .chipx {
     display: flex; flex-direction: column; align-items: center; gap: 3px;
     background: var(--accent); color: var(--accent-on);
@@ -368,8 +347,7 @@
     <div class="node"><b>今日页</b>顶栏（问候 / 新建 / 提醒）</div><span class="arrow">→</span>
     <div class="node"><b>display</b>大标题</div><span class="arrow">→</span>
     <div class="node"><b>今日进展</b>圆环 + 竖排统计</div><span class="arrow">→</span>
-    <div class="node"><b>今日目标</b>状态胶囊 + 目标卡（记录努力）</div><span class="arrow">→</span>
-    <div class="node"><b>年度守护</b>365 天记录带</div>
+    <div class="node"><b>今日目标</b>状态胶囊 + 目标卡（记录努力）</div>
   </div>
 </nav>
 
@@ -444,15 +422,6 @@
       <b>记录第一个努力</b>
       <p>定一个想实现的目标，<br>为它留下今天的第一次记录。</p>
     </div>
-    <div class="st-year">
-      <div class="st-year-head"><h5>年度守护</h5></div>
-      <div class="st-band" data-band></div>
-      <div class="st-year-legend">
-        <span class="l1"><i></i>有记录</span>
-        <span class="l2"><i></i>未记录</span>
-        <span class="l3"><i></i>今天</span>
-      </div>
-    </div>
   </div>
   <div class="st-navwrap">
     <nav class="st-nav">
@@ -524,27 +493,6 @@ const stateOf = (name) => ({
   allgo:   { today: [2, 1, 1, 1], busy: false },
   empty:   { today: [], busy: false },
 }[name]);
-
-/* 年度时间带：确定性伪随机（与 direction-g 同种子） */
-function buildBand(band, today0) {
-  band.innerHTML = '';
-  for (let i = 0; i < 365; i++) {
-    const t = document.createElement('span');
-    t.className = 'st-tick';
-    if (i < today0) {
-      if ((i * 7919 + 13) % 97 < 62) {
-        t.classList.add('past', 'hit');
-        t.style.background = ['var(--goal-coral)', 'var(--goal-amber)', 'var(--goal-sage)',
-          'var(--goal-teal)', 'var(--goal-sky)', 'var(--goal-indigo)', 'var(--goal-plum)'][i % 7];
-      } else {
-        t.classList.add('past');
-      }
-    } else if (i === today0) {
-      t.className = 'st-tick today';
-    }
-    band.appendChild(t);
-  }
-}
 
 function scaffoldCard(g, board, st) {
   const idx = GOALS.indexOf(g);
@@ -664,7 +612,6 @@ function render(board) {
 }
 
 const now = new Date();
-const today0 = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000) - 1; // 0-based
 const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 星期${'日一二三四五六'[now.getDay()]}`;
 
 const host = document.getElementById('boards');
@@ -702,7 +649,6 @@ for (const cfg of BOARDS) {
 
   const cardsBox = phone.querySelector('[data-cards]');
   board.st.today.forEach((_, i) => cardsBox.appendChild(scaffoldCard(GOALS[i], board, board.st)));
-  buildBand(phone.querySelector('[data-band]'), today0);
 
   // 成就覆盖层：点击关闭（dismissible）
   phone.querySelector('[data-cele]').addEventListener('click', () =>

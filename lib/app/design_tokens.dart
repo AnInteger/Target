@@ -144,37 +144,39 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
   final List<BoxShadow> shadowHigh;
 
   /// 浅色 ·「柔彩仪表盘」（同步自 design/tokens.css :root）。
+  /// R4 修订（2026-08-20）：底幕四档调淡（末档 #e9dbf2 过深发闷）；accent
+  /// 纯黑 → 墨梅 #252230（与定稿参照的深灰墨一致）；shadowLow 改弥散软影。
   static const TargetPalette light = TargetPalette(
-    background: Color(0xFFF1E5F4),
+    background: Color(0xFFF4EFF6),
     surface: Color(0xFFFFFFFF),
-    surfaceAlt: Color(0xFFF4EEF9),
-    onSurface: Color(0xFF17181C),
-    onSurfaceVariant: Color(0xFF5D5A66),
-    accent: Color(0xFF17181C),
+    surfaceAlt: Color(0xFFF5F0F9),
+    onSurface: Color(0xFF1D1A24),
+    onSurfaceVariant: Color(0xFF625E70),
+    accent: Color(0xFF252230),
     accentOn: Color(0xFFFFFFFF),
     positive: Color(0xFF5C7D10),
     positiveFill: Color(0xFFB5E550),
     positiveOn: Color(0xFF24280F),
     warning: Color(0xFF9A6700),
-    divider: Color(0xFFE6E0EE),
+    divider: Color(0xFFE8E3F0),
     bgGrad: [
-      Color(0xFFF9EDF4),
-      Color(0xFFF5E8F6),
-      Color(0xFFF0E2F8),
-      Color(0xFFE9DBF2),
+      Color(0xFFF9EFF4),
+      Color(0xFFF7ECF5),
+      Color(0xFFF4EBF7),
+      Color(0xFFF1EAF8),
     ],
     glassShell: Color(0x99FFFFFF),
     glassCard: Color(0xCCFFFFFF),
     glassBorder: Color(0xA6FFFFFF),
     blur: 24,
     shadowLow: [
-      BoxShadow(offset: Offset(0, 1), blurRadius: 3, color: Color(0x0F17181C)),
+      BoxShadow(offset: Offset(0, 2), blurRadius: 10, color: Color(0x0F252230)),
     ],
     shadowMid: [
       BoxShadow(offset: Offset(0, 8), blurRadius: 22, color: Color(0x242E1A42)),
     ],
     shadowHigh: [
-      BoxShadow(offset: Offset(0, 14), blurRadius: 38, color: Color(0x3D17181C)),
+      BoxShadow(offset: Offset(0, 14), blurRadius: 38, color: Color(0x3D252230)),
     ],
   );
 
@@ -418,7 +420,7 @@ abstract final class AppTheme {
       onInverseSurface: brightness == Brightness.light
           ? const Color(0xFFF2EFF7)
           : const Color(0xFF1A1622),
-      scrim: const Color(0xFF17181C),
+      scrim: const Color(0xFF1D1A24),
     );
     final theme = ThemeData(
       useMaterial3: true,

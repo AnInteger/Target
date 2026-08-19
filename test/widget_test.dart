@@ -155,6 +155,116 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T010 成就时刻：上升沿绽放、点按退场、离开全完成态后重臂（FR-004/R4）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    for (final (name, icon, color) in [
+      ('锻炼', 'fitness', 'sage'),
+      ('阅读', 'read', 'teal'),
+    ]) {
+      final g = await repo.create(Goal(
+        name: name,
+        kind: GoalKind.habit,
+        iconKey: icon,
+        colorKey: color,
+        createdAt: today,
+      ));
+      await repo.addInitial(g.id, const DailyFrequency(1), WeekStart.containing(today));
+    }
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+        const SettingsRowsCompanion(onboardingCompleted: Value(true)));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 两枚记录钮：树序靠前 = 锻炼，靠后 = 阅读。第二卡在 390×844 下
+    // 位于底导航之下（已构建但不可命中），先滚动进视口再点。
+    final checkButtons = find.bySemanticsLabel(Copy.todayCheckAction);
+
+    // 只记锻炼 → 部分进展，不绽放。
+    await tester.tap(checkButtons.first);
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.celebrationTitle), findsNothing);
+
+    // 补上阅读 → 上升沿，全屏成就时刻。
+    await tester.scrollUntilVisible(
+      checkButtons.last,
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(checkButtons.last);
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.celebrationTitle), findsOneWidget);
+
+    // 点按屏幕中央 → 退场（淡出后内容摘树）。
+    await tester.tapAt(const Offset(195, 422));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.celebrationTitle), findsNothing);
+
+    // 撤销阅读 → 离开全完成态（重臂）→ 再记 → 再次绽放。
+    await tester.tap(find.text(Copy.undoCheckIn));
+    await tester.pumpAndSettle();
+    await tester.tap(checkButtons.last);
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.celebrationTitle), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('US2 忙碌态区分：降档会话活跃 → display 转忙碌 + 横幅在场（FR-018）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(Goal(
+      name: '锻炼',
+      kind: GoalKind.habit,
+      iconKey: 'fitness',
+      colorKey: 'sage',
+      createdAt: today,
+    ));
+    await repo.addInitial(goal.id, const DailyFrequency(3), WeekStart.containing(today));
+    await repo.openSession(
+      WeekStart.containing(today),
+      [BusyModeEntry(goalId: goal.id, downgraded: const DailyFrequency(1))],
+      DateTime.now(),
+    );
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+        const SettingsRowsCompanion(onboardingCompleted: Value(true)));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(Copy.todayDisplayBusy), findsOneWidget);
+    expect(find.text(Copy.todayBusyBanner), findsOneWidget);
+    expect(find.text(Copy.todayDisplayTypical), findsNothing);
+    await db.close();
+  });
+
   testWidgets('FR-001：输入模糊名当场出 SMART 建议，采用即替换（回归：输入需触发刷新）', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(

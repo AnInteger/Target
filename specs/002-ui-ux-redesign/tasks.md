@@ -63,7 +63,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 - [x] T009 [US2] 导航壳层与今日视图重写 `lib/app/router.dart`、`lib/app/app.dart`、`lib/features/today/today_view.dart`：按 T007 定稿落地（≤5 目标首屏无滚动、打卡 ≤2 交互、拇指热区、空/忙碌/全完成态）
 - [x] T010 [US2] 打卡反馈与成就时刻动效 `lib/features/today/today_view.dart`（可拆组件文件于 `lib/features/today/`）：内建动画 + 令牌时长/曲线（反馈 ≤600ms、庆祝 ≤1200ms）；连续快速打卡不阻塞不错乱；`lib/features/today/undo_toast.dart` 适配新语言
 - [x] T011 [US2] 今日动线能力等价保留：长按补签入口、Debug 时钟入口等既有快捷语义不丢失（`lib/features/today/`、`lib/features/settings/debug_clock.dart`）
-- [ ] T012 [US2] US2 回归：更新/新增 widget 测试（打卡 ≤2 交互、成就时刻、撤销、忙碌态区分）`test/widget_test.dart`；Web release 走查 V1/V2/V6（quickstart 阶段 B）；`flutter analyze` + `flutter test` 全绿
+- [x] T012 [US2] US2 回归：更新/新增 widget 测试（打卡 ≤2 交互、成就时刻、撤销、忙碌态区分）`test/widget_test.dart`；Web release 走查 V1/V2/V6（quickstart 阶段 B）；`flutter analyze` + `flutter test` 全绿
 
 **Checkpoint**: 用户日常最高频路径焕新，产品气质立住
 

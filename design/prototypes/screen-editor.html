@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>目标编辑器 · Target（柔彩仪表盘 · 定义模型三案）</title>
+<link rel="stylesheet" href="../tokens.css?v=0820f">
+<style>
+  /* ============================================================
+     目标编辑器原型（T013 · R1 · 单一目标概念 + 定义模型三案）
+     - 取值 100% 来自 ../tokens.css（SC-004）
+     - FR-011：不前置选类型；「一次性/截止日」是属性开关
+     - FR-010：三案字段集对比（A 慢慢来 / B 为什么·推荐 / C 小到不会失败）
+     - FR-012：提醒时机入选字段后驱动每目标提醒（B/C 有预览）
+     - 画板：创建(可交互·切案) / 既有目标渐进补全 / 深色并列
+     - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+
+  /* ---- 评审台面（呈现环境，非屏内设计） ---- */
+  body {
+    margin: 0; min-height: 100vh; background: #1b191f;
+    font-family: var(--font-stack); color: #f2eff7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12); box-sizing: border-box;
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 239, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 640px; line-height: 1.7; }
+
+  /* ---- 方案对比卡 ---- */
+  .plans {
+    width: min(1180px, 100%); box-sizing: border-box;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-4); margin-bottom: var(--space-8);
+  }
+  .plan {
+    position: relative; background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .1); border-radius: var(--radius-lg);
+    padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3);
+  }
+  .plan.reco { border-color: var(--positive-fill); }
+  .plan .ribbon {
+    position: absolute; top: calc(var(--space-3) * -1); right: var(--space-4);
+    font: var(--font-label); letter-spacing: .06em;
+    background: var(--positive-fill); color: var(--positive-on);
+    border-radius: var(--radius-full); padding: var(--space-1) var(--space-3);
+  }
+  .plan .p-key { font: var(--font-label); letter-spacing: .1em;
+                 color: var(--positive-fill); }
+  .plan h2 { font: var(--font-title-l); margin: 0; color: #f2eff7; }
+  .plan .p-idea { font: var(--font-body-m); color: rgba(242, 239, 247, .75);
+                  margin: 0; line-height: 1.7; }
+  .plan dl { margin: 0; display: grid; gap: var(--space-1); }
+  .plan .fld { display: flex; align-items: center; gap: var(--space-2);
+               font: var(--font-body-s); color: rgba(242, 239, 247, .8); }
+  .plan .fld b { font-weight: 600; color: #f2eff7; }
+  .tag { font: var(--font-label); padding: 1px var(--space-2);
+         border-radius: var(--radius-full); white-space: nowrap; }
+  .tag.req { background: rgba(181, 229, 80, .16); color: var(--positive-fill); }
+  .tag.opt { background: rgba(255, 255, 255, .08); color: rgba(242, 239, 247, .6); }
+  .tag.auto { background: rgba(255, 255, 255, .08); color: rgba(242, 239, 247, .85); }
+  .tag.none { background: transparent; color: rgba(242, 239, 247, .3);
+              border: 1px dashed rgba(242, 239, 247, .25); }
+  .plan .echo, .plan .remind, .plan .procon {
+    font: var(--font-body-s); color: rgba(242, 239, 247, .6); margin: 0;
+    line-height: 1.7; border-top: 1px solid rgba(255, 255, 255, .08);
+    padding-top: var(--space-2);
+  }
+  .plan .echo b, .plan .remind b { color: #f2eff7; font-weight: 600; }
+  .plan .procon .good { color: var(--positive-fill); }
+
+  /* ---- 画板行 ---- */
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 239, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 239, 247, .7); }
+  .chip.t { color: var(--positive-fill); }
+  .demo-btn {
+    font: var(--font-label); cursor: pointer; border: 1px solid rgba(255,255,255,.25);
+    background: transparent; color: rgba(242,239,247,.8);
+    padding: var(--space-1) var(--space-3); border-radius: var(--radius-full);
+  }
+  .demo-btn:hover { background: rgba(255,255,255,.08); }
+  .demo-btn[aria-pressed="true"] {
+    background: var(--positive-fill); color: var(--positive-on);
+    border-color: var(--positive-fill);
+  }
+
+  /* ---- 手机外框（呈现 chrome） ---- */
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+
+  /* ---- 屏内：编辑器 ---- */
+  .ed-status { height: 52px; flex: none; display: flex; align-items: flex-end;
+               justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+               font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
+  .ed-top { flex: none; display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-3) var(--space-6) var(--space-2); }
+  .ed-back { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+             background: var(--surface); color: var(--on-surface); cursor: pointer;
+             display: flex; align-items: center; justify-content: center;
+             border: 1px solid var(--divider); box-shadow: var(--shadow-low); }
+  .ed-top .tt { font: var(--font-title-m); color: var(--on-surface); }
+
+  .ed-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
+               padding: var(--space-2) var(--space-6) var(--space-6);
+               display: flex; flex-direction: column; gap: var(--space-4); }
+  .ed-scroll::-webkit-scrollbar { display: none; }
+
+  .ed-home { flex: none; height: 28px; display: flex; align-items: center;
+             justify-content: center; }
+  .ed-home i { width: 120px; height: 5px; border-radius: var(--radius-full);
+               background: var(--on-surface); opacity: .8; }
+
+  /* 卡片与分组 */
+  .ed-card { background: var(--glass-card); border: 1px solid var(--glass-border);
+             border-radius: var(--radius-lg); padding: var(--space-4);
+             display: flex; flex-direction: column; gap: var(--space-3);
+             box-shadow: var(--shadow-low); backdrop-filter: var(--glass-blur); }
+  [data-theme="dark"] .ed-card { background: var(--glass-card); }
+  .ed-lab { font: var(--font-label); letter-spacing: .08em;
+            color: var(--on-surface-variant); display: flex; align-items: center;
+            gap: var(--space-2); }
+  .ed-lab .tag.req { background: var(--positive-fill); color: var(--positive-on); }
+  .ed-lab .hint { font: var(--font-body-s); letter-spacing: 0; opacity: .8; }
+
+  /* 模板横滑 */
+  .tpl-row { display: flex; gap: var(--space-2); overflow-x: auto; scrollbar-width: none;
+             padding-bottom: var(--space-1); }
+  .tpl-row::-webkit-scrollbar { display: none; }
+  .tpl {
+    flex: none; display: flex; align-items: center; gap: var(--space-2);
+    background: var(--surface); border: 1px solid var(--divider);
+    border-radius: var(--radius-full); padding: var(--space-2) var(--space-4)
+    var(--space-2) var(--space-2); cursor: pointer;
+    font: var(--font-body-m); color: var(--on-surface); box-shadow: var(--shadow-low);
+    transition: transform var(--motion-fast) var(--ease-standard); }
+  .tpl:active { transform: scale(.94); }
+  .tpl.on { border-color: var(--on-surface); }
+  .tpl .dot { width: 26px; height: 26px; border-radius: var(--radius-full);
+              display: flex; align-items: center; justify-content: center;
+              color: #fff; }
+  .tpl .dot svg { width: 14px; height: 14px; }
+
+  /* 输入 */
+  .ed-input, .ed-area {
+    width: 100%; box-sizing: border-box; border: 1px solid var(--divider);
+    border-radius: var(--radius-md); background: var(--surface);
+    color: var(--on-surface); font: var(--font-body-l);
+    padding: var(--space-3) var(--space-4); outline: none;
+    transition: border-color var(--motion-fast) var(--ease-standard); }
+  .ed-input:focus { border-color: var(--on-surface); }
+  .ed-area { resize: none; min-height: 66px; line-height: 1.6; }
+  .ed-input::placeholder, .ed-area::placeholder { color: var(--on-surface-variant); opacity: .7; }
+  .ed-input.auto { background: var(--surface-alt); }
+  .auto-note { font: var(--font-body-s); color: var(--on-surface-variant); margin: 0; }
+
+  /* SMART 内联建议 */
+  .smart {
+    display: flex; align-items: center; gap: var(--space-3);
+    background: var(--surface-alt); border: 1px dashed var(--on-surface-variant);
+    border-radius: var(--radius-md); padding: var(--space-3);
+    animation: rise var(--motion-base) var(--ease-standard); }
+  @keyframes rise { from { opacity: 0; transform: translateY(4px); }
+                    to   { opacity: 1; transform: none; } }
+  .smart .say { flex: 1; font: var(--font-body-m); color: var(--on-surface-variant); }
+  .smart .say b { display: block; font: var(--font-body-l); color: var(--on-surface);
+                  margin-top: 2px; }
+  .smart button {
+    flex: none; font: var(--font-label); border: none; cursor: pointer;
+    background: var(--accent); color: var(--accent-on);
+    border-radius: var(--radius-full); padding: var(--space-2) var(--space-4); }
+
+  /* 频率 */
+  .seg { display: flex; background: var(--surface-alt);
+         border-radius: var(--radius-full); padding: var(--space-1); gap: var(--space-1); }
+  .seg button {
+    flex: 1; border: none; cursor: pointer; font: var(--font-body-m);
+    color: var(--on-surface-variant); background: transparent;
+    border-radius: var(--radius-full); padding: var(--space-2) 0;
+    transition: all var(--motion-base) var(--ease-standard); }
+  .seg button.on { background: var(--accent); color: var(--accent-on);
+                   font-weight: 600; }
+  .stepper { display: flex; align-items: center; justify-content: space-between;
+             background: var(--surface); border: 1px solid var(--divider);
+             border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); }
+  .stepper .cap { font: var(--font-body-m); color: var(--on-surface); }
+  .stepper .ctl { display: flex; align-items: center; gap: var(--space-3); }
+  .stepper .num { font: var(--font-title-m); color: var(--on-surface); min-width: 20px;
+                  text-align: center; font-variant-numeric: tabular-nums; }
+  .stepper button, .switch {
+    width: 30px; height: 30px; border-radius: var(--radius-full); border: none;
+    background: var(--surface-alt); color: var(--on-surface); cursor: pointer;
+    font: var(--font-title-m); display: flex; align-items: center;
+    justify-content: center; }
+  .stepper button:disabled { opacity: .3; cursor: default; }
+
+  /* 属性开关（一次性/截止日，FR-011） */
+  .attr { display: flex; align-items: center; gap: var(--space-3);
+          background: var(--surface); border: 1px solid var(--divider);
+          border-radius: var(--radius-md); padding: var(--space-3); cursor: pointer; }
+  .attr .txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .attr .txt b { font: var(--font-body-m); color: var(--on-surface); font-weight: 600; }
+  .attr .txt span { font: var(--font-body-s); color: var(--on-surface-variant); }
+  .switch { width: 46px; height: 28px; background: var(--surface-alt);
+            border: 1px solid var(--divider); position: relative;
+            transition: background var(--motion-base) var(--ease-standard); }
+  .switch::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px;
+    border-radius: var(--radius-full); background: var(--surface);
+    box-shadow: var(--shadow-low);
+    transition: transform var(--motion-base) var(--ease-standard); }
+  .switch.on { background: var(--positive-fill); border-color: var(--positive-fill); }
+  .switch.on::after { transform: translateX(18px); }
+  .ddl-chips { display: flex; gap: var(--space-2); flex-wrap: wrap;
+               animation: rise var(--motion-base) var(--ease-standard); }
+  .ddl-chips .q {
+    font: var(--font-body-m); border: 1px solid var(--divider); cursor: pointer;
+    background: var(--surface); color: var(--on-surface); border-radius: var(--radius-full);
+    padding: var(--space-2) var(--space-4); }
+  .ddl-chips .q.on { background: var(--accent); color: var(--accent-on);
+                     border-color: var(--accent); }
+
+  /* 提醒场景 chips（B/C） */
+  .cue-row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .cue {
+    font: var(--font-body-m); border: 1px solid var(--divider); cursor: pointer;
+    background: var(--surface); color: var(--on-surface);
+    border-radius: var(--radius-full); padding: var(--space-2) var(--space-4);
+    transition: all var(--motion-fast) var(--ease-standard); }
+  .cue:active { transform: scale(.92); }
+  .cue.on { background: var(--accent); color: var(--accent-on);
+            border-color: var(--accent); }
+
+  /* 提醒联动预览（FR-012） */
+  .remind-pv {
+    display: flex; gap: var(--space-2); align-items: flex-start;
+    background: var(--surface-alt); border-radius: var(--radius-md);
+    padding: var(--space-3); font: var(--font-body-s);
+    color: var(--on-surface-variant); line-height: 1.7; }
+  .remind-pv svg { flex: none; width: 16px; height: 16px; margin-top: 2px;
+                   color: var(--on-surface-variant); }
+  .remind-pv b { color: var(--on-surface); font-weight: 600; }
+
+  /* 渐进补全 ghost 行（既有目标） */
+  .ghost {
+    display: flex; align-items: center; gap: var(--space-2);
+    border: 1px dashed var(--divider); border-radius: var(--radius-md);
+    padding: var(--space-3); background: transparent; cursor: pointer;
+    font: var(--font-body-m); color: var(--on-surface-variant); width: 100%;
+    box-sizing: border-box; text-align: left;
+    transition: all var(--motion-fast) var(--ease-standard); }
+  .ghost:hover { border-color: var(--on-surface-variant); color: var(--on-surface); }
+  .ghost .plus { width: 22px; height: 22px; border-radius: var(--radius-full);
+                 background: var(--surface-alt); display: flex; align-items: center;
+                 justify-content: center; font-weight: 700; flex: none; }
+  .ghost-ed { border: 1px solid var(--divider); border-radius: var(--radius-md);
+              padding: var(--space-3); display: flex; flex-direction: column;
+              gap: var(--space-2); background: var(--surface);
+              animation: rise var(--motion-base) var(--ease-standard); }
+
+  /* 样子（图标 + 颜色） */
+  .look { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+  .icons { display: flex; gap: var(--space-2); }
+  .ico { width: 34px; height: 34px; border-radius: var(--radius-md); cursor: pointer;
+         border: 1px solid var(--divider); background: var(--surface);
+         display: flex; align-items: center; justify-content: center;
+         color: var(--on-surface-variant);
+         transition: transform var(--motion-fast) var(--ease-standard); }
+  .ico:active { transform: scale(.9); }
+  .ico svg { width: 16px; height: 16px; }
+  .colors { display: flex; gap: var(--space-2); }
+  .col { width: 24px; height: 24px; border-radius: var(--radius-full); cursor: pointer;
+         border: 2px solid transparent;
+         transition: transform var(--motion-fast) var(--ease-standard); }
+  .col.on { border-color: var(--on-surface); transform: scale(1.08); }
+
+  /* 保存 */
+  .save {
+    border: none; cursor: pointer; width: 100%;
+    background: var(--accent); color: var(--accent-on);
+    font: var(--font-title-m); border-radius: var(--radius-md);
+    padding: var(--space-4) 0; box-shadow: var(--shadow-mid);
+    transition: transform var(--motion-fast) var(--ease-standard); }
+  .save:active { transform: scale(.97); }
+  .save-sub { font: var(--font-body-s); color: var(--on-surface-variant);
+              text-align: center; margin: 0; }
+
+  /* 三案切换（评审 chrome，映射进表单） */
+  .form[data-plan="a"] .only-b, .form[data-plan="a"] .only-c,
+  .form[data-plan="b"] .only-a, .form[data-plan="b"] .only-c,
+  .form[data-plan="c"] .only-a, .form[data-plan="c"] .only-b { display: none; }
+  .save .lab-a, .save .lab-b, .save .lab-c { display: none; }
+  .form[data-plan="a"] .save .lab-a, .form[data-plan="b"] .save .lab-b,
+  .form[data-plan="c"] .save .lab-c { display: inline; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important;
+                             transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">目标编辑器 · 定义模型三案</h1>
+<p class="pt-sub">
+  同一个创建动线，三种「一个目标包含什么」的答案。三案共享：模板路径、SMART 内联建议、
+  名称 + 频率 + 一次性属性（不前置选类型）+ 图标颜色。差异只在「深化字段」——
+  选定后只实现选中字段（data-model envelope），其余不入库。
+</p>
+
+<!-- ============ 方案对比 ============ -->
+<section class="plans" aria-label="三个定义模型候选方案">
+  <article class="plan">
+    <span class="p-key">方案 A</span>
+    <h2>慢慢来</h2>
+    <p class="p-idea">零门槛启动：名称 + 频率就能开始，深化字段全部后补。
+      新维度以「待补全」出现在目标卡上，想补再补。</p>
+    <dl>
+      <div class="fld"><b>动机</b><span class="tag opt">选填·后补</span></div>
+      <div class="fld"><b>成功标准</b><span class="tag opt">选填·后补</span></div>
+      <div class="fld"><b>提醒场景</b><span class="tag opt">选填·后补</span></div>
+      <div class="fld"><b>提醒联动</b><span class="tag none">默认时段合并</span></div>
+    </dl>
+    <p class="echo"><b>今日卡回显：</b>名称 + 频率；缺维度时出现「补一句为什么」的虚线邀请</p>
+    <p class="procon"><span class="good">好：</span>30 秒内开始，最温柔。<br>
+      顾虑：多数目标可能永远停在「名称」——模型价值打折。</p>
+  </article>
+
+  <article class="plan reco">
+    <span class="ribbon">推荐</span>
+    <span class="p-key">方案 B</span>
+    <h2>为什么</h2>
+    <p class="p-idea">动机先行的一诺卡：创建时答一句「为什么想做」，
+      成功标准由名称自动拟好（可改），提醒场景轻轻选。</p>
+    <dl>
+      <div class="fld"><b>动机</b><span class="tag req">必填一句</span></div>
+      <div class="fld"><b>成功标准</b><span class="tag auto">按名称自动·可改</span></div>
+      <div class="fld"><b>提醒场景</b><span class="tag opt">选填 chips</span></div>
+      <div class="fld"><b>提醒联动</b><span class="tag auto">场景时刻 + 文案含动机</span></div>
+    </dl>
+    <p class="echo"><b>今日卡回显：</b>第二行回显动机；打卡确认优先用成功标准文案</p>
+    <p class="remind"><b>提醒示例：</b>「晚饭后 · 为了身体轻一点，今天散步了吗？」</p>
+    <p class="procon"><span class="good">好：</span>每个目标自带意义锚点，动机贯穿今日/提醒/回顾全链路。<br>
+      顾虑：创建约 +10 秒（一句话）。</p>
+  </article>
+
+  <article class="plan">
+    <span class="p-key">方案 C</span>
+    <h2>小到不会失败</h2>
+    <p class="p-idea">场景锚（if-then）：必选「什么时刻做」，再定「一次做多少」
+      ——用场景代替意志力，提醒天然落在锚点时刻。</p>
+    <dl>
+      <div class="fld"><b>动机</b><span class="tag none">不设</span></div>
+      <div class="fld"><b>成功标准</b><span class="tag req">变体：最小行动</span></div>
+      <div class="fld"><b>提醒场景</b><span class="tag req">必选时刻</span></div>
+      <div class="fld"><b>提醒联动</b><span class="tag auto">= 锚点时刻</span></div>
+    </dl>
+    <p class="echo"><b>今日卡回显：</b>第二行回显最小行动（如「散步 10 分钟」）</p>
+    <p class="remind"><b>提醒示例：</b>「晚饭后 · 散步 10 分钟，就现在」</p>
+    <p class="procon"><span class="good">好：</span>行为科学落地性最强，提醒时机不用另想。<br>
+      顾虑：对里程碑型目标（如减重 10 斤）表达别扭；动机维度缺席。</p>
+  </article>
+</section>
+
+<!-- ============ 画板一：创建（可交互 · 三案切换） ============ -->
+<div class="board">
+  <h3>① 创建 · 可交互</h3>
+  <p class="desc">用下方按钮切换 A/B/C 三案，表单即时变化。
+    「演示 SMART」重现模糊名 → 内联建议 → 一键采用；所有控件可点。</p>
+  <div class="chips">
+    <button class="demo-btn" id="planA" type="button">A 慢慢来</button>
+    <button class="demo-btn" id="planB" type="button" aria-pressed="true">B 为什么（推荐）</button>
+    <button class="demo-btn" id="planC" type="button">C 小到不会失败</button>
+    <button class="demo-btn" id="smartDemo" type="button">演示 SMART</button>
+  </div>
+
+  <div class="phone" id="createPhone">
+    <div class="island"></div>
+    <div class="ed-status"><span>9:41</span>
+      <svg width="66" height="12" viewBox="0 0 66 12" fill="none" aria-hidden="true">
+        <rect x="28" width="30" height="12" rx="3" stroke="currentColor" stroke-width="1.2"/>
+        <rect x="32" width="18" height="8" rx="1.6" fill="currentColor" y="2"/>
+        <path d="M2 6h3l2-4 2 8 2-6 1 2h4" stroke="currentColor" stroke-width="1.4"
+              stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <path d="M50 10a4 4 0 0 1 0-8" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" fill="none"/>
+      </svg>
+    </div>
+    <div class="ed-top">
+      <button class="ed-back" type="button" aria-label="返回">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="tt">新的目标</span>
+    </div>
+
+    <div class="ed-scroll form" id="createForm" data-plan="b">
+
+      <!-- 模板路径 -->
+      <div class="ed-card">
+        <span class="ed-lab">从一句熟悉的话开始</span>
+        <div class="tpl-row" id="tplRow">
+          <button class="tpl" type="button"><span class="dot" style="background:var(--goal-coral)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h13M4 12l3-3M4 12l3 3M14 6h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>好好吃饭</button>
+          <button class="tpl" type="button"><span class="dot" style="background:var(--goal-sage)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M5 9l7-5 7 5M5 9v9h14V9M5 9l-2 3M19 9l2 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>规律运动</button>
+          <button class="tpl" type="button"><span class="dot" style="background:var(--goal-indigo)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>早睡</button>
+          <button class="tpl" type="button"><span class="dot" style="background:var(--goal-teal)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>每天喝够水</button>
+          <button class="tpl" type="button"><span class="dot" style="background:var(--goal-plum)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2V5zM19 17H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>睡前阅读</button>
+        </div>
+      </div>
+
+      <!-- 名称 + SMART 内联 -->
+      <div class="ed-card">
+        <span class="ed-lab">想做什么？</span>
+        <input class="ed-input" id="nameInput" type="text" placeholder="比如：变健康"
+               autocomplete="off">
+        <div class="smart" id="smartBox" hidden>
+          <div class="say">换成更具体的？<b id="smartText">每天散步 20 分钟</b></div>
+          <button type="button" id="smartApply">就用这句</button>
+        </div>
+      </div>
+
+      <!-- 频率 + 一次性属性（FR-011：属性，不是类型分叉） -->
+      <div class="ed-card">
+        <span class="ed-lab">多久做一次？</span>
+        <div class="seg" id="freqSeg">
+          <button class="on" type="button">每天</button>
+          <button type="button">每周</button>
+          <button type="button">指定日</button>
+        </div>
+        <div class="stepper">
+          <span class="cap">次数</span>
+          <div class="ctl">
+            <button type="button" id="minus" aria-label="减少">−</button>
+            <span class="num" id="count">1</span>
+            <button type="button" id="plus" aria-label="增加">＋</button>
+          </div>
+        </div>
+        <div class="attr" id="onceAttr" role="button" tabindex="0">
+          <div class="txt"><b>这是一次性目标</b><span>有完成那天，比如「年底前跑一次 10km」</span></div>
+          <span class="switch" id="onceSwitch" aria-hidden="true"></span>
+        </div>
+        <div class="ddl-chips" id="ddlChips" hidden>
+          <button class="q" type="button">今年内</button>
+          <button class="q on" type="button">三个月内</button>
+          <button class="q" type="button">自选日期</button>
+        </div>
+      </div>
+
+      <!-- ===== 方案 A：全部选填（后补） ===== -->
+      <div class="ed-card only-a">
+        <span class="ed-lab lab-a">先这样也能开始</span>
+        <button class="ghost" type="button"><span class="plus">＋</span>为什么做</button>
+        <button class="ghost" type="button"><span class="plus">＋</span>怎样算做到</button>
+        <button class="ghost" type="button"><span class="plus">＋</span>提醒场景</button>
+        <p class="save-sub">都不填也能保存——之后在目标卡上随时补</p>
+      </div>
+
+      <!-- ===== 方案 B：动机先行（推荐） ===== -->
+      <div class="ed-card only-b">
+        <span class="ed-lab">为什么想做？<span class="tag req">一句就够</span></span>
+        <textarea class="ed-area" id="motivArea"
+          placeholder="累的时候，它会替你想起初衷——比如：为了身体轻一点"></textarea>
+        <span class="ed-lab">怎样算做到？<span class="hint">已按名称拟好，可改</span></span>
+        <input class="ed-input auto" id="critInput" type="text"
+               placeholder="输入名称后自动生成" readonly>
+        <span class="ed-lab">什么时候提醒你？</span>
+        <div class="cue-row" data-cue="b">
+          <button class="cue" type="button">早起后</button>
+          <button class="cue" type="button">午休时</button>
+          <button class="cue on" type="button">晚饭后</button>
+          <button class="cue" type="button">睡前</button>
+          <button class="cue" type="button">不打扰</button>
+        </div>
+        <div class="remind-pv">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-2 8-2 8h16s-2-1-2-8M10.3 21a2 2 0 0 0 3.4 0"
+                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  stroke-linejoin="round"/></svg>
+          <span><b>晚饭后</b>提醒 · 「为了<span id="pvMotiv">身体轻一点</span>，今天散步了吗？」<br>
+          不选场景则回落默认时段，同类目标合并打扰</span>
+        </div>
+      </div>
+
+      <!-- ===== 方案 C：场景锚 ===== -->
+      <div class="ed-card only-c">
+        <span class="ed-lab">什么时刻做？<span class="tag req">选一个锚点</span></span>
+        <div class="cue-row" data-cue="c">
+          <button class="cue" type="button">起床后</button>
+          <button class="cue" type="button">午休时</button>
+          <button class="cue on" type="button">晚饭后</button>
+          <button class="cue" type="button">睡前 21:30</button>
+        </div>
+        <span class="ed-lab">一次做多少？<span class="hint">小到不好意思拒绝</span></span>
+        <input class="ed-input" type="text" placeholder="比如：散步 10 分钟 / 读 5 页">
+        <div class="remind-pv">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-2 8-2 8h16s-2-1-2-8M10.3 21a2 2 0 0 0 3.4 0"
+                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  stroke-linejoin="round"/></svg>
+          <span>提醒落在锚点时刻 · <b>晚饭后</b>「散步 10 分钟，就现在」</span>
+        </div>
+      </div>
+
+      <!-- 样子 -->
+      <div class="ed-card">
+        <span class="ed-lab">它长什么样？</span>
+        <div class="look">
+          <div class="icons">
+            <button class="ico on" type="button" aria-label="图标：碗">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h13M4 12l3-3M4 12l3 3M14 6h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button class="ico" type="button" aria-label="图标：跑">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="15" cy="5" r="2"/><path d="M10 21l2-5-3-2 1-4 3 1 2 3M11 10 8 9 6 12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button class="ico" type="button" aria-label="图标：月">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button class="ico" type="button" aria-label="图标：星">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9-5.5 2.9 1-6.1L3 9.5l6.3-.9L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="colors">
+            <button class="col on" style="background:var(--goal-coral)" type="button" aria-label="coral"></button>
+            <button class="col" style="background:var(--goal-amber)" type="button" aria-label="amber"></button>
+            <button class="col" style="background:var(--goal-sage)" type="button" aria-label="sage"></button>
+            <button class="col" style="background:var(--goal-teal)" type="button" aria-label="teal"></button>
+            <button class="col" style="background:var(--goal-sky)" type="button" aria-label="sky"></button>
+            <button class="col" style="background:var(--goal-indigo)" type="button" aria-label="indigo"></button>
+            <button class="col" style="background:var(--goal-plum)" type="button" aria-label="plum"></button>
+          </div>
+        </div>
+      </div>
+
+      <button class="save" type="button">
+        <span class="lab-b">立下这个心愿</span>
+        <span class="lab-a">先开始吧</span>
+        <span class="lab-c">就从这个小动作开始</span>
+      </button>
+      <p class="save-sub">数据只存在这台设备上</p>
+    </div>
+
+    <div class="ed-home"><i></i></div>
+  </div>
+</div>
+
+<!-- ============ 画板二：既有目标 · 渐进补全（边界态） ============ -->
+<div class="board">
+  <h3>② 既有目标 · 渐进补全</h3>
+  <p class="desc">001 迁移来的旧目标（只有名称/频率/图标）打开编辑器：
+    新维度以虚线「待补全」出现，点开即成内联字段——不强制、不阻塞。</p>
+  <div class="chips"><span class="chip t">边界态</span><span class="chip">迁移兼容</span><span class="chip">可点开</span></div>
+
+  <div class="phone">
+    <div class="island"></div>
+    <div class="ed-status"><span>9:41</span></div>
+    <div class="ed-top">
+      <button class="ed-back" type="button" aria-label="返回">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="tt">编辑目标</span>
+    </div>
+    <div class="ed-scroll">
+      <div class="ed-card">
+        <span class="ed-lab">想做什么？</span>
+        <input class="ed-input" type="text" value="好好吃饭">
+        <span class="ed-lab">多久做一次？</span>
+        <div class="seg">
+          <button class="on" type="button">每天</button>
+          <button type="button">每周</button>
+          <button type="button">指定日</button>
+        </div>
+        <div class="stepper">
+          <span class="cap">次数</span>
+          <div class="ctl"><button type="button" aria-label="减少">−</button>
+            <span class="num">3</span><button type="button" aria-label="增加">＋</button></div>
+        </div>
+      </div>
+
+      <div class="ed-card">
+        <span class="ed-lab">还可以更像你的</span>
+        <button class="ghost" type="button" data-ghost>
+          <span class="plus">＋</span>补一句为什么</button>
+        <div class="ghost-ed" data-ghost-ed hidden>
+          <span class="ed-lab">为什么想做？</span>
+          <textarea class="ed-area" placeholder="比如：为了晚上不胃胀"></textarea>
+        </div>
+        <button class="ghost" type="button"><span class="plus">＋</span>怎样算做到</button>
+        <button class="ghost" type="button"><span class="plus">＋</span>提醒场景</button>
+        <p class="save-sub">这几格是新维度，可以慢慢补，不急</p>
+      </div>
+
+      <div class="ed-card">
+        <span class="ed-lab">它长什么样？</span>
+        <div class="look">
+          <div class="icons">
+            <button class="ico on" type="button" aria-label="图标：碗">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h13M4 12l3-3M4 12l3 3M14 6h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="colors">
+            <button class="col on" style="background:var(--goal-coral)" type="button" aria-label="coral"></button>
+            <button class="col" style="background:var(--goal-sage)" type="button" aria-label="sage"></button>
+            <button class="col" style="background:var(--goal-indigo)" type="button" aria-label="indigo"></button>
+          </div>
+        </div>
+      </div>
+
+      <button class="save" type="button">保存</button>
+    </div>
+    <div class="ed-home"><i></i></div>
+  </div>
+</div>
+
+<!-- ============ 画板三：深色并列 ============ -->
+<div class="board">
+  <h3>③ 深色 · 方案 B 定妆示意</h3>
+  <p class="desc">暗紫底幕 + 反色强调：主操作白实心，青柠仅用于必填徽记与选中态。</p>
+  <div class="chips"><span class="chip">深色</span><span class="chip">静态并列</span></div>
+
+  <div class="phone" data-theme="dark">
+    <div class="island"></div>
+    <div class="ed-status"><span>9:41</span></div>
+    <div class="ed-top">
+      <button class="ed-back" type="button" aria-label="返回">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="tt">新的目标</span>
+    </div>
+    <div class="ed-scroll">
+      <div class="ed-card">
+        <span class="ed-lab">想做什么？</span>
+        <input class="ed-input" type="text" value="每天散步 20 分钟">
+      </div>
+      <div class="ed-card">
+        <span class="ed-lab">多久做一次？</span>
+        <div class="seg">
+          <button class="on" type="button">每天</button>
+          <button type="button">每周</button>
+          <button type="button">指定日</button>
+        </div>
+        <div class="stepper">
+          <span class="cap">次数</span>
+          <div class="ctl"><button type="button" aria-label="减少">−</button>
+            <span class="num">1</span><button type="button" aria-label="增加">＋</button></div>
+        </div>
+        <div class="attr" role="button" tabindex="0">
+          <div class="txt"><b>这是一次性目标</b><span>有完成那天</span></div>
+          <span class="switch" aria-hidden="true"></span>
+        </div>
+      </div>
+      <div class="ed-card">
+        <span class="ed-lab">为什么想做？<span class="tag req">一句就够</span></span>
+        <textarea class="ed-area">为了身体轻一点</textarea>
+        <span class="ed-lab">怎样算做到？<span class="hint">已按名称拟好，可改</span></span>
+        <input class="ed-input auto" type="text" value="散步 20 分钟">
+        <span class="ed-lab">什么时候提醒你？</span>
+        <div class="cue-row">
+          <button class="cue" type="button">早起后</button>
+          <button class="cue" type="button">午休时</button>
+          <button class="cue on" type="button">晚饭后</button>
+          <button class="cue" type="button">睡前</button>
+          <button class="cue" type="button">不打扰</button>
+        </div>
+        <div class="remind-pv">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M18 8a6 6 0 1 0-12 0c0 7-2 8-2 8h16s-2-1-2-8M10.3 21a2 2 0 0 0 3.4 0"
+                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                  stroke-linejoin="round"/></svg>
+          <span><b>晚饭后</b>提醒 · 「为了身体轻一点，今天散步了吗？」</span>
+        </div>
+      </div>
+      <button class="save" type="button">立下这个心愿</button>
+      <p class="save-sub">数据只存在这台设备上</p>
+    </div>
+    <div class="ed-home"><i></i></div>
+  </div>
+</div>
+
+<script>
+  // ---- 三案切换（评审 chrome → 表单 data-plan） ----
+  const form = document.getElementById('createForm');
+  const planBtns = { a: document.getElementById('planA'),
+                     b: document.getElementById('planB'),
+                     c: document.getElementById('planC') };
+  function setPlan(p) {
+    form.dataset.plan = p;
+    for (const [k, b] of Object.entries(planBtns))
+      b.setAttribute('aria-pressed', String(k === p));
+  }
+  planBtns.a.addEventListener('click', () => setPlan('a'));
+  planBtns.b.addEventListener('click', () => setPlan('b'));
+  planBtns.c.addEventListener('click', () => setPlan('c'));
+
+  // ---- SMART 内联演示：模糊名 → 建议 → 采用 ----
+  const nameInput = document.getElementById('nameInput');
+  const smartBox = document.getElementById('smartBox');
+  const smartText = document.getElementById('smartText');
+  const smartApply = document.getElementById('smartApply');
+  const critInput = document.getElementById('critInput');
+  const motivArea = document.getElementById('motivArea');
+  const pvMotiv = document.getElementById('pvMotiv');
+
+  const CONCRETE = { '变健康': '每天散步 20 分钟', '瘦下来': '每周运动 3 次',
+                     '多读书': '睡前读 5 页' };
+  function maybeSuggest() {
+    const v = nameInput.value.trim();
+    const hit = CONCRETE[v];
+    smartBox.hidden = !hit;
+    if (hit) smartText.textContent = hit;
+  }
+  nameInput.addEventListener('input', maybeSuggest);
+  function apply() {
+    nameInput.value = smartText.textContent;
+    smartBox.hidden = true;
+    if (critInput) { critInput.value = smartText.textContent; }
+  }
+  smartApply.addEventListener('click', apply);
+  document.getElementById('smartDemo').addEventListener('click', () => {
+    // 序列演示：输入模糊名 → 建议浮现 → 采用
+    nameInput.value = '变健康';
+    nameInput.dispatchEvent(new Event('input'));
+    setTimeout(() => { if (!smartBox.hidden) apply(); }, 1100);
+  });
+
+  // 动机 → 提醒预览联动（B）
+  motivArea.addEventListener('input', () => {
+    const v = motivArea.value.trim().replace(/^为了/, '');
+    pvMotiv.textContent = v.length ? v.slice(0, 12) : '身体轻一点';
+  });
+
+  // ---- 通用控件 ----
+  document.querySelectorAll('.seg').forEach(seg => {
+    seg.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (!b) return;
+      seg.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+    });
+  });
+  const count = document.getElementById('count');
+  const minus = document.getElementById('minus');
+  const plus = document.getElementById('plus');
+  if (minus && plus) {
+    minus.disabled = true;
+    minus.addEventListener('click', () => {
+      count.textContent = Math.max(1, +count.textContent - 1);
+      minus.disabled = +count.textContent <= 1;
+    });
+    plus.addEventListener('click', () => {
+      count.textContent = Math.min(9, +count.textContent + 1);
+      minus.disabled = false;
+    });
+  }
+  const onceAttr = document.getElementById('onceAttr');
+  const onceSwitch = document.getElementById('onceSwitch');
+  const ddlChips = document.getElementById('ddlChips');
+  onceAttr.addEventListener('click', () => {
+    onceSwitch.classList.toggle('on');
+    ddlChips.hidden = !onceSwitch.classList.contains('on');
+  });
+  ddlChips.addEventListener('click', e => {
+    const b = e.target.closest('.q'); if (!b) return;
+    ddlChips.querySelectorAll('.q').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+  });
+  document.querySelectorAll('.cue-row').forEach(row => {
+    row.addEventListener('click', e => {
+      const b = e.target.closest('.cue'); if (!b) return;
+      row.querySelectorAll('.cue').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+    });
+  });
+  document.querySelectorAll('.icons').forEach(row => {
+    row.addEventListener('click', e => {
+      const b = e.target.closest('.ico'); if (!b) return;
+      row.querySelectorAll('.ico').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+    });
+  });
+  document.querySelectorAll('.colors').forEach(row => {
+    row.addEventListener('click', e => {
+      const b = e.target.closest('.col'); if (!b) return;
+      row.querySelectorAll('.col').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+    });
+  });
+  document.querySelectorAll('.tpl-row').forEach(row => {
+    row.addEventListener('click', e => {
+      const b = e.target.closest('.tpl'); if (!b) return;
+      row.querySelectorAll('.tpl').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+    });
+  });
+
+  // 渐进补全：ghost → 内联字段
+  const g = document.querySelector('[data-ghost]');
+  const ge = document.querySelector('[data-ghost-ed]');
+  if (g && ge) {
+    g.addEventListener('click', () => {
+      g.hidden = true;
+      ge.hidden = false;
+    });
+  }
+</script>
+</body>
+</html>

@@ -144,14 +144,15 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
   final List<BoxShadow> shadowHigh;
 
   /// 浅色 ·「柔彩仪表盘」（同步自 design/tokens.css :root）。
-  /// R4 修订（2026-08-20）：底幕四档调淡（末档 #e9dbf2 过深发闷）；accent
-  /// 纯黑 → 墨梅 #252230（与定稿参照的深灰墨一致）；shadowLow 改弥散软影。
+  /// R4 修订（2026-08-20）：底幕渐变按参照图屏幕实测锚点重铸为可见的
+  /// 粉→紫对角（顶 #f1e0e6 → 底 #d9d3f5）；accent 纯黑 → 墨梅 #252230；
+  /// shadowLow 改弥散软影。
   static const TargetPalette light = TargetPalette(
-    background: Color(0xFFF4EFF6),
+    background: Color(0xFFDED3ED),
     surface: Color(0xFFFFFFFF),
     surfaceAlt: Color(0xFFF5F0F9),
     onSurface: Color(0xFF1D1A24),
-    onSurfaceVariant: Color(0xFF625E70),
+    onSurfaceVariant: Color(0xFF565264),
     accent: Color(0xFF252230),
     accentOn: Color(0xFFFFFFFF),
     positive: Color(0xFF5C7D10),
@@ -160,10 +161,10 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     warning: Color(0xFF9A6700),
     divider: Color(0xFFE8E3F0),
     bgGrad: [
-      Color(0xFFF9EFF4),
-      Color(0xFFF7ECF5),
-      Color(0xFFF4EBF7),
-      Color(0xFFF1EAF8),
+      Color(0xFFECD8E0),
+      Color(0xFFE2D3E9),
+      Color(0xFFD9D1F2),
+      Color(0xFFD1CCF8),
     ],
     glassShell: Color(0x99FFFFFF),
     glassCard: Color(0xCCFFFFFF),

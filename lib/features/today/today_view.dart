@@ -22,6 +22,7 @@ import '../../core/stats/stats_engine.dart';
 import '../../core/stats/versioning.dart';
 import '../goals/goal_lifecycle.dart';
 import 'backfill_calendar.dart';
+import 'celebration.dart';
 import 'undo_toast.dart';
 
 class TodayView extends ConsumerWidget {
@@ -35,19 +36,23 @@ class TodayView extends ConsumerWidget {
       return Scaffold(
         backgroundColor: Colors.transparent,
         body: Center(
-          child: CircularProgressIndicator(color: TargetPalette.of(context).accent),
+          child: CircularProgressIndicator(
+            color: TargetPalette.of(context).accent,
+          ),
         ),
       );
     }
     final today = ref.watch(todayProvider);
     final checkIns = ref.watch(checkInsProvider).value ?? const <CheckIn>[];
     final versions = ref.watch(versionsProvider).value ?? const [];
-    final busyActive = (ref.watch(busySessionsProvider).value ?? const [])
-        .any((s) => s.isActive);
+    final busyActive = (ref.watch(busySessionsProvider).value ?? const []).any(
+      (s) => s.isActive,
+    );
     final settings = ref.watch(settingsProvider).value;
 
-    final active =
-        goalsAsync.value!.where((g) => g.status == GoalStatus.active).toList();
+    final active = goalsAsync.value!
+        .where((g) => g.status == GoalStatus.active)
+        .toList();
     final habits = active
         .where((g) => g.isHabit && stats.dayStatusOf(g.id).applicable)
         .toList();
@@ -56,7 +61,9 @@ class TodayView extends ConsumerWidget {
         .where((g) => stats.dayStatusOf(g.id).doneCount > 0)
         .length;
     final actions = habits.fold<int>(
-        0, (sum, g) => sum + stats.dayStatusOf(g.id).doneCount);
+      0,
+      (sum, g) => sum + stats.dayStatusOf(g.id).doneCount,
+    );
     final streak = _recordStreak(checkIns, today);
     final allProgress = habits.isNotEmpty && progressed == habits.length;
     final isEmpty = active.isEmpty;
@@ -75,51 +82,78 @@ class TodayView extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpace.s6),
-          children: [
-            _TopBar(settings: settings),
-            if (busyActive) const _BusyBanner(),
-            Padding(
-              padding:
-                  const EdgeInsets.only(top: AppSpace.s6, bottom: AppSpace.s12),
-              child: Text(display,
-                  style: Theme.of(context).textTheme.displayL),
+      // 成就覆盖层铺满全屏（不进 SafeArea，状态栏也要被辉光盖住）。
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: SafeArea(
+              bottom: false,
+              child: ListView(
+                padding: const EdgeInsets.all(AppSpace.s6),
+                children: [
+                  _TopBar(settings: settings),
+                  if (busyActive) const _BusyBanner(),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: AppSpace.s6,
+                      bottom: AppSpace.s12,
+                    ),
+                    child: Text(
+                      display,
+                      style: Theme.of(context).textTheme.displayL,
+                    ),
+                  ),
+                  if (habits.isNotEmpty) ...[
+                    _HeroCard(
+                      progressed: progressed,
+                      total: habits.length,
+                      actions: actions,
+                      streak: streak,
+                      goals: active.length,
+                    ),
+                    _SectionHeader(onViewAll: () => context.go('/goals')),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpace.s6),
+                      child: Row(
+                        children: [
+                          _Pill(
+                            hot: true,
+                            label: Copy.todayPillActions(actions),
+                          ),
+                          const SizedBox(width: AppSpace.s2),
+                          _Pill(
+                            hot: false,
+                            label: Copy.todayPillGoals(habits.length),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  for (final g in habits)
+                    _HabitCard(
+                      goal: g,
+                      status: stats.dayStatusOf(g.id),
+                      latest: _latestLabel(
+                        checkIns.where((c) => c.goalId == g.id).toList(),
+                        today,
+                      ),
+                      pattern: effectivePattern(
+                        versions.where((v) => v.goalId == g.id).toList(),
+                        today,
+                      ),
+                    ),
+                  for (final g in milestones)
+                    _MilestoneCard(goal: g, today: today),
+                  if (isEmpty)
+                    _EmptyCard(onTap: () => context.push('/goal-editor')),
+                ],
+              ),
             ),
-            if (habits.isNotEmpty) ...[
-              _HeroCard(
-                progressed: progressed,
-                total: habits.length,
-                actions: actions,
-                streak: streak,
-                goals: active.length,
-              ),
-              _SectionHeader(onViewAll: () => context.go('/goals')),
-              Padding(
-                padding: const EdgeInsets.only(bottom: AppSpace.s6),
-                child: Row(children: [
-                  _Pill(hot: true, label: Copy.todayPillActions(actions)),
-                  const SizedBox(width: AppSpace.s2),
-                  _Pill(hot: false, label: Copy.todayPillGoals(habits.length)),
-                ]),
-              ),
-            ],
-            for (final g in habits)
-              _HabitCard(
-                goal: g,
-                status: stats.dayStatusOf(g.id),
-                latest: _latestLabel(
-                    checkIns.where((c) => c.goalId == g.id).toList(), today),
-                pattern: effectivePattern(
-                    versions.where((v) => v.goalId == g.id).toList(), today),
-              ),
-            for (final g in milestones) _MilestoneCard(goal: g, today: today),
-            if (isEmpty)
-              _EmptyCard(onTap: () => context.push('/goal-editor')),
-          ],
-        ),
+          ),
+          Positioned.fill(
+            child: Celebration(active: allProgress, actions: actions),
+          ),
+        ],
       ),
     );
   }
@@ -140,9 +174,11 @@ class TodayView extends ConsumerWidget {
   String _latestLabel(List<CheckIn> mine, LocalDate today) {
     final valid = mine.where((c) => c.isValid).toList();
     if (valid.isEmpty) return Copy.todayLatestNone;
-    valid.sort((a, b) => a.day != b.day
-        ? a.day.compareTo(b.day)
-        : a.createdAt.compareTo(b.createdAt));
+    valid.sort(
+      (a, b) => a.day != b.day
+          ? a.day.compareTo(b.day)
+          : a.createdAt.compareTo(b.createdAt),
+    );
     final gap = today.differenceInDays(valid.last.day);
     if (gap <= 0) return Copy.todayLatestToday;
     if (gap == 1) return Copy.todayLatestYesterday;
@@ -164,10 +200,9 @@ class _TopBar extends ConsumerWidget {
     final greeting = now.hour < 12
         ? Copy.greetingMorning
         : now.hour < 18
-            ? Copy.greetingAfternoon
-            : Copy.greetingEvening;
-    final dateLine =
-        '${today.month}月${today.day}日 星期${today.weekday.zhLabel}';
+        ? Copy.greetingAfternoon
+        : Copy.greetingEvening;
+    final dateLine = '${today.month}月${today.day}日 星期${today.weekday.zhLabel}';
 
     return Padding(
       padding: const EdgeInsets.only(top: AppSpace.s4),
@@ -179,21 +214,21 @@ class _TopBar extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(greeting,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleS
-                        .copyWith(height: 1.25)),
+                Text(
+                  greeting,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleS
+                      .copyWith(height: 1.25),
+                ),
                 const SizedBox(height: 2),
-                Text(dateLine,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyM
-                        .copyWith(color: palette.onSurfaceVariant, height: 1.35)),
+                Text(
+                  dateLine,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyM
+                      .copyWith(color: palette.onSurfaceVariant, height: 1.35),
+                ),
               ],
             ),
           ),
@@ -273,8 +308,7 @@ class _Avatar extends StatelessWidget {
             colors: [kAvatarGradA, kAvatarGradB],
           ),
         ),
-        child:
-            Icon(Icons.star_rounded, size: 22, color: palette.accentOn),
+        child: Icon(Icons.star_rounded, size: 22, color: palette.accentOn),
       ),
     );
   }
@@ -318,10 +352,11 @@ class _CircleButton extends StatelessWidget {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Icon(icon,
-                  size: 18,
-                  color:
-                      primary ? palette.accentOn : palette.onSurface),
+              Icon(
+                icon,
+                size: 18,
+                color: primary ? palette.accentOn : palette.onSurface,
+              ),
               if (dot)
                 Positioned(
                   top: 3,
@@ -361,7 +396,9 @@ class _BusyBanner extends StatelessWidget {
           borderRadius: AppRadius.rMd,
           child: Container(
             padding: const EdgeInsets.symmetric(
-                horizontal: AppSpace.s3, vertical: AppSpace.s2),
+              horizontal: AppSpace.s3,
+              vertical: AppSpace.s2,
+            ),
             decoration: BoxDecoration(
               borderRadius: AppRadius.rMd,
               border: Border.all(color: palette.divider),
@@ -372,11 +409,11 @@ class _BusyBanner extends StatelessWidget {
                 Icon(Icons.bolt_outlined, size: 15, color: palette.warning),
                 const SizedBox(width: AppSpace.s2),
                 Expanded(
-                  child: Text(Copy.todayBusyBanner,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyS
-                          .copyWith(color: palette.warning)),
+                  child: Text(
+                    Copy.todayBusyBanner,
+                    style: Theme.of(context).textTheme.bodyS
+                        .copyWith(color: palette.warning),
+                  ),
                 ),
               ],
             ),
@@ -412,8 +449,8 @@ class _HeroCard extends StatelessWidget {
     final variant = dark
         ? palette.onSurfaceVariant
         : palette.accentOn.withValues(alpha: 0.72);
-    final titleStyle =
-        Theme.of(context).textTheme.bodyM.copyWith(color: variant);
+    final titleStyle = Theme.of(context).textTheme.bodyM
+        .copyWith(color: variant);
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpace.s6),
@@ -444,25 +481,28 @@ class _HeroCard extends StatelessWidget {
                 child: Column(
                   children: [
                     _StatRow(
-                        icon: Icons.bolt_outlined,
-                        value: '$actions',
-                        label: Copy.todayStatActions,
-                        on: on,
-                        variant: variant),
+                      icon: Icons.bolt_outlined,
+                      value: '$actions',
+                      label: Copy.todayStatActions,
+                      on: on,
+                      variant: variant,
+                    ),
                     const SizedBox(height: AppSpace.s3),
                     _StatRow(
-                        icon: Icons.schedule,
-                        value: '$streak',
-                        label: Copy.todayStatStreak,
-                        on: on,
-                        variant: variant),
+                      icon: Icons.schedule,
+                      value: '$streak',
+                      label: Copy.todayStatStreak,
+                      on: on,
+                      variant: variant,
+                    ),
                     const SizedBox(height: AppSpace.s3),
                     _StatRow(
-                        icon: Icons.adjust,
-                        value: '$goals',
-                        label: Copy.todayStatGoals,
-                        on: on,
-                        variant: variant),
+                      icon: Icons.adjust,
+                      value: '$goals',
+                      label: Copy.todayStatGoals,
+                      on: on,
+                      variant: variant,
+                    ),
                   ],
                 ),
               ),
@@ -494,14 +534,19 @@ class _ProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 扫入动效（R4）：首次出现及进度变化时按 slow+standard 扫过圆环。
+    final progress = total == 0 ? 0.0 : progressed / total;
+    final reduced = MediaQuery.disableAnimationsOf(context);
     return SizedBox(
       width: 130,
       height: 130,
-      child: CustomPaint(
-        painter: _RingPainter(
-          progress: total == 0 ? 0 : progressed / total,
-          track: track,
-          bar: bar,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: progress),
+        duration: reduced ? Duration.zero : AppMotion.slow,
+        curve: AppMotion.easeStandard,
+        builder: (context, value, child) => CustomPaint(
+          painter: _RingPainter(progress: value, track: track, bar: bar),
+          child: child,
         ),
         child: Center(
           child: Padding(
@@ -509,17 +554,17 @@ class _ProgressRing extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('$progressed/$total',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleM
-                        .copyWith(color: on, height: 1)),
+                Text(
+                  '$progressed/$total',
+                  style: Theme.of(context).textTheme.titleM
+                      .copyWith(color: on, height: 1),
+                ),
                 const SizedBox(height: AppSpace.s1),
-                Text(Copy.todayRingLabel,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelS
-                        .copyWith(color: variant, height: 1)),
+                Text(
+                  Copy.todayRingLabel,
+                  style: Theme.of(context).textTheme.labelS
+                      .copyWith(color: variant, height: 1),
+                ),
               ],
             ),
           ),
@@ -550,7 +595,12 @@ class _RingPainter extends CustomPainter {
     canvas.drawCircle(rect.center, 52, paint..color = track);
     if (progress > 0) {
       canvas.drawArc(
-          rect, -math.pi / 2, math.pi * 2 * progress, false, paint..color = bar);
+        rect,
+        -math.pi / 2,
+        math.pi * 2 * progress,
+        false,
+        paint..color = bar,
+      );
     }
   }
 
@@ -581,20 +631,19 @@ class _StatRow extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: variant),
         const SizedBox(width: AppSpace.s2),
-        Text(value,
-            style: Theme.of(context)
-                .textTheme
-                .bodyS
-                .copyWith(color: on, fontWeight: FontWeight.w700)),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.bodyS
+              .copyWith(color: on, fontWeight: FontWeight.w700),
+        ),
         const SizedBox(width: AppSpace.s2),
         Expanded(
-          child: Text(label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyS
-                  .copyWith(color: variant)),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyS.copyWith(color: variant),
+          ),
         ),
       ],
     );
@@ -615,16 +664,18 @@ class _SectionHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(Copy.todaySection,
-                style: Theme.of(context).textTheme.titleS),
+            child: Text(
+              Copy.todaySection,
+              style: Theme.of(context).textTheme.titleS,
+            ),
           ),
           InkWell(
             onTap: onViewAll,
-            child: Text(Copy.todayViewAll,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyM
-                    .copyWith(color: palette.onSurfaceVariant)),
+            child: Text(
+              Copy.todayViewAll,
+              style: Theme.of(context).textTheme.bodyM
+                  .copyWith(color: palette.onSurfaceVariant),
+            ),
           ),
         ],
       ),
@@ -644,7 +695,9 @@ class _Pill extends StatelessWidget {
     final palette = TargetPalette.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpace.s4, vertical: AppSpace.s2),
+        horizontal: AppSpace.s4,
+        vertical: AppSpace.s2,
+      ),
       decoration: BoxDecoration(
         color: hot ? palette.positiveFill : palette.surface,
         borderRadius: AppRadius.rFull,
@@ -653,7 +706,8 @@ class _Pill extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodyM.copyWith(
-            color: hot ? palette.positiveOn : palette.onSurfaceVariant),
+          color: hot ? palette.positiveOn : palette.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -707,71 +761,74 @@ class _HabitCard extends ConsumerWidget {
                     Container(
                       width: AppSpace.s2,
                       height: AppSpace.s2,
-                      decoration:
-                          BoxDecoration(color: color, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: AppSpace.s1),
                     Expanded(
-                      child: Text(GoalIcon.byKey(goal.iconKey).zhLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyS
-                              .copyWith(color: palette.onSurfaceVariant)),
+                      child: Text(
+                        GoalIcon.byKey(goal.iconKey).zhLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
                     ),
                     if (rhythm.isNotEmpty)
-                      Text(rhythm,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyS
-                              .copyWith(color: palette.onSurfaceVariant)),
+                      Text(
+                        rhythm,
+                        style: Theme.of(context).textTheme.bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
                     const SizedBox(width: AppSpace.s1),
                     _DetailArrow(
-                        tooltip: Copy.todayDetail,
-                        onTap: () => context.push('/goal-editor?id=${goal.id}')),
+                      tooltip: Copy.todayDetail,
+                      onTap: () => context.push('/goal-editor?id=${goal.id}'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpace.s2),
-                Text(goal.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleS.copyWith(
-                        color: done
-                            ? GoalColor.sky.of(context)
-                            : palette.onSurface)),
+                Text(
+                  goal.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleS.copyWith(
+                    color: done ? GoalColor.sky.of(context) : palette.onSurface,
+                  ),
+                ),
                 const SizedBox(height: AppSpace.s2),
                 Row(
                   children: [
-                    Icon(Icons.edit_outlined,
-                        size: 13, color: palette.onSurfaceVariant),
+                    Icon(
+                      Icons.edit_outlined,
+                      size: 13,
+                      color: palette.onSurfaceVariant,
+                    ),
                     const SizedBox(width: AppSpace.s1),
                     Expanded(
-                      child: Text(latest,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyS
-                              .copyWith(color: palette.onSurfaceVariant)),
+                      child: Text(
+                        latest,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
                     ),
                     const SizedBox(width: AppSpace.s2),
                     Text.rich(
                       TextSpan(
                         text: '今日 ',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyS
+                        style: Theme.of(context).textTheme.bodyS
                             .copyWith(color: palette.onSurfaceVariant),
                         children: [
                           TextSpan(
                             text: '${status.doneCount}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyS
-                                .copyWith(
-                                    color: palette.onSurface,
-                                    fontWeight: FontWeight.w700),
+                            style: Theme.of(context).textTheme.bodyS.copyWith(
+                              color: palette.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const TextSpan(text: ' 次'),
                         ],
@@ -779,7 +836,10 @@ class _HabitCard extends ConsumerWidget {
                       maxLines: 1,
                     ),
                     const SizedBox(width: AppSpace.s2),
-                    _CheckButton(done: done, onTap: () => _checkIn(context, ref)),
+                    _CheckButton(
+                      done: done,
+                      onTap: () => _checkIn(context, ref),
+                    ),
                   ],
                 ),
               ],
@@ -797,11 +857,44 @@ class _HabitCard extends ConsumerWidget {
 }
 
 /// 记录按钮（32px 拇指热区）：未记录 = 墨底白＋，已记录 = 青柠底白对勾。
-class _CheckButton extends StatelessWidget {
+///
+/// 动效（R4）：底色 base250 过渡、按压缩放 .86 fast150、完成对勾按
+/// dash 描画 base250（＋号前段淡出让位）。t=0 未记录，t=1 已记录。
+class _CheckButton extends StatefulWidget {
   const _CheckButton({required this.done, required this.onTap});
 
   final bool done;
   final VoidCallback onTap;
+
+  @override
+  State<_CheckButton> createState() => _CheckButtonState();
+}
+
+class _CheckButtonState extends State<_CheckButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _t = AnimationController(
+    vsync: this,
+    duration: AppMotion.base,
+    value: widget.done ? 1 : 0,
+  );
+  bool _pressed = false;
+
+  @override
+  void didUpdateWidget(_CheckButton old) {
+    super.didUpdateWidget(old);
+    if (widget.done == old.done) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _t.value = widget.done ? 1 : 0;
+    } else {
+      widget.done ? _t.forward() : _t.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _t.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -809,25 +902,95 @@ class _CheckButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: Copy.todayCheckAction,
-      child: Material(
-        color: done ? palette.positiveFill : palette.accent,
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: SizedBox(
-            width: 32,
-            height: 32,
-            child: Icon(
-              done ? Icons.check : Icons.add,
-              size: 16,
-              color: done ? palette.positiveOn : palette.accentOn,
+      child: AnimatedScale(
+        scale: _pressed ? 0.86 : 1,
+        duration: MediaQuery.disableAnimationsOf(context)
+            ? Duration.zero
+            : AppMotion.fast,
+        curve: AppMotion.easeStandard,
+        child: AnimatedBuilder(
+          animation: _t,
+          builder: (context, _) => Material(
+            color: Color.lerp(palette.accent, palette.positiveFill, _t.value)!,
+            shape: const CircleBorder(),
+            child: InkWell(
+              onTap: widget.onTap,
+              onTapDown: (_) => setState(() => _pressed = true),
+              onTapUp: (_) => setState(() => _pressed = false),
+              onTapCancel: () => setState(() => _pressed = false),
+              customBorder: const CircleBorder(),
+              child: SizedBox(
+                width: 32,
+                height: 32,
+                child: Center(
+                  child: SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CustomPaint(
+                      painter: _CheckGlyphPainter(
+                        t: _t.value,
+                        plus: palette.accentOn,
+                        tick: palette.positiveOn,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+/// 记录钮 glyph：t<0.4 ＋号淡出；t>0.4 对勾按 path metric 描画。
+class _CheckGlyphPainter extends CustomPainter {
+  _CheckGlyphPainter({required this.t, required this.plus, required this.tick});
+
+  final double t;
+  final Color plus;
+  final Color tick;
+
+  Paint _stroke(Color c) => Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2
+    ..strokeCap = StrokeCap.round
+    ..color = c;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (t < 0.4) {
+      final fade = 1.0 - t / 0.4;
+      final paint = _stroke(plus.withValues(alpha: fade));
+      canvas.drawLine(
+        Offset(size.width / 2, size.height * 0.15),
+        Offset(size.width / 2, size.height * 0.85),
+        paint,
+      );
+      canvas.drawLine(
+        Offset(size.width * 0.15, size.height / 2),
+        Offset(size.width * 0.85, size.height / 2),
+        paint,
+      );
+    }
+    if (t > 0.4) {
+      final draw = (t - 0.4) / 0.6;
+      final path = Path()
+        ..moveTo(size.width * 0.20, size.height * 0.55)
+        ..lineTo(size.width * 0.44, size.height * 0.78)
+        ..lineTo(size.width * 0.80, size.height * 0.26);
+      final metric = path.computeMetrics().first;
+      canvas.drawPath(
+        metric.extractPath(0, metric.length * draw),
+        _stroke(tick),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CheckGlyphPainter old) =>
+      old.t != t || old.plus != plus || old.tick != tick;
 }
 
 /// 右上角详情小箭头（32px 命中区，14px 图标）。
@@ -848,8 +1011,11 @@ class _DetailArrow extends StatelessWidget {
         child: SizedBox(
           width: 32,
           height: 24,
-          child:
-              Icon(Icons.north_east, size: 14, color: palette.onSurfaceVariant),
+          child: Icon(
+            Icons.north_east,
+            size: 14,
+            color: palette.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -894,68 +1060,80 @@ class _MilestoneCard extends ConsumerWidget {
                     Container(
                       width: AppSpace.s2,
                       height: AppSpace.s2,
-                      decoration:
-                          BoxDecoration(color: color, shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                     const SizedBox(width: AppSpace.s1),
                     Expanded(
-                      child: Text(GoalIcon.byKey(goal.iconKey).zhLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyS
-                              .copyWith(color: palette.onSurfaceVariant)),
+                      child: Text(
+                        GoalIcon.byKey(goal.iconKey).zhLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
                     ),
                     if (days < 0)
-                      Text(Copy.milestoneOverdue,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyS
-                              .copyWith(color: palette.onSurfaceVariant)),
+                      Text(
+                        Copy.milestoneOverdue,
+                        style: Theme.of(context).textTheme.bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
                     const SizedBox(width: AppSpace.s1),
                     _DetailArrow(
-                        tooltip: Copy.todayDetail,
-                        onTap: () => context.push('/milestone/${goal.id}')),
+                      tooltip: Copy.todayDetail,
+                      onTap: () => context.push('/milestone/${goal.id}'),
+                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpace.s2),
-                Text(goal.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleS),
+                Text(
+                  goal.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleS,
+                ),
                 const SizedBox(height: AppSpace.s2),
                 Row(
                   children: [
-                    Icon(Icons.flag_outlined,
-                        size: 13, color: palette.onSurfaceVariant),
+                    Icon(
+                      Icons.flag_outlined,
+                      size: 13,
+                      color: palette.onSurfaceVariant,
+                    ),
                     const SizedBox(width: AppSpace.s1),
                     Expanded(
-                      child: Text(Copy.milestoneCountdown(days),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyS
-                              .copyWith(color: palette.onSurfaceVariant)),
+                      child: Text(
+                        Copy.milestoneCountdown(days),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
                     ),
                     const SizedBox(width: AppSpace.s2),
-                    if (steps != null && steps.isNotEmpty && done == steps.length)
+                    if (steps != null &&
+                        steps.isNotEmpty &&
+                        done == steps.length)
                       FilledButton.tonal(
                         onPressed: () async {
                           await achieveGoal(ref, goal);
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text(Copy.milestoneDone)));
+                              const SnackBar(content: Text(Copy.milestoneDone)),
+                            );
                           }
                         },
                         child: Text(Copy.milestoneDone),
                       )
                     else if (steps != null && steps.isNotEmpty)
-                      Text(Copy.milestoneProgress(done, steps.length),
-                          style: Theme.of(context).textTheme.bodyS.copyWith(
-                              color: palette.onSurfaceVariant)),
+                      Text(
+                        Copy.milestoneProgress(done, steps.length),
+                        style: Theme.of(context).textTheme.bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
                   ],
                 ),
               ],
@@ -982,11 +1160,17 @@ class _EmptyCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.rLg,
         child: CustomPaint(
-          foregroundPainter:
-              _DashedBorderPainter(color: palette.divider, radius: AppRadius.lg),
+          foregroundPainter: _DashedBorderPainter(
+            color: palette.divider,
+            radius: AppRadius.lg,
+          ),
           child: Container(
             padding: const EdgeInsets.fromLTRB(
-                AppSpace.s5, AppSpace.s6, AppSpace.s5, AppSpace.s6),
+              AppSpace.s5,
+              AppSpace.s6,
+              AppSpace.s5,
+              AppSpace.s6,
+            ),
             child: Column(
               children: [
                 Container(
@@ -997,17 +1181,24 @@ class _EmptyCard extends StatelessWidget {
                     color: palette.surface,
                     border: Border.all(color: palette.divider),
                   ),
-                  child: Icon(Icons.add,
-                      size: 20, color: palette.onSurfaceVariant),
+                  child: Icon(
+                    Icons.add,
+                    size: 20,
+                    color: palette.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: AppSpace.s3),
-                Text(Copy.todayEmptyTitle,
-                    style: Theme.of(context).textTheme.titleM),
+                Text(
+                  Copy.todayEmptyTitle,
+                  style: Theme.of(context).textTheme.titleM,
+                ),
                 const SizedBox(height: AppSpace.s3),
-                Text(Copy.todayEmptyBody,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyS.copyWith(
-                        color: palette.onSurfaceVariant, height: 1.7)),
+                Text(
+                  Copy.todayEmptyBody,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyS
+                      .copyWith(color: palette.onSurfaceVariant, height: 1.7),
+                ),
               ],
             ),
           ),
@@ -1027,7 +1218,9 @@ class _DashedBorderPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rrect = RRect.fromRectAndRadius(
-        Offset.zero & size, Radius.circular(radius));
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
     final path = Path()..addRRect(rrect);
     final metric = path.computeMetrics().first;
     const dash = 6.0, gap = 5.0;

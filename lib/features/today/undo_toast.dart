@@ -10,6 +10,10 @@ import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/entities.dart';
 
+/// 撤销窗口留足阅读时间；撤销确认只作回执，更短即走。
+const _undoDuration = Duration(seconds: 4);
+const _revokedDuration = Duration(seconds: 2);
+
 void showCheckInToast(BuildContext context, WidgetRef ref, CheckIn checkIn) {
   final messenger = ScaffoldMessenger.of(context);
   final label = checkIn.isBackfill
@@ -17,15 +21,22 @@ void showCheckInToast(BuildContext context, WidgetRef ref, CheckIn checkIn) {
       : Copy.checkInDone;
   messenger
     ..clearSnackBars()
-    ..showSnackBar(SnackBar(
-      content: Text(label),
-      action: SnackBarAction(
-        label: Copy.undoCheckIn,
-        onPressed: () async {
-          await ref.read(checkInServiceProvider).undo(checkIn.id);
-          messenger.showSnackBar(
-              const SnackBar(content: Text(Copy.checkInRevoked)));
-        },
+    ..showSnackBar(
+      SnackBar(
+        content: Text(label),
+        duration: _undoDuration,
+        action: SnackBarAction(
+          label: Copy.undoCheckIn,
+          onPressed: () async {
+            await ref.read(checkInServiceProvider).undo(checkIn.id);
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text(Copy.checkInRevoked),
+                duration: _revokedDuration,
+              ),
+            );
+          },
+        ),
       ),
-    ));
+    );
 }

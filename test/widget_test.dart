@@ -11,7 +11,8 @@ import 'package:target/app/app.dart';
 import 'package:target/app/providers.dart';
 import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/core/copy.dart';
-import 'package:target/core/db/app_database.dart' show AppDatabase, SettingsRowsCompanion;
+import 'package:target/core/db/app_database.dart'
+    show AppDatabase, SettingsRowsCompanion;
 import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
@@ -27,11 +28,12 @@ class FakeNotificationGateway implements NotificationGateway {
   @override
   Future<bool> get isPermissionGranted async => true;
   @override
-  Future<void> scheduleDaily(
-      {required int id,
-      required LocalTime time,
-      required String title,
-      required String body}) async {
+  Future<void> scheduleDaily({
+    required int id,
+    required LocalTime time,
+    required String title,
+    required String body,
+  }) async {
     scheduled.add(id);
   }
 
@@ -80,7 +82,8 @@ void main() {
     final settings = await (db.select(db.settingsRows)).get();
     expect(settings, isNotEmpty);
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
-        const SettingsRowsCompanion(onboardingCompleted: Value(true)));
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -105,16 +108,23 @@ void main() {
     final gateway = FakeNotificationGateway();
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
-    final goal = await repo.create(Goal(
-      name: '锻炼',
-      kind: GoalKind.habit,
-      iconKey: 'fitness',
-      colorKey: 'sage',
-      createdAt: today,
-    ));
-    await repo.addInitial(goal.id, const DailyFrequency(1), WeekStart.containing(today));
-    await (db.update(db.settingsRows)..where((t) => t.id.equals(1)))
-        .write(const SettingsRowsCompanion(onboardingCompleted: Value(true)));
+    final goal = await repo.create(
+      Goal(
+        name: '锻炼',
+        kind: GoalKind.habit,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    await repo.addInitial(
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(today),
+    );
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -129,12 +139,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(Copy.todayPillActions(0)), findsOneWidget);
-    // .last：顶栏「新建」与卡内「记录」同为加号，记录钮在树序靠后。
-    await tester.tap(find.byIcon(Icons.add).last);
+    // 记录钮的 glyph 是自绘＋/对勾（非 Icons.add），按语义标签定位。
+    await tester.tap(find.bySemanticsLabel(Copy.todayCheckAction));
     await tester.pumpAndSettle();
 
-    // 每个目标都有记录 → display 转全部进展态。
-    expect(find.text(Copy.todayPillActions(1)), findsOneWidget);
+    // 每个目标都有记录 → display 转全部进展态；胶囊与成就徽章副文同串
+    // （celebrationNote = todayPillActions），故 findsWidgets。
+    expect(find.text(Copy.todayPillActions(1)), findsWidgets);
     expect(find.text(Copy.todayDisplayAllProgress), findsOneWidget);
 
     // 撤销 → 统计即时回退（R7/SC-003）。
@@ -144,11 +155,11 @@ void main() {
     await db.close();
   });
 
-  testWidgets('FR-001：输入模糊名当场出 SMART 建议，采用即替换（回归：输入需触发刷新）',
-      (tester) async {
+  testWidgets('FR-001：输入模糊名当场出 SMART 建议，采用即替换（回归：输入需触发刷新）', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());
-    await (db.update(db.settingsRows)..where((t) => t.id.equals(1)))
-        .write(const SettingsRowsCompanion(onboardingCompleted: Value(true)));
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
@@ -170,23 +181,29 @@ void main() {
     await db.close();
   });
 
-  testWidgets('V5：长按目标行 → 补签日历 → 补昨日 → 带"补"标记入库（FR-004/R6）',
-      (tester) async {
+  testWidgets('V5：长按目标行 → 补签日历 → 补昨日 → 带"补"标记入库（FR-004/R6）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
-    final goal = await repo.create(Goal(
-      name: '好好吃饭',
-      kind: GoalKind.habit,
-      iconKey: 'meal',
-      colorKey: 'coral',
-      createdAt: today,
-    ));
-    await repo.addInitial(goal.id, const DailyFrequency(1), WeekStart.containing(today));
-    await (db.update(db.settingsRows)..where((t) => t.id.equals(1)))
-        .write(const SettingsRowsCompanion(onboardingCompleted: Value(true)));
+    final goal = await repo.create(
+      Goal(
+        name: '好好吃饭',
+        kind: GoalKind.habit,
+        iconKey: 'meal',
+        colorKey: 'coral',
+        createdAt: today,
+      ),
+    );
+    await repo.addInitial(
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(today),
+    );
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -209,22 +226,26 @@ void main() {
     // 点昨天的格子 → 生成 isBackfill=true 的打卡，toast 确认。
     final yesterday = today.addDays(-1);
     final yesterdayCell = find.descendant(
-        of: find.widgetWithText(GestureDetector, '周${yesterday.weekday.zhLabel}'),
-        matching: find.text('${yesterday.day}'));
+      of: find.widgetWithText(GestureDetector, '周${yesterday.weekday.zhLabel}'),
+      matching: find.text('${yesterday.day}'),
+    );
     await tester.tap(yesterdayCell.first);
     await tester.pumpAndSettle();
 
     expect(find.text(Copy.backfillDone(yesterday.isoString)), findsOneWidget);
     final saved = await CheckInRepository(db).all();
     expect(
-        saved.where((c) =>
-            c.day == yesterday && c.isValid && c.isBackfill),
-        isNotEmpty);
+      saved.where((c) => c.day == yesterday && c.isValid && c.isBackfill),
+      isNotEmpty,
+    );
 
     // 同一天已有有效打卡 → 格子不可重复补。
     await tester.tap(yesterdayCell.first);
     await tester.pump();
-    expect((await CheckInRepository(db).all()).where((c) => c.isValid), hasLength(1));
+    expect(
+      (await CheckInRepository(db).all()).where((c) => c.isValid),
+      hasLength(1),
+    );
     await db.close();
   });
 }

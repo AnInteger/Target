@@ -67,6 +67,11 @@ enum GoalColor {
       Theme.of(context).brightness == Brightness.dark ? dark : light;
 }
 
+/// 头像装饰渐变对（身份填充，非文字场景——取填充级明度，不与
+/// 目标文字色共用；浅深同值）。对应 `--grad-avatar-a/b`。
+const Color kAvatarGradA = Color(0xFFEAB54E);
+const Color kAvatarGradB = Color(0xFFEF8A80);
+
 /// 语义色与材质令牌（浅/深成对，经 [Theme.extension] 注入，
 /// 取值：`TargetPalette.of(context)`）。
 ///

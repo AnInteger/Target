@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>今日屏 · Target（柔彩仪表盘）</title>
-<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="../tokens.css?v=0820b">
 <style>
   /* ============================================================
      今日屏深化原型（T007 · R3 修订 · 努力记录模型）
@@ -93,7 +93,7 @@
             padding: var(--space-4) 0 0; }
   .st-avatar {
     width: 44px; height: 44px; border-radius: var(--radius-full); flex: none;
-    background: linear-gradient(135deg, var(--goal-amber), var(--goal-coral));
+    background: linear-gradient(135deg, var(--grad-avatar-a), var(--grad-avatar-b));
     display: flex; align-items: center; justify-content: center;
     color: var(--accent-on); font: var(--font-body-l); font-weight: 700;
   }
@@ -146,6 +146,11 @@
     background: var(--bg-grad-4); color: var(--on-surface);
     border: 1px solid var(--glass-border);
   }
+  /* 浅色 hero 是反色黑卡：卡内文本令牌就地反转（深色 hero 为深底幕卡，不反转） */
+  .phone:not([data-theme="dark"]) .st-hero {
+    --on-surface: var(--accent-on);
+    --on-surface-variant: color-mix(in srgb, var(--accent-on) 72%, transparent);
+  }
   .st-hero-title { font: var(--font-body-m); color: var(--on-surface-variant);
                    margin-bottom: var(--space-3); }
   .st-hero-body { display: flex; align-items: center; gap: var(--space-6); }
@@ -155,8 +160,8 @@
   [data-theme="dark"] .st-ring .track { stroke: var(--on-surface); opacity: .15; }
   .st-ring .bar { stroke: var(--positive-fill);
                   transition: stroke-dashoffset var(--motion-slow) var(--ease-standard); }
-  .st-ring .center { position: absolute; inset: 14px; display: grid; place-items: center;
-                     text-align: center; }
+  .st-ring .center { position: absolute; inset: 14px; display: flex; flex-direction: column;
+                     align-items: center; justify-content: center; text-align: center; }
   .st-ring .center b { display: block; font: var(--font-title-m); line-height: 1;
                        font-variant-numeric: tabular-nums; }
   .st-ring .center small { display: block; font: var(--font-label); line-height: 1;
@@ -290,17 +295,18 @@
   }
   .st-tab {
     background: none; border: none; cursor: pointer; padding: var(--space-1);
+    flex: 1; /* 等分槽位：选中胶囊变宽不推挤邻页签 */
     display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
     color: var(--on-surface-variant); font: var(--font-label);
     transition: color var(--motion-base) var(--ease-standard);
   }
   .st-tab svg { width: 22px; height: 22px; }
   .st-tab .chipx {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
     background: var(--accent); color: var(--accent-on);
     border-radius: var(--radius-full); padding: var(--space-1) var(--space-4);
   }
-  .st-tab .chipx svg { width: 18px; height: 18px; }
+  .st-tab .chipx svg { width: 20px; height: 20px; }
   .st-tab .chipx span { line-height: 1; }
 
   /* 成就时刻覆盖层 */
@@ -607,10 +613,14 @@ function render(board) {
   if (n === 0) {
     q('[data-empty]').hidden = false;
     q('[data-pills]').hidden = true;
+    q('.st-hero').hidden = true; // 空态不出「全零仪表盘」
+    q('.st-sect').hidden = true;
     q('[data-display]').textContent = '今天想做点什么？';
   } else {
     q('[data-empty]').hidden = true;
     q('[data-pills]').hidden = false;
+    q('.st-hero').hidden = false;
+    q('.st-sect').hidden = false;
     const cards = [...q('[data-cards]').children];
     st.today.forEach((t, i) => {
       const card = cards[i];

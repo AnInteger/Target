@@ -51,3 +51,5 @@ displayLarge → labelSmall，每档定义：字号 / 行高 / 字重 / 字距�
 - 2026-08-19（今日屏 R3 评审驱动）：
   - **浅色底幕回调**：bg-grad 四档由 `#f5e6f5/#ede0f8/#ddd0f0/#ccc0e8`（薰衣草饱和偏高、与白卡对比发闷）回调为更接近定稿参照的透气粉紫 `#f9edf4/#f5e8f6/#f0e2f8/#e9dbf2`；`background` 均值同步 `#e9dcf0 → #f1e5f4`。深色不变。
   - **中文字重二档化**：中文回退字体（PingFang/YaHei/Noto）对 500/600 无独立真实字重，浏览器伪加粗导致粗细观感不统一——字阶中 `titleLarge/titleMedium 600→700`、`labelSmall（及 Dart 侧 labelMedium/labelLarge）500→400`。中文正文用 400、强调统一 700、数字 tnum 700、display 800 不变；纯拉丁数字场景允许 Inter 真实中间字重（如状态栏 600）。
+- 2026-08-20（今日屏 R3 自审驱动）：
+  - **头像装饰渐变对**：新增语义令牌 `--grad-avatar-a/b`（浅深同值 `#eab54e → #ef8a80`），Dart 侧 `kAvatarGradA/B`。原则：目标色板是**文字级**校准（浅色 -500/-600 重量保 AA），装饰性填充（头像等身份元素）不得复用文字值——须取填充级明度。此对取值恰与深色目标色 amber/coral 相同（同属填充级明度，巧合而非引用）。

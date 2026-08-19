@@ -44,6 +44,15 @@ class FakeNotificationGateway implements NotificationGateway {
 }
 
 void main() {
+  /// 设计以 390×844 手机为基准；默认 800×600 测试窗更矮，仪表盘
+  /// 首屏内容（顶栏/大标题/英雄卡）会把目标卡挤出视口（超出缓存
+  /// 范围即不构建，find 不可见）。
+  void usePhoneSurface(WidgetTester tester) {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+  }
+
   testWidgets('空库首启 → 引导页（SC-001）', (WidgetTester tester) async {
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
@@ -65,6 +74,7 @@ void main() {
   });
 
   testWidgets('已完成引导 → 直接今日页', (WidgetTester tester) async {
+    usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
     final settings = await (db.select(db.settingsRows)).get();
@@ -83,13 +93,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // TodayView 空态：无活跃习惯 → 电量"—"（R9），底部导航三标签。
-    expect(find.text(Copy.batteryEmpty), findsWidgets);
+    // TodayView 空态（新语言）：display 转提问 + 虚线邀请卡，仪表盘整体让位。
+    expect(find.text(Copy.todayEmptyTitle), findsOneWidget);
     expect(find.text(Copy.todayNav), findsOneWidget);
     await db.close();
   });
 
   testWidgets('US2 微缩验收：打卡 → 进度/成就即时刷新 → 撤销回退', (tester) async {
+    usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
     final today = LocalDate.fromDateTime(DateTime.now());
@@ -117,17 +128,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('今日 0/1'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.add));
+    expect(find.text(Copy.todayPillActions(0)), findsOneWidget);
+    // .last：顶栏「新建」与卡内「记录」同为加号，记录钮在树序靠后。
+    await tester.tap(find.byIcon(Icons.add).last);
     await tester.pumpAndSettle();
 
-    // 全部达标 → 成就态替换进度行（US2-6）。
-    expect(find.text(Copy.allDoneTitle), findsOneWidget);
+    // 每个目标都有记录 → display 转全部进展态。
+    expect(find.text(Copy.todayPillActions(1)), findsOneWidget);
+    expect(find.text(Copy.todayDisplayAllProgress), findsOneWidget);
 
     // 撤销 → 统计即时回退（R7/SC-003）。
     await tester.tap(find.text(Copy.undoCheckIn));
     await tester.pumpAndSettle();
-    expect(find.text('今日 0/1'), findsOneWidget);
+    expect(find.text(Copy.todayPillActions(0)), findsOneWidget);
     await db.close();
   });
 
@@ -159,6 +172,7 @@ void main() {
 
   testWidgets('V5：长按目标行 → 补签日历 → 补昨日 → 带"补"标记入库（FR-004/R6）',
       (tester) async {
+    usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
     final today = LocalDate.fromDateTime(DateTime.now());
@@ -187,7 +201,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // 长按目标行 → 弹出补签日历（过去两周）。
-    await tester.longPress(find.text('好好吃饭'));
+    // .last：卡内图标中文标签（meal=好好吃饭）与目标名同名，标题在树序靠后。
+    await tester.longPress(find.text('好好吃饭').last);
     await tester.pumpAndSettle();
     expect(find.text(Copy.backfillCalendarTitle), findsOneWidget);
 

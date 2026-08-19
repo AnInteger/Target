@@ -172,4 +172,47 @@ abstract final class Copy {
   static const todayNav = '今日';
   static const goalsNav = '目标';
   static const settingsNav = '设置';
+  static const reviewNav = '回顾';
+  static const mineNav = '我的';
+
+  // ---- 今日页 · 新语言（US2，screen-today.html R4 定稿）----
+
+  static const greetingMorning = '早上好';
+  static const greetingAfternoon = '下午好';
+  static const greetingEvening = '晚上好';
+  static const todayHeroTitle = '今日进展';
+  static const todayRingLabel = '目标有进展';
+  static const todayRingEmptyLabel = '暂无目标';
+  static const todayStatActions = '今日行动';
+  static const todayStatStreak = '连续天数';
+  static const todayStatGoals = '进行中目标';
+  static const todaySection = '今日目标';
+  static const todayViewAll = '查看全部';
+  static const todayNewGoal = '新建目标';
+  static const todayReminder = '提醒';
+  static const todayReminderSettings = '提醒设置';
+  static const todayDetail = '目标详情';
+  static const todayCheckAction = '记录一次努力';
+  static const todayBusyBanner = '忙碌模式 · 今天只需记录一次努力';
+  static String todayPillActions(int n) => '今日 $n 次记录';
+  static String todayPillGoals(int n) => '$n 个目标';
+  static String todayCountLabel(int n) => '今日 $n 次';
+  static const todayLatestNone = '还没有记录';
+  static const todayLatestToday = '最近 · 今天';
+  static const todayLatestYesterday = '最近 · 昨天';
+  static String todayLatestDaysAgo(int n) => '最近 · $n 天前';
+
+  // 大标题四态（displayLarge 两行编辑级）。
+  static const todayDisplayTypical = '今天\n做了什么？';
+  static const todayDisplayBusy = '忙碌的一天';
+  static const todayDisplayAllProgress = '每个目标\n都有进展';
+  static const todayDisplayEmpty = '今天想做点什么？';
+
+  // 空态邀请卡。
+  static const todayEmptyTitle = '记录第一个努力';
+  static const todayEmptyBody = '定一个想实现的目标，\n为它留下今天的第一次记录。';
+
+  // 成就时刻（每个目标今天都有记录）。
+  static const celebrationTitle = '🎉 每个目标都有进展';
+  static String celebrationNote(int n) => '今日 $n 次记录';
 }

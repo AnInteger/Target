@@ -1,7 +1,9 @@
-/// TodayView（T026，FR-004/017、US2）：生活电量环 + 今日打卡列表。
+/// TodayView（US2 T009，按 screen-today.html R4 定稿落地）。
 ///
-/// 电量环为视觉核心（空态"—"，R9）；打卡后连击/周进度经 statsProvider
-/// 流即时刷新；全部达标呈现成就态；长按目标进补签日历。
+/// 努力记录模型：目标无「完成度」，只记录为它做过的努力。
+/// 结构：顶栏（问候/新建/提醒）→ display 大标题 → 今日进展主卡（圆环 +
+/// 竖排统计）→ 今日目标（状态胶囊 + 目标卡）。空/忙碌/全部进展态按
+/// 原型切换；壳层底幕渐变由 router 壳层负责，本页透明叠画。
 library;
 
 import 'dart:math' as math;
@@ -13,6 +15,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
+import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/frequency_pattern.dart';
 import '../../core/stats/stats_engine.dart';
@@ -29,177 +32,758 @@ class TodayView extends ConsumerWidget {
     final goalsAsync = ref.watch(goalsProvider);
     final stats = ref.watch(statsProvider);
     if (!goalsAsync.hasValue || stats == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: CircularProgressIndicator(color: TargetPalette.of(context).accent),
+        ),
+      );
     }
     final today = ref.watch(todayProvider);
+    final checkIns = ref.watch(checkInsProvider).value ?? const <CheckIn>[];
     final versions = ref.watch(versionsProvider).value ?? const [];
-    final active = goalsAsync
-        .value!
-        .where((g) => g.status == GoalStatus.active)
+    final busyActive = (ref.watch(busySessionsProvider).value ?? const [])
+        .any((s) => s.isActive);
+    final settings = ref.watch(settingsProvider).value;
+
+    final active =
+        goalsAsync.value!.where((g) => g.status == GoalStatus.active).toList();
+    final habits = active
+        .where((g) => g.isHabit && stats.dayStatusOf(g.id).applicable)
         .toList();
-    final habits =
-        active.where((g) => g.isHabit && stats.dayStatusOf(g.id).applicable).toList();
-    final metCount = habits.where((g) => stats.dayStatusOf(g.id).met).length;
     final milestones = active.where((g) => g.isMilestone).toList();
-    final allDone = habits.isNotEmpty && metCount == habits.length;
+    final progressed = habits
+        .where((g) => stats.dayStatusOf(g.id).doneCount > 0)
+        .length;
+    final actions = habits.fold<int>(
+        0, (sum, g) => sum + stats.dayStatusOf(g.id).doneCount);
+    final streak = _recordStreak(checkIns, today);
+    final allProgress = habits.isNotEmpty && progressed == habits.length;
+    final isEmpty = active.isEmpty;
+
+    // display 大标题四态。
+    final String display;
+    if (isEmpty) {
+      display = Copy.todayDisplayEmpty;
+    } else if (busyActive) {
+      display = Copy.todayDisplayBusy;
+    } else if (allProgress) {
+      display = Copy.todayDisplayAllProgress;
+    } else {
+      display = Copy.todayDisplayTypical;
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(Copy.appName),
-        actions: [
-          // 周一晨 dailyBrief 深链之外的常驻入口（FR-008）。
-          IconButton(
-            tooltip: Copy.reviewTitle,
-            icon: const Icon(Icons.insights_outlined),
-            onPressed: () => context.push('/review'),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpace.s6),
+          children: [
+            _TopBar(settings: settings),
+            if (busyActive) const _BusyBanner(),
+            Padding(
+              padding:
+                  const EdgeInsets.only(top: AppSpace.s6, bottom: AppSpace.s12),
+              child: Text(display,
+                  style: Theme.of(context).textTheme.displayL),
+            ),
+            if (habits.isNotEmpty) ...[
+              _HeroCard(
+                progressed: progressed,
+                total: habits.length,
+                actions: actions,
+                streak: streak,
+                goals: active.length,
+              ),
+              _SectionHeader(onViewAll: () => context.go('/goals')),
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpace.s6),
+                child: Row(children: [
+                  _Pill(hot: true, label: Copy.todayPillActions(actions)),
+                  const SizedBox(width: AppSpace.s2),
+                  _Pill(hot: false, label: Copy.todayPillGoals(habits.length)),
+                ]),
+              ),
+            ],
+            for (final g in habits)
+              _HabitCard(
+                goal: g,
+                status: stats.dayStatusOf(g.id),
+                latest: _latestLabel(
+                    checkIns.where((c) => c.goalId == g.id).toList(), today),
+                pattern: effectivePattern(
+                    versions.where((v) => v.goalId == g.id).toList(), today),
+              ),
+            for (final g in milestones) _MilestoneCard(goal: g, today: today),
+            if (isEmpty)
+              _EmptyCard(onTap: () => context.push('/goal-editor')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 连续记录天数：从今天（或昨天）往回，任何有效打卡都算不断。
+  int _recordStreak(List<CheckIn> checkIns, LocalDate today) {
+    final days = {for (final c in checkIns.where((c) => c.isValid)) c.day};
+    var day = days.contains(today) ? today : today.addDays(-1);
+    var n = 0;
+    while (days.contains(day)) {
+      n++;
+      day = day.addDays(-1);
+    }
+    return n;
+  }
+
+  /// 「最近 · 今天 / 昨天 / N 天前」：最后一次有效记录的归属日。
+  String _latestLabel(List<CheckIn> mine, LocalDate today) {
+    final valid = mine.where((c) => c.isValid).toList();
+    if (valid.isEmpty) return Copy.todayLatestNone;
+    valid.sort((a, b) => a.day != b.day
+        ? a.day.compareTo(b.day)
+        : a.createdAt.compareTo(b.createdAt));
+    final gap = today.differenceInDays(valid.last.day);
+    if (gap <= 0) return Copy.todayLatestToday;
+    if (gap == 1) return Copy.todayLatestYesterday;
+    return Copy.todayLatestDaysAgo(gap);
+  }
+}
+
+/// 顶栏：头像 + 问候两行 + 新建（主）/ 提醒（次）双按钮。
+class _TopBar extends ConsumerWidget {
+  const _TopBar({required this.settings});
+
+  final Settings? settings;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = TargetPalette.of(context);
+    final now = ref.watch(dateProviderProvider).now();
+    final today = ref.watch(todayProvider);
+    final greeting = now.hour < 12
+        ? Copy.greetingMorning
+        : now.hour < 18
+            ? Copy.greetingAfternoon
+            : Copy.greetingEvening;
+    final dateLine =
+        '${today.month}月${today.day}日 星期${today.weekday.zhLabel}';
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.s4),
+      child: Row(
+        children: [
+          _Avatar(onTap: () => context.go('/settings')),
+          const SizedBox(width: AppSpace.s2),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(greeting,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleS
+                        .copyWith(height: 1.25)),
+                const SizedBox(height: 2),
+                Text(dateLine,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyM
+                        .copyWith(color: palette.onSurfaceVariant, height: 1.35)),
+              ],
+            ),
           ),
-          // 忙碌模式快捷入口（FR-018，ui-contract 今日页）。
-          IconButton(
-            tooltip: Copy.busyTitle,
-            icon: const Icon(Icons.bolt_outlined),
-            onPressed: () => context.push('/busy'),
+          const SizedBox(width: AppSpace.s2),
+          _CircleButton(
+            primary: true,
+            tooltip: Copy.todayNewGoal,
+            icon: Icons.add,
+            onTap: () => context.push('/goal-editor'),
+          ),
+          const SizedBox(width: AppSpace.s2),
+          _CircleButton(
+            primary: false,
+            tooltip: Copy.todayReminder,
+            icon: Icons.notifications_outlined,
+            // 未读小红点：通知权限还没有被确认过（看过一次即消）。
+            dot: settings != null && !settings!.notificationDeniedAcknowledged,
+            dotColor: GoalColor.coral.of(context),
+            onTap: () => _showReminderSheet(context),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          const SizedBox(height: 8),
-          Center(
-            child: BatteryRing(
-              percent: stats.battery.percent,
-              size: 180,
+    );
+  }
+
+  void _showReminderSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text(Copy.todayReminderSettings),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.go('/settings');
+              },
             ),
-          ),
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              stats.battery.percent == null
-                  ? Copy.batteryEmpty
-                  : (stats.battery.percent! < 30
-                      ? Copy.batteryLow(stats.battery.percent!)
-                      : Copy.batteryValue(stats.battery.percent!)),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ListTile(
+              leading: const Icon(Icons.bolt_outlined),
+              title: const Text(Copy.busyTitle),
+              subtitle: const Text(Copy.busySubtitle),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.push('/busy');
+              },
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 头像（身份装饰渐变，填充级令牌）。
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppRadius.rFull,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [kAvatarGradA, kAvatarGradB],
           ),
-          const SizedBox(height: 16),
-          if (allDone)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      Text(Copy.allDoneTitle,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color:
-                                  Theme.of(context).colorScheme.onPrimaryContainer)),
-                      const SizedBox(height: 4),
-                      Text(Copy.allDoneSubtitle,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer)),
-                    ],
+        ),
+        child:
+            Icon(Icons.star_rounded, size: 22, color: palette.accentOn),
+      ),
+    );
+  }
+}
+
+/// 36px 圆按钮：主（墨实心）/ 次（白面 + 发丝边）。
+class _CircleButton extends StatelessWidget {
+  const _CircleButton({
+    required this.primary,
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+    this.dot = false,
+    this.dotColor,
+  });
+
+  final bool primary;
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool dot;
+  final Color? dotColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.rFull,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: primary ? palette.accent : palette.surface,
+            border: primary ? null : Border.all(color: palette.divider),
+            boxShadow: primary ? null : palette.shadowLow,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(icon,
+                  size: 18,
+                  color:
+                      primary ? palette.accentOn : palette.onSurface),
+              if (dot)
+                Positioned(
+                  top: 3,
+                  right: 3,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: dotColor,
+                      border: Border.all(color: palette.surface, width: 1.5),
+                    ),
                   ),
                 ),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                '今日 ${Copy.todayProgress(metCount, habits.length)}',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 忙碌横幅：warning 语义，点击进忙碌模式（调整/恢复）。
+class _BusyBanner extends StatelessWidget {
+  const _BusyBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.s3),
+      child: Material(
+        color: palette.surface,
+        borderRadius: AppRadius.rMd,
+        child: InkWell(
+          onTap: () => context.push('/busy'),
+          borderRadius: AppRadius.rMd,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s3, vertical: AppSpace.s2),
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.rMd,
+              border: Border.all(color: palette.divider),
+              boxShadow: palette.shadowLow,
             ),
-          const SizedBox(height: 8),
-          for (final g in habits)
-            _HabitRow(
-              goal: g,
-              status: stats.dayStatusOf(g.id),
-              pattern: effectivePattern(
-                  versions.where((v) => v.goalId == g.id).toList(), today),
+            child: Row(
+              children: [
+                Icon(Icons.bolt_outlined, size: 15, color: palette.warning),
+                const SizedBox(width: AppSpace.s2),
+                Expanded(
+                  child: Text(Copy.todayBusyBanner,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyS
+                          .copyWith(color: palette.warning)),
+                ),
+              ],
             ),
-          for (final g in milestones) _MilestoneRow(goal: g),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 今日进展主卡：浅色 = 墨色反色卡（卡内文本令牌就地反转）；
+/// 深色 = 深底幕卡 + 玻璃描边（文本令牌不反转）。
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({
+    required this.progressed,
+    required this.total,
+    required this.actions,
+    required this.streak,
+    required this.goals,
+  });
+
+  final int progressed;
+  final int total;
+  final int actions;
+  final int streak;
+  final int goals;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final on = dark ? palette.onSurface : palette.accentOn;
+    final variant = dark
+        ? palette.onSurfaceVariant
+        : palette.accentOn.withValues(alpha: 0.72);
+    final titleStyle =
+        Theme.of(context).textTheme.bodyM.copyWith(color: variant);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpace.s6),
+      padding: const EdgeInsets.all(AppSpace.s5),
+      decoration: BoxDecoration(
+        color: dark ? palette.bgGrad[3] : palette.accent,
+        borderRadius: AppRadius.rLg,
+        border: dark ? Border.all(color: palette.glassBorder) : null,
+        boxShadow: palette.shadowMid,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(Copy.todayHeroTitle, style: titleStyle),
+          const SizedBox(height: AppSpace.s3),
+          Row(
+            children: [
+              _ProgressRing(
+                progressed: progressed,
+                total: total,
+                on: on,
+                variant: variant,
+                track: on.withValues(alpha: 0.15),
+                bar: palette.positiveFill,
+              ),
+              const SizedBox(width: AppSpace.s6),
+              Expanded(
+                child: Column(
+                  children: [
+                    _StatRow(
+                        icon: Icons.bolt_outlined,
+                        value: '$actions',
+                        label: Copy.todayStatActions,
+                        on: on,
+                        variant: variant),
+                    const SizedBox(height: AppSpace.s3),
+                    _StatRow(
+                        icon: Icons.schedule,
+                        value: '$streak',
+                        label: Copy.todayStatStreak,
+                        on: on,
+                        variant: variant),
+                    const SizedBox(height: AppSpace.s3),
+                    _StatRow(
+                        icon: Icons.adjust,
+                        value: '$goals',
+                        label: Copy.todayStatGoals,
+                        on: on,
+                        variant: variant),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-/// 单个习惯行：图标/名称/频率 + 进度 + 打卡按钮。
-class _HabitRow extends ConsumerWidget {
-  const _HabitRow({required this.goal, required this.status, this.pattern});
+/// 圆环（130px，r=52，描边 10）：中心「N/M 目标有进展」。
+class _ProgressRing extends StatelessWidget {
+  const _ProgressRing({
+    required this.progressed,
+    required this.total,
+    required this.on,
+    required this.variant,
+    required this.track,
+    required this.bar,
+  });
+
+  final int progressed;
+  final int total;
+  final Color on;
+  final Color variant;
+  final Color track;
+  final Color bar;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 130,
+      height: 130,
+      child: CustomPaint(
+        painter: _RingPainter(
+          progress: total == 0 ? 0 : progressed / total,
+          track: track,
+          bar: bar,
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('$progressed/$total',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleM
+                        .copyWith(color: on, height: 1)),
+                const SizedBox(height: AppSpace.s1),
+                Text(Copy.todayRingLabel,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelS
+                        .copyWith(color: variant, height: 1)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  _RingPainter({
+    required this.progress,
+    required this.track,
+    required this.bar,
+  });
+
+  final double progress;
+  final Color track;
+  final Color bar;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromCircle(center: const Offset(65, 65), radius: 52);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 10
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(rect.center, 52, paint..color = track);
+    if (progress > 0) {
+      canvas.drawArc(
+          rect, -math.pi / 2, math.pi * 2 * progress, false, paint..color = bar);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress || old.track != track || old.bar != bar;
+}
+
+/// 主卡竖排统计行：图标 + 数值 + 标签。
+class _StatRow extends StatelessWidget {
+  const _StatRow({
+    required this.icon,
+    required this.value,
+    required this.label,
+    required this.on,
+    required this.variant,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+  final Color on;
+  final Color variant;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: variant),
+        const SizedBox(width: AppSpace.s2),
+        Text(value,
+            style: Theme.of(context)
+                .textTheme
+                .bodyS
+                .copyWith(color: on, fontWeight: FontWeight.w700)),
+        const SizedBox(width: AppSpace.s2),
+        Expanded(
+          child: Text(label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyS
+                  .copyWith(color: variant)),
+        ),
+      ],
+    );
+  }
+}
+
+/// 节头：今日目标 / 查看全部。
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.onViewAll});
+
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.s4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(Copy.todaySection,
+                style: Theme.of(context).textTheme.titleS),
+          ),
+          InkWell(
+            onTap: onViewAll,
+            child: Text(Copy.todayViewAll,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyM
+                    .copyWith(color: palette.onSurfaceVariant)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 状态胶囊：hot（青柠实心）/ plain（白面 + 发丝边）。
+class _Pill extends StatelessWidget {
+  const _Pill({required this.hot, required this.label});
+
+  final bool hot;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpace.s4, vertical: AppSpace.s2),
+      decoration: BoxDecoration(
+        color: hot ? palette.positiveFill : palette.surface,
+        borderRadius: AppRadius.rFull,
+        border: hot ? null : Border.all(color: palette.divider),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.bodyM.copyWith(
+            color: hot ? palette.positiveOn : palette.onSurfaceVariant),
+      ),
+    );
+  }
+}
+
+/// 习惯目标卡（努力记录模型）：点击 = 记录一次努力，长按 = 补签日历。
+class _HabitCard extends ConsumerWidget {
+  const _HabitCard({
+    required this.goal,
+    required this.status,
+    required this.latest,
+    this.pattern,
+  });
 
   final Goal goal;
   final DayStatus status;
+  final String latest;
   final FrequencyPattern? pattern;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = TargetPalette.of(context);
     final color = GoalColor.byKey(goal.colorKey).of(context);
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => _checkIn(context, ref),
-        onLongPress: () => showBackfillCalendar(context, ref, goal),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.18),
-                    shape: BoxShape.circle),
-                child: Icon(GoalIcon.byKey(goal.iconKey).icon, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    final done = status.doneCount > 0;
+    final rhythm = [
+      if (pattern != null) '$pattern',
+      if (status.busyMode) Copy.busyBadge,
+    ].join(' · ');
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.s4),
+      child: Material(
+        color: palette.glassCard,
+        borderRadius: AppRadius.rLg,
+        child: InkWell(
+          onTap: () => _checkIn(context, ref),
+          onLongPress: () => showBackfillCalendar(context, ref, goal),
+          borderRadius: AppRadius.rLg,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpace.s4),
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.rLg,
+              border: Border.all(color: palette.divider),
+              boxShadow: palette.shadowLow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(children: [
-                      Flexible(
-                          child: Text(goal.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium)),
-                      if (status.busyMode) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.tertiaryContainer,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(Copy.busyBadge,
-                              style: Theme.of(context).textTheme.labelSmall),
-                        ),
-                      ],
-                    ]),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${pattern ?? ''} · ${status.doneCount}/${status.targetCount}',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    Container(
+                      width: AppSpace.s2,
+                      height: AppSpace.s2,
+                      decoration:
+                          BoxDecoration(color: color, shape: BoxShape.circle),
                     ),
+                    const SizedBox(width: AppSpace.s1),
+                    Expanded(
+                      child: Text(GoalIcon.byKey(goal.iconKey).zhLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyS
+                              .copyWith(color: palette.onSurfaceVariant)),
+                    ),
+                    if (rhythm.isNotEmpty)
+                      Text(rhythm,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyS
+                              .copyWith(color: palette.onSurfaceVariant)),
+                    const SizedBox(width: AppSpace.s1),
+                    _DetailArrow(
+                        tooltip: Copy.todayDetail,
+                        onTap: () => context.push('/goal-editor?id=${goal.id}')),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              _CheckButton(
-                met: status.met,
-                color: color,
-                onTap: () => _checkIn(context, ref),
-              ),
-            ],
+                const SizedBox(height: AppSpace.s2),
+                Text(goal.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleS.copyWith(
+                        color: done
+                            ? GoalColor.sky.of(context)
+                            : palette.onSurface)),
+                const SizedBox(height: AppSpace.s2),
+                Row(
+                  children: [
+                    Icon(Icons.edit_outlined,
+                        size: 13, color: palette.onSurfaceVariant),
+                    const SizedBox(width: AppSpace.s1),
+                    Expanded(
+                      child: Text(latest,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyS
+                              .copyWith(color: palette.onSurfaceVariant)),
+                    ),
+                    const SizedBox(width: AppSpace.s2),
+                    Text.rich(
+                      TextSpan(
+                        text: '今日 ',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                        children: [
+                          TextSpan(
+                            text: '${status.doneCount}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyS
+                                .copyWith(
+                                    color: palette.onSurface,
+                                    fontWeight: FontWeight.w700),
+                          ),
+                          const TextSpan(text: ' 次'),
+                        ],
+                      ),
+                      maxLines: 1,
+                    ),
+                    const SizedBox(width: AppSpace.s2),
+                    _CheckButton(done: done, onTap: () => _checkIn(context, ref)),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -212,101 +796,33 @@ class _HabitRow extends ConsumerWidget {
   }
 }
 
+/// 记录按钮（32px 拇指热区）：未记录 = 墨底白＋，已记录 = 青柠底白对勾。
 class _CheckButton extends StatelessWidget {
-  const _CheckButton({required this.met, required this.color, required this.onTap});
+  const _CheckButton({required this.done, required this.onTap});
 
-  final bool met;
-  final Color color;
+  final bool done;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    if (met) {
-      return Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: const Icon(Icons.check, color: Colors.white),
-      );
-    }
-    return OutlinedButton(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(44, 44),
-        maximumSize: const Size(44, 44),
-        padding: EdgeInsets.zero,
+    final palette = TargetPalette.of(context);
+    return Semantics(
+      button: true,
+      label: Copy.todayCheckAction,
+      child: Material(
+        color: done ? palette.positiveFill : palette.accent,
         shape: const CircleBorder(),
-        side: BorderSide(color: color, width: 1.5),
-      ),
-      onPressed: onTap,
-      child: Icon(Icons.add, color: color),
-    );
-  }
-}
-
-/// 里程碑行：倒计时 + 步骤进度，点击进里程碑详情。
-class _MilestoneRow extends ConsumerWidget {
-  const _MilestoneRow({required this.goal});
-
-  final Goal goal;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final today = ref.watch(todayProvider);
-    final steps = ref.watch(stepsProvider(goal.id)).value;
-    final days = goal.deadline?.differenceInDays(today) ?? 0;
-    final done = steps?.where((s) => s.isDone).length ?? 0;
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () => context.push('/milestone/${goal.id}'),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    shape: BoxShape.circle),
-                child: Icon(GoalIcon.byKey(goal.iconKey).icon),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(goal.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(
-                      days < 0
-                          ? '${Copy.milestoneCountdown(days)} · ${Copy.milestoneOverdue}'
-                          : Copy.milestoneCountdown(days),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-              if (steps != null && steps.isNotEmpty && done == steps.length)
-                // 全部步骤完成 → 一键达成（FR-010，误触可经目标页恢复）。
-                FilledButton.tonal(
-                  onPressed: () async {
-                    await achieveGoal(ref, goal);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text(Copy.milestoneDone)));
-                    }
-                  },
-                  child: Text(Copy.milestoneDone),
-                )
-              else if (steps != null && steps.isNotEmpty)
-                Text(Copy.milestoneProgress(done, steps.length),
-                    style: Theme.of(context).textTheme.titleSmall),
-            ],
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 32,
+            height: 32,
+            child: Icon(
+              done ? Icons.check : Icons.add,
+              size: 16,
+              color: done ? palette.positiveOn : palette.accentOn,
+            ),
           ),
         ),
       ),
@@ -314,34 +830,136 @@ class _MilestoneRow extends ConsumerWidget {
   }
 }
 
-/// 生活电量环（FR-017 视觉核心）：进度弧 + 中央百分数。
-class BatteryRing extends StatelessWidget {
-  const BatteryRing({super.key, required this.percent, this.size = 160});
+/// 右上角详情小箭头（32px 命中区，14px 图标）。
+class _DetailArrow extends StatelessWidget {
+  const _DetailArrow({required this.tooltip, required this.onTap});
 
-  final int? percent;
-  final double size;
+  final String tooltip;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _RingPainter(
-          progress: (percent ?? 0) / 100,
-          track: scheme.surfaceContainerHighest,
-          progressColor: percent == null
-              ? scheme.outline
-              : (percent! < 30 ? scheme.tertiary : scheme.primary),
+    final palette = TargetPalette.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.rFull,
+        child: SizedBox(
+          width: 32,
+          height: 24,
+          child:
+              Icon(Icons.north_east, size: 14, color: palette.onSurfaceVariant),
         ),
-        child: Center(
-          child: Text(
-            percent == null ? Copy.batteryEmpty : '$percent%',
-            style: Theme.of(context)
-                .textTheme
-                .displaySmall
-                ?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
+/// 里程碑卡：倒计时 + 步骤进度；全部步骤完成 → 一键达成（FR-010）。
+class _MilestoneCard extends ConsumerWidget {
+  const _MilestoneCard({required this.goal, required this.today});
+
+  final Goal goal;
+  final LocalDate today;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = TargetPalette.of(context);
+    final color = GoalColor.byKey(goal.colorKey).of(context);
+    final steps = ref.watch(stepsProvider(goal.id)).value;
+    final days = goal.deadline?.differenceInDays(today) ?? 0;
+    final done = steps?.where((s) => s.isDone).length ?? 0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.s4),
+      child: Material(
+        color: palette.glassCard,
+        borderRadius: AppRadius.rLg,
+        child: InkWell(
+          onTap: () => context.push('/milestone/${goal.id}'),
+          borderRadius: AppRadius.rLg,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpace.s4),
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.rLg,
+              border: Border.all(color: palette.divider),
+              boxShadow: palette.shadowLow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: AppSpace.s2,
+                      height: AppSpace.s2,
+                      decoration:
+                          BoxDecoration(color: color, shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: AppSpace.s1),
+                    Expanded(
+                      child: Text(GoalIcon.byKey(goal.iconKey).zhLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyS
+                              .copyWith(color: palette.onSurfaceVariant)),
+                    ),
+                    if (days < 0)
+                      Text(Copy.milestoneOverdue,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyS
+                              .copyWith(color: palette.onSurfaceVariant)),
+                    const SizedBox(width: AppSpace.s1),
+                    _DetailArrow(
+                        tooltip: Copy.todayDetail,
+                        onTap: () => context.push('/milestone/${goal.id}')),
+                  ],
+                ),
+                const SizedBox(height: AppSpace.s2),
+                Text(goal.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleS),
+                const SizedBox(height: AppSpace.s2),
+                Row(
+                  children: [
+                    Icon(Icons.flag_outlined,
+                        size: 13, color: palette.onSurfaceVariant),
+                    const SizedBox(width: AppSpace.s1),
+                    Expanded(
+                      child: Text(Copy.milestoneCountdown(days),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyS
+                              .copyWith(color: palette.onSurfaceVariant)),
+                    ),
+                    const SizedBox(width: AppSpace.s2),
+                    if (steps != null && steps.isNotEmpty && done == steps.length)
+                      FilledButton.tonal(
+                        onPressed: () async {
+                          await achieveGoal(ref, goal);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(Copy.milestoneDone)));
+                          }
+                        },
+                        child: Text(Copy.milestoneDone),
+                      )
+                    else if (steps != null && steps.isNotEmpty)
+                      Text(Copy.milestoneProgress(done, steps.length),
+                          style: Theme.of(context).textTheme.bodyS.copyWith(
+                              color: palette.onSurfaceVariant)),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -349,37 +967,82 @@ class BatteryRing extends StatelessWidget {
   }
 }
 
-class _RingPainter extends CustomPainter {
-  _RingPainter({
-    required this.progress,
-    required this.track,
-    required this.progressColor,
-  });
+/// 空态邀请卡（虚线边框）：整个邀请区域可点 → 新建目标。
+class _EmptyCard extends StatelessWidget {
+  const _EmptyCard({required this.onTap});
 
-  final double progress;
-  final Color track;
-  final Color progressColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.s6),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.rLg,
+        child: CustomPaint(
+          foregroundPainter:
+              _DashedBorderPainter(color: palette.divider, radius: AppRadius.lg),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpace.s5, AppSpace.s6, AppSpace.s5, AppSpace.s6),
+            child: Column(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: palette.surface,
+                    border: Border.all(color: palette.divider),
+                  ),
+                  child: Icon(Icons.add,
+                      size: 20, color: palette.onSurfaceVariant),
+                ),
+                const SizedBox(height: AppSpace.s3),
+                Text(Copy.todayEmptyTitle,
+                    style: Theme.of(context).textTheme.titleM),
+                const SizedBox(height: AppSpace.s3),
+                Text(Copy.todayEmptyBody,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyS.copyWith(
+                        color: palette.onSurfaceVariant, height: 1.7)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 圆角矩形的虚线描边（空态邀请卡）。
+class _DashedBorderPainter extends CustomPainter {
+  _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final stroke = size.width / 12;
-    final rect = Offset.zero & size;
-    final inset = stroke / 2 + 2;
-    final arcRect = rect.deflate(inset);
+    final rrect = RRect.fromRectAndRadius(
+        Offset.zero & size, Radius.circular(radius));
+    final path = Path()..addRRect(rrect);
+    final metric = path.computeMetrics().first;
+    const dash = 6.0, gap = 5.0;
+    var dist = 0.0;
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawArc(arcRect, 0, math.pi * 2, false, paint..color = track);
-    if (progress > 0) {
-      canvas.drawArc(arcRect, -math.pi / 2, math.pi * 2 * progress, false,
-          paint..color = progressColor);
+      ..strokeWidth = 1.5
+      ..color = color;
+    while (dist < metric.length) {
+      canvas.drawPath(metric.extractPath(dist, dist + dash), paint);
+      dist += dash + gap;
     }
   }
 
   @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress ||
-      old.track != track ||
-      old.progressColor != progressColor;
+  bool shouldRepaint(_DashedBorderPainter old) =>
+      old.color != color || old.radius != radius;
 }

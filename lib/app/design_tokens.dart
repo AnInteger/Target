@@ -318,6 +318,7 @@ abstract final class AppRadius {
   static const double xl = 24;
 
   static final Radius full = Radius.circular(9999);
+  static final BorderRadius rFull = BorderRadius.circular(9999);
   static final BorderRadius rSm = BorderRadius.circular(sm);
   static final BorderRadius rMd = BorderRadius.circular(md);
   static final BorderRadius rLg = BorderRadius.circular(lg);
@@ -459,7 +460,16 @@ abstract final class AppTheme {
           ),
         ),
       ),
-      snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: p.surface,
+        contentTextStyle:
+            _textTheme(p).bodyM.copyWith(color: p.onSurface),
+        actionTextColor: p.accent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),

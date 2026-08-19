@@ -140,7 +140,7 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
 
   /// 浅色 ·「柔彩仪表盘」（同步自 design/tokens.css :root）。
   static const TargetPalette light = TargetPalette(
-    background: Color(0xFFE9DCF0),
+    background: Color(0xFFF1E5F4),
     surface: Color(0xFFFFFFFF),
     surfaceAlt: Color(0xFFF4EEF9),
     onSurface: Color(0xFF17181C),
@@ -153,10 +153,10 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     warning: Color(0xFF9A6700),
     divider: Color(0xFFE6E0EE),
     bgGrad: [
-      Color(0xFFF5E6F5),
-      Color(0xFFEDE0F8),
-      Color(0xFFDDD0F0),
-      Color(0xFFCCC0E8),
+      Color(0xFFF9EDF4),
+      Color(0xFFF5E8F6),
+      Color(0xFFF0E2F8),
+      Color(0xFFE9DBF2),
     ],
     glassShell: Color(0x99FFFFFF),
     glassCard: Color(0xCCFFFFFF),
@@ -338,10 +338,10 @@ extension AppTextX on TextTheme {
   /// displayMedium：28 / 1.25 / 700。
   TextStyle get displayM => displayMedium!;
 
-  /// titleLarge：22 / 1.3 / 600。
+  /// titleLarge：22 / 1.3 / 700。
   TextStyle get titleL => titleLarge!;
 
-  /// titleMedium：18 / 1.35 / 600。
+  /// titleMedium：18 / 1.35 / 700。
   TextStyle get titleM => titleMedium!;
 
   /// titleSmall：16 / 1.45 / 700（卡片目标标题）。
@@ -356,7 +356,7 @@ extension AppTextX on TextTheme {
   /// bodySmall：12 / 1.4 / 400。
   TextStyle get bodyS => bodySmall!;
 
-  /// labelSmall：11 / 1.3 / 500（胶囊/角标）。
+  /// labelSmall：11 / 1.3 / 400（胶囊/角标）。
   TextStyle get labelS => labelSmall!;
 }
 
@@ -487,24 +487,24 @@ abstract final class AppTheme {
           fontSize: 28, height: 1.25, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
       displaySmall: TextStyle(
-          fontSize: 22, height: 1.3, fontWeight: FontWeight.w600,
+          fontSize: 22, height: 1.3, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
       // headline：22 / 18 / 16(700)。
       headlineLarge: TextStyle(
-          fontSize: 22, height: 1.3, fontWeight: FontWeight.w600,
+          fontSize: 22, height: 1.3, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
       headlineMedium: TextStyle(
-          fontSize: 18, height: 1.35, fontWeight: FontWeight.w600,
+          fontSize: 18, height: 1.35, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
       headlineSmall: TextStyle(
           fontSize: 16, height: 1.45, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
       // title：22 / 18 / 16(700)。
       titleLarge: TextStyle(
-          fontSize: 22, height: 1.3, fontWeight: FontWeight.w600,
+          fontSize: 22, height: 1.3, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
       titleMedium: TextStyle(
-          fontSize: 18, height: 1.35, fontWeight: FontWeight.w600,
+          fontSize: 18, height: 1.35, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
       titleSmall: TextStyle(
           fontSize: 16, height: 1.45, fontWeight: FontWeight.w700,
@@ -518,13 +518,13 @@ abstract final class AppTheme {
           fontSize: 12, height: 1.4, color: variant, fontFeatures: f),
       // label：14 / 12 / 11（500，次级色）。
       labelLarge: TextStyle(
-          fontSize: 14, height: 1.3, fontWeight: FontWeight.w500,
+          fontSize: 14, height: 1.3, fontWeight: FontWeight.w400,
           color: variant, fontFeatures: f),
       labelMedium: TextStyle(
-          fontSize: 12, height: 1.3, fontWeight: FontWeight.w500,
+          fontSize: 12, height: 1.3, fontWeight: FontWeight.w400,
           color: variant, fontFeatures: f),
       labelSmall: TextStyle(
-          fontSize: 11, height: 1.3, fontWeight: FontWeight.w500,
+          fontSize: 11, height: 1.3, fontWeight: FontWeight.w400,
           color: variant, fontFeatures: f),
     );
   }

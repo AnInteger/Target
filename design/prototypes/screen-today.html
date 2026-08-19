@@ -7,13 +7,14 @@
 <link rel="stylesheet" href="../tokens.css">
 <style>
   /* ============================================================
-     今日屏深化原型（T007 · R2 修订）
+     今日屏深化原型（T007 · R3 修订 · 努力记录模型）
      - 取值 100% 来自 ../tokens.css（SC-004）
-     - 画板：典型(可交互)/空态/忙碌/全完成 + 深色并列
+     - 语义：目标无「完成度」，只记录为它做过的努力
+     - 画板：典型(可交互)/空态/忙碌/全部进展 + 深色并列
      - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
 
-  /* hidden 属性兜底：防止组件 display 覆盖 UA 的 [hidden]（R1 缺陷根因） */
+  /* hidden 属性兜底：防止组件 display 覆盖 UA 的 [hidden] */
   [hidden] { display: none !important; }
 
   /* ---- 评审台面（呈现环境，非屏内设计） ---- */
@@ -87,7 +88,7 @@
                font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
   .st-status svg { display: block; }
 
-  /* 顶栏：头像 + 双行问候（.hi 600/16 主色 · .who 400/14 次级） + 双层级按钮 */
+  /* 顶栏：头像 + 问候一行 + 日期一行 + 双层级按钮 */
   .st-top { display: flex; align-items: center; gap: var(--space-2);
             padding: var(--space-4) 0 0; }
   .st-avatar {
@@ -97,7 +98,7 @@
     color: var(--accent-on); font: var(--font-body-l); font-weight: 700;
   }
   .st-hello { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-  .st-hello .hi { font: var(--font-title-s); font-weight: 600; line-height: 1.25;
+  .st-hello .hi { font: var(--font-title-s); font-weight: 700; line-height: 1.25;
                   color: var(--on-surface); }
   .st-hello .who { font: var(--font-body-m); line-height: 1.35; margin-top: 2px;
                    color: var(--on-surface-variant); }
@@ -105,7 +106,7 @@
     width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
     flex: none; display: flex; align-items: center; justify-content: center;
     cursor: pointer;
-    transition: transform var(--motion-base) var(--ease-standard);
+    transition: transform var(--motion-fast) var(--ease-standard);
   }
   .st-btn:active { transform: scale(.88); }
   .st-btn svg { width: 18px; height: 18px; }
@@ -131,11 +132,11 @@
     box-shadow: var(--shadow-low);
   }
 
-  /* display 大标题（36/800 两行，模块级留白） */
+  /* display 大标题 */
   .st-display { font: var(--font-display-l); letter-spacing: var(--ls-display-l);
-                color: var(--on-surface); margin: var(--space-5) 0 var(--space-8); }
+                color: var(--on-surface); margin: var(--space-6) 0 var(--space-12); }
 
-  /* 进度主卡（浅色 = accent 黑卡 / 深色 = 深底幕黑卡，同 direction-g 定稿） */
+  /* 今日进展主卡（浅色 = accent 黑卡 / 深色 = 深底幕黑卡） */
   .st-hero {
     background: var(--accent); color: var(--accent-on);
     border-radius: var(--radius-lg); padding: var(--space-5);
@@ -145,9 +146,8 @@
     background: var(--bg-grad-4); color: var(--on-surface);
     border: 1px solid var(--glass-border);
   }
-  .st-hero-title { font: var(--font-body-m); font-weight: 600;
-                   color: var(--on-surface-variant); margin-bottom: var(--space-3); }
-  [data-theme="dark"] .st-hero-title { color: var(--on-surface-variant); }
+  .st-hero-title { font: var(--font-body-m); color: var(--on-surface-variant);
+                   margin-bottom: var(--space-3); }
   .st-hero-body { display: flex; align-items: center; gap: var(--space-6); }
   .st-ring { position: relative; width: 130px; height: 130px; flex: none; }
   .st-ring svg { display: block; }
@@ -155,49 +155,49 @@
   [data-theme="dark"] .st-ring .track { stroke: var(--on-surface); opacity: .15; }
   .st-ring .bar { stroke: var(--positive-fill);
                   transition: stroke-dashoffset var(--motion-slow) var(--ease-standard); }
-  .st-ring .center { position: absolute; inset: 0; display: grid; place-items: center;
+  .st-ring .center { position: absolute; inset: 14px; display: grid; place-items: center;
                      text-align: center; }
-  .st-ring .center b { display: block; font: var(--font-title-m); font-weight: 700;
+  .st-ring .center b { display: block; font: var(--font-title-m); line-height: 1;
                        font-variant-numeric: tabular-nums; }
-  .st-ring .center small { display: block; font: var(--font-label);
-                           color: var(--on-surface-variant); margin-top: var(--space-1); }
+  .st-ring .center small { display: block; font: var(--font-label); line-height: 1;
+                           margin-top: var(--space-1);
+                           color: var(--on-surface-variant); }
   .st-stats { flex: 1; display: flex; flex-direction: column; gap: var(--space-3); }
   .st-stat { display: flex; align-items: center; gap: var(--space-2); }
   .st-stat svg { flex: none; width: 14px; height: 14px; color: var(--on-surface-variant); }
-  .st-stat b { font: var(--font-body-s); font-weight: 600; font-variant-numeric: tabular-nums;
+  .st-stat b { font: var(--font-body-s); font-weight: 700; font-variant-numeric: tabular-nums;
                min-width: 16px; color: var(--on-surface); }
   [data-theme="dark"] .st-stat b { color: var(--on-surface); }
   .st-stat span { font: var(--font-body-s); color: var(--on-surface-variant); }
 
   /* 节头（今日目标 / 查看全部） */
   .st-sect { display: flex; align-items: baseline; justify-content: space-between;
-             margin-bottom: var(--space-3); }
-  .st-sect h4 { font: var(--font-title-s); font-weight: 700; margin: 0;
-                color: var(--on-surface); }
+             margin-bottom: var(--space-4); }
+  .st-sect h4 { font: var(--font-title-s); margin: 0; color: var(--on-surface); }
   .st-sect a { font: var(--font-body-m); color: var(--on-surface-variant);
                text-decoration: none; }
 
-  /* 状态胶囊（计数在前） */
+  /* 状态胶囊 */
   .st-pills { display: flex; gap: var(--space-2); margin-bottom: var(--space-6); }
   .st-pill {
     display: inline-flex; align-items: center; gap: var(--space-1);
     padding: var(--space-2) var(--space-4); border-radius: var(--radius-full);
-    font: var(--font-body-m); font-weight: 500; cursor: default;
+    font: var(--font-body-m); cursor: default;
     transition: all var(--motion-base) var(--ease-standard);
   }
   .st-pill b { font-variant-numeric: tabular-nums; font-weight: 700; }
-  .st-pill.todo { background: var(--positive-fill); color: var(--positive-on); }
-  .st-pill.done { background: var(--surface); color: var(--on-surface-variant);
-                  border: 1px solid var(--divider); }
+  .st-pill.hot { background: var(--positive-fill); color: var(--positive-on); }
+  .st-pill.plain { background: var(--surface); color: var(--on-surface-variant);
+                   border: 1px solid var(--divider); }
 
-  /* 目标卡（direction-g 定稿解剖：圆点行 → 标题 → 时间+计数+进度点+打卡钮） */
-  .st-cards { display: flex; flex-direction: column; gap: var(--space-3);
+  /* 目标卡（紧凑：16 内边距 / 8 行距；记录钮 32） */
+  .st-cards { display: flex; flex-direction: column; gap: var(--space-4);
               margin-bottom: var(--space-6); }
   .st-card {
     background: var(--glass-card); border: 1px solid var(--divider);
-    border-radius: var(--radius-lg); padding: var(--space-5);
+    border-radius: var(--radius-lg); padding: var(--space-4);
     cursor: pointer; box-shadow: var(--shadow-low);
-    display: flex; flex-direction: column; gap: var(--space-3);
+    display: flex; flex-direction: column; gap: var(--space-2);
     transition: transform var(--motion-fast) var(--ease-standard),
                 box-shadow var(--motion-base) var(--ease-standard);
   }
@@ -205,27 +205,28 @@
   .st-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .st-row1 { display: flex; align-items: center; gap: var(--space-1); }
   .st-dot { width: var(--space-2); height: var(--space-2); border-radius: var(--radius-full); }
-  .st-cat { font: var(--font-body-s); font-weight: 500; color: var(--on-surface-variant);
-            flex: 1; }
+  .st-cat { font: var(--font-body-s); color: var(--on-surface-variant); }
+  .st-rhythm { margin-left: auto; font: var(--font-body-s);
+               color: var(--on-surface-variant); }
   .st-arrow { color: var(--on-surface-variant); background: none; border: none;
               cursor: pointer; padding: 0; display: grid; place-items: center; }
   .st-arrow svg { width: 14px; height: 14px; }
   .st-title { font: var(--font-title-s); color: var(--on-surface); margin: 0; }
   .st-card.done .st-title { color: var(--goal-sky); }
   .st-row3 { display: flex; align-items: center; gap: var(--space-2); }
-  .st-time { display: flex; align-items: center; gap: var(--space-1);
-             font: var(--font-body-s); color: var(--on-surface-variant); }
-  .st-time svg { width: 13px; height: 13px; }
-  .st-count { font: var(--font-body-s); color: var(--on-surface-variant);
-              margin-left: auto; font-variant-numeric: tabular-nums; }
+  .st-latest { display: flex; align-items: center; gap: var(--space-1);
+               font: var(--font-body-s); color: var(--on-surface-variant);
+               min-width: 0; }
+  .st-latest svg { width: 13px; height: 13px; flex: none; }
+  .st-latest em { font-style: normal; white-space: nowrap; overflow: hidden;
+                  text-overflow: ellipsis; }
+  .st-count { margin-left: auto; font: var(--font-body-s); color: var(--on-surface-variant);
+              white-space: nowrap; font-variant-numeric: tabular-nums; }
   .st-count b { font-weight: 700; color: var(--on-surface); }
-  .st-pips { display: flex; gap: var(--space-1); }
-  .st-pip { width: 6px; height: 6px; border-radius: var(--radius-full);
-            background: var(--divider); }
-  .st-pip.on { background: var(--goal-coral); }
 
+  /* 记录按钮：未记录 = 黑底白＋，已记录 = 青柠底白对勾（描边动画） */
   .st-check {
-    width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+    width: 32px; height: 32px; border-radius: var(--radius-full); border: none;
     background: var(--accent); color: var(--accent-on); cursor: pointer;
     display: grid; place-items: center; flex: none;
     transition: background-color var(--motion-base) var(--ease-standard),
@@ -234,6 +235,10 @@
   .st-check:active { transform: scale(.86); }
   .st-check:focus-visible { outline: 2px solid var(--accent-on); outline-offset: 2px; }
   .st-check.done { background: var(--positive-fill); color: var(--positive-on); }
+  .st-check .plus { display: block; }
+  .st-check .tickmark { display: none; }
+  .st-check.done .plus { display: none; }
+  .st-check.done .tickmark { display: block; }
   .st-check .tickmark path {
     stroke-dasharray: 24; stroke-dashoffset: 24;
     transition: stroke-dashoffset var(--motion-base) var(--ease-standard);
@@ -243,7 +248,7 @@
   /* 空态邀请卡 */
   .st-empty {
     border: 1.5px dashed var(--divider); border-radius: var(--radius-lg);
-    padding: var(--space-8) var(--space-5); text-align: center;
+    padding: var(--space-6) var(--space-5); text-align: center;
     display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
     margin-bottom: var(--space-6);
   }
@@ -261,8 +266,7 @@
     box-shadow: var(--shadow-low); margin-bottom: var(--space-6);
   }
   .st-year-head { display: flex; align-items: baseline; margin-bottom: var(--space-3); }
-  .st-year-head h5 { font: var(--font-title-s); font-weight: 700; margin: 0;
-                     color: var(--on-surface); }
+  .st-year-head h5 { font: var(--font-title-s); margin: 0; color: var(--on-surface); }
   .st-band { display: flex; gap: 1px; align-items: flex-end; height: 28px; }
   .st-tick { flex: 1; height: 40%; border-radius: 1px; background: var(--divider); }
   .st-tick.past { background: var(--on-surface-variant); opacity: .35; }
@@ -277,12 +281,12 @@
   .st-year-legend .l2 i { background: var(--divider); }
   .st-year-legend .l3 i { background: var(--accent); }
 
-  /* 底部导航（复刻原图：白色悬浮圆角条，选中 = 黑胶囊白图标白字） */
+  /* 底部导航（复刻原图：白色悬浮圆角条 radius-lg，选中 = 黑色胶囊内图标上文字下） */
   .st-navwrap { flex: none; padding: var(--space-2) var(--space-4) var(--space-4); }
   .st-nav {
     display: flex; align-items: center; justify-content: space-around;
-    background: var(--surface); border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-mid); padding: var(--space-2);
+    background: var(--surface); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-mid); padding: var(--space-1);
   }
   .st-tab {
     background: none; border: none; cursor: pointer; padding: var(--space-1);
@@ -291,15 +295,13 @@
     transition: color var(--motion-base) var(--ease-standard);
   }
   .st-tab svg { width: 22px; height: 22px; }
-  .st-tab.active { color: var(--on-surface); }
   .st-tab .chipx {
-    display: flex; align-items: center; gap: var(--space-1);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
     background: var(--accent); color: var(--accent-on);
-    border-radius: var(--radius-full); padding: var(--space-1) var(--space-3);
-    font-weight: 600;
+    border-radius: var(--radius-full); padding: var(--space-1) var(--space-4);
   }
-  .st-tab.active { flex-direction: row; }
-  .st-tab.active .chipx svg { width: 18px; height: 18px; }
+  .st-tab .chipx svg { width: 18px; height: 18px; }
+  .st-tab .chipx span { line-height: 1; }
 
   /* 成就时刻覆盖层 */
   .st-cele {
@@ -350,18 +352,18 @@
 <body>
 
 <h1 class="pt-title">今日屏 · 深化原型</h1>
-<p class="pt-sub">「柔彩仪表盘」定稿语言的今日屏四态画板 · 点击目标卡可触发打卡反馈（典型态画板）；<br>
-动效时长全部取自令牌：fast 150 / base 250 / slow 450 / celebration 1000 · 标准减速曲线</p>
+<p class="pt-sub">「柔彩仪表盘」· 努力记录模型——目标没有完成度，只有为它做过的记录<br>
+点击目标卡可记录一次努力（典型态画板）；动效时长全部取自令牌：fast 150 / base 250 / slow 450 / celebration 1000</p>
 
 <nav class="shellmap">
   <h2>导航壳层示意（页面结构）</h2>
   <div class="flow">
     <div class="node"><b>壳层</b>底部导航四页签</div><span class="arrow">→</span>
     <div class="node"><b>今日页</b>顶栏（问候 / 新建 / 提醒）</div><span class="arrow">→</span>
-    <div class="node"><b>display</b>两行编辑级标题</div><span class="arrow">→</span>
-    <div class="node"><b>今日进度</b>圆环 + 竖排统计</div><span class="arrow">→</span>
-    <div class="node"><b>今日目标</b>状态胶囊 + 目标卡</div><span class="arrow">→</span>
-    <div class="node"><b>年度守护</b>365 天时间带</div>
+    <div class="node"><b>display</b>大标题</div><span class="arrow">→</span>
+    <div class="node"><b>今日进展</b>圆环 + 竖排统计</div><span class="arrow">→</span>
+    <div class="node"><b>今日目标</b>状态胶囊 + 目标卡（记录努力）</div><span class="arrow">→</span>
+    <div class="node"><b>年度守护</b>365 天记录带</div>
   </div>
 </nav>
 
@@ -380,8 +382,8 @@
     <div class="st-top">
       <div class="st-avatar">星</div>
       <div class="st-hello">
-        <span class="hi">早上好</span>
-        <span class="who">星行</span>
+        <span class="hi">早上好，星行</span>
+        <span class="who" data-date></span>
       </div>
       <button class="st-btn st-btn-primary" type="button" aria-label="新建目标">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
@@ -392,31 +394,31 @@
     </div>
     <div class="st-busy" data-busy hidden>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 11-13h-7l0-7Z"/></svg>
-      忙碌模式 · 今日各目标按最低档 1 次计
+      忙碌模式 · 今天只需记录一次努力
     </div>
-    <h2 class="st-display" data-display>把今天<br>照顾好</h2>
+    <h2 class="st-display" data-display></h2>
     <div class="st-hero">
-      <div class="st-hero-title">今日进度</div>
+      <div class="st-hero-title">今日进展</div>
       <div class="st-hero-body">
         <div class="st-ring">
           <svg width="130" height="130" viewBox="0 0 130 130">
             <circle class="track" cx="65" cy="65" r="52" fill="none" stroke-width="10"/>
             <circle class="bar" data-ringbar cx="65" cy="65" r="52" fill="none" stroke-width="10" stroke-linecap="round"/>
           </svg>
-          <div class="center"><b data-pct>0%</b><small>完成率</small></div>
+          <div class="center"><b data-pct>–</b><small data-pct-label>目标有进展</small></div>
         </div>
         <div class="st-stats">
           <div class="st-stat">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            <b data-total>0</b><span>总次数</span>
-          </div>
-          <div class="st-stat">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            <b data-done>0</b><span>已完成</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 11-13h-7l0-7Z"/></svg>
+            <b data-actions>0</b><span>今日行动</span>
           </div>
           <div class="st-stat">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <b data-todo>0</b><span>待打卡</span>
+            <b data-streak>0</b><span>连续天数</span>
+          </div>
+          <div class="st-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".5"/></svg>
+            <b data-goals>0</b><span>进行中目标</span>
           </div>
         </div>
       </div>
@@ -425,23 +427,23 @@
       <h4>今日目标</h4><a href="javascript:void(0)">查看全部</a>
     </div>
     <div class="st-pills" data-pills>
-      <span class="st-pill todo"><b data-ptodo>0</b> 待打卡</span>
-      <span class="st-pill done"><b data-pdone>0</b> 已完成</span>
+      <span class="st-pill hot">今日 <b data-pactions>0</b> 次记录</span>
+      <span class="st-pill plain"><b data-pgoals>0</b> 个目标</span>
     </div>
     <div class="st-cards" data-cards></div>
     <div class="st-empty" data-empty hidden>
       <div class="plus">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </div>
-      <b>新建第一个目标</b>
-      <p>两分钟定义一件今天能完成的小事，<br>打卡会出现在这里。</p>
+      <b>记录第一个努力</b>
+      <p>定一个想实现的目标，<br>为它留下今天的第一次记录。</p>
     </div>
     <div class="st-year">
       <div class="st-year-head"><h5>年度守护</h5></div>
       <div class="st-band" data-band></div>
       <div class="st-year-legend">
-        <span class="l1"><i></i>达成日</span>
-        <span class="l2"><i></i>未达成</span>
+        <span class="l1"><i></i>有记录</span>
+        <span class="l2"><i></i>未记录</span>
         <span class="l3"><i></i>今天</span>
       </div>
     </div>
@@ -451,7 +453,7 @@
       <button class="st-tab active" type="button">
         <span class="chipx">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
-          今日
+          <span>今日</span>
         </span>
       </button>
       <button class="st-tab" type="button">
@@ -460,7 +462,7 @@
       </button>
       <button class="st-tab" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
-        周回顾
+        回顾
       </button>
       <button class="st-tab" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
@@ -469,46 +471,52 @@
     </nav>
   </div>
   <div class="st-cele" data-cele>
-    <span class="badge"><b>🎉 今天全部完成</b><small data-cele-note>8/8 次 · 为自己鼓掌</small></span>
+    <span class="badge"><b>🎉 每个目标都有进展</b><small data-cele-note></small></span>
   </div>
 </template>
 
 <script>
-/* ---------- 演示数据（与 direction-g 同构） ---------- */
+/* ---------- 演示数据（努力记录模型：目标无完成度，只记录努力） ---------- */
 const GOALS = [
-  { key: 'meal',  cat: '饮食', title: '好好吃饭',    time: '三餐',       color: 'var(--goal-coral)' },
-  { key: 'fit',   cat: '运动', title: '规律运动',    time: '晚间 19:00', color: 'var(--goal-sage)'  },
-  { key: 'sleep', cat: '作息', title: '23 点前上床', time: '每晚 23:00', color: 'var(--goal-indigo)' },
-  { key: 'read',  cat: '学习', title: '读 20 页书',  time: '睡前 · 20 页', color: 'var(--goal-amber)' },
+  { key: 'app',  cat: '创造', title: '第一个 App',       rhythm: '碎片时间', latest: '完成第一版交互稿',
+    color: 'var(--goal-indigo)' },
+  { key: 'ride', cat: '耐力', title: '骑行大 PRO 计划',  rhythm: '每周末',   latest: '均速突破 25 km/h',
+    color: 'var(--goal-sage)' },
+  { key: 'dive', cat: '证书', title: '潜水证 OW/AOW',    rhythm: '假期练',   latest: '第一次 DSD 体验潜水',
+    color: 'var(--goal-teal)' },
+  { key: 'kora', cat: '远行', title: '冈仁波齐徒步',      rhythm: '拉练期',   latest: '格聂南线完成',
+    color: 'var(--goal-amber)' },
 ];
 const RING_CIRC = 2 * Math.PI * 52;
+const STREAK = 12; // 演示：连续记录天数
 
 const BOARDS = [
-  { id: 'typical', theme: 'light', state: 'typical', interactive: true, annot: true,
+  { id: 'typical', theme: 'light', state: 'typical', interactive: true,
     title: '① 典型态（可交互）',
-    desc: '首屏恰好一屏一卡，下滑看其余；点击目标卡打卡：fast 150 缩放 + base 250 青柠对勾，圆环 slow 450 推进；全部完成触发成就时刻。' },
+    desc: '首屏恰好一屏一卡；点击目标卡记录一次努力：＋ 钮 fast150 缩放 → base250 转青柠对勾，圆环 slow450 推进（有进展的目标比例）；每个目标都有记录时触发成就时刻。' },
   { id: 'empty', theme: 'light', state: 'empty',
     title: '② 空态',
-    desc: '无目标：display 转为邀请语，列表位让给虚线邀请卡；年度带只剩今日标记。' },
+    desc: '无目标：大标题转为一句自然的提问，列表位让给虚线邀请卡；圆环与统计归零。' },
   { id: 'busy', theme: 'light', state: 'busy',
     title: '③ 忙碌态',
-    desc: 'display 下方出现忙碌横幅（warning 语义），各目标按最低档 1 次计，圆环分母随之变化。' },
-  { id: 'alldone', theme: 'light', state: 'alldone',
-    title: '④ 全完成态',
-    desc: '圆环 100%、胶囊切到「N 已完成」、目标卡标题转晴空蓝；成就覆盖层常驻展示（点击体会 dismiss）。' },
+    desc: '忙碌横幅（warning 语义）：今天只需记录一次努力；横幅不把第一张卡挤出首屏。' },
+  { id: 'allgo', theme: 'light', state: 'allgo',
+    title: '④ 全部进展态',
+    desc: '每个目标今天都有记录：圆环走满、标题转晴空蓝、成就覆盖层常驻展示（点击体会 dismiss）。' },
   { id: 'typical-dark', theme: 'dark', state: 'typical', interactive: true,
     title: '⑤ 典型态 · 深色',
-    desc: '暗紫底幕 + 深玻璃卡；主操作反转为白实心，进度主卡保持深色，青柠环更亮。同样可点击打卡。' },
-  { id: 'alldone-dark', theme: 'dark', state: 'alldone',
-    title: '⑥ 全完成态 · 深色',
+    desc: '暗紫底幕 + 深玻璃卡；主操作反转为白实心，进展主卡保持深色，青柠环更亮。同样可点击记录。' },
+  { id: 'allgo-dark', theme: 'dark', state: 'allgo',
+    title: '⑥ 全部进展态 · 深色',
     desc: '成就时刻在深色下的呈现：青柠辐射光晕 + 反色徽章。' },
 ];
 
+// today[i] = 第 i 个目标今天的记录次数
 const stateOf = (name) => ({
-  typical: { targets: [3, 3, 1, 1], counts: [2, 1, 0, 0], busy: false },
-  busy:    { targets: [1, 1, 1, 1], counts: [1, 1, 0, 0], busy: true },
-  alldone: { targets: [3, 3, 1, 1], counts: [3, 3, 1, 1], busy: false },
-  empty:   { targets: [], counts: [], busy: false },
+  typical: { today: [2, 1, 0, 1], busy: false },
+  busy:    { today: [1, 0, 0, 0], busy: true },
+  allgo:   { today: [2, 1, 1, 1], busy: false },
+  empty:   { today: [], busy: false },
 }[name]);
 
 /* 年度时间带：确定性伪随机（与 direction-g 同种子） */
@@ -542,26 +550,27 @@ function scaffoldCard(g, board, st) {
     <div class="st-row1">
       <span class="st-dot" style="background:${g.color}"></span>
       <span class="st-cat">${g.cat}</span>
+      <span class="st-rhythm">${g.rhythm}</span>
       <button class="st-arrow" type="button" aria-label="目标详情">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
       </button>
     </div>
     <h3 class="st-title">${g.title}</h3>
     <div class="st-row3">
-      <span class="st-time">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-        ${g.time}
+      <span class="st-latest">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <em>最近 · ${g.latest}</em>
       </span>
-      <span class="st-pips">${'<span class="st-pip"></span>'.repeat(st.targets[idx])}</span>
       <span class="st-count"></span>
-      <button class="st-check" type="button" aria-label="打卡">
-        <svg class="tickmark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg>
+      <button class="st-check" type="button" aria-label="记录一次努力">
+        <svg class="plus" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        <svg class="tickmark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg>
       </button>
     </div>`;
   const doCheck = (e) => {
     e.stopPropagation();
     if (!board.interactive) return;
-    if (st.counts[idx] < st.targets[idx]) st.counts[idx]++;
+    st.today[idx]++;
     render(board);
   };
   card.querySelector('.st-check').addEventListener('click', doCheck);
@@ -577,57 +586,51 @@ function scaffoldCard(g, board, st) {
 
 function render(board) {
   const root = board.el, st = board.st, q = (s) => root.querySelector(s);
-  const total = st.targets.reduce((a, b) => a + b, 0);
-  const done = st.counts.reduce((a, b) => a + b, 0);
-  const pct = total ? Math.round((done / total) * 100) : 0;
-  const todo = total - done;
+  const n = st.today.length;
+  const actions = st.today.reduce((a, b) => a + b, 0);
+  const gwa = st.today.filter((t) => t > 0).length; // 有进展的目标数
+  const pct = n ? Math.round((gwa / n) * 100) : 0;
 
   // 圆环：dashoffset 动画（slow 450）
   const bar = q('[data-ringbar]');
   bar.style.strokeDasharray = RING_CIRC.toFixed(1);
   bar.style.strokeDashoffset = (RING_CIRC * (1 - pct / 100)).toFixed(1);
-  q('[data-pct]').textContent = pct + '%';
-  q('[data-total]').textContent = total;
-  q('[data-done]').textContent = done;
-  q('[data-todo]').textContent = todo;
-  q('[data-ptodo]').textContent = todo;
-  q('[data-pdone]').textContent = GOALS.filter((g, i) => st.counts[i] >= st.targets[i]).length;
-
-  // 胶囊选中态随完成度切换
-  q('.st-pill.todo').style.opacity = todo ? '1' : '.45';
-  q('.st-pill.done').style.opacity = total && !todo ? '1' : '.75';
+  q('[data-pct]').textContent = n ? `${gwa}/${n}` : '–';
+  q('[data-pct-label]').textContent = n ? '目标有进展' : '暂无目标';
+  q('[data-actions]').textContent = actions;
+  q('[data-streak]').textContent = n ? STREAK : 0;
+  q('[data-goals]').textContent = n;
+  q('[data-pactions]').textContent = actions;
+  q('[data-pgoals]').textContent = n;
 
   // 目标卡
-  const cardsBox = q('[data-cards]');
-  if (st.targets.length === 0) {
+  if (n === 0) {
     q('[data-empty]').hidden = false;
-    q('[data-pills]').style.visibility = 'hidden';
-    q('[data-display]').innerHTML = '从一个<br>小目标开始';
+    q('[data-pills]').hidden = true;
+    q('[data-display]').textContent = '今天想做点什么？';
   } else {
-    const cards = [...cardsBox.children];
-    st.targets.forEach((tg, i) => {
-      const card = cards[i], g = GOALS[i], c = st.counts[i];
-      card.querySelector('.st-count').innerHTML = `<b>${c}/${tg}</b> 次`;
-      [...card.querySelectorAll('.st-pip')].forEach((p, j) => {
-        p.classList.toggle('on', j < c);
-        p.style.background = j < c ? g.color : '';
-      });
-      card.querySelector('.st-check').classList.toggle('done', c >= tg);
-      card.querySelector('.st-check').setAttribute('aria-pressed', c >= tg);
-      card.classList.toggle('done', c >= tg);
+    q('[data-empty]').hidden = true;
+    q('[data-pills]').hidden = false;
+    const cards = [...q('[data-cards]').children];
+    st.today.forEach((t, i) => {
+      const card = cards[i];
+      card.querySelector('.st-count').innerHTML = `今日 <b>${t}</b> 次`;
+      card.querySelector('.st-check').classList.toggle('done', t > 0);
+      card.querySelector('.st-check').setAttribute('aria-pressed', t > 0);
+      card.classList.toggle('done', t > 0);
     });
     q('[data-busy]').hidden = !st.busy;
     q('[data-display]').innerHTML = st.busy
-      ? '今天很忙，也没关系'
-      : (total > 0 && todo === 0)
-          ? '全部完成<br>为自己鼓掌'
-          : '把今天<br>照顾好';
-    q('[data-cele-note]').textContent = `${done}/${total} 次 · 为自己鼓掌`;
+      ? '忙碌的一天'
+      : (n > 0 && gwa === n)
+          ? '每个目标<br>都有进展'
+          : '今天<br>做了什么？';
+    q('[data-cele-note]').textContent = `今日 ${actions} 次记录`;
   }
 
-  // 成就时刻
+  // 成就时刻：每个目标今天都有记录
   const cele = q('[data-cele]');
-  const full = total > 0 && todo === 0;
+  const full = n > 0 && gwa === n;
   if (full && !cele.classList.contains('on')) {
     if (!cele.querySelector('.dot')) {
       const palette = ['var(--goal-coral)', 'var(--goal-amber)', 'var(--goal-sage)',
@@ -650,10 +653,9 @@ function render(board) {
   }
 }
 
-const today0 = (() => {
-  const n = new Date();
-  return Math.floor((n - new Date(n.getFullYear(), 0, 0)) / 86400000) - 1; // 0-based
-})();
+const now = new Date();
+const today0 = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000) - 1; // 0-based
+const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 星期${'日一二三四五六'[now.getDay()]}`;
 
 const host = document.getElementById('boards');
 for (const cfg of BOARDS) {
@@ -662,7 +664,7 @@ for (const cfg of BOARDS) {
   wrap.className = 'board';
   wrap.innerHTML = `<h3>${cfg.title}</h3><p class="desc">${cfg.desc}</p>
     <div class="chips">
-      <span class="chip t">打卡反馈 fast150/base250</span>
+      <span class="chip t">记录反馈 fast150/base250</span>
       <span class="chip t">圆环 slow450</span>
       <span class="chip t">成就 celebration1000</span>
     </div>`;
@@ -671,6 +673,7 @@ for (const cfg of BOARDS) {
   phone.className = 'phone';
   if (cfg.theme === 'dark') phone.setAttribute('data-theme', 'dark');
   phone.appendChild(document.getElementById('tpl').content.cloneNode(true));
+  phone.querySelector('[data-date]').textContent = dateStr;
   wrap.appendChild(phone);
   if (cfg.interactive) {
     const reset = document.createElement('button');
@@ -679,7 +682,7 @@ for (const cfg of BOARDS) {
       board.st = stateOf(cfg.state);
       const cardsBox = phone.querySelector('[data-cards]');
       cardsBox.innerHTML = '';
-      board.st.targets.forEach((_, i) => cardsBox.appendChild(scaffoldCard(GOALS[i], board, board.st)));
+      board.st.today.forEach((_, i) => cardsBox.appendChild(scaffoldCard(GOALS[i], board, board.st)));
       render(board);
     });
     wrap.appendChild(reset);
@@ -688,7 +691,7 @@ for (const cfg of BOARDS) {
   board.el = phone;
 
   const cardsBox = phone.querySelector('[data-cards]');
-  board.st.targets.forEach((_, i) => cardsBox.appendChild(scaffoldCard(GOALS[i], board, board.st)));
+  board.st.today.forEach((_, i) => cardsBox.appendChild(scaffoldCard(GOALS[i], board, board.st)));
   buildBand(phone.querySelector('[data-band]'), today0);
 
   // 成就覆盖层：点击关闭（dismissible）

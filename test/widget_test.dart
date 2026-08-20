@@ -500,6 +500,48 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T019 V1 创建双路径：引导选模板 → 编辑器预填 → 落库 + 今日可见', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.onboardingTitle), findsOneWidget);
+
+    // 模板路径：引导页选「好好吃饭」→ 统一编辑器预填名称（自定义路径即不选模板直接写）。
+    await tester.tap(find.text('好好吃饭'));
+    await tester.pumpAndSettle();
+    final nameField = find.byKey(const ValueKey('goalNameField'));
+    expect((tester.widget(nameField) as TextField).controller!.text, '好好吃饭');
+
+    // B 案：补一句为什么 → 立下这个心愿。
+    final whyField = find.byKey(const ValueKey('goalWhyField'));
+    await scrollTo(tester, whyField);
+    await tester.enterText(whyField, '为了晚上不胃胀');
+    await scrollTo(tester, find.text(Copy.editorSaveCreate));
+    await tester.tap(find.text(Copy.editorSaveCreate));
+    await tester.pumpAndSettle();
+
+    // 引导视为完成 → 今日页出现该目标（V1：模板+确认即首个目标）。
+    final goals = await GoalRepository(db).getGoals();
+    expect(goals.single.name, '好好吃饭');
+    expect(goals.single.kind, GoalKind.habit);
+    expect(goals.single.motivation, '为了晚上不胃胀');
+    expect((await SettingsRepository(db).get()).onboardingCompleted, true);
+    expect(find.text(Copy.onboardingTitle), findsNothing);
+    expect(find.text('好好吃饭'), findsWidgets);
+    await db.close();
+  });
+
   testWidgets('V5：长按目标行 → 补签日历 → 补昨日 → 带"补"标记入库（FR-004/R6）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());

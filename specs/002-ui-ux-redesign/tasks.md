@@ -83,7 +83,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 - [x] T016 [US3] 备份格式扩展 `lib/core/backup/backup_exporter.dart`、`lib/core/backup/backup_importer.dart`：新字段为可选键（缺键兼容 001 备份）+ 单测 `test/`
 - [x] T017 [US3] 编辑器与列表落地 `lib/features/goals/goal_editor.dart`、`lib/features/goals/goals_view.dart`、`lib/features/goals/goal_templates.dart`、`lib/features/goals/smart_suggestion.dart`：新动线（无类型分叉、SMART 内联、新维度、一次性/截止日属性化、频率变更下周一生效提示保留）+ 旧目标空维度渐进补全入口
 - [x] T018 [US3] kind 合并与引导：里程碑专属视图并入统一呈现（收敛 `lib/features/milestones/`、调 `lib/app/router.dart`）、`lib/features/goals/onboarding.dart` 跟随新语言
-- [ ] T019 [US3] US3 回归：创建双路径、V1/V5 场景、既有目标升级零丢失、`flutter analyze` + `flutter test` 全绿
+- [x] T019 [US3] US3 回归：创建双路径、V1/V5 场景、既有目标升级零丢失、`flutter analyze` + `flutter test` 全绿
 
 **Checkpoint**: "目标不明确"的根因（定义太浅 + 类型前置分叉）被模型级解决
 

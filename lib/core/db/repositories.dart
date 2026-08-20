@@ -88,6 +88,9 @@ class GoalRepository {
         status: r.status,
         createdAt: r.createdAt,
         deadline: r.deadline,
+        motivation: r.motivation,
+        successCriterion: r.successCriterion,
+        cueScene: r.cueScene,
       );
 
   static db.GoalsCompanion _fromGoal(Goal g) => db.GoalsCompanion.insert(
@@ -99,6 +102,9 @@ class GoalRepository {
         status: g.status,
         createdAt: g.createdAt,
         deadline: Value(g.deadline),
+        motivation: Value(g.motivation),
+        successCriterion: Value(g.successCriterion),
+        cueScene: Value(g.cueScene),
       );
 
   // ---- FrequencyVersion ----

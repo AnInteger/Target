@@ -43,10 +43,26 @@ class Goal {
     this.status = GoalStatus.active,
     required this.createdAt,
     this.deadline,
+    this.motivation,
+    this.successCriterion,
+    this.cueScene,
   })  : id = id ?? newId(),
         assert(name.trim().isNotEmpty && name.length <= 30, '目标名 1–30 字'),
         assert(kind == GoalKind.milestone || deadline == null,
-            '仅 milestone 可有截止日期');
+            '仅 milestone 可有截止日期'),
+        assert(
+            motivation == null ||
+                (motivation.trim().isNotEmpty && motivation.length <= 60),
+            '动机 1–60 字'),
+        assert(
+            successCriterion == null ||
+                (successCriterion.trim().isNotEmpty &&
+                    successCriterion.length <= 60),
+            '成功标准 1–60 字'),
+        assert(
+            cueScene == null ||
+                (cueScene.trim().isNotEmpty && cueScene.length <= 40),
+            '提醒场景 1–40 字');
 
   final String id;
   final String name;
@@ -60,6 +76,17 @@ class Goal {
 
   /// 仅 milestone 有值；倒计时 = deadline − 今天（FR-013）。
   final LocalDate? deadline;
+
+  /// US3 定义模型（002 B 案 envelope，schema v2 起可空列）：旧目标为 NULL
+  /// → 今日卡/列表卡出现「补一句为什么」渐进补全入口（T014 定稿）。
+  final String? motivation;
+
+  /// 怎样算做到；非空 → 打卡反馈优先展示（002 data-model §1）。
+  final String? successCriterion;
+
+  /// 提醒场景（早起后/午休时/晚饭后/睡前/不打扰）；入选 → 驱动该目标
+  /// 提醒时刻（FR-012），空或「不打扰」→ 回落默认时段、同档合并。
+  final String? cueScene;
 
   bool get isHabit => kind == GoalKind.habit;
   bool get isMilestone => kind == GoalKind.milestone;
@@ -86,6 +113,9 @@ class Goal {
     String? iconKey,
     String? colorKey,
     LocalDate? deadline,
+    String? motivation,
+    String? successCriterion,
+    String? cueScene,
   }) =>
       Goal(
         id: id,
@@ -96,6 +126,9 @@ class Goal {
         status: status ?? this.status,
         createdAt: createdAt,
         deadline: deadline ?? this.deadline,
+        motivation: motivation ?? this.motivation,
+        successCriterion: successCriterion ?? this.successCriterion,
+        cueScene: cueScene ?? this.cueScene,
       );
 
   @override
@@ -108,11 +141,14 @@ class Goal {
       other.colorKey == colorKey &&
       other.status == status &&
       other.createdAt == createdAt &&
-      other.deadline == deadline;
+      other.deadline == deadline &&
+      other.motivation == motivation &&
+      other.successCriterion == successCriterion &&
+      other.cueScene == cueScene;
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, kind, iconKey, colorKey, status, createdAt, deadline);
+  int get hashCode => Object.hash(id, name, kind, iconKey, colorKey, status,
+      createdAt, deadline, motivation, successCriterion, cueScene);
 }
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,8 @@
 ///
 /// 执行器由 connection.dart 按平台注入（Web=WasmDatabase/IndexedDB、
 /// iOS/Android=NativeDatabase、测试=NativeDatabase.memory()），
-/// 因此构造函数只收 QueryExecutor。schemaVersion=1 起步。
+/// 因此构造函数只收 QueryExecutor。schemaVersion 见下方 getter（v2：
+/// goals 增 B 案 envelope 三可空列）。
 library;
 
 import 'package:drift/drift.dart';
@@ -30,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,6 +41,14 @@ class AppDatabase extends _$AppDatabase {
           await into(settingsRows).insert(SettingsRowsCompanion.insert(
             dailyBriefTime: const LocalTime(8, 0),
           ));
+        },
+        onUpgrade: (m, from, to) async {
+          // v1 → v2（002 US3，B 案 envelope）：三个可空列，旧数据零丢失。
+          if (from < 2) {
+            await m.addColumn(goals, goals.motivation);
+            await m.addColumn(goals, goals.successCriterion);
+            await m.addColumn(goals, goals.cueScene);
+          }
         },
       );
 }

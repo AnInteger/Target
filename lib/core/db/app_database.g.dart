@@ -84,6 +84,39 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       ).withConverter<LocalDate?>($GoalsTable.$converterdeadlinen);
+  static const VerificationMeta _motivationMeta = const VerificationMeta(
+    'motivation',
+  );
+  @override
+  late final GeneratedColumn<String> motivation = GeneratedColumn<String>(
+    'motivation',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _successCriterionMeta = const VerificationMeta(
+    'successCriterion',
+  );
+  @override
+  late final GeneratedColumn<String> successCriterion = GeneratedColumn<String>(
+    'success_criterion',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cueSceneMeta = const VerificationMeta(
+    'cueScene',
+  );
+  @override
+  late final GeneratedColumn<String> cueScene = GeneratedColumn<String>(
+    'cue_scene',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -94,6 +127,9 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     status,
     createdAt,
     deadline,
+    motivation,
+    successCriterion,
+    cueScene,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -135,6 +171,27 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
       );
     } else if (isInserting) {
       context.missing(_colorKeyMeta);
+    }
+    if (data.containsKey('motivation')) {
+      context.handle(
+        _motivationMeta,
+        motivation.isAcceptableOrUnknown(data['motivation']!, _motivationMeta),
+      );
+    }
+    if (data.containsKey('success_criterion')) {
+      context.handle(
+        _successCriterionMeta,
+        successCriterion.isAcceptableOrUnknown(
+          data['success_criterion']!,
+          _successCriterionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cue_scene')) {
+      context.handle(
+        _cueSceneMeta,
+        cueScene.isAcceptableOrUnknown(data['cue_scene']!, _cueSceneMeta),
+      );
     }
     return context;
   }
@@ -185,6 +242,18 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
           data['${effectivePrefix}deadline'],
         ),
       ),
+      motivation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}motivation'],
+      ),
+      successCriterion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}success_criterion'],
+      ),
+      cueScene: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cue_scene'],
+      ),
     );
   }
 
@@ -213,6 +282,13 @@ class Goal extends DataClass implements Insertable<Goal> {
   final GoalStatus status;
   final LocalDate createdAt;
   final LocalDate? deadline;
+
+  /// US3 定义模型（002 B 案 envelope，schema v2 可空列，T014 定稿）：
+  /// motivation 动机 ≤60 字 / success_criterion 成功标准 ≤60 字 /
+  /// cue_scene 提醒场景 ≤40 字（空 = 回落默认时段）。旧目标全 NULL。
+  final String? motivation;
+  final String? successCriterion;
+  final String? cueScene;
   const Goal({
     required this.id,
     required this.name,
@@ -222,6 +298,9 @@ class Goal extends DataClass implements Insertable<Goal> {
     required this.status,
     required this.createdAt,
     this.deadline,
+    this.motivation,
+    this.successCriterion,
+    this.cueScene,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -248,6 +327,15 @@ class Goal extends DataClass implements Insertable<Goal> {
         $GoalsTable.$converterdeadlinen.toSql(deadline),
       );
     }
+    if (!nullToAbsent || motivation != null) {
+      map['motivation'] = Variable<String>(motivation);
+    }
+    if (!nullToAbsent || successCriterion != null) {
+      map['success_criterion'] = Variable<String>(successCriterion);
+    }
+    if (!nullToAbsent || cueScene != null) {
+      map['cue_scene'] = Variable<String>(cueScene);
+    }
     return map;
   }
 
@@ -263,6 +351,15 @@ class Goal extends DataClass implements Insertable<Goal> {
       deadline: deadline == null && nullToAbsent
           ? const Value.absent()
           : Value(deadline),
+      motivation: motivation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(motivation),
+      successCriterion: successCriterion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(successCriterion),
+      cueScene: cueScene == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cueScene),
     );
   }
 
@@ -280,6 +377,9 @@ class Goal extends DataClass implements Insertable<Goal> {
       status: serializer.fromJson<GoalStatus>(json['status']),
       createdAt: serializer.fromJson<LocalDate>(json['createdAt']),
       deadline: serializer.fromJson<LocalDate?>(json['deadline']),
+      motivation: serializer.fromJson<String?>(json['motivation']),
+      successCriterion: serializer.fromJson<String?>(json['successCriterion']),
+      cueScene: serializer.fromJson<String?>(json['cueScene']),
     );
   }
   @override
@@ -294,6 +394,9 @@ class Goal extends DataClass implements Insertable<Goal> {
       'status': serializer.toJson<GoalStatus>(status),
       'createdAt': serializer.toJson<LocalDate>(createdAt),
       'deadline': serializer.toJson<LocalDate?>(deadline),
+      'motivation': serializer.toJson<String?>(motivation),
+      'successCriterion': serializer.toJson<String?>(successCriterion),
+      'cueScene': serializer.toJson<String?>(cueScene),
     };
   }
 
@@ -306,6 +409,9 @@ class Goal extends DataClass implements Insertable<Goal> {
     GoalStatus? status,
     LocalDate? createdAt,
     Value<LocalDate?> deadline = const Value.absent(),
+    Value<String?> motivation = const Value.absent(),
+    Value<String?> successCriterion = const Value.absent(),
+    Value<String?> cueScene = const Value.absent(),
   }) => Goal(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -315,6 +421,11 @@ class Goal extends DataClass implements Insertable<Goal> {
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     deadline: deadline.present ? deadline.value : this.deadline,
+    motivation: motivation.present ? motivation.value : this.motivation,
+    successCriterion: successCriterion.present
+        ? successCriterion.value
+        : this.successCriterion,
+    cueScene: cueScene.present ? cueScene.value : this.cueScene,
   );
   Goal copyWithCompanion(GoalsCompanion data) {
     return Goal(
@@ -326,6 +437,13 @@ class Goal extends DataClass implements Insertable<Goal> {
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       deadline: data.deadline.present ? data.deadline.value : this.deadline,
+      motivation: data.motivation.present
+          ? data.motivation.value
+          : this.motivation,
+      successCriterion: data.successCriterion.present
+          ? data.successCriterion.value
+          : this.successCriterion,
+      cueScene: data.cueScene.present ? data.cueScene.value : this.cueScene,
     );
   }
 
@@ -339,7 +457,10 @@ class Goal extends DataClass implements Insertable<Goal> {
           ..write('colorKey: $colorKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
-          ..write('deadline: $deadline')
+          ..write('deadline: $deadline, ')
+          ..write('motivation: $motivation, ')
+          ..write('successCriterion: $successCriterion, ')
+          ..write('cueScene: $cueScene')
           ..write(')'))
         .toString();
   }
@@ -354,6 +475,9 @@ class Goal extends DataClass implements Insertable<Goal> {
     status,
     createdAt,
     deadline,
+    motivation,
+    successCriterion,
+    cueScene,
   );
   @override
   bool operator ==(Object other) =>
@@ -366,7 +490,10 @@ class Goal extends DataClass implements Insertable<Goal> {
           other.colorKey == this.colorKey &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
-          other.deadline == this.deadline);
+          other.deadline == this.deadline &&
+          other.motivation == this.motivation &&
+          other.successCriterion == this.successCriterion &&
+          other.cueScene == this.cueScene);
 }
 
 class GoalsCompanion extends UpdateCompanion<Goal> {
@@ -378,6 +505,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   final Value<GoalStatus> status;
   final Value<LocalDate> createdAt;
   final Value<LocalDate?> deadline;
+  final Value<String?> motivation;
+  final Value<String?> successCriterion;
+  final Value<String?> cueScene;
   final Value<int> rowid;
   const GoalsCompanion({
     this.id = const Value.absent(),
@@ -388,6 +518,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.deadline = const Value.absent(),
+    this.motivation = const Value.absent(),
+    this.successCriterion = const Value.absent(),
+    this.cueScene = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   GoalsCompanion.insert({
@@ -399,6 +532,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     required GoalStatus status,
     required LocalDate createdAt,
     this.deadline = const Value.absent(),
+    this.motivation = const Value.absent(),
+    this.successCriterion = const Value.absent(),
+    this.cueScene = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -416,6 +552,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Expression<String>? status,
     Expression<String>? createdAt,
     Expression<String>? deadline,
+    Expression<String>? motivation,
+    Expression<String>? successCriterion,
+    Expression<String>? cueScene,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -427,6 +566,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (deadline != null) 'deadline': deadline,
+      if (motivation != null) 'motivation': motivation,
+      if (successCriterion != null) 'success_criterion': successCriterion,
+      if (cueScene != null) 'cue_scene': cueScene,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -440,6 +582,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Value<GoalStatus>? status,
     Value<LocalDate>? createdAt,
     Value<LocalDate?>? deadline,
+    Value<String?>? motivation,
+    Value<String?>? successCriterion,
+    Value<String?>? cueScene,
     Value<int>? rowid,
   }) {
     return GoalsCompanion(
@@ -451,6 +596,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       deadline: deadline ?? this.deadline,
+      motivation: motivation ?? this.motivation,
+      successCriterion: successCriterion ?? this.successCriterion,
+      cueScene: cueScene ?? this.cueScene,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -490,6 +638,15 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
         $GoalsTable.$converterdeadlinen.toSql(deadline.value),
       );
     }
+    if (motivation.present) {
+      map['motivation'] = Variable<String>(motivation.value);
+    }
+    if (successCriterion.present) {
+      map['success_criterion'] = Variable<String>(successCriterion.value);
+    }
+    if (cueScene.present) {
+      map['cue_scene'] = Variable<String>(cueScene.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -507,6 +664,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('deadline: $deadline, ')
+          ..write('motivation: $motivation, ')
+          ..write('successCriterion: $successCriterion, ')
+          ..write('cueScene: $cueScene, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3414,6 +3574,9 @@ typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
   required GoalStatus status,
   required LocalDate createdAt,
   Value<LocalDate?> deadline,
+  Value<String?> motivation,
+  Value<String?> successCriterion,
+  Value<String?> cueScene,
   Value<int> rowid,
 });
 typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
@@ -3425,6 +3588,9 @@ typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
   Value<GoalStatus> status,
   Value<LocalDate> createdAt,
   Value<LocalDate?> deadline,
+  Value<String?> motivation,
+  Value<String?> successCriterion,
+  Value<String?> cueScene,
   Value<int> rowid,
 });
 
@@ -3560,6 +3726,21 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
         column: $table.deadline,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
+
+  ColumnFilters<String> get motivation => $composableBuilder(
+    column: $table.motivation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get successCriterion => $composableBuilder(
+    column: $table.successCriterion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cueScene => $composableBuilder(
+    column: $table.cueScene,
+    builder: (column) => ColumnFilters(column),
+  );
 
   Expression<bool> frequencyVersionsRefs(
     Expression<bool> Function($$FrequencyVersionsTableFilterComposer f) f,
@@ -3710,6 +3891,21 @@ class $$GoalsTableOrderingComposer
     column: $table.deadline,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get motivation => $composableBuilder(
+    column: $table.motivation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get successCriterion => $composableBuilder(
+    column: $table.successCriterion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cueScene => $composableBuilder(
+    column: $table.cueScene,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$GoalsTableAnnotationComposer
@@ -3744,6 +3940,19 @@ class $$GoalsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<LocalDate?, String> get deadline =>
       $composableBuilder(column: $table.deadline, builder: (column) => column);
+
+  GeneratedColumn<String> get motivation => $composableBuilder(
+    column: $table.motivation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get successCriterion => $composableBuilder(
+    column: $table.successCriterion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cueScene =>
+      $composableBuilder(column: $table.cueScene, builder: (column) => column);
 
   Expression<T> frequencyVersionsRefs<T extends Object>(
     Expression<T> Function($$FrequencyVersionsTableAnnotationComposer a) f,
@@ -3888,6 +4097,9 @@ class $$GoalsTableTableManager
                 Value<GoalStatus> status = const Value.absent(),
                 Value<LocalDate> createdAt = const Value.absent(),
                 Value<LocalDate?> deadline = const Value.absent(),
+                Value<String?> motivation = const Value.absent(),
+                Value<String?> successCriterion = const Value.absent(),
+                Value<String?> cueScene = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GoalsCompanion(
                 id: id,
@@ -3898,6 +4110,9 @@ class $$GoalsTableTableManager
                 status: status,
                 createdAt: createdAt,
                 deadline: deadline,
+                motivation: motivation,
+                successCriterion: successCriterion,
+                cueScene: cueScene,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3910,6 +4125,9 @@ class $$GoalsTableTableManager
                 required GoalStatus status,
                 required LocalDate createdAt,
                 Value<LocalDate?> deadline = const Value.absent(),
+                Value<String?> motivation = const Value.absent(),
+                Value<String?> successCriterion = const Value.absent(),
+                Value<String?> cueScene = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => GoalsCompanion.insert(
                 id: id,
@@ -3920,6 +4138,9 @@ class $$GoalsTableTableManager
                 status: status,
                 createdAt: createdAt,
                 deadline: deadline,
+                motivation: motivation,
+                successCriterion: successCriterion,
+                cueScene: cueScene,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

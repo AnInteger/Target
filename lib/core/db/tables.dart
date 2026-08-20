@@ -104,6 +104,13 @@ class Goals extends Table {
   TextColumn get createdAt => text().map(const LocalDateText())();
   TextColumn get deadline => text().nullable().map(const LocalDateText())();
 
+  /// US3 定义模型（002 B 案 envelope，schema v2 可空列，T014 定稿）：
+  /// motivation 动机 ≤60 字 / success_criterion 成功标准 ≤60 字 /
+  /// cue_scene 提醒场景 ≤40 字（空 = 回落默认时段）。旧目标全 NULL。
+  TextColumn get motivation => text().nullable()();
+  TextColumn get successCriterion => text().nullable()();
+  TextColumn get cueScene => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

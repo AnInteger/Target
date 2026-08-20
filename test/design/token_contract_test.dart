@@ -16,10 +16,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// 豁免清单：'文件相对路径': '豁免原因（必填）'。白名单**只减不增**。
 /// 现状审计仅 1 个文件 3 处（fontSize 硬编码，颜色取自 theme），
-/// 随 US3/T017 goals_view 重写消灭；全部清空是 T031 的完成条件。
-const kWhitelist = <String, String>{
-  'lib/features/goals/goals_view.dart': '3 处裸 TextStyle(fontSize 13/12 硬编码；US3 T017 整屏重写时消灭',
-};
+/// 已随 US3/T017 goals_view 重写消灭并于 2026-08-20 移除条目——
+/// 白名单清零，T031 完成条件提前达成（后续屏重写不得再入册）。
+const kWhitelist = <String, String>{};
 
 void main() {
   test('令牌契约：features/app 层无硬编码颜色与裸 TextStyle（SC-004）', () {

@@ -130,7 +130,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 **Purpose**: 一致性清零、全量验收、发布
 
-- [ ] T031 令牌白名单清零：消灭 `test/design/token_contract_test.dart` 白名单中全部遗留硬编码条目（SC-004 达成 100% 取值于令牌）
+- [X] T031 令牌白名单清零：消灭 `test/design/token_contract_test.dart` 白名单中全部遗留硬编码条目（SC-004 达成 100% 取值于令牌）✅ **2026-08-20 提前达成**——唯一条目 goals_view.dart 3 处 fontSize 已随 T017 重写自然消灭，条目移除、白名单清空；契约测试绿（后续屏重写若引入硬编码将被空名单直接拦红，机制闭环）；flutter test 64 全绿
 - [ ] T032 全量走查：quickstart.md 阶段 B 全表 + 001 的 V1–V8 全场景回归 + SC-001…SC-006 逐条核对 + `design/reviews.md` 确认全部核心屏"通过"
 - [ ] T033 发布验证：`flutter analyze` + `flutter test` 全绿 → `git push` → Codemagic 绿 → TestFlight 真机核对（quickstart 阶段 C：图标/启动屏/小组件/深色/动效帧率/通知时机与文案）
 - [ ] T034 文档收尾：更新 `specs/002-ui-ux-redesign/` 各文档状态与根 README（若涉及新命令/新目录说明）

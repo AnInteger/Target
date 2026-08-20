@@ -61,7 +61,7 @@
   .gl-top .tt { font: var(--font-display-s); color: var(--on-surface); flex: 1; }
 
   .gl-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
-               padding: var(--space-2) var(--space-6) var(--space-16);
+               padding: var(--space-2) var(--space-6) var(--space-4);
                display: flex; flex-direction: column; gap: var(--space-3); }
   .gl-scroll::-webkit-scrollbar { display: none; }
 
@@ -196,18 +196,28 @@
              align-items: flex-start; line-height: 1.6; }
   .rv-foot svg { width: 14px; height: 14px; flex: none; margin-top: 2px; }
 
-  /* 底部胶囊导航（与今日屏 R4 定稿同语言） */
-  .gl-nav { position: absolute; left: 50%; transform: translateX(-50%);
-            bottom: var(--space-4); display: flex; gap: var(--space-1);
-            background: var(--glass-card); border: 1px solid var(--glass-border);
-            border-radius: var(--radius-full); padding: var(--space-1) var(--space-2);
-            box-shadow: var(--shadow-mid); backdrop-filter: var(--glass-blur); z-index: 30; }
-  .gl-nav a { display: flex; align-items: center; gap: var(--space-1);
-              text-decoration: none; color: var(--on-surface-variant);
-              font: var(--font-body-s); border-radius: var(--radius-full);
-              padding: var(--space-2) var(--space-4); }
-  .gl-nav a svg { width: 18px; height: 18px; }
-  .gl-nav a.on { background: var(--accent); color: var(--accent-on); font-weight: 600; }
+  /* 底部导航（照抄今日屏 R4 定稿：常驻条 + 等分页签 + 选中内胶囊） */
+  .st-navwrap { flex: none; padding: var(--space-2) var(--space-6) var(--space-2); }
+  .st-nav {
+    display: flex; align-items: center;
+    background: var(--surface); border-radius: var(--radius-full);
+    box-shadow: var(--shadow-mid); padding: var(--space-1);
+  }
+  .st-tab {
+    background: none; border: none; cursor: pointer; padding: var(--space-1) 0;
+    flex: 1; /* 等分槽位：选中胶囊变宽不推挤邻页签 */
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--on-surface-variant); font: var(--font-label);
+    text-decoration: none; font-family: var(--font-stack);
+  }
+  .st-tab svg { width: 20px; height: 20px; }
+  .st-tab .chipx {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: var(--accent); color: var(--accent-on);
+    border-radius: var(--radius-full); padding: var(--space-1) var(--space-4);
+  }
+  .st-tab .chipx svg { width: 20px; height: 20px; }
+  .st-tab .chipx span { line-height: 1; }
   .gl-home { flex: none; height: 28px; display: flex; align-items: center;
              justify-content: center; }
   .gl-home i { width: 120px; height: 5px; border-radius: var(--radius-full);
@@ -217,8 +227,7 @@
   [data-theme="dark"] .st-status, [data-theme="dark"] .gl-top .tt,
   [data-theme="dark"] .g-name, [data-theme="dark"] .rv-week .t,
   [data-theme="dark"] .rv-ratio b { color: var(--on-surface); }
-  [data-theme="dark"] .rv-card, [data-theme="dark"] .rv-ask,
-  [data-theme="dark"] .gl-nav {
+  [data-theme="dark"] .rv-card, [data-theme="dark"] .rv-ask {
     background: var(--glass-card); border-color: var(--glass-border); }
   [data-theme="dark"] .rv-day .tag { background: var(--surface); }
 </style>
@@ -453,14 +462,25 @@
       <button class="rv-save" type="button">记下这一周</button>
     </div>
 
-    <nav class="gl-nav">
-      <a href="screen-today.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v10h12V10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>今天</a>
-      <a href="screen-goals.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9-5.5 2.9 1-6.1L3 9.5l6.3-.9L12 3z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>目标</a>
-      <a class="on" href="#review">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v14H5zM8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>回顾</a>
-    </nav>
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <a class="st-tab" href="screen-goals.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          目标</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+            <span>回顾</span>
+          </span>
+        </span>
+        <a class="st-tab" href="screen-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          我的</a>
+      </nav>
+    </div>
     <div class="gl-home"><i></i></div>
   </div>
 </div>
@@ -619,14 +639,25 @@
       <button class="rv-save" type="button">记下这一周</button>
     </div>
 
-    <nav class="gl-nav">
-      <a href="screen-today.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v10h12V10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>今天</a>
-      <a href="screen-goals.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9-5.5 2.9 1-6.1L3 9.5l6.3-.9L12 3z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>目标</a>
-      <a class="on" href="#review">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v14H5zM8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>回顾</a>
-    </nav>
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <a class="st-tab" href="screen-goals.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          目标</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+            <span>回顾</span>
+          </span>
+        </span>
+        <a class="st-tab" href="screen-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          我的</a>
+      </nav>
+    </div>
     <div class="gl-home"><i></i></div>
   </div>
 </div>
@@ -764,14 +795,25 @@
       <button class="rv-save" type="button">记下这一周</button>
     </div>
 
-    <nav class="gl-nav">
-      <a href="screen-today.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v10h12V10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>今天</a>
-      <a href="screen-goals.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9-5.5 2.9 1-6.1L3 9.5l6.3-.9L12 3z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>目标</a>
-      <a class="on" href="#review">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v14H5zM8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>回顾</a>
-    </nav>
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <a class="st-tab" href="screen-goals.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          目标</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+            <span>回顾</span>
+          </span>
+        </span>
+        <a class="st-tab" href="screen-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          我的</a>
+      </nav>
+    </div>
     <div class="gl-home"><i></i></div>
   </div>
 </div>
@@ -879,14 +921,25 @@
       <button class="rv-save" type="button">记下这一周</button>
     </div>
 
-    <nav class="gl-nav">
-      <a href="screen-today.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v10h12V10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>今天</a>
-      <a href="screen-goals.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9-5.5 2.9 1-6.1L3 9.5l6.3-.9L12 3z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>目标</a>
-      <a class="on" href="#review">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v14H5zM8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>回顾</a>
-    </nav>
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <a class="st-tab" href="screen-goals.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          目标</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+            <span>回顾</span>
+          </span>
+        </span>
+        <a class="st-tab" href="screen-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          我的</a>
+      </nav>
+    </div>
     <div class="gl-home"><i></i></div>
   </div>
 </div>

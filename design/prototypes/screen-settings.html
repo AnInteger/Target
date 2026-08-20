@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的 · 设置 · Target（柔彩仪表盘）</title>
+<link rel="stylesheet" href="../tokens.css?v=0820f">
+<style>
+  /* ============================================================
+     设置屏原型（T025 · R1 · US5「我的」页签）
+     - 取值 100% 来自 ../tokens.css（SC-004）
+     - 分组：身份（努力语言）→ 提醒（FR-012：概要 + 场景驱动的
+       逐目标提醒、同档合并）→ 备份与数据（V7 冲突弹层可交互）
+     - 权限被拒不反复弹窗（FR-007）：未开启态一次说明 + 知道了
+     - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+
+  /* ---- 评审台面（与 screen-goals / screen-review 同语言） ---- */
+  body {
+    margin: 0; min-height: 100vh; background: #1b191f;
+    font-family: var(--font-stack); color: #f2eff7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12); box-sizing: border-box;
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 239, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 640px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 239, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 239, 247, .7); }
+  .chip.t { color: var(--positive-fill); }
+
+  /* ---- 手机外框 ---- */
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+  .st-status { height: 52px; flex: none; display: flex; align-items: flex-end;
+               justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+               font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
+  .gl-top { flex: none; display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-2) var(--space-6) var(--space-2); }
+  .gl-top .tt { font: var(--font-display-s); color: var(--on-surface); flex: 1; }
+
+  .gl-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
+               padding: var(--space-2) var(--space-6) var(--space-4);
+               display: flex; flex-direction: column; gap: var(--space-2); }
+  .gl-scroll::-webkit-scrollbar { display: none; }
+
+  /* ---- 身份卡（努力语言） ---- */
+  .me-card {
+    background: var(--glass-card); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg); padding: var(--space-4);
+    display: flex; align-items: center; gap: var(--space-3);
+    box-shadow: var(--shadow-low); backdrop-filter: var(--glass-blur); }
+  .me-avatar { width: 44px; height: 44px; border-radius: var(--radius-full); flex: none;
+               background: linear-gradient(135deg, var(--grad-avatar-a), var(--grad-avatar-b));
+               display: flex; align-items: center; justify-content: center;
+               color: #fff; font: var(--font-title-s); }
+  .me-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .me-name { font: var(--font-title-s); color: var(--on-surface); }
+  .me-sub { font: var(--font-body-s); color: var(--on-surface-variant);
+            font-variant-numeric: tabular-nums; }
+
+  /* ---- 分组小标 + 组卡 ---- */
+  .s-sec { font: var(--font-label); letter-spacing: .08em;
+           color: var(--on-surface-variant); margin: var(--space-3) 0 var(--space-1); }
+  .s-card {
+    background: var(--glass-card); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-low);
+    backdrop-filter: var(--glass-blur); overflow: hidden; }
+  .s-hint { font: var(--font-body-s); color: var(--on-surface-variant);
+            padding: 0 var(--space-4) var(--space-3); line-height: 1.6; }
+
+  /* 通用行 */
+  .s-row { display: flex; align-items: center; gap: var(--space-3);
+           padding: var(--space-3) var(--space-4); }
+  .s-row + .s-row { border-top: 1px solid var(--divider); }
+  .s-ico { width: 32px; height: 32px; border-radius: var(--radius-md); flex: none;
+           display: flex; align-items: center; justify-content: center;
+           background: var(--surface-alt); color: var(--on-surface-variant); }
+  .s-ico svg { width: 16px; height: 16px; }
+  .s-ico.goal { color: #fff; }
+  .s-ico.goal svg { width: 15px; height: 15px; }
+  .s-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .s-title { font: var(--font-body-l); color: var(--on-surface); }
+  .s-sub { font: var(--font-body-s); color: var(--on-surface-variant); }
+  .s-time { font: var(--font-body-m); color: var(--on-surface); flex: none;
+            font-variant-numeric: tabular-nums; font-weight: 700; }
+  .scene { font: var(--font-label); padding: 1px var(--space-2); flex: none;
+           border-radius: var(--radius-full); background: var(--surface-alt);
+           color: var(--on-surface-variant); border: 1px solid var(--divider); }
+
+  /* 开关（iOS 胶囊） */
+  .sw { position: relative; width: 46px; height: 28px; border-radius: var(--radius-full);
+        background: var(--divider); border: none; cursor: pointer; flex: none;
+        transition: background var(--motion-fast) var(--ease-standard); }
+  .sw::after { content: ''; position: absolute; top: 2px; left: 2px;
+               width: 24px; height: 24px; border-radius: var(--radius-full);
+               background: #fff; box-shadow: var(--shadow-low);
+               transition: transform var(--motion-base) var(--ease-standard); }
+  .sw.on { background: var(--positive-fill); }
+  .sw.on::after { transform: translateX(18px); }
+
+  /* 权限未开启卡 */
+  .perm { padding: var(--space-4); }
+  .perm .t { font: var(--font-title-s); color: var(--warning); }
+  .perm .b { font: var(--font-body-s); color: var(--on-surface-variant);
+             margin: var(--space-2) 0 var(--space-3); line-height: 1.6; }
+  .perm .acts { display: flex; gap: var(--space-3); align-items: center; }
+  .btn { border: none; cursor: pointer; font: var(--font-body-m);
+         font-family: var(--font-stack); border-radius: var(--radius-md);
+         padding: var(--space-2) var(--space-4); }
+  .btn.main { background: var(--accent); color: var(--accent-on);
+              font-weight: 600; box-shadow: var(--shadow-mid); }
+  .btn.ghost { background: transparent; color: var(--on-surface-variant);
+               border: none; padding: var(--space-2); }
+
+  /* 备份脚注（隐私） */
+  .s-foot { border: 1px dashed var(--divider); border-radius: var(--radius-lg);
+            padding: var(--space-3) var(--space-4); font: var(--font-body-s);
+            color: var(--on-surface-variant); display: flex; gap: var(--space-2);
+            align-items: flex-start; line-height: 1.6; }
+  .s-foot svg { width: 14px; height: 14px; flex: none; margin-top: 2px; }
+
+  /* 导入冲突弹层（V7 演示） */
+  .mask { position: absolute; inset: 0; z-index: 50;
+          background: rgba(27, 25, 31, .45);
+          display: flex; align-items: center; justify-content: center;
+          padding: var(--space-6); box-sizing: border-box; }
+  .dlg { width: 100%; background: var(--surface); border-radius: var(--radius-lg);
+         border: 1px solid var(--divider); box-shadow: var(--shadow-high);
+         padding: var(--space-6); display: flex; flex-direction: column;
+         gap: var(--space-3); }
+  .dlg .t { font: var(--font-title-m); color: var(--on-surface); }
+  .dlg .b { font: var(--font-body-m); color: var(--on-surface-variant); line-height: 1.6; }
+  .dlg .acts { display: flex; justify-content: flex-end; gap: var(--space-2);
+               margin-top: var(--space-2); }
+  .dlg .acts .btn.main { padding: var(--space-2) var(--space-5); }
+
+  /* ---- 底部导航（照抄今日屏 R4 定稿：常驻条 + 等分页签 + 选中内胶囊） ---- */
+  .st-navwrap { flex: none; padding: var(--space-2) var(--space-6) var(--space-2); }
+  .st-nav {
+    display: flex; align-items: center;
+    background: var(--surface); border-radius: var(--radius-full);
+    box-shadow: var(--shadow-mid); padding: var(--space-1);
+  }
+  .st-tab {
+    background: none; border: none; cursor: pointer; padding: var(--space-1) 0;
+    flex: 1; /* 等分槽位：选中胶囊变宽不推挤邻页签 */
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--on-surface-variant); font: var(--font-label);
+    text-decoration: none; font-family: var(--font-stack);
+  }
+  .st-tab svg { width: 20px; height: 20px; }
+  .st-tab .chipx {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: var(--accent); color: var(--accent-on);
+    border-radius: var(--radius-full); padding: var(--space-1) var(--space-4);
+  }
+  .st-tab .chipx svg { width: 20px; height: 20px; }
+  .st-tab .chipx span { line-height: 1; }
+  .gl-home { flex: none; height: 28px; display: flex; align-items: center;
+             justify-content: center; }
+  .gl-home i { width: 120px; height: 5px; border-radius: var(--radius-full);
+               background: var(--on-surface); opacity: .8; }
+
+  /* 深色并列：全部取值语义 token，[data-theme="dark"] 作用域下自动切换，无需逐条覆盖 */
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">我的 · 设置</h1>
+<p class="pt-sub">
+  「我的」页签 = 身份 + 提醒 + 备份。提醒按目标里选的场景到点（早起后 / 睡前……），
+  没选的回落默认时段，同一档只响一条；导入是整份替换，弹层里说清楚再动手。
+  数据只在这台设备上——页尾一句话讲完隐私。
+</p>
+
+<!-- ============ 画板一：典型（可交互） ============ -->
+<div class="board">
+  <h3>① 典型 · 可交互</h3>
+  <p class="desc">开关都能拨；点「导入备份」弹出冲突确认——覆盖本地 / 取消，
+    两份绝不静默混合。目标提醒的时间由编辑器里的场景选择驱动。</p>
+  <div class="chips"><span class="chip t">典型态</span><span class="chip">导入冲突弹层</span><span class="chip">场景驱动提醒</span></div>
+
+  <div class="phone" id="b1">
+    <div class="island"></div>
+    <div class="st-status"><span>9:41</span></div>
+    <div class="gl-top"><span class="tt">我的</span></div>
+
+    <div class="gl-scroll">
+      <div class="me-card">
+        <span class="me-avatar">星</span>
+        <div class="me-mid">
+          <span class="me-name">星行</span>
+          <span class="me-sub">4 个目标 · 本周 10 次记录</span>
+        </div>
+      </div>
+
+      <div class="s-sec">提醒</div>
+      <div class="s-card">
+        <div class="s-row">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M18 15V10a6 6 0 1 0-12 0v5l-1.5 3h15L18 15z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">今天的小事</span>
+            <span class="s-sub">每天一份，不催促</span>
+          </div>
+          <span class="s-time">08:00</span>
+          <button class="sw on" type="button" aria-label="开关"></button>
+        </div>
+      </div>
+      <p class="s-hint" style="padding:0 var(--space-1)">周一的概要会带上上周回顾。</p>
+
+      <div class="s-card">
+        <div class="s-row">
+          <span class="s-ico goal" style="background:var(--goal-indigo)">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 7.5h6M9 11h6M9 14.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">第一个 App</span>
+          </div>
+          <span class="scene">晚饭后</span>
+          <span class="s-time">18:30</span>
+          <button class="sw on" type="button" aria-label="开关"></button>
+        </div>
+        <div class="s-row">
+          <span class="s-ico goal" style="background:var(--goal-sage)">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="17" r="3.2" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="15.5" r="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M8.8 15.2L15 6.5M15 6.5l3.5 1.2M15 6.5l.6-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">骑行大 PRO 计划</span>
+          </div>
+          <span class="scene">不打扰</span>
+          <span class="s-time" style="font-weight:400;color:var(--on-surface-variant)">—</span>
+          <button class="sw" type="button" aria-label="开关"></button>
+        </div>
+        <div class="s-row">
+          <span class="s-ico goal" style="background:var(--goal-teal)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4s6 6 6 10a6 6 0 0 1-12 0c0-4 6-10 6-10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">潜水证 OW/AOW</span>
+          </div>
+          <span class="scene">睡前</span>
+          <span class="s-time">21:30</span>
+          <button class="sw on" type="button" aria-label="开关"></button>
+        </div>
+        <div class="s-row">
+          <span class="s-ico goal" style="background:var(--goal-amber)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 18l6-8 4 5 3-4 3 7H4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="6" r="2.2" stroke="currentColor" stroke-width="1.8"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">冈仁波齐徒步</span>
+          </div>
+          <span class="scene">早起后</span>
+          <span class="s-time">07:30</span>
+          <button class="sw on" type="button" aria-label="开关"></button>
+        </div>
+      </div>
+      <p class="s-hint" style="padding:0 var(--space-1)">没选场景的目标 20:00 轻提醒；同一时段几个目标，会合并成一条。</p>
+
+      <div class="s-sec">备份与数据</div>
+      <div class="s-card">
+        <div class="s-row" style="cursor:pointer">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V4M12 4L8 8M12 4l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">导出备份</span>
+            <span class="s-sub">生成一份文件，带走全部记录</span>
+          </div>
+        </div>
+        <div class="s-row" id="importRow" style="cursor:pointer">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4v11M12 15l-4-4M12 15l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">导入备份</span>
+            <span class="s-sub">整份替换，不与现有数据混合</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="s-foot">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        数据只在这台设备上——不上传、不联网，记得定期导出备份。
+      </p>
+    </div>
+
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <a class="st-tab" href="screen-goals.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          目标</a>
+        <a class="st-tab" href="screen-review.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+          回顾</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+            <span>我的</span>
+          </span>
+        </span>
+      </nav>
+    </div>
+    <div class="gl-home"><i></i></div>
+
+    <div class="mask" id="dlg1" hidden>
+      <div class="dlg" role="dialog" aria-label="导入确认">
+        <span class="t">导入会覆盖当前全部数据</span>
+        <span class="b">两份不会混合——继续将替换为备份内容。</span>
+        <div class="acts">
+          <button class="btn ghost" type="button" data-close>取消</button>
+          <button class="btn main" type="button" data-close>覆盖本地</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 画板二：通知未开启 ============ -->
+<div class="board">
+  <h3>② 通知未开启 · 不反复问</h3>
+  <p class="desc">权限被拒只说明一次：不开通知全部功能照用，想开去系统设置；
+    「知道了」收起说明，此后不再打扰（FR-007）。</p>
+  <div class="chips"><span class="chip t">权限态</span><span class="chip">降级不劝留</span></div>
+
+  <div class="phone">
+    <div class="island"></div>
+    <div class="st-status"><span>9:41</span></div>
+    <div class="gl-top"><span class="tt">我的</span></div>
+
+    <div class="gl-scroll">
+      <div class="me-card">
+        <span class="me-avatar">星</span>
+        <div class="me-mid">
+          <span class="me-name">星行</span>
+          <span class="me-sub">4 个目标 · 本周 10 次记录</span>
+        </div>
+      </div>
+
+      <div class="s-sec">提醒</div>
+      <div class="s-card">
+        <div class="perm">
+          <span class="t">通知未开启</span>
+          <p class="b">不开通知也能用全部功能；想开的话，去系统设置里找 Target。</p>
+          <div class="acts">
+            <button class="btn main" type="button">开启通知</button>
+            <button class="btn ghost" type="button">知道了</button>
+          </div>
+        </div>
+      </div>
+      <div class="s-card">
+        <div class="s-row">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M18 15V10a6 6 0 1 0-12 0v5l-1.5 3h15L18 15z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">今天的小事</span>
+            <span class="s-sub">每天一份，不催促</span>
+          </div>
+          <span class="s-time">08:00</span>
+          <button class="sw on" type="button" aria-label="开关"></button>
+        </div>
+      </div>
+      <p class="s-hint" style="padding:0 var(--space-1)">开关会记住你的偏好，开通知后按这里的时间提醒。</p>
+
+      <div class="s-sec">备份与数据</div>
+      <div class="s-card">
+        <div class="s-row" style="cursor:pointer">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V4M12 4L8 8M12 4l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">导出备份</span>
+            <span class="s-sub">生成一份文件，带走全部记录</span>
+          </div>
+        </div>
+        <div class="s-row" style="cursor:pointer">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4v11M12 15l-4-4M12 15l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">导入备份</span>
+            <span class="s-sub">整份替换，不与现有数据混合</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="s-foot">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        数据只在这台设备上——不上传、不联网，记得定期导出备份。
+      </p>
+    </div>
+
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <a class="st-tab" href="screen-goals.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          目标</a>
+        <a class="st-tab" href="screen-review.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+          回顾</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+            <span>我的</span>
+          </span>
+        </span>
+      </nav>
+    </div>
+    <div class="gl-home"><i></i></div>
+  </div>
+</div>
+
+<!-- ============ 画板三：深色并列 ============ -->
+<div class="board">
+  <h3>③ 深色 · 典型并列</h3>
+  <p class="desc">暗紫底幕上玻璃卡与开关同语言，选中胶囊保持墨色反白。</p>
+  <div class="chips"><span class="chip">深色</span><span class="chip">静态并列</span></div>
+
+  <div class="phone" data-theme="dark">
+    <div class="island"></div>
+    <div class="st-status"><span>9:41</span></div>
+    <div class="gl-top"><span class="tt">我的</span></div>
+
+    <div class="gl-scroll">
+      <div class="me-card">
+        <span class="me-avatar">星</span>
+        <div class="me-mid">
+          <span class="me-name">星行</span>
+          <span class="me-sub">4 个目标 · 本周 10 次记录</span>
+        </div>
+      </div>
+
+      <div class="s-sec">提醒</div>
+      <div class="s-card">
+        <div class="s-row">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M18 15V10a6 6 0 1 0-12 0v5l-1.5 3h15L18 15z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 21h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">今天的小事</span>
+            <span class="s-sub">每天一份，不催促</span>
+          </div>
+          <span class="s-time">08:00</span>
+          <button class="sw on" type="button" aria-label="开关"></button>
+        </div>
+      </div>
+      <p class="s-hint" style="padding:0 var(--space-1)">周一的概要会带上上周回顾。</p>
+
+      <div class="s-card">
+        <div class="s-row">
+          <span class="s-ico goal" style="background:var(--goal-indigo)">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 7.5h6M9 11h6M9 14.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">第一个 App</span>
+          </div>
+          <span class="scene">晚饭后</span>
+          <span class="s-time">18:30</span>
+          <button class="sw on" type="button" aria-label="开关"></button>
+        </div>
+        <div class="s-row">
+          <span class="s-ico goal" style="background:var(--goal-teal)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4s6 6 6 10a6 6 0 0 1-12 0c0-4 6-10 6-10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">潜水证 OW/AOW</span>
+          </div>
+          <span class="scene">睡前</span>
+          <span class="s-time">21:30</span>
+          <button class="sw on" type="button" aria-label="开关"></button>
+        </div>
+      </div>
+      <p class="s-hint" style="padding:0 var(--space-1)">没选场景的目标 20:00 轻提醒；同一时段几个目标，会合并成一条。</p>
+
+      <div class="s-sec">备份与数据</div>
+      <div class="s-card">
+        <div class="s-row" style="cursor:pointer">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V4M12 4L8 8M12 4l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">导出备份</span>
+            <span class="s-sub">生成一份文件，带走全部记录</span>
+          </div>
+        </div>
+        <div class="s-row" style="cursor:pointer">
+          <span class="s-ico">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4v11M12 15l-4-4M12 15l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <div class="s-mid">
+            <span class="s-title">导入备份</span>
+            <span class="s-sub">整份替换，不与现有数据混合</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="s-foot">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="10" width="14" height="10" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        数据只在这台设备上——不上传、不联网，记得定期导出备份。
+      </p>
+    </div>
+
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <a class="st-tab" href="screen-goals.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+          目标</a>
+        <a class="st-tab" href="screen-review.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+          回顾</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+            <span>我的</span>
+          </span>
+        </span>
+      </nav>
+    </div>
+    <div class="gl-home"><i></i></div>
+  </div>
+</div>
+
+<script>
+  // 开关拨动（画板一演示）
+  document.querySelectorAll('#b1 .sw').forEach((s) => {
+    s.addEventListener('click', () => s.classList.toggle('on'));
+  });
+  // 导入冲突弹层（V7：覆盖本地 / 取消，两份不静默混合）
+  const dlg = document.getElementById('dlg1');
+  document.getElementById('importRow').addEventListener('click', () => {
+    dlg.hidden = false;
+  });
+  dlg.querySelectorAll('[data-close]').forEach((b) => {
+    b.addEventListener('click', () => { dlg.hidden = true; });
+  });
+</script>
+</body>
+</html>

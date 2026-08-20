@@ -115,7 +115,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 ### Implementation
 
-- [ ] T025 [US5] 设置屏原型 `design/prototypes/screen-settings.html` + 评审通过（`design/reviews.md`）：分组、备份入口、通知设置、深色画板
+- [ ] T025 [US5] 设置屏原型 `design/prototypes/screen-settings.html` + 评审通过（`design/reviews.md`）：分组、备份入口、通知设置、深色画板 ⏳ **2026-08-20 R1 送审**（原型完成：三画板 ①典型可交互·导入冲突弹层 ②通知未开启不劝留 ③深色；提醒组按 FR-012 场景驱动预演；身份卡努力语言；隐私一句话脚注；同步把本屏与周回顾屏 nav 对齐今日屏 R4 定稿常驻等分条。评审通过后本任务收口并解锁 T026+）
 - [ ] T026 [US5] 设置落地 `lib/features/settings/settings_view.dart`：新语言重写 + V7 备份导出/导入（冲突对话框、计数 toast）回归
 - [ ] T027 [US5] [P] 通知重设计（FR-012）`lib/core/copy.dart` + `lib/features/settings/reminder_service.dart`：文案新品牌语气；提醒时刻按目标提醒时机字段调度（空值回落默认时段、同档时机多目标打扰合并）+ 调度单测 `test/`
 - [ ] T028 [US5] 品牌母版与 iOS 资产 `design/brand/` + `pubspec.yaml`：Target 图标 1024 母版（浅/深）→ 配置 `flutter_launcher_icons` + `flutter_native_splash`（dev_dependencies）→ `dart run` 生成 iOS 全档资产（图标/启动屏）

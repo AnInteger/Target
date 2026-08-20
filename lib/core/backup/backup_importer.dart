@@ -262,6 +262,10 @@ class BackupImporter {
               deadline: Value(g['deadline'] == null
                   ? null
                   : LocalDate.parse(g['deadline']! as String)),
+              // 002 B 案 envelope（T016）：可选键，缺键（001 备份）→ NULL。
+              motivation: Value(g['motivation'] as String?),
+              successCriterion: Value(g['successCriterion'] as String?),
+              cueScene: Value(g['cueScene'] as String?),
             ));
       }
       counts['goals'] = data.goals.length;

@@ -29,6 +29,9 @@ Future<db.AppDatabase> _seededDb() async {
     iconKey: 'restaurant',
     colorKey: 'coral',
     createdAt: const LocalDate(2026, 8, 3),
+    motivation: '为了晚上不胃胀',
+    successCriterion: '晚饭吃八分饱',
+    cueScene: '晚饭后',
   ));
   await goals.addInitial(
       habit.id, const WeekdaysFrequency({Weekday.mon, Weekday.wed}, 1),
@@ -129,6 +132,16 @@ void main() {
     expect(goals.length, 2);
     expect(goals.firstWhere((g) => g.id == 'g-ms').deadline,
         const LocalDate(2026, 12, 31));
+    // 002 B 案 envelope 三字段随备份往返（T016）。
+    final restoredHabit = goals.firstWhere((g) => g.id == 'g-habit');
+    expect(restoredHabit.motivation, '为了晚上不胃胀');
+    expect(restoredHabit.successCriterion, '晚饭吃八分饱');
+    expect(restoredHabit.cueScene, '晚饭后');
+    // NULL 不导出键 → milestone 目标（未填 envelope）无这些键。
+    final msMap = ((await BackupExporter(source).exportMap(
+            now: DateTime.utc(2026, 8, 22)))['data'] as Map)['goals'] as List;
+    expect(msMap.firstWhere((g) => g['id'] == 'g-ms'),
+        isNot(containsPair('motivation', anything)));
 
     final versions = await GoalRepository(target).watchAllVersions().first;
     expect(versions.length, 2); // initial ×1 + busyMode ×1（addBusyMode 开启）
@@ -219,5 +232,36 @@ void main() {
     expect(map['version'], 1);
     expect(map['exportedAt'], contains('2026-08-22'));
     expect(backupFileName(DateTime(2026, 8, 22)), 'Target-备份-20260822.targetbackup');
+  });
+
+  test('001 备份（goals 无 envelope 键）→ 导入成功，新字段为 NULL（T016）', () async {
+    // 手工构造 001 形态的备份：goals 只有旧键。
+    const v1Json = '''
+    {
+      "format": "target-backup",
+      "version": 1,
+      "exportedAt": "2026-08-20T00:00:00.000Z",
+      "data": {
+        "goals": [
+          {"id": "g-old", "name": "好好吃饭", "kind": "habit",
+           "iconKey": "restaurant", "colorKey": "coral",
+           "status": "active", "createdAt": "2026-08-03"}
+        ],
+        "frequencyVersions": [], "busySessions": [], "checkIns": [],
+        "milestoneSteps": [], "reminders": [], "weeklyReviews": [],
+        "settings": {"dailyBriefTime": "08:00",
+          "onboardingCompleted": true,
+          "notificationDeniedAcknowledged": false}
+      }
+    }''';
+    final importer = BackupImporter(target);
+    final summary = await importer.apply(importer.parse(v1Json),
+        overwriteLocal: true);
+    expect(summary.counts['goals'], 1);
+    final goal = (await GoalRepository(target).getGoals()).single;
+    expect(goal.name, '好好吃饭');
+    expect(goal.motivation, isNull);
+    expect(goal.successCriterion, isNull);
+    expect(goal.cueScene, isNull);
   });
 }

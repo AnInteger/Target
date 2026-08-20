@@ -88,6 +88,10 @@ class BackupExporter {
         'status': g.status.name,
         'createdAt': g.createdAt.isoString,
         if (g.deadline != null) 'deadline': g.deadline!.isoString,
+        // 002 B 案 envelope（T016）：可选键，NULL 不导出——001 备份缺键可导回。
+        if (g.motivation != null) 'motivation': g.motivation,
+        if (g.successCriterion != null) 'successCriterion': g.successCriterion,
+        if (g.cueScene != null) 'cueScene': g.cueScene,
       };
 
   static Map<String, Object?> _versionJson(db.FrequencyVersion v) => {

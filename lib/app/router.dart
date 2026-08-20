@@ -14,12 +14,11 @@ import 'package:go_router/go_router.dart';
 
 import '../core/copy.dart';
 import '../features/busy_mode/busy_mode_view.dart';
+import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
 import '../features/goals/goal_templates.dart';
 import '../features/goals/goals_view.dart';
 import '../features/goals/onboarding.dart';
-import '../features/milestones/milestone_editor.dart';
-import '../features/milestones/milestone_view.dart';
 import '../features/settings/settings_view.dart';
 import '../features/review/review_view.dart';
 import '../features/today/today_view.dart';
@@ -56,14 +55,11 @@ GoRouter _build() => GoRouter(
             builder: (_, s) => GoalEditorPage(
                 goalId: s.uri.queryParameters['id'],
                 template: s.extra is GoalTemplate ? s.extra as GoalTemplate : null)),
+        // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。
         GoRoute(
-            path: '/milestone/:id',
+            path: '/goal/:id',
             builder: (_, s) =>
-                MilestoneView(goalId: s.pathParameters['id']!)),
-        GoRoute(
-            path: '/milestone-editor',
-            builder: (_, s) => MilestoneEditorPage(
-                goalId: s.uri.queryParameters['id']!)),
+                GoalDetailPage(goalId: s.pathParameters['id']!)),
         GoRoute(path: '/busy', builder: (_, _) => const BusyModeView()),
       ],
     );
@@ -229,7 +225,7 @@ String? mapDeepLink(Uri uri) {
       return '/review';
     case 'goal':
       final id = uri.pathSegments.length > 1 ? uri.pathSegments[1] : uri.queryParameters['id'];
-      return id == null ? '/goals' : '/milestone/$id';
+      return id == null ? '/goals' : '/goal/$id';
     default:
       return null;
   }

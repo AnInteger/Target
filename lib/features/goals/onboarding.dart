@@ -1,8 +1,8 @@
-/// 首启引导（T022，SC-001）：模板引导创建第一个目标。
+/// 首启引导（SC-001 · 002 T018 跟随新语言）：从一句熟悉的话开始。
 ///
 /// 触发条件在 app 层（settings.onboardingCompleted == false 且无目标）；
-/// 选模板 → GoalEditor 预填；"先随便看看"或建完目标即视为完成（落库，
-/// 下次启动不再打扰）。
+/// 模板一句话 chip → GoalEditor 预填（编辑器内还有一行「从一句熟悉的话开始」）；
+/// 「写一句自己的」空草稿直入编辑器；"先随便看看"或建完即视为完成。
 library;
 
 import 'package:flutter/material.dart';
@@ -34,8 +34,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     context.go('/today');
   }
 
-  Future<void> _pick(GoalTemplate t) async {
-    await context.push('/goal-editor', extra: t);
+  /// 模板或空草稿 → 统一编辑器；返回即视为完成引导。
+  Future<void> _start({GoalTemplate? template}) async {
+    if (template == null) {
+      await context.push('/goal-editor');
+    } else {
+      await context.push('/goal-editor', extra: template);
+    }
     if (mounted) {
       await _complete();
       if (mounted) context.go('/today');
@@ -47,71 +52,51 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: ListView(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 48),
-              Text(Copy.onboardingTitle, style: theme.textTheme.headlineMedium),
-              const SizedBox(height: 8),
-              Text(Copy.onboardingSubtitle,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant)),
-              const SizedBox(height: 32),
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.6,
-                  children: [
-                    for (final t in kHabitTemplates)
-                      _TemplateTile(template: t, onTap: () => _pick(t)),
-                  ],
-                ),
-              ),
-              Center(
-                child: TextButton(
-                  onPressed: _skip,
-                  child: const Text(Copy.onboardingSkip),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                // 数据风险首启明示（FR-014）：本地存储、不上传。
-                child: Text(Copy.onboardingDataNote,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TemplateTile extends StatelessWidget {
-  const _TemplateTile({required this.template, required this.onTap});
-
-  final GoalTemplate template;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = GoalColor.byKey(template.colorKey).of(context);
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(GoalIcon.byKey(template.iconKey).icon,
-                color: color, size: 32),
+            const SizedBox(height: 48),
+            Text(Copy.onboardingTitle, style: theme.textTheme.headlineMedium),
             const SizedBox(height: 8),
-            Text(template.name, style: Theme.of(context).textTheme.titleSmall),
+            Text(Copy.onboardingSubtitle,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 12),
+            // 数据风险首启明示（FR-014）：本地存储、不上传。
+            Text(Copy.onboardingDataNote,
+                style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 24),
+            // 与编辑器/列表空态同一语言：色点 + 一句话。
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final t in kAllTemplates)
+                  ActionChip(
+                    avatar: CircleAvatar(
+                      backgroundColor: GoalColor.byKey(t.colorKey).of(context),
+                      radius: 9,
+                      child: Icon(GoalIcon.byKey(t.iconKey).icon,
+                          size: 11, color: Colors.white),
+                    ),
+                    label: Text(t.name),
+                    onPressed: () => _start(template: t),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            FilledButton.tonal(
+              onPressed: () => _start(),
+              child: const Text(Copy.goalsEmptyOwn),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: _skip,
+                child: const Text(Copy.onboardingSkip),
+              ),
+            ),
           ],
         ),
       ),

@@ -1043,7 +1043,7 @@ class _MilestoneCard extends ConsumerWidget {
         color: palette.glassCard,
         borderRadius: AppRadius.rLg,
         child: InkWell(
-          onTap: () => context.push('/milestone/${goal.id}'),
+          onTap: () => context.push('/goal/${goal.id}'),
           borderRadius: AppRadius.rLg,
           child: Container(
             padding: const EdgeInsets.all(AppSpace.s4),
@@ -1084,7 +1084,7 @@ class _MilestoneCard extends ConsumerWidget {
                     const SizedBox(width: AppSpace.s1),
                     _DetailArrow(
                       tooltip: Copy.todayDetail,
-                      onTap: () => context.push('/milestone/${goal.id}'),
+                      onTap: () => context.push('/goal/${goal.id}'),
                     ),
                   ],
                 ),

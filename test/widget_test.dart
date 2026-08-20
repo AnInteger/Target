@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target/app/app.dart';
 import 'package:target/app/providers.dart';
+import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart'
@@ -444,6 +445,58 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining(Copy.goalsPausedNote), findsNothing);
     expect(find.text(Copy.goalsActiveHeader(3)), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('T018 统一详情：这一诺呈现 + 一次性倒计时 + 步骤增改勾', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(Goal(
+      name: '年底前跑一次 10km',
+      kind: GoalKind.milestone,
+      iconKey: 'fitness',
+      colorKey: 'sage',
+      createdAt: today,
+      deadline: LocalDate(today.year, 12, 31),
+      motivation: '为了夏天的约定',
+      successCriterion: '完成一次 10km',
+      cueScene: '早起后',
+    ));
+    await repo.addStep(
+        MilestoneStep(id: 's1', goalId: goal.id, title: '买跑鞋'));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(home: GoalDetailPage(goalId: goal.id)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 这一诺：动机/成功标准/提醒场景 + 倒计时 + 已有步骤。
+    expect(find.text(Copy.goalVowLabel), findsOneWidget);
+    expect(find.text('为了夏天的约定'), findsOneWidget);
+    expect(find.text('完成一次 10km'), findsOneWidget);
+    expect(find.text('早起后'), findsOneWidget);
+    expect(
+        find.text(Copy.milestoneCountdown(
+            LocalDate(today.year, 12, 31).differenceInDays(today))),
+        findsOneWidget);
+    expect(find.text('买跑鞋'), findsOneWidget);
+
+    // 加一步：输入回车入库（加一步输入框以 hint 定位）。
+    await tester.enterText(
+        find.widgetWithText(TextFormField, Copy.milestoneStepHint), '报名比赛');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect((await repo.stepsOf(goal.id)).length, 2);
+
+    // 勾选第一步（步骤名是可编辑框，直接点复选框）→ done/total 变 1/2。
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('1/2'), findsOneWidget);
     await db.close();
   });
 

@@ -122,6 +122,11 @@ abstract final class Copy {
   static const goalsEmptyOwn = '写一句自己的';
   static String goalsOnceBadge(String deadline) => '一次性 · $deadline';
 
+  // ---- 目标详情（T018：里程碑视图并入统一呈现）----
+
+  static const goalVowLabel = '这一诺';
+  static const goalEdit = '编辑目标';
+
   // ---- 首启引导（SC-001）----
 
   static const onboardingTitle = '先照顾好一件小事';

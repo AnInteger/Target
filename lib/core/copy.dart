@@ -82,15 +82,45 @@ abstract final class Copy {
   static const focusLimitBody = '目标贵在聚焦。暂停或归档一个，再放新的进来。';
   static const goalArchived = '已归档，历史记录都在';
 
+  // ---- 编辑器 · B 案动线（002 T014 定稿：单一概念 + 动机先行）----
+
+  static const editorTemplatesLabel = '从一句熟悉的话开始';
+  static const editorNameLabel = '想做什么？';
+  static const editorFrequencyLabel = '多久做一次？';
+  static const editorWhyLabel = '为什么想做？';
+  static const editorWhyHint = '一句就够，累的时候它会提醒你';
+  static const editorWhyRequired = '写一句为什么吧——哪怕只有几个字';
+  static const editorCriterionLabel = '怎样算做到？';
+  static const editorCriterionAutoNote = '已按名称拟好，可改';
+  static const editorCueLabel = '什么时候提醒你？';
+  static const editorCueFallback = '不选场景则按默认时段提醒，同类目标合并打扰';
+  static const editorCueScenes = ['早起后', '午休时', '晚饭后', '睡前', '不打扰'];
+  static String editorCuePreview(String scene) => '$scene会提醒你，文案里带上你的「为什么」';
+  static const editorOnceLabel = '这是一次性目标';
+  static const editorOnceSub = '有完成那天，比如「年底前跑一次 10km」';
+  static const editorDdlThisYear = '今年内';
+  static const editorDdl3Months = '三个月内';
+  static const editorDdlCustom = '自选日期';
+  static const editorOnceKindNote = '一次性目标 · 创建后类型不再变更';
+  static const editorSaveCreate = '立下这个心愿';
+  static const editorLooksLabel = '它长什么样？';
+
   // ---- 目标管理页 ----
 
   static const goalsTitle = '目标';
   static String goalsActiveHeader(int n) => '进行中 $n/5';
-  static const goalsPausedHeader = '暂停中';
+  static const goalsPausedHeader = '已暂停';
+  static const goalsPausedNote = '暂停中 · 记录保留';
+  static const goalsResume = '恢复';
   static const goalsClosedHeader = '已结束';
   static const goalsEmpty = '还没有目标，从一件小事开始';
   static const goalsEmptyCta = '创建第一个目标';
   static const goalsWeekRate = '本周';
+  static const goalsInviteWhy = '＋ 补一句为什么';
+  static const goalsEmptyTitle = '想守护点什么？';
+  static const goalsEmptySub = '从一句熟悉的话开始，或者写一句自己的。';
+  static const goalsEmptyOwn = '写一句自己的';
+  static String goalsOnceBadge(String deadline) => '一次性 · $deadline';
 
   // ---- 首启引导（SC-001）----
 

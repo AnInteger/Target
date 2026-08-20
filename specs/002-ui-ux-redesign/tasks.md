@@ -78,7 +78,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 ### Implementation
 
 - [x] T013 [US3] 编辑器与列表原型 `design/prototypes/screen-editor.html`（+ `screen-goals.html` 列表语言示意）：单一"目标"概念无前置类型分叉（FR-011）、2–3 个定义模型候选方案对比（动机/成功标准/提醒时机等组合，FR-010/FR-012）、模板路径与 SMART 建议内联、渐进补全空态
-- [ ] T014 [US3] 编辑器评审：`design/reviews.md` 记录选定字段集与动线（**门禁：通过前禁止动数据库 schema**，契约 §3-3）
+- [x] T014 [US3] 编辑器评审：`design/reviews.md` 记录选定字段集与动线（**门禁：通过前禁止动数据库 schema**，契约 §3-3）✅ **2026-08-20 R1 通过——方案 B「为什么」定稿**（motivation 必填一句 / success_criterion 自动拟可改 / cue_scene 选填，A/C 字段不入库）
 - [ ] T015 [US3] 数据迁移 `lib/core/db/tables.dart`、`lib/core/db/app_database.dart`、`lib/core/models/entities.dart`：按选定字段集加**可空列** + schemaVersion 递增 + `build_runner` 再生成 `app_database.g.dart` + 迁移与既有数据零丢失单测 `test/`
 - [ ] T016 [US3] 备份格式扩展 `lib/core/backup/backup_exporter.dart`、`lib/core/backup/backup_importer.dart`：新字段为可选键（缺键兼容 001 备份）+ 单测 `test/`
 - [ ] T017 [US3] 编辑器与列表落地 `lib/features/goals/goal_editor.dart`、`lib/features/goals/goals_view.dart`、`lib/features/goals/goal_templates.dart`、`lib/features/goals/smart_suggestion.dart`：新动线（无类型分叉、SMART 内联、新维度、一次性/截止日属性化、频率变更下周一生效提示保留）+ 旧目标空维度渐进补全入口

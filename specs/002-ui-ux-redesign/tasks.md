@@ -97,7 +97,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 ### Implementation
 
-- [ ] T020 [US4] 周回顾原型 `design/prototypes/screen-review.html`：完成率/近 4 周趋势/教练建议的图形化生活语言呈现、继续/调整/暂停决策 ≤3 步、忙碌与补签画板
+- [x] T020 [US4] 周回顾原型 `design/prototypes/screen-review.html`：完成率/近 4 周趋势/教练建议的图形化生活语言呈现、继续/调整/暂停决策 ≤3 步、忙碌与补签画板 ✅ 2026-08-20 R1 送审（语义转向落地：周节奏条替代完成率；四画板 ①典型可交互 ②忙碌 ③补签透明 ④深色）
 - [ ] T021 [US4] 周回顾评审（`design/reviews.md`）通过后重写 `lib/features/review/review_view.dart`：图形化趋势（`CustomPainter`）、生活化文案 `lib/core/copy.dart`、决策动线 ≤3 步保留"下周一生效"语义
 - [ ] T022 [US4] 忙碌模式视觉区分 `lib/features/busy_mode/busy_mode_view.dart` + 今日屏忙碌态：与正常态明确区分、最低档、恢复正常回落
 - [ ] T023 [US4] [P] 补签日历新视觉 `lib/features/today/backfill_calendar.dart`："补"标记与当日打卡不混淆、14 天窗口、FittedBox 布局保留 + V5 widget 测试更新 `test/widget_test.dart`

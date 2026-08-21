@@ -1,9 +1,13 @@
-/// 提醒调度（US3，FR-006/SC-005）。
+/// 提醒调度（US3/US5，FR-006/SC-005/FR-012）。
 ///
 /// [planReminders] 纯函数计算"此刻应存在的通知集合"；
 /// [ReminderService.replan] 在数据/设置变化后全量重建 pending
 /// 请求（先 cancelAll 再逐条调度）——已达标、不适用、非活跃
 /// 目标自然被剔除。权限被拒 → 仅清空、不报错（FR-007 降级）。
+///
+/// FR-012：逐目标提醒由目标 cueScene 场景档驱动（空值回落默认档
+/// 20:00、同档多目标合并成一条、「不打扰」不提醒）；001 的逐目标
+/// Reminder 行不再参与调度，自然失效。
 library;
 
 import '../../core/copy.dart';
@@ -13,12 +17,29 @@ import '../../core/models/entities.dart';
 import '../../core/platform/gateways.dart';
 import '../../core/stats/stats_engine.dart';
 
-/// dailyBrief 固定通知 id；目标提醒从 2 起哈希避免冲突。
+/// dailyBrief 固定通知 id；场景档从 2 起。
 const int kDailyBriefNotificationId = 1;
 
-/// goalId → 稳定通知 id（跨进程一致，供 cancel/覆盖）。
-int goalReminderId(String goalId) =>
-    2 + goalId.codeUnits.fold(0, (a, b) => (a * 31 + b) % 1000000);
+/// 场景档 → 提醒时刻（FR-012 定稿：没选 20:00 轻提醒；时刻为本轮
+/// 调度口径，原型只钉了默认 20:00 与「睡前 21:30」两处锚点）。
+const Map<String, LocalTime> kCueSceneTimes = {
+  Copy.cueEarly: LocalTime(7, 30),
+  Copy.cueMidday: LocalTime(12, 30),
+  Copy.cueEvening: LocalTime(19, 30),
+  Copy.cueNight: LocalTime(21, 30),
+};
+
+/// 未选场景（或场景值已不在档）的回落时刻。
+const LocalTime kDefaultCueTime = LocalTime(20, 0);
+
+/// 档位（场景名，空串 = 默认档）→ 稳定通知 id（跨进程一致，供 cancel/覆盖）。
+int cueSlotNotificationId(String slot) => switch (slot) {
+      Copy.cueEarly => 2,
+      Copy.cueMidday => 3,
+      Copy.cueEvening => 4,
+      Copy.cueNight => 5,
+      _ => 6, // 默认档
+    };
 
 /// 一条计划内通知。
 class PlannedNotification {
@@ -39,7 +60,9 @@ class PlannedNotification {
 ///
 /// - dailyBrief：无行 → [defaultBriefTime] 且默认启用；有行 → 行生效。
 ///   正文为各目标当日概览；下一次触发日为周一时附周回顾行（FR-008 联动）。
-/// - 目标催促：仅活跃习惯目标、今日适用且未达标（SC-005）。
+/// - 逐目标提醒（FR-012）：仅活跃习惯目标、今日适用且未达标（SC-005）；
+///   按目标 cueScene 归档——「不打扰」跳过，空值/未知值回落默认档，
+///   同档多目标合并成一条通知（不连环打扰）。
 List<PlannedNotification> planReminders({
   required List<Reminder> reminders,
   required LocalTime defaultBriefTime,
@@ -64,24 +87,44 @@ List<PlannedNotification> planReminders({
     ));
   }
 
-  // ---- 逐目标催促 ----
-  final byId = {for (final g in goals) g.id: g};
-  for (final r in reminders) {
-    if (r.isDailyBrief || !r.isEnabled) continue;
-    final goal = byId[r.goalId];
-    if (goal == null || !goal.isHabit || goal.status != GoalStatus.active) {
-      continue;
-    }
-    final day = stats.dayStatusOf(r.goalId!);
+  // ---- 逐目标提醒：cueScene 归档（空串键 = 默认档）----
+  final slots = <String, List<Goal>>{};
+  for (final g in goals) {
+    if (!g.isHabit || g.status != GoalStatus.active) continue;
+    final day = stats.dayStatusOf(g.id);
     if (!day.applicable || day.met) continue; // SC-005
-    plan.add(PlannedNotification(
-      id: goalReminderId(r.goalId!),
-      time: r.time,
-      title: goal.name,
-      body: Copy.goalReminderBody(day.doneCount, day.targetCount),
-    ));
+    final scene = g.cueScene?.trim();
+    if (scene == Copy.cueNone) continue; // 「不打扰」= 该目标不提醒
+    final slot =
+        (scene == null || !kCueSceneTimes.containsKey(scene)) ? '' : scene;
+    slots.putIfAbsent(slot, () => []).add(g);
   }
+  slots.forEach((slot, list) {
+    final isDefault = slot.isEmpty;
+    final time = isDefault ? kDefaultCueTime : kCueSceneTimes[slot]!;
+    final String title;
+    final String body;
+    if (list.length == 1) {
+      final g = list.first;
+      title = isDefault ? g.name : Copy.reminderTitleScene(slot, g.name);
+      body = _goalBody(g);
+    } else {
+      title = isDefault
+          ? Copy.reminderTitleDefaultMany(list.length)
+          : Copy.reminderTitleSceneMany(slot, list.length);
+      body = Copy.reminderNames([for (final g in list) g.name]);
+    }
+    plan.add(PlannedNotification(
+        id: cueSlotNotificationId(slot), time: time, title: title, body: body));
+  });
   return plan;
+}
+
+/// 单目标档正文：写了「为什么」带上为什么（编辑器预览承诺），否则轻推一句。
+String _goalBody(Goal g) {
+  final why = g.motivation?.trim();
+  if (why != null && why.isNotEmpty) return Copy.reminderAsk(why, g.name);
+  return Copy.reminderNudge;
 }
 
 String _briefBody(

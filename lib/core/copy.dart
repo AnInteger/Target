@@ -74,7 +74,13 @@ abstract final class Copy {
   static const editorCriterionAutoNote = '已按名称拟好，可改';
   static const editorCueLabel = '什么时候提醒你？';
   static const editorCueFallback = '不选场景则按默认时段提醒，同类目标合并打扰';
-  static const editorCueScenes = ['早起后', '午休时', '晚饭后', '睡前', '不打扰'];
+  static const editorCueScenes = [
+    cueEarly,
+    cueMidday,
+    cueEvening,
+    cueNight,
+    cueNone,
+  ];
   static String editorCuePreview(String scene) => '$scene会提醒你，文案里带上你的「为什么」';
   static const editorOnceLabel = '这是一次性目标';
   static const editorOnceSub = '有完成那天，比如「年底前跑一次 10km」';
@@ -141,7 +147,15 @@ abstract final class Copy {
   static const notifEnable = '开启通知';
   static const notifAck = '知道了';
 
-  // ---- 每日概要 / 逐目标提醒（FR-006/008）----
+  // ---- 提醒场景（FR-012：编辑器 chips 与调度器共用同一套词汇）----
+
+  static const cueEarly = '早起后';
+  static const cueMidday = '午休时';
+  static const cueEvening = '晚饭后';
+  static const cueNight = '睡前';
+  static const cueNone = '不打扰';
+
+  // ---- 每日概要 / 逐目标提醒（FR-006/008/012）----
 
   static const dailyBriefTitle = '今天的小事';
   static const dailyBriefAllDone = '都照顾到了，安心过今天。';
@@ -149,8 +163,29 @@ abstract final class Copy {
       ? '还有 1 件小事在等你，不着急。'
       : '还有 $unmet 件小事在等你，不着急。';
   static const dailyBriefReviewLine = '上周回顾已生成，花两分钟看看这一周';
-  static String goalReminderBody(int done, int target) =>
-      '今天 $done/$target，不着急';
+
+  // 逐目标提醒（场景档驱动）：单目标带「为什么」（编辑器预览承诺的句式）。
+
+  /// 场景档单目标标题：「晚饭后 · 散步」。
+  static String reminderTitleScene(String scene, String name) => '$scene · $name';
+
+  /// 场景档合并标题（同档多目标合成一条，FR-012）。
+  static String reminderTitleSceneMany(String scene, int n) => '$scene · $n 件小事';
+
+  /// 默认档（未选场景，20:00 轻提醒）合并标题。
+  static String reminderTitleDefaultMany(int n) => '今晚 · $n 件小事';
+
+  /// 单目标正文（写了为什么）：「为了身体轻一点，今天散步了吗？」
+  static String reminderAsk(String motivation, String name) =>
+      '为了$motivation，今天$name了吗？';
+
+  /// 单目标正文（没写为什么）。
+  static const reminderNudge = '今天还没记录，做一次就算数。';
+
+  /// 合并档正文：名单 + 挑一件顺手的。
+  static String reminderNames(List<String> names) =>
+      '${names.join(' · ')}，挑一件顺手的开始。';
+
   static const reminderGoalHint =
       '目标提醒的时刻在编辑目标时选——早起后 / 午休时 / 晚饭后 / 睡前；'
       '没选的 20:00 轻提醒，同一时段几个目标合并成一条，不连环打扰。';

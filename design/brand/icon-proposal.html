@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Target · 品牌图标提案（T028 母版候选）</title>
+<link rel="stylesheet" href="../tokens.css?v=0820f">
+<style>
+  /* ============================================================
+     品牌图标提案（T028 · R1 送审 · 2026-08-21）
+     - 三案并陈：A 今日之环 / B 墨梅一瓣 / C 今字印
+     - 每案 浅/深 双版（iOS 18 深色变体）× 160/60/29 三级尺寸实读
+     - 取值全部派生自 ../tokens.css 令牌（iOS 资产需实体色值，
+       页内以注释标明派生来源；SC-004 语义不破——令牌为真源）
+     - 本页只做方向送审；选定后 T028 生成链（flutter_launcher_icons
+       + native_splash）仍守 T025 评审门禁后执行
+     ============================================================ */
+
+  body {
+    margin: 0; min-height: 100vh; background: #1b191f;
+    font-family: var(--font-stack); color: #f2eff7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12); box-sizing: border-box;
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 239, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 640px; line-height: 1.7; }
+
+  .cand { width: 100%; max-width: 880px; margin-bottom: var(--space-12);
+          background: rgba(255, 255, 255, .03); border: 1px solid rgba(255, 255, 255, .08);
+          border-radius: var(--radius-xl); padding: var(--space-6); box-sizing: border-box; }
+  .cand-head { display: flex; align-items: baseline; gap: var(--space-3);
+               flex-wrap: wrap; margin-bottom: var(--space-2); }
+  .cand-head .no { font: var(--font-label); color: var(--positive-fill);
+                   border: 1px solid rgba(181, 229, 80, .4); border-radius: var(--radius-full);
+                   padding: 2px var(--space-2); }
+  .cand-head h2 { font: var(--font-title-l); margin: 0; }
+  .cand-head .en { font: var(--font-label); color: rgba(242, 239, 247, .45);
+                   letter-spacing: .12em; }
+  .cand .why { font: var(--font-body-m); color: rgba(242, 239, 247, .68);
+               line-height: 1.8; margin: 0 0 var(--space-6); max-width: 720px; }
+  .cand .why b { color: #f2eff7; }
+
+  .art-row { display: flex; gap: var(--space-8); align-items: flex-start;
+             flex-wrap: wrap; }
+  .set { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+  .set .lab { font: var(--font-label); color: rgba(242, 239, 247, .5); }
+  .ladder { display: flex; align-items: flex-end; gap: var(--space-3); }
+
+  /* ---- 图标画布（iOS squircle，渐变来自底幕令牌） ---- */
+  .icon { border-radius: 22.4%; position: relative; flex: none;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, .35); }
+  .icon.light { background: linear-gradient(135deg, #ecd8e0, #e2d3e9, #d9d1f2, #d1ccf8); } /* --bg-grad-1..4 */
+  .icon.dark { background: linear-gradient(135deg, #2c2036, #221a30, #1a1526, #120e1c); }
+  .icon svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .s160 { width: 160px; height: 160px; }
+  .s60 { width: 60px; height: 60px; }
+  .s29 { width: 29px; height: 29px; }
+
+  /* ---- 启动屏预览 ---- */
+  .splash { width: 150px; height: 300px; border-radius: 22px; position: relative;
+            box-shadow: var(--shadow-mid); overflow: hidden; flex: none;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: var(--space-3); }
+  .splash.light { background: linear-gradient(135deg, #ecd8e0, #e2d3e9, #d9d1f2, #d1ccf8); }
+  .splash .mk { width: 64px; height: 64px; position: relative; }
+  .splash .mk svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .splash .nm { font: var(--font-label); letter-spacing: .3em; text-indent: .3em;
+                color: #1d1a24; }
+
+  /* ---- 主屏语境（混排干扰项） ---- */
+  .home-wrap { width: 100%; max-width: 880px; margin-bottom: var(--space-12); }
+  .home-wrap h2 { font: var(--font-title-l); margin: 0 0 var(--space-2); }
+  .home-wrap .sub { font: var(--font-body-s); color: rgba(242, 239, 247, .55);
+                    margin: 0 0 var(--space-4); }
+  .home { border-radius: var(--radius-lg); padding: var(--space-6) var(--space-4);
+          background:
+            radial-gradient(120% 90% at 20% 0%, #3a2c52 0%, rgba(58, 44, 82, 0) 55%),
+            linear-gradient(160deg, #221a30 0%, #171221 100%);
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5) var(--space-2);
+          box-shadow: var(--shadow-mid); }
+  .hi { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+  .hi .bx { width: 60px; height: 60px; border-radius: 22.4%; position: relative;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .4); }
+  .hi .bx.d { background: rgba(255, 255, 255, .10); }
+  .hi .bx svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hi .cap { font: var(--font-label); color: rgba(242, 239, 247, .8); }
+
+  .note { font: var(--font-body-s); color: rgba(242, 239, 247, .5);
+          line-height: 1.8; max-width: 880px; border-top: 1px solid rgba(255, 255, 255, .1);
+          padding-top: var(--space-4); }
+  .note b { color: rgba(242, 239, 247, .8); }
+</style>
+</head>
+<body>
+  <h1 class="pt-title">Target · 品牌图标提案</h1>
+  <p class="pt-sub">三案并陈 · 浅/深双版（iOS 18 深色变体）· 160 / 60 / 29 三级尺寸实读 · 启动屏预览与主屏混排——选定方向后进入 T028 生成链（图标全档 + 启动屏），生成仍守 T025 评审门禁。</p>
+
+  <!-- ============ 候选 A · 今日之环 ============ -->
+  <section class="cand">
+    <div class="cand-head"><span class="no">候选 A</span><h2>今日之环</h2><span class="en">TODAY RING</span></div>
+    <p class="why">App 自己的仪表语言升为标识——<b>墨梅环身、青柠今日弧、靛蓝记录珠</b>。今日屏上每个目标都是一枚这样的圆环，图标即其中之一放到最大：一圈等于一段坚持，青柠弧是今天留下的那段。与站内视觉<b>同构</b>，打开 App 的第一眼不会有「换了个世界」的断层。</p>
+    <div class="art-row">
+      <div class="set"><div class="lab">浅色 · 1024 母版 / 主屏 60 / 设置 29</div>
+        <div class="ladder">
+          <div class="icon light s160" data-mark="a" data-v="light"></div>
+          <div class="icon light s60" data-mark="a" data-v="light"></div>
+          <div class="icon light s29" data-mark="a" data-v="light"></div>
+        </div></div>
+      <div class="set"><div class="lab">深色 · iOS 18 暗色变体</div>
+        <div class="ladder">
+          <div class="icon dark s160" data-mark="a" data-v="dark"></div>
+          <div class="icon dark s60" data-mark="a" data-v="dark"></div>
+          <div class="icon dark s29" data-mark="a" data-v="dark"></div>
+        </div></div>
+      <div class="set"><div class="lab">启动屏</div>
+        <div class="splash light"><div class="mk" data-mark="a" data-v="light"></div><div class="nm">生活目标守护</div></div></div>
+    </div>
+  </section>
+
+  <!-- ============ 候选 B · 墨梅一瓣 ============ -->
+  <section class="cand">
+    <div class="cand-head"><span class="no">候选 B</span><h2>墨梅一瓣</h2><span class="en">INK PLUM</span></div>
+    <p class="why">强调令牌的本名就叫<b>「墨梅」</b>——寒冬自开、不动声色的坚持，正是这个 App 想守护的气质。五瓣花形取印章式的圆钝几何，<b>只有今日那一瓣是青柠色</b>：「把今天照顾好一瓣」，其余交给时间。每天完成时，点亮的就是这一瓣。三案里故事最完整、也最难撞脸的一个。</p>
+    <div class="art-row">
+      <div class="set"><div class="lab">浅色 · 1024 母版 / 主屏 60 / 设置 29</div>
+        <div class="ladder">
+          <div class="icon light s160" data-mark="b" data-v="light"></div>
+          <div class="icon light s60" data-mark="b" data-v="light"></div>
+          <div class="icon light s29" data-mark="b" data-v="light"></div>
+        </div></div>
+      <div class="set"><div class="lab">深色 · iOS 18 暗色变体</div>
+        <div class="ladder">
+          <div class="icon dark s160" data-mark="b" data-v="dark"></div>
+          <div class="icon dark s60" data-mark="b" data-v="dark"></div>
+          <div class="icon dark s29" data-mark="b" data-v="dark"></div>
+        </div></div>
+      <div class="set"><div class="lab">启动屏</div>
+        <div class="splash light"><div class="mk" data-mark="b" data-v="light"></div><div class="nm">生活目标守护</div></div></div>
+    </div>
+  </section>
+
+  <!-- ============ 候选 C · 今字印 ============ -->
+  <section class="cand">
+    <div class="cand-head"><span class="no">候选 C</span><h2>今字印</h2><span class="en">SEAL OF TODAY</span></div>
+    <p class="why">最险的一手——<b>印章式的「今」字</b>。这个 App 里的一切都只发生在今天：今天的打卡、今天的节奏、今天照顾好。宋体浓墨一字压在柔彩底上，文人印的 quiet 与仪表盘的 soft 撞在一起；中文单字图标在 iOS 的海洋里几乎不会撞脸。风险也直说：<b>它只在中文语境里自证</b>，若未来面向海外需要另配字标。</p>
+    <div class="art-row">
+      <div class="set"><div class="lab">浅色 · 1024 母版 / 主屏 60 / 设置 29</div>
+        <div class="ladder">
+          <div class="icon light s160" data-mark="c" data-v="light"></div>
+          <div class="icon light s60" data-mark="c" data-v="light"></div>
+          <div class="icon light s29" data-mark="c" data-v="light"></div>
+        </div></div>
+      <div class="set"><div class="lab">深色 · iOS 18 暗色变体</div>
+        <div class="ladder">
+          <div class="icon dark s160" data-mark="c" data-v="dark"></div>
+          <div class="icon dark s60" data-mark="c" data-v="dark"></div>
+          <div class="icon dark s29" data-mark="c" data-v="dark"></div>
+        </div></div>
+      <div class="set"><div class="lab">启动屏</div>
+        <div class="splash light"><div class="mk" data-mark="c" data-v="light"></div><div class="nm">生活目标守护</div></div></div>
+    </div>
+  </section>
+
+  <!-- ============ 主屏语境 ============ -->
+  <section class="home-wrap">
+    <h2>主屏语境 · 三案混排</h2>
+    <p class="sub">和干扰图标放在一起看辨识度与气质——Apple 官方风格占四席，三案候选各一席。</p>
+    <div class="home">
+      <div class="hi"><div class="bx d" data-d="phone"></div><div class="cap">电话</div></div>
+      <div class="hi"><div class="bx icon light" data-mark="a" data-v="light" style="width:60px;height:60px"></div><div class="cap">目标·A</div></div>
+      <div class="hi"><div class="bx d" data-d="cam"></div><div class="cap">相机</div></div>
+      <div class="hi"><div class="bx icon light" data-mark="b" data-v="light" style="width:60px;height:60px"></div><div class="cap">目标·B</div></div>
+      <div class="hi"><div class="bx d" data-d="mail"></div><div class="cap">邮件</div></div>
+      <div class="hi"><div class="bx icon light" data-mark="c" data-v="light" style="width:60px;height:60px"></div><div class="cap">目标·C</div></div>
+      <div class="hi"><div class="bx d" data-d="music"></div><div class="cap">音乐</div></div>
+      <div class="hi"><div class="bx d" data-d="map"></div><div class="cap">地图</div></div>
+    </div>
+  </section>
+
+  <p class="note">
+    <b>送审范围</b>：只定方向与母版语言——选定（或混搭裁定，如「B 的花 + A 的环语言」）后再进 T028 生成链：
+    1024 母版精修 → flutter_launcher_icons / flutter_native_splash → iOS 全档资产，仍守 T025 评审门禁后执行。<br>
+    <b>染色变体</b>（iOS 18 主屏单色化）：A 环形与 C 字形结构天然适配；B 花形亦可，系统会取其轮廓剪影。<br>
+    <b>派生关系</b>：环身/字墨 = --accent（浅 #252230 / 深 #f2eff7）；青柠 = --positive-fill #b5e550；靛蓝珠 = --goal-indigo（浅 #5b6ab0 / 深 #9aa5e0）；底 = --bg-grad-1..4（135deg）。iOS 资产需实体色值，令牌仍是唯一真源。
+  </p>
+
+<script>
+  /* 令牌派生（页面渲染用；真源 tokens.css） */
+  const T = {
+    ink:   { light: '#252230', dark: '#f2eff7' },
+    lime:  '#b5e550',
+    indigo:{ light: '#5b6ab0', dark: '#9aa5e0' },
+    eye:   { light: '#e2d3e9', dark: '#221a30' },   /* 花心透底色 = 渐变第 2 档 */
+  };
+
+  function markSVG(m, v) {
+    const ink = T.ink[v], lime = T.lime;
+    if (m === 'a') {
+      /* 今日之环：墨梅环身 + 青柠今日弧（75°）+ 靛蓝记录珠 */
+      return `<svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="34" fill="none" stroke="${ink}" stroke-width="14"/>
+        <path d="M 60 26 A 34 34 0 0 1 92.8 71.2" fill="none" stroke="${lime}"
+              stroke-width="14" stroke-linecap="round"/>
+        <circle cx="94" cy="60" r="9" fill="${T.indigo[v]}"/>
+      </svg>`;
+    }
+    if (m === 'b') {
+      /* 墨梅一瓣：五瓣圆钝几何，顶瓣（今日）青柠 */
+      const petals = [[60,39,0],[80,53.5,72],[72.3,77,144],[47.7,77,216],[40,53.5,288]];
+      const els = petals.map(([cx,cy,rot], i) =>
+        `<ellipse cx="${cx}" cy="${cy}" rx="14" ry="21" transform="rotate(${rot} ${cx} ${cy})"
+                  fill="${i === 0 ? lime : ink}"/>`).join('');
+      return `<svg viewBox="0 0 120 120" aria-hidden="true">${els}
+        <circle cx="60" cy="60" r="4.5" fill="${T.eye[v]}"/></svg>`;
+    }
+    /* 今字印：印章圆角框 + 宋体浓墨「今」 */
+    return `<svg viewBox="0 0 120 120" aria-hidden="true">
+      <rect x="17" y="17" width="86" height="86" rx="20" fill="none" stroke="${ink}" stroke-width="6"/>
+      <text x="60" y="61" text-anchor="middle" dominant-baseline="central"
+            font-family='"Songti SC","STSong","Noto Serif SC",serif'
+            font-size="52" font-weight="900" fill="${ink}">今</text>
+    </svg>`;
+  }
+
+  const DISTRACT = {
+    phone: `<svg viewBox="0 0 60 60"><rect x="18" y="10" width="24" height="40" rx="6"
+              fill="none" stroke="rgba(255,255,255,.75)" stroke-width="3"/>
+              <circle cx="30" cy="44" r="2.4" fill="rgba(255,255,255,.75)"/></svg>`,
+    cam:   `<svg viewBox="0 0 60 60"><rect x="12" y="18" width="36" height="26" rx="6"
+              fill="rgba(255,255,255,.75)"/><circle cx="30" cy="31" r="7.5" fill="#55505f"/>
+              <rect x="23" y="13" width="14" height="6" rx="2" fill="rgba(255,255,255,.75)"/></svg>`,
+    mail:  `<svg viewBox="0 0 60 60"><rect x="11" y="16" width="38" height="28" rx="5"
+              fill="rgba(255,255,255,.75)"/><path d="M13 19 L30 33 L47 19"
+              fill="none" stroke="#55505f" stroke-width="3"/></svg>`,
+    music: `<svg viewBox="0 0 60 60"><path d="M24 40 V17 l18 -4 v21" fill="none"
+              stroke="rgba(255,255,255,.75)" stroke-width="3"/>
+              <circle cx="20" cy="41" r="5" fill="rgba(255,255,255,.75)"/>
+              <circle cx="38" cy="37" r="5" fill="rgba(255,255,255,.75)"/></svg>`,
+    map:   `<svg viewBox="0 0 60 60"><path d="M30 12 C22 22 18 28 18 34 a12 12 0 0 0 24 0
+              C42 28 38 22 30 12 Z" fill="rgba(255,255,255,.75)"/>
+              <circle cx="30" cy="33" r="4.5" fill="#55505f"/></svg>`,
+  };
+
+  document.querySelectorAll('[data-mark]').forEach((el) => {
+    el.insertAdjacentHTML('beforeend',
+      markSVG(el.dataset.mark, el.dataset.v));
+  });
+  document.querySelectorAll('[data-d]').forEach((el) => {
+    el.insertAdjacentHTML('beforeend', DISTRACT[el.dataset.d]);
+  });
+</script>
+</body>
+</html>

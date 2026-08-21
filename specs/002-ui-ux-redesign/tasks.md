@@ -118,7 +118,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 - [ ] T025 [US5] 设置屏原型 `design/prototypes/screen-settings.html` + 评审通过（`design/reviews.md`）：分组、备份入口、通知设置、深色画板 ⏳ **2026-08-21 R2 修订送审**（R1 后用户裁决「不需要展示目标的内容，聚焦 APP 本身的设置」→ 逐目标提醒行移除、身份卡去目标统计、场景指引留 hint；导入冲突弹层/隐私脚注/深色/常驻四页签 nav 保留。另：目标列表 R1 通过被用户补审否决「差太多了」→ screen-goals.html R2 整屏重做同日送审，实现任务门禁相应顺延）
 - [ ] T026 [US5] 设置落地 `lib/features/settings/settings_view.dart`：新语言重写 + V7 备份导出/导入（冲突对话框、计数 toast）回归
 - [ ] T027 [US5] [P] 通知重设计（FR-012）`lib/core/copy.dart` + `lib/features/settings/reminder_service.dart`：文案新品牌语气；提醒时刻按目标提醒时机字段调度（空值回落默认时段、同档时机多目标打扰合并）+ 调度单测 `test/`
-- [ ] T028 [US5] 品牌母版与 iOS 资产 `design/brand/` + `pubspec.yaml`：Target 图标 1024 母版（浅/深）→ 配置 `flutter_launcher_icons` + `flutter_native_splash`（dev_dependencies）→ `dart run` 生成 iOS 全档资产（图标/启动屏）
+- [ ] T028 [US5] 品牌母版与 iOS 资产 `design/brand/` + `pubspec.yaml`：Target 图标 1024 母版（浅/深）→ 配置 `flutter_launcher_icons` + `flutter_native_splash`（dev_dependencies）→ `dart run` 生成 iOS 全档资产（图标/启动屏）⏳ **方向先行：icon-proposal.html 三案候选（今日之环/墨梅一瓣/今字印）2026-08-21 送审中——选定后精修母版进生成链，生成步骤仍守 T025 门禁**
 - [ ] T029 [US5] [P] 小组件视觉同步 `ios/TargetWidgets/DesignTokens.swift`（色板镜像，文件头注明同步自 `design_tokens.dart`）+ MediumView/锁屏 circular 外观刷新：**功能与数据流不动**（FR-008）
 - [ ] T030 [US5] 深色模式全屏核对：浅/深遍历全部屏，正文对比度 ≥4.5:1（SC-005），问题项修正并记录抽查结果 `design/reviews.md`
 

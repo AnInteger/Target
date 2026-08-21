@@ -11,7 +11,7 @@
      - 取值 100% 来自 ../tokens.css（SC-004）
      - 语义转向落地（R2 意见 8）：没有「完成率」，只有留下的记录——
        每天一格的节奏条 + 近 4 周走势 + 一句话教练语
-     - 决策 ≤3 步：三选胶囊（1 击）→ 调频 chips（2 击）→ 下周一生效
+     - 决策 ≤3 步：三选胶囊（1 击）→ 调频 chips（2 击）→ 下周一生效；R2：逐目标卡左右滑动（scroll-snap + 目标色指示点，可点跳转）
      - 补签透明：补上的日子带「补」角标，与当日记录不混淆
      - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
@@ -90,6 +90,21 @@
                border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
                font: var(--font-body-s); color: var(--on-surface); }
   .rv-banner svg { width: 15px; height: 15px; flex: none; color: var(--on-surface-variant); }
+
+  /* ---- 逐目标左右滑动（R2 用户裁决：每个目标一张卡，横滑查看） ---- */
+  .rv-pager { display: flex; gap: var(--space-3); overflow-x: auto;
+              scroll-snap-type: x mandatory; scrollbar-width: none;
+              margin: 0 calc(-1 * var(--space-6)); padding: 0 var(--space-6); }
+  .rv-pager::-webkit-scrollbar { display: none; }
+  .rv-pager .rv-card { flex: 0 0 100%; scroll-snap-align: center;
+                       box-sizing: border-box; }
+  .rv-dots { display: flex; justify-content: center; gap: var(--space-2);
+             padding: var(--space-2) 0 var(--space-1); }
+  .rv-dots i { width: 6px; height: 6px; border-radius: var(--radius-full);
+               background: var(--divider); cursor: pointer;
+               transition: transform var(--motion-fast) var(--ease-standard),
+                           background var(--motion-fast) var(--ease-standard); }
+  .rv-dots i.on { background: var(--c); transform: scale(1.4); }
 
   /* ---- 目标回顾卡 ---- */
   .rv-card {
@@ -266,6 +281,7 @@
         <span><b class="b">补</b>后来补上</span>
       </div>
 
+      <div class="rv-pager">
       <div class="rv-card" style="--c:var(--goal-indigo)">
         <div class="rv-head">
           <span class="g-ico" style="background:var(--goal-indigo)">
@@ -457,6 +473,13 @@
           </div>
         </div>
       </div>
+      </div>
+      <div class="rv-dots">
+        <i style="--c:var(--goal-indigo)" class="on"></i>
+        <i style="--c:var(--goal-sage)"></i>
+        <i style="--c:var(--goal-teal)"></i>
+        <i style="--c:var(--goal-amber)"></i>
+      </div>
 
       <p class="rv-ask">这一周，什么帮到了你？</p>
       <button class="rv-save" type="button">记下这一周</button>
@@ -514,6 +537,7 @@
         忙碌周 · 目标只记最低档，也算数
       </div>
 
+      <div class="rv-pager">
       <div class="rv-card" style="--c:var(--goal-indigo)">
         <div class="rv-head">
           <span class="g-ico" style="background:var(--goal-indigo)">
@@ -634,6 +658,12 @@
           <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M6 12a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>记录都保留，随时回来</p>
         </div>
       </div>
+      </div>
+      <div class="rv-dots">
+        <i style="--c:var(--goal-indigo)" class="on"></i>
+        <i style="--c:var(--goal-sage)"></i>
+        <i style="--c:var(--goal-amber)"></i>
+      </div>
 
       <p class="rv-ask">这一周，什么帮到了你？</p>
       <button class="rv-save" type="button">记下这一周</button>
@@ -686,6 +716,7 @@
         <span><b class="b">补</b>后来补上</span>
       </div>
 
+      <div class="rv-pager">
       <div class="rv-card" style="--c:var(--goal-indigo)">
         <div class="rv-head">
           <span class="g-ico" style="background:var(--goal-indigo)">
@@ -786,6 +817,12 @@
           </div>
         </div>
       </div>
+      </div>
+      <div class="rv-dots">
+        <i style="--c:var(--goal-indigo)" class="on"></i>
+        <i style="--c:var(--goal-teal)"></i>
+        <i style="--c:var(--goal-amber)"></i>
+      </div>
 
       <p class="rv-foot">
         <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
@@ -841,6 +878,7 @@
         <span><b class="b">补</b>后来补上</span>
       </div>
 
+      <div class="rv-pager">
       <div class="rv-card" style="--c:var(--goal-indigo)">
         <div class="rv-head">
           <span class="g-ico" style="background:var(--goal-indigo)">
@@ -916,6 +954,11 @@
           <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>新频率下周一生效</p>
         </div>
       </div>
+      </div>
+      <div class="rv-dots">
+        <i style="--c:var(--goal-indigo)" class="on"></i>
+        <i style="--c:var(--goal-teal)"></i>
+      </div>
 
       <p class="rv-ask">这一周，什么帮到了你？</p>
       <button class="rv-save" type="button">记下这一周</button>
@@ -961,6 +1004,20 @@
       b.parentElement.querySelectorAll('button').forEach((x) =>
         x.classList.toggle('on', x === b));
     });
+  });
+
+  // 逐目标左右滑动：指示点联动 + 点按跳转（R2 用户裁决）
+  document.querySelectorAll('.rv-pager').forEach((pager) => {
+    const dots = [...pager.parentElement.querySelectorAll('.rv-dots i')];
+    const upd = () => {
+      const i = Math.round(pager.scrollLeft / pager.clientWidth);
+      dots.forEach((d, k) => d.classList.toggle('on', k === i));
+    };
+    pager.addEventListener('scroll', () => requestAnimationFrame(upd), { passive: true });
+    dots.forEach((d, k) => d.addEventListener('click', () => {
+      pager.scrollTo({ left: k * pager.clientWidth, behavior: 'smooth' });
+    }));
+    upd();
   });
 </script>
 </body>

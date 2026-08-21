@@ -3,17 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>目标列表 · Target（柔彩仪表盘 · 列表语言示意）</title>
+<title>目标列表 · Target（柔彩仪表盘）</title>
 <link rel="stylesheet" href="../tokens.css?v=0820f">
 <style>
   /* ============================================================
-     目标列表原型（T013 · R1 · 列表语言示意，随编辑器三案送审）
+     目标列表原型（T013 · R2 重做 · 2026-08-21 用户裁决）
+     - R1 已通过但用户补审「不符合要求，差太多了」→ 整屏重做
+     - 对齐今日屏 R4 定稿语言：常驻四页签导航、真实四目标
+       演示数据、努力语言（N/7 天有记录 + 最近 · ×××），
+       去掉每日打卡微环（那是今日屏的职责，列表页讲「这目标
+       最近怎么样」）
+     - 单一"目标"概念同列呈现不分类型（FR-011）；B 案维度
+       回显：为什么 / 场景；缺为什么 → 虚线渐进补全入口
      - 取值 100% 来自 ../tokens.css（SC-004）
-     - 单一"目标"概念：习惯/一次性/里程碑同列呈现，不分区
-       不分类型（FR-011）；新维度在卡上回显（动机/最小行动）
-     - motivation 为空 → 卡上出现「补一句为什么」渐进补全入口
-       （data-model §1：NULL → 渐进补全）
-     - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
 
   [hidden] { display: none !important; }
@@ -52,14 +54,13 @@
   .island { position: absolute; top: var(--space-3); left: 50%;
             transform: translateX(-50%); width: 112px; height: 32px;
             background: #000; border-radius: var(--radius-full); z-index: 40; }
-
   .st-status { height: 52px; flex: none; display: flex; align-items: flex-end;
                justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
                font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
 
-  /* 顶栏：标题 + 新建 */
+  /* 顶栏：标题 + 新建（accent 胶囊） */
   .gl-top { flex: none; display: flex; align-items: center; gap: var(--space-3);
-            padding: var(--space-2) var(--space-6) var(--space-2); }
+            padding: var(--space-2) var(--space-6); }
   .gl-top .tt { font: var(--font-display-s); color: var(--on-surface); flex: 1; }
   .gl-new {
     display: flex; align-items: center; gap: var(--space-2); border: none;
@@ -69,45 +70,52 @@
     box-shadow: var(--shadow-mid); }
 
   .gl-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
-               padding: var(--space-2) var(--space-6) var(--space-16);
+               padding: var(--space-2) var(--space-6) var(--space-4);
                display: flex; flex-direction: column; gap: var(--space-3); }
   .gl-scroll::-webkit-scrollbar { display: none; }
 
-  /* 目标卡：名称 + 新维度回显 + 频率/状态 */
-  .g-card {
-    background: var(--glass-card); border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg); padding: var(--space-4);
-    display: flex; align-items: center; gap: var(--space-3);
-    box-shadow: var(--shadow-low); backdrop-filter: var(--glass-blur); }
-  .g-ico { width: 44px; height: 44px; border-radius: var(--radius-md);
-           display: flex; align-items: center; justify-content: center;
-           color: #fff; flex: none; }
-  .g-ico svg { width: 20px; height: 20px; }
-  .g-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-  .g-name { font: var(--font-title-s); color: var(--on-surface); }
-  .g-why { font: var(--font-body-s); color: var(--on-surface-variant);
-           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .g-meta { display: flex; align-items: center; gap: var(--space-2);
-            margin-top: 2px; }
-  .g-freq { font: var(--font-body-s); color: var(--on-surface-variant); }
-  .badge { font: var(--font-label); padding: 1px var(--space-2);
-           border-radius: var(--radius-full); white-space: nowrap; }
-  .badge.busy { background: var(--surface-alt); color: var(--on-surface-variant);
-                border: 1px solid var(--divider); }
-  .badge.done { background: var(--positive-fill); color: var(--positive-on); }
-  .badge.ddl { background: var(--surface-alt); color: var(--on-surface); }
+  /* 顶下小结（努力语言） */
+  .g-sum { font: var(--font-body-m); color: var(--on-surface-variant);
+           font-variant-numeric: tabular-nums;
+           padding: 0 var(--space-1) var(--space-1); }
 
-  /* 右侧：本周进度微环（示意） */
-  .g-ring { flex: none; width: 40px; height: 40px; border-radius: var(--radius-full);
-            display: flex; align-items: center; justify-content: center;
-            font: var(--font-label); color: var(--on-surface);
-            background:
-              conic-gradient(var(--goal-coral) 0 66%, var(--divider) 66% 100%); }
-  .g-ring i { width: 30px; height: 30px; border-radius: var(--radius-full);
-              background: var(--surface); display: flex; align-items: center;
-              justify-content: center; font-style: normal; font-variant-numeric: tabular-nums; }
-  .g-ring.full { background: conic-gradient(var(--positive-fill) 0 100%); }
-  .g-ring.full i { color: var(--positive-on); font-weight: 700; }
+  /* ---- 目标卡：图标 + 名称 + 本周节奏数 / 为什么 / 元行 ---- */
+  .g-card {
+    background: var(--glass-card); border: 1px solid var(--divider);
+    border-radius: var(--radius-lg); padding: var(--space-4);
+    cursor: pointer; box-shadow: var(--shadow-low);
+    display: flex; flex-direction: column; gap: var(--space-2);
+    transition: transform var(--motion-fast) var(--ease-standard);
+  }
+  .g-card:active { transform: scale(.985); }
+  .g-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .g-row1 { display: flex; align-items: center; gap: var(--space-3); }
+  .g-ico { width: 40px; height: 40px; border-radius: var(--radius-md); flex: none;
+           display: flex; align-items: center; justify-content: center;
+           color: #fff; }
+  .g-ico svg { width: 19px; height: 19px; }
+  .g-name { font: var(--font-title-s); color: var(--on-surface); flex: 1;
+            min-width: 0; white-space: nowrap; overflow: hidden;
+            text-overflow: ellipsis; }
+  .g-ratio { text-align: right; flex: none; }
+  .g-ratio b { font: var(--font-title-m); color: var(--on-surface); line-height: 1;
+               font-variant-numeric: tabular-nums; }
+  .g-ratio small { display: block; font: var(--font-label); line-height: 1;
+                   color: var(--on-surface-variant); margin-top: 3px; }
+  .g-why { font: var(--font-body-s); color: var(--on-surface-variant);
+           margin: 0; overflow: hidden; text-overflow: ellipsis;
+           display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+  .g-meta { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+  .g-chip { font: var(--font-label); padding: 1px var(--space-2); flex: none;
+            border-radius: var(--radius-full); background: var(--surface-alt);
+            color: var(--on-surface-variant); border: 1px solid var(--divider);
+            white-space: nowrap; }
+  .g-chip.busy { color: var(--warning); border-color: var(--warning); }
+  .g-latest { display: flex; align-items: center; gap: 5px; margin-left: auto;
+              font: var(--font-body-s); color: var(--on-surface-variant);
+              min-width: 0; white-space: nowrap; overflow: hidden; }
+  .g-latest svg { width: 12px; height: 12px; flex: none; }
+  .g-latest em { font-style: normal; overflow: hidden; text-overflow: ellipsis; }
 
   /* 渐进补全邀请（motivation NULL） */
   .g-invite {
@@ -117,23 +125,26 @@
     padding: 1px var(--space-2); width: fit-content; cursor: pointer; }
   .g-invite:hover { color: var(--on-surface); }
 
-  /* 暂停：折叠行 */
+  /* 分节小标 + 暂停折叠行 */
+  .g-sec { font: var(--font-label); letter-spacing: .08em;
+           color: var(--on-surface-variant); margin-top: var(--space-2); }
   .g-paused {
     display: flex; align-items: center; gap: var(--space-3);
     border: 1px dashed var(--divider); border-radius: var(--radius-lg);
     padding: var(--space-3) var(--space-4); opacity: .75; }
+  .g-paused .g-ico2 { width: 32px; height: 32px; border-radius: var(--radius-md);
+                      display: flex; align-items: center; justify-content: center;
+                      color: #fff; flex: none; }
+  .g-paused .g-ico2 svg { width: 15px; height: 15px; }
   .g-paused .g-name { font: var(--font-body-l); }
+  .g-paused .g-note { font: var(--font-body-s); color: var(--on-surface-variant); }
   .g-resume { margin-left: auto; border: none; cursor: pointer;
               background: var(--surface); color: var(--on-surface);
               border: 1px solid var(--divider);
               font: var(--font-body-s); border-radius: var(--radius-full);
               padding: var(--space-1) var(--space-3); }
 
-  /* 分节小标 */
-  .g-sec { font: var(--font-label); letter-spacing: .08em;
-           color: var(--on-surface-variant); margin-top: var(--space-2); }
-
-  /* 空态 */
+  /* 空态：提问 + 虚线邀请（与引导/今日屏空态同语言） */
   .g-empty {
     border: 1.5px dashed var(--divider); border-radius: var(--radius-xl);
     padding: var(--space-8) var(--space-6); text-align: center;
@@ -159,46 +170,50 @@
     font: var(--font-title-s); border-radius: var(--radius-md);
     padding: var(--space-4) var(--space-8); box-shadow: var(--shadow-mid); }
 
-  /* 底部胶囊导航（与今日屏 R4 定稿同语言） */
-  .gl-nav { position: absolute; left: 50%; transform: translateX(-50%);
-            bottom: var(--space-4); display: flex; gap: var(--space-1);
-            background: var(--glass-card); border: 1px solid var(--glass-border);
-            border-radius: var(--radius-full); padding: var(--space-1) var(--space-2);
-            box-shadow: var(--shadow-mid); backdrop-filter: var(--glass-blur); z-index: 30; }
-  .gl-nav a { display: flex; align-items: center; gap: var(--space-1);
-              text-decoration: none; color: var(--on-surface-variant);
-              font: var(--font-body-s); border-radius: var(--radius-full);
-              padding: var(--space-2) var(--space-4); }
-  .gl-nav a svg { width: 18px; height: 18px; }
-  .gl-nav a.on { background: var(--accent); color: var(--accent-on); font-weight: 600; }
+  /* ---- 底部导航（照抄今日屏 R4 定稿：常驻条 + 等分页签 + 选中内胶囊） ---- */
+  .st-navwrap { flex: none; padding: var(--space-2) var(--space-6) var(--space-2); }
+  .st-nav {
+    display: flex; align-items: center;
+    background: var(--surface); border-radius: var(--radius-full);
+    box-shadow: var(--shadow-mid); padding: var(--space-1);
+  }
+  .st-tab {
+    background: none; border: none; cursor: pointer; padding: var(--space-1) 0;
+    flex: 1; /* 等分槽位：选中胶囊变宽不推挤邻页签 */
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--on-surface-variant); font: var(--font-label);
+    text-decoration: none; font-family: var(--font-stack);
+  }
+  .st-tab svg { width: 20px; height: 20px; }
+  .st-tab .chipx {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: var(--accent); color: var(--accent-on);
+    border-radius: var(--radius-full); padding: var(--space-1) var(--space-4);
+  }
+  .st-tab .chipx svg { width: 20px; height: 20px; }
+  .st-tab .chipx span { line-height: 1; }
   .gl-home { flex: none; height: 28px; display: flex; align-items: center;
              justify-content: center; }
   .gl-home i { width: 120px; height: 5px; border-radius: var(--radius-full);
                background: var(--on-surface); opacity: .8; }
-
-  /* 深色并列：沿用今日屏的 [data-theme="dark"] 作用域改写 */
-  [data-theme="dark"] .st-status, [data-theme="dark"] .gl-top .tt,
-  [data-theme="dark"] .g-name { color: var(--on-surface); }
-  [data-theme="dark"] .g-card, [data-theme="dark"] .gl-nav {
-    background: var(--glass-card); border-color: var(--glass-border); }
-  [data-theme="dark"] .g-ring i { background: var(--surface); }
 </style>
 </head>
 <body>
 
-<h1 class="pt-title">目标列表 · 列表语言示意</h1>
+<h1 class="pt-title">目标列表</h1>
 <p class="pt-sub">
-  目标只有一个概念：习惯、一次性、暂停的同列呈现，不再按类型分区（FR-011）。
-  编辑器三案带来的新维度在卡上回显——动机（方案 B）或最小行动（方案 C）作第二行；
-  还没补的维度，卡上直接给「补一句为什么」的虚线入口（渐进补全）。
+  R2 重做：对齐今日屏 R4 定稿——常驻四页签导航、真实四目标演示数据、
+  努力语言（「N/7 天有记录」+「最近 · ×××」，不再放每日打卡微环——那是今日屏的职责）。
+  为什么 / 场景等 B 案维度在卡上回显，缺为什么给虚线渐进补全入口。
 </p>
 
 <!-- ============ 画板一：典型态 ============ -->
 <div class="board">
   <h3>① 典型 · 进行中</h3>
-  <p class="desc">四张卡覆盖四种形态：有动机的（B 案回显）、还没补动机的（渐进补全入口）、
-    忙碌降档中的、以及已暂停折叠行。右侧微环示意本周节奏。</p>
-  <div class="chips"><span class="chip t">典型态</span><span class="chip">四形态并列</span></div>
+  <p class="desc">四张真实目标卡：正常的、还没补为什么的（渐进补全）、忙碌降档中的；
+    右侧数字是本周节奏（记录语言），元行带频率 / 场景 / 徽标与最近一条记录。
+    一次性 · 截止日目标同列呈现，卡上带徽标，不分区（FR-011）。点卡进目标详情。</p>
+  <div class="chips"><span class="chip t">典型态</span><span class="chip">真实四目标</span><span class="chip">记录语言</span></div>
 
   <div class="phone">
     <div class="island"></div>
@@ -212,72 +227,103 @@
     </div>
 
     <div class="gl-scroll">
-      <div class="g-card">
-        <span class="g-ico" style="background:var(--goal-sage)">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M5 9l7-5 7 5M5 9v9h14V9M5 9l-2 3M19 9l2 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="g-mid">
-          <span class="g-name">每天散步 20 分钟</span>
-          <span class="g-why">为了身体轻一点</span>
-          <div class="g-meta"><span class="g-freq">每天 1 次</span></div>
+      <p class="g-sum">4 个目标 · 本周留下 10 次记录</p>
+
+      <div class="g-card" tabindex="0">
+        <div class="g-row1">
+          <span class="g-ico" style="background:var(--goal-indigo)">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 7.5h6M9 11h6M9 14.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="g-name">第一个 App</span>
+          <span class="g-ratio"><b>4/7</b><small>天有记录</small></span>
         </div>
-        <span class="g-ring full"><i>✓</i></span>
+        <p class="g-why">想做出一个属于自己的东西</p>
+        <div class="g-meta">
+          <span class="g-chip">碎片时间</span><span class="g-chip">睡前</span>
+          <span class="g-latest">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <em>最近 · 完成第一版交互稿</em></span>
+        </div>
       </div>
 
-      <div class="g-card">
-        <span class="g-ico" style="background:var(--goal-coral)">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h13M4 12l3-3M4 12l3 3M14 6h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="g-mid">
-          <span class="g-name">好好吃饭</span>
-          <span class="g-invite">＋ 补一句为什么</span>
-          <div class="g-meta"><span class="g-freq">每天 3 次</span>
-            <span class="badge busy">忙碌中 · 每天 1 次</span></div>
+      <div class="g-card" tabindex="0">
+        <div class="g-row1">
+          <span class="g-ico" style="background:var(--goal-sage)">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="17" r="3.2" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="15.5" r="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M8.8 15.2L15 6.5M15 6.5l3.5 1.2M15 6.5l.6-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="g-name">骑行大 PRO 计划</span>
+          <span class="g-ratio"><b>2/2</b><small>天有记录</small></span>
         </div>
-        <span class="g-ring" style="background:conic-gradient(var(--goal-coral) 0 33%, var(--divider) 33% 100%)"><i>1/3</i></span>
+        <span class="g-invite">＋ 补一句为什么</span>
+        <div class="g-meta">
+          <span class="g-chip">每周末</span>
+          <span class="g-latest">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <em>最近 · 均速突破 25 km/h</em></span>
+        </div>
       </div>
 
-      <div class="g-card">
-        <span class="g-ico" style="background:var(--goal-plum)">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2V5zM19 17H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="g-mid">
-          <span class="g-name">睡前读 5 页</span>
-          <span class="g-why">小到不好意思拒绝</span>
-          <div class="g-meta"><span class="g-freq">每天 1 次 · 睡前</span></div>
+      <div class="g-card" tabindex="0">
+        <div class="g-row1">
+          <span class="g-ico" style="background:var(--goal-teal)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4s6 6 6 10a6 6 0 0 1-12 0c0-4 6-10 6-10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="g-name">潜水证 OW/AOW</span>
+          <span class="g-ratio"><b>1/3</b><small>天有记录</small></span>
         </div>
-        <span class="g-ring" style="background:conic-gradient(var(--goal-plum) 0 0%, var(--divider) 0% 100%)"><i>0/1</i></span>
+        <p class="g-why">想看看海底安静的样子</p>
+        <div class="g-meta">
+          <span class="g-chip">假期练</span><span class="g-chip busy">忙碌中 · 最低档</span>
+          <span class="g-latest">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <em>最近 · 第一次 DSD 体验潜水</em></span>
+        </div>
       </div>
 
-      <div class="g-card">
-        <span class="g-ico" style="background:var(--goal-indigo)">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="g-mid">
-          <span class="g-name">年底前跑一次 10km</span>
-          <span class="g-why">想看看自己能到哪</span>
-          <div class="g-meta"><span class="g-freq">每周 2 次</span>
-            <span class="badge ddl">一次性 · 今年内</span></div>
+      <div class="g-card" tabindex="0">
+        <div class="g-row1">
+          <span class="g-ico" style="background:var(--goal-amber)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 18l6-8 4 5 3-4 3 7H4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="6" r="2.2" stroke="currentColor" stroke-width="1.8"/></svg></span>
+          <span class="g-name">冈仁波齐徒步</span>
+          <span class="g-ratio"><b>3/5</b><small>天有记录</small></span>
         </div>
-        <span class="g-ring" style="background:conic-gradient(var(--goal-indigo) 0 50%, var(--divider) 50% 100%)"><i>1/2</i></span>
+        <p class="g-why">想在转山时不那么喘</p>
+        <div class="g-meta">
+          <span class="g-chip">拉练期</span><span class="g-chip">早起后</span>
+          <span class="g-latest">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <em>最近 · 格聂南线完成</em></span>
+        </div>
       </div>
 
       <div class="g-sec">已暂停</div>
       <div class="g-paused">
-        <span class="g-ico" style="background:var(--goal-teal);width:32px;height:32px">
-          <svg viewBox="0 0 24 24" fill="none" style="width:15px;height:15px"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="g-mid">
+        <span class="g-ico2" style="background:var(--goal-stone)">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12M8.5 8.5L12 5l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 17.5h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        <div class="g-mid" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
           <span class="g-name">每天喝够水</span>
-          <div class="g-meta"><span class="g-freq">暂停中 · 记录保留</span></div>
+          <span class="g-note">暂停中 · 记录保留</span>
         </div>
         <button class="g-resume" type="button">恢复</button>
       </div>
     </div>
 
-    <nav class="gl-nav">
-      <a href="screen-today.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v10h12V10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>今天</a>
-      <a class="on" href="#goals">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9-5.5 2.9 1-6.1L3 9.5l6.3-.9L12 3z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>目标</a>
-      <a href="screen-review.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v14H5zM8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>回顾</a>
-    </nav>
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+            <span>目标</span>
+          </span>
+        </span>
+        <a class="st-tab" href="screen-review.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+          回顾</a>
+        <a class="st-tab" href="screen-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          我的</a>
+      </nav>
+    </div>
     <div class="gl-home"><i></i></div>
   </div>
 </div>
@@ -285,14 +331,20 @@
 <!-- ============ 画板二：空态 ============ -->
 <div class="board">
   <h3>② 空态 · 第一个目标</h3>
-  <p class="desc">延续今日屏空态的「提问 + 虚线邀请」语言：先给熟悉的模板一句话起步，
+  <p class="desc">延续「提问 + 虚线邀请」语言：先给熟悉的模板一句话起步，
     自定义走主按钮——两条路径都进同一个编辑器。</p>
   <div class="chips"><span class="chip t">空态</span><span class="chip">模板优先</span></div>
 
   <div class="phone">
     <div class="island"></div>
     <div class="st-status"><span>9:41</span></div>
-    <div class="gl-top"><span class="tt">目标</span></div>
+    <div class="gl-top">
+      <span class="tt">目标</span>
+      <button class="gl-new" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4"
+                stroke-linecap="round"/></svg>新建</button>
+    </div>
 
     <div class="gl-scroll">
       <div class="g-empty">
@@ -312,14 +364,25 @@
       </div>
     </div>
 
-    <nav class="gl-nav">
-      <a href="screen-today.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v10h12V10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>今天</a>
-      <a class="on" href="#goals">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9-5.5 2.9 1-6.1L3 9.5l6.3-.9L12 3z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>目标</a>
-      <a href="screen-review.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v14H5zM8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>回顾</a>
-    </nav>
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+            <span>目标</span>
+          </span>
+        </span>
+        <a class="st-tab" href="screen-review.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+          回顾</a>
+        <a class="st-tab" href="screen-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          我的</a>
+      </nav>
+    </div>
     <div class="gl-home"><i></i></div>
   </div>
 </div>
@@ -327,7 +390,8 @@
 <!-- ============ 画板三：深色并列 ============ -->
 <div class="board">
   <h3>③ 深色 · 典型并列</h3>
-  <p class="desc">暗紫底幕上玻璃卡降透明度，选中的「目标」胶囊反白，达成环保持青柠。</p>
+  <p class="desc">全部取值语义 token，深色作用域自动切换——玻璃卡降透明度、
+    选中胶囊反白、忙碌徽标转暖黄。</p>
   <div class="chips"><span class="chip">深色</span><span class="chip">静态并列</span></div>
 
   <div class="phone" data-theme="dark">
@@ -342,47 +406,68 @@
     </div>
 
     <div class="gl-scroll">
-      <div class="g-card">
-        <span class="g-ico" style="background:var(--goal-sage)">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M5 9l7-5 7 5M5 9v9h14V9M5 9l-2 3M19 9l2 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="g-mid">
-          <span class="g-name">每天散步 20 分钟</span>
-          <span class="g-why">为了身体轻一点</span>
-          <div class="g-meta"><span class="g-freq">每天 1 次</span></div>
+      <p class="g-sum">4 个目标 · 本周留下 10 次记录</p>
+
+      <div class="g-card" tabindex="0">
+        <div class="g-row1">
+          <span class="g-ico" style="background:var(--goal-indigo)">
+            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 7.5h6M9 11h6M9 14.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+          <span class="g-name">第一个 App</span>
+          <span class="g-ratio"><b>4/7</b><small>天有记录</small></span>
         </div>
-        <span class="g-ring full"><i>✓</i></span>
-      </div>
-      <div class="g-card">
-        <span class="g-ico" style="background:var(--goal-coral)">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h13M4 12l3-3M4 12l3 3M14 6h5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="g-mid">
-          <span class="g-name">好好吃饭</span>
-          <span class="g-invite">＋ 补一句为什么</span>
-          <div class="g-meta"><span class="g-freq">每天 3 次</span>
-            <span class="badge busy">忙碌中 · 每天 1 次</span></div>
+        <p class="g-why">想做出一个属于自己的东西</p>
+        <div class="g-meta">
+          <span class="g-chip">碎片时间</span><span class="g-chip">睡前</span>
+          <span class="g-latest">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <em>最近 · 完成第一版交互稿</em></span>
         </div>
-        <span class="g-ring" style="background:conic-gradient(var(--goal-coral) 0 33%, var(--divider) 33% 100%)"><i>1/3</i></span>
       </div>
+
+      <div class="g-card" tabindex="0">
+        <div class="g-row1">
+          <span class="g-ico" style="background:var(--goal-teal)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4s6 6 6 10a6 6 0 0 1-12 0c0-4 6-10 6-10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="g-name">潜水证 OW/AOW</span>
+          <span class="g-ratio"><b>1/3</b><small>天有记录</small></span>
+        </div>
+        <p class="g-why">想看看海底安静的样子</p>
+        <div class="g-meta">
+          <span class="g-chip">假期练</span><span class="g-chip busy">忙碌中 · 最低档</span>
+        </div>
+      </div>
+
       <div class="g-sec">已暂停</div>
       <div class="g-paused">
-        <span class="g-ico" style="background:var(--goal-teal);width:32px;height:32px">
-          <svg viewBox="0 0 24 24" fill="none" style="width:15px;height:15px"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        <div class="g-mid">
+        <span class="g-ico2" style="background:var(--goal-stone)">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12M8.5 8.5L12 5l3.5 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 17.5h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+        <div class="g-mid" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
           <span class="g-name">每天喝够水</span>
-          <div class="g-meta"><span class="g-freq">暂停中 · 记录保留</span></div>
+          <span class="g-note">暂停中 · 记录保留</span>
         </div>
         <button class="g-resume" type="button">恢复</button>
       </div>
     </div>
 
-    <nav class="gl-nav">
-      <a href="screen-today.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7M6 10v10h12V10" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>今天</a>
-      <a class="on" href="#goals">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.7 5.6 6.3.9-4.5 4.4 1 6.1-5.5-2.9-5.5 2.9 1-6.1L3 9.5l6.3-.9L12 3z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>目标</a>
-      <a href="screen-review.html">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M5 5h14v14H5zM8 9h8M8 13h8M8 17h4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>回顾</a>
-    </nav>
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+            <span>目标</span>
+          </span>
+        </span>
+        <a class="st-tab" href="screen-review.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+          回顾</a>
+        <a class="st-tab" href="screen-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          我的</a>
+      </nav>
+    </div>
     <div class="gl-home"><i></i></div>
   </div>
 </div>

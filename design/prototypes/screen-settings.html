@@ -7,10 +7,11 @@
 <link rel="stylesheet" href="../tokens.css?v=0820f">
 <style>
   /* ============================================================
-     设置屏原型（T025 · R1 · US5「我的」页签）
+     设置屏原型（T025 · R2 · US5「我的」页签）
+     - R2 用户裁决（2026-08-21）：不展示目标内容，聚焦 App 本身
+       的设置——逐目标提醒行移除（目标提醒时刻在编辑器选场景，
+       即 B 案 cue_scene），本屏只留概要提醒 + 备份 + 隐私
      - 取值 100% 来自 ../tokens.css（SC-004）
-     - 分组：身份（努力语言）→ 提醒（FR-012：概要 + 场景驱动的
-       逐目标提醒、同档合并）→ 备份与数据（V7 冲突弹层可交互）
      - 权限被拒不反复弹窗（FR-007）：未开启态一次说明 + 知道了
      - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
@@ -96,16 +97,11 @@
            display: flex; align-items: center; justify-content: center;
            background: var(--surface-alt); color: var(--on-surface-variant); }
   .s-ico svg { width: 16px; height: 16px; }
-  .s-ico.goal { color: #fff; }
-  .s-ico.goal svg { width: 15px; height: 15px; }
   .s-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .s-title { font: var(--font-body-l); color: var(--on-surface); }
   .s-sub { font: var(--font-body-s); color: var(--on-surface-variant); }
   .s-time { font: var(--font-body-m); color: var(--on-surface); flex: none;
             font-variant-numeric: tabular-nums; font-weight: 700; }
-  .scene { font: var(--font-label); padding: 1px var(--space-2); flex: none;
-           border-radius: var(--radius-full); background: var(--surface-alt);
-           color: var(--on-surface-variant); border: 1px solid var(--divider); }
 
   /* 开关（iOS 胶囊） */
   .sw { position: relative; width: 46px; height: 28px; border-radius: var(--radius-full);
@@ -188,17 +184,17 @@
 
 <h1 class="pt-title">我的 · 设置</h1>
 <p class="pt-sub">
-  「我的」页签 = 身份 + 提醒 + 备份。提醒按目标里选的场景到点（早起后 / 睡前……），
-  没选的回落默认时段，同一档只响一条；导入是整份替换，弹层里说清楚再动手。
-  数据只在这台设备上——页尾一句话讲完隐私。
+  「我的」页签聚焦 App 本身的设置：概要提醒、备份与数据、隐私。
+  目标的提醒时刻不在这一页——在编辑目标时选场景（早起后 / 睡前……），
+  同一时段只响一条。导入是整份替换，弹层里说清楚再动手。
 </p>
 
 <!-- ============ 画板一：典型（可交互） ============ -->
 <div class="board">
   <h3>① 典型 · 可交互</h3>
-  <p class="desc">开关都能拨；点「导入备份」弹出冲突确认——覆盖本地 / 取消，
-    两份绝不静默混合。目标提醒的时间由编辑器里的场景选择驱动。</p>
-  <div class="chips"><span class="chip t">典型态</span><span class="chip">导入冲突弹层</span><span class="chip">场景驱动提醒</span></div>
+  <p class="desc">开关能拨；点「导入备份」弹出冲突确认——覆盖本地 / 取消，
+    两份绝不静默混合。目标提醒时刻在编辑目标时选场景，本页不展示目标内容。</p>
+  <div class="chips"><span class="chip t">典型态</span><span class="chip">导入冲突弹层</span><span class="chip">App 设置聚焦</span></div>
 
   <div class="phone" id="b1">
     <div class="island"></div>
@@ -210,7 +206,6 @@
         <span class="me-avatar">星</span>
         <div class="me-mid">
           <span class="me-name">星行</span>
-          <span class="me-sub">4 个目标 · 本周 10 次记录</span>
         </div>
       </div>
 
@@ -228,50 +223,7 @@
         </div>
       </div>
       <p class="s-hint" style="padding:0 var(--space-1)">周一的概要会带上上周回顾。</p>
-
-      <div class="s-card">
-        <div class="s-row">
-          <span class="s-ico goal" style="background:var(--goal-indigo)">
-            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 7.5h6M9 11h6M9 14.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <div class="s-mid">
-            <span class="s-title">第一个 App</span>
-          </div>
-          <span class="scene">晚饭后</span>
-          <span class="s-time">18:30</span>
-          <button class="sw on" type="button" aria-label="开关"></button>
-        </div>
-        <div class="s-row">
-          <span class="s-ico goal" style="background:var(--goal-sage)">
-            <svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="17" r="3.2" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="15.5" r="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M8.8 15.2L15 6.5M15 6.5l3.5 1.2M15 6.5l.6-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <div class="s-mid">
-            <span class="s-title">骑行大 PRO 计划</span>
-          </div>
-          <span class="scene">不打扰</span>
-          <span class="s-time" style="font-weight:400;color:var(--on-surface-variant)">—</span>
-          <button class="sw" type="button" aria-label="开关"></button>
-        </div>
-        <div class="s-row">
-          <span class="s-ico goal" style="background:var(--goal-teal)">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4s6 6 6 10a6 6 0 0 1-12 0c0-4 6-10 6-10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <div class="s-mid">
-            <span class="s-title">潜水证 OW/AOW</span>
-          </div>
-          <span class="scene">睡前</span>
-          <span class="s-time">21:30</span>
-          <button class="sw on" type="button" aria-label="开关"></button>
-        </div>
-        <div class="s-row">
-          <span class="s-ico goal" style="background:var(--goal-amber)">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 18l6-8 4 5 3-4 3 7H4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="6" r="2.2" stroke="currentColor" stroke-width="1.8"/></svg></span>
-          <div class="s-mid">
-            <span class="s-title">冈仁波齐徒步</span>
-          </div>
-          <span class="scene">早起后</span>
-          <span class="s-time">07:30</span>
-          <button class="sw on" type="button" aria-label="开关"></button>
-        </div>
-      </div>
-      <p class="s-hint" style="padding:0 var(--space-1)">没选场景的目标 20:00 轻提醒；同一时段几个目标，会合并成一条。</p>
+      <p class="s-hint" style="padding:0 var(--space-1)">目标提醒的时刻在编辑目标时选——早起后 / 午休时 / 晚饭后 / 睡前；没选的 20:00 轻提醒，同一时段几个目标合并成一条，不连环打扰。</p>
 
       <div class="s-sec">备份与数据</div>
       <div class="s-card">
@@ -350,7 +302,6 @@
         <span class="me-avatar">星</span>
         <div class="me-mid">
           <span class="me-name">星行</span>
-          <span class="me-sub">4 个目标 · 本周 10 次记录</span>
         </div>
       </div>
 
@@ -444,7 +395,6 @@
         <span class="me-avatar">星</span>
         <div class="me-mid">
           <span class="me-name">星行</span>
-          <span class="me-sub">4 个目标 · 本周 10 次记录</span>
         </div>
       </div>
 
@@ -463,29 +413,7 @@
       </div>
       <p class="s-hint" style="padding:0 var(--space-1)">周一的概要会带上上周回顾。</p>
 
-      <div class="s-card">
-        <div class="s-row">
-          <span class="s-ico goal" style="background:var(--goal-indigo)">
-            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 7.5h6M9 11h6M9 14.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <div class="s-mid">
-            <span class="s-title">第一个 App</span>
-          </div>
-          <span class="scene">晚饭后</span>
-          <span class="s-time">18:30</span>
-          <button class="sw on" type="button" aria-label="开关"></button>
-        </div>
-        <div class="s-row">
-          <span class="s-ico goal" style="background:var(--goal-teal)">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4s6 6 6 10a6 6 0 0 1-12 0c0-4 6-10 6-10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <div class="s-mid">
-            <span class="s-title">潜水证 OW/AOW</span>
-          </div>
-          <span class="scene">睡前</span>
-          <span class="s-time">21:30</span>
-          <button class="sw on" type="button" aria-label="开关"></button>
-        </div>
-      </div>
-      <p class="s-hint" style="padding:0 var(--space-1)">没选场景的目标 20:00 轻提醒；同一时段几个目标，会合并成一条。</p>
+      <p class="s-hint" style="padding:0 var(--space-1)">目标提醒的时刻在编辑目标时选——早起后 / 午休时 / 晚饭后 / 睡前；没选的 20:00 轻提醒，同一时段几个目标合并成一条，不连环打扰。</p>
 
       <div class="s-sec">备份与数据</div>
       <div class="s-card">

@@ -81,7 +81,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 - [x] T014 [US3] 编辑器评审：`design/reviews.md` 记录选定字段集与动线（**门禁：通过前禁止动数据库 schema**，契约 §3-3）✅ **2026-08-20 R1 通过——方案 B「为什么」定稿**（motivation 必填一句 / success_criterion 自动拟可改 / cue_scene 选填，A/C 字段不入库）
 - [x] T015 [US3] 数据迁移 `lib/core/db/tables.dart`、`lib/core/db/app_database.dart`、`lib/core/models/entities.dart`：按选定字段集加**可空列** + schemaVersion 递增 + `build_runner` 再生成 `app_database.g.dart` + 迁移与既有数据零丢失单测 `test/`
 - [x] T016 [US3] 备份格式扩展 `lib/core/backup/backup_exporter.dart`、`lib/core/backup/backup_importer.dart`：新字段为可选键（缺键兼容 001 备份）+ 单测 `test/`
-- [x] T017 [US3] 编辑器与列表落地 `lib/features/goals/goal_editor.dart`、`lib/features/goals/goals_view.dart`、`lib/features/goals/goal_templates.dart`、`lib/features/goals/smart_suggestion.dart`：新动线（无类型分叉、SMART 内联、新维度、一次性/截止日属性化、频率变更下周一生效提示保留）+ 旧目标空维度渐进补全入口
+- [x] T017 [US3] 编辑器与列表落地 `lib/features/goals/goal_editor.dart`、`lib/features/goals/goals_view.dart`、`lib/features/goals/goal_templates.dart`、`lib/features/goals/smart_suggestion.dart`：新动线（无类型分叉、SMART 内联、新维度、一次性/截止日属性化、频率变更下周一生效提示保留）+ 旧目标空维度渐进补全入口 ⚠️ **2026-08-21 用户补审否决列表 R1（「不符合要求，差太多了」）→ screen-goals.html R2 重做送审中；R2 通过后 goals_view 列表卡语言需返工（真实数据回显/记录语言/卡结构），编辑器动线不受影响**
 - [x] T018 [US3] kind 合并与引导：里程碑专属视图并入统一呈现（收敛 `lib/features/milestones/`、调 `lib/app/router.dart`）、`lib/features/goals/onboarding.dart` 跟随新语言
 - [x] T019 [US3] US3 回归：创建双路径、V1/V5 场景、既有目标升级零丢失、`flutter analyze` + `flutter test` 全绿
 
@@ -115,7 +115,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 ### Implementation
 
-- [ ] T025 [US5] 设置屏原型 `design/prototypes/screen-settings.html` + 评审通过（`design/reviews.md`）：分组、备份入口、通知设置、深色画板 ⏳ **2026-08-20 R1 送审**（原型完成：三画板 ①典型可交互·导入冲突弹层 ②通知未开启不劝留 ③深色；提醒组按 FR-012 场景驱动预演；身份卡努力语言；隐私一句话脚注；同步把本屏与周回顾屏 nav 对齐今日屏 R4 定稿常驻等分条。评审通过后本任务收口并解锁 T026+）
+- [ ] T025 [US5] 设置屏原型 `design/prototypes/screen-settings.html` + 评审通过（`design/reviews.md`）：分组、备份入口、通知设置、深色画板 ⏳ **2026-08-21 R2 修订送审**（R1 后用户裁决「不需要展示目标的内容，聚焦 APP 本身的设置」→ 逐目标提醒行移除、身份卡去目标统计、场景指引留 hint；导入冲突弹层/隐私脚注/深色/常驻四页签 nav 保留。另：目标列表 R1 通过被用户补审否决「差太多了」→ screen-goals.html R2 整屏重做同日送审，实现任务门禁相应顺延）
 - [ ] T026 [US5] 设置落地 `lib/features/settings/settings_view.dart`：新语言重写 + V7 备份导出/导入（冲突对话框、计数 toast）回归
 - [ ] T027 [US5] [P] 通知重设计（FR-012）`lib/core/copy.dart` + `lib/features/settings/reminder_service.dart`：文案新品牌语气；提醒时刻按目标提醒时机字段调度（空值回落默认时段、同档时机多目标打扰合并）+ 调度单测 `test/`
 - [ ] T028 [US5] 品牌母版与 iOS 资产 `design/brand/` + `pubspec.yaml`：Target 图标 1024 母版（浅/深）→ 配置 `flutter_launcher_icons` + `flutter_native_splash`（dev_dependencies）→ `dart run` 生成 iOS 全档资产（图标/启动屏）
@@ -150,6 +150,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 - T009–T012（US2 实现）被 **T008 今日屏评审通过** 阻塞
 - T015/T016（数据库迁移、备份扩展）被 **T014 字段集评审通过** 阻塞
 - T021–T024 被 **T020+T021 前置评审** 阻塞；T026+ 被 **T025 评审通过** 阻塞
+- **2026-08-21 用户三条裁决**：① 目标列表 R1 否决重做（screen-goals.html R2 送审中——通过前 goals_view 列表部分不返工，避免二次返工）；② 周回顾逐目标卡改左右滑动（已改，随 R1/R2 合并裁决）；③ 设置聚焦 App 本身去目标内容（已改，随 R1/R2 合并裁决）
 - 风格方向未定（T004）前禁止产出 `screen-*.html` 与任何令牌翻译（T005–T008 串行）
 
 ### Within Each User Story

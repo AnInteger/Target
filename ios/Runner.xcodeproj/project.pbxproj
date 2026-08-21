@@ -18,6 +18,7 @@
 		7A1000000000000000000011 /* BackgroundIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1000000000000000000003 /* BackgroundIntent.swift */; };
 		7A1000000000000000000012 /* BackgroundIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1000000000000000000003 /* BackgroundIntent.swift */; };
 		7A1000000000000000000013 /* TodayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1000000000000000000002 /* TodayWidgetBundle.swift */; };
+		7A1000000000000000000015 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1000000000000000000006 /* DesignTokens.swift */; };
 		7A1000000000000000000014 /* TargetWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7A1000000000000000000001 /* TargetWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -81,6 +82,7 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7A1000000000000000000001 /* TargetWidgets.appex */ = {isa = PBXFileReference; explicitFileType = wrapper.app-extension; includeInIndex = 0; path = TargetWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A1000000000000000000002 /* TodayWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayWidgetBundle.swift; sourceTree = "<group>"; };
+		7A1000000000000000000006 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		7A1000000000000000000003 /* BackgroundIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundIntent.swift; sourceTree = "<group>"; };
 		7A1000000000000000000004 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7A1000000000000000000005 /* TargetWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TargetWidgets.entitlements; sourceTree = "<group>"; };
@@ -165,6 +167,7 @@
 			isa = PBXGroup;
 			children = (
 				7A1000000000000000000002 /* TodayWidgetBundle.swift */,
+				7A1000000000000000000006 /* DesignTokens.swift */,
 				7A1000000000000000000004 /* Info.plist */,
 				7A1000000000000000000005 /* TargetWidgets.entitlements */,
 			);
@@ -361,6 +364,7 @@
 			files = (
 				7A1000000000000000000012 /* BackgroundIntent.swift in Sources */,
 				7A1000000000000000000013 /* TodayWidgetBundle.swift in Sources */,
+				7A1000000000000000000015 /* DesignTokens.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

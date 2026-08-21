@@ -600,6 +600,22 @@ void main() {
     for (final d in [0, 1, 3, 4]) {
       await checkIns.add(goal.id, lastWeek.monday.addDays(d), DateTime.now());
     }
+    // 第二个习惯：上周只留 1 次（低档观察语 + 横滑第二卡）。
+    final goal2 = await repo.create(
+      Goal(
+        name: '读书',
+        kind: GoalKind.habit,
+        iconKey: 'book',
+        colorKey: 'teal',
+        createdAt: createdAt,
+      ),
+    );
+    await repo.addInitial(
+      goal2.id,
+      const DailyFrequency(1),
+      WeekStart.containing(createdAt),
+    );
+    await checkIns.add(goal2.id, lastWeek.monday.addDays(5), DateTime.now());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
     );
@@ -622,7 +638,7 @@ void main() {
 
     // 周摘要 + 三态图例 + N/M 节奏数（努力语言，无完成率百分比）。
     expect(find.text(Copy.reviewTitle), findsOneWidget);
-    expect(find.text(Copy.reviewWeekSum(4, 1)), findsOneWidget);
+    expect(find.text(Copy.reviewWeekSum(5, 2)), findsOneWidget);
     expect(find.text(Copy.reviewLegendRecorded), findsOneWidget);
     expect(find.text(Copy.reviewLegendMissed), findsOneWidget);
     expect(find.text(Copy.reviewLegendNa), findsOneWidget);
@@ -633,6 +649,13 @@ void main() {
     // R3 裁决：决策动线与保存不再上屏。
     expect(find.textContaining('下周怎么走'), findsNothing);
     expect(find.textContaining('记下这一周'), findsNothing);
+
+    // 横滑到第二卡：低档观察语（1/7 = 14%）。
+    await tester.drag(find.byType(PageView), const Offset(-320, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('读书'), findsOneWidget);
+    expect(find.text('1/7'), findsOneWidget);
+    expect(find.text(Copy.reviewCoachLow), findsOneWidget);
     await db.close();
   });
 }

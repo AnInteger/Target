@@ -16,7 +16,6 @@ abstract final class Copy {
 
   static const checkInDone = '记下了';
   static const undoCheckIn = '撤销';
-  static const backfillTag = '补';
   static String backfillDone(String day) => '已补上 $day 的记录';
   static const checkInRevoked = '已撤销，统计同步更新';
 

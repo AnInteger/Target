@@ -7,12 +7,18 @@
 <link rel="stylesheet" href="../tokens.css?v=0820f">
 <style>
   /* ============================================================
-     周回顾原型（T020 · R1 · US4）
+     周回顾原型（T020 · R3 · US4）
+     - R3 用户裁决（2026-08-21）：回顾屏不控制下周干什么，聚焦
+       查看——决策动线（继续/调频/暂停、一句话回顾、保存）全删；
+       补签状态（「补」角标/徽标/脚注）不上回顾屏；忙碌态全 App
+       移除（本屏忙碌画板与徽标删，goals/today 同步拆）
+     - 语义转向（R2 意见 8）延续：没有「完成率」，只有留下的记录
+     - R2 逐目标左右滑动（scroll-snap + 目标色指示点，可点跳转）
+     - R3 修复「卡片还能向下滑」：gl-scroll 为纵向 flex 容器，
+       min-height:auto 只豁免 overflow≠visible 的子项，内容超高时
+       pager 独自被压缩；且 overflow-x:auto 使 overflow-y 计算值
+       为 auto，溢出可被拖滑——两刀封死：flex-shrink:0 + 纵向 hidden
      - 取值 100% 来自 ../tokens.css（SC-004）
-     - 语义转向落地（R2 意见 8）：没有「完成率」，只有留下的记录——
-       每天一格的节奏条 + 近 4 周走势 + 一句话教练语
-     - 决策 ≤3 步：三选胶囊（1 击）→ 调频 chips（2 击）→ 下周一生效；R2：逐目标卡左右滑动（scroll-snap + 目标色指示点，可点跳转）
-     - 补签透明：补上的日子带「补」角标，与当日记录不混淆
      - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
 
@@ -80,19 +86,11 @@
                   box-sizing: border-box; border: 2px solid var(--divider); }
   .rv-legend .d { width: 4px; height: 4px; border-radius: var(--radius-full);
                   background: var(--divider); }
-  .rv-legend .b { font-size: 9px; line-height: 1; padding: 2px 4px;
-                  border: 1px solid var(--warning); color: var(--warning);
-                  border-radius: var(--radius-full); }
 
-  /* 忙碌周横幅 */
-  .rv-banner { display: flex; align-items: center; gap: var(--space-2);
-               background: var(--surface-alt); border: 1px solid var(--divider);
-               border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
-               font: var(--font-body-s); color: var(--on-surface); }
-  .rv-banner svg { width: 15px; height: 15px; flex: none; color: var(--on-surface-variant); }
-
-  /* ---- 逐目标左右滑动（R2 用户裁决：每个目标一张卡，横滑查看） ---- */
+  /* ---- 逐目标左右滑动（R2 用户裁决；R3 修复纵向可滑，见头部注释） ---- */
   .rv-pager { display: flex; gap: var(--space-3); overflow-x: auto;
+              overflow-y: hidden; /* overflow-x:auto 会把 overflow-y 计算成 auto——显式封死 */
+              flex-shrink: 0;     /* gl-scroll 纵向 flex 压缩只落在 overflow≠visible 项上——不缩 */
               scroll-snap-type: x mandatory; scrollbar-width: none;
               margin: 0 calc(-1 * var(--space-6)); padding: 0 var(--space-6); }
   .rv-pager::-webkit-scrollbar { display: none; }
@@ -130,10 +128,6 @@
                 font-variant-numeric: tabular-nums; }
   .rv-ratio small { display: block; font: var(--font-label);
                     color: var(--on-surface-variant); margin-top: 1px; }
-  .badge { font: var(--font-label); padding: 1px var(--space-2);
-           border-radius: var(--radius-full); white-space: nowrap;
-           background: var(--surface-alt); color: var(--on-surface-variant);
-           border: 1px solid var(--divider); width: fit-content; }
 
   /* 签名元素：周节奏条（每天一格） */
   .rv-strip { display: flex; justify-content: space-between; padding: 0 var(--space-1); }
@@ -149,10 +143,6 @@
                         border-radius: var(--radius-full); background: var(--divider); }
   .rv-day em { font: var(--font-label); font-style: normal;
                color: var(--on-surface-variant); }
-  .rv-day .tag { position: absolute; top: -7px; right: -8px; font-size: 9px;
-                 line-height: 1; padding: 2px 4px; border-radius: var(--radius-full);
-                 background: var(--surface); border: 1px solid var(--warning);
-                 color: var(--warning); font-family: var(--font-stack); }
 
   /* 近 4 周走势（透明度阶梯柱） */
   .rv-trend { display: flex; align-items: flex-end; gap: var(--space-4); }
@@ -161,55 +151,12 @@
   .rv-bars { display: flex; align-items: flex-end; gap: 5px; }
   .rv-bars b { width: 13px; border-radius: var(--radius-sm); background: var(--c); }
 
-  /* 教练语 */
+  /* 观察语（只描述、不建议——R3 聚焦查看） */
   .rv-coach { display: flex; gap: 6px; font: var(--font-body-s);
               color: var(--on-surface-variant); line-height: 1.6; }
   .rv-coach svg { width: 14px; height: 14px; flex: none; margin-top: 2px; }
   .rv-coach.low { color: var(--warning); }
   .rv-coach.low svg { color: var(--warning); }
-
-  /* 决策：三选胶囊 + 展开区 */
-  .rv-decide { border-top: 1px solid var(--divider); padding-top: var(--space-3);
-               display: flex; flex-direction: column; gap: var(--space-2); }
-  .rv-decide .q { font: var(--font-label); letter-spacing: .08em;
-                  color: var(--on-surface-variant); }
-  .rv-seg { display: flex; gap: var(--space-1); }
-  .rv-seg button { flex: 1; font: var(--font-body-m); font-family: var(--font-stack);
-                   padding: var(--space-2) 0; border-radius: var(--radius-md);
-                   border: 1px solid var(--divider); background: var(--surface);
-                   color: var(--on-surface); cursor: pointer;
-                   transition: background var(--motion-fast) var(--ease-standard),
-                               color var(--motion-fast) var(--ease-standard); }
-  .rv-seg button.on { background: var(--accent); color: var(--accent-on);
-                      border-color: var(--accent); font-weight: 600; }
-  .rv-chips { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-  .rv-chips button { font: var(--font-body-s); font-family: var(--font-stack);
-                     padding: var(--space-1) var(--space-3);
-                     border-radius: var(--radius-full); border: 1px solid var(--divider);
-                     background: var(--surface); color: var(--on-surface);
-                     cursor: pointer; }
-  .rv-chips button.on { background: var(--accent); color: var(--accent-on);
-                        border-color: var(--accent); }
-  .rv-note { display: flex; align-items: center; gap: 6px;
-             font: var(--font-body-s); color: var(--on-surface-variant); }
-  .rv-note svg { width: 13px; height: 13px; flex: none; }
-
-  /* 一句话回顾 + 保存 */
-  .rv-ask { background: var(--glass-card); border: 1px solid var(--glass-border);
-            border-radius: var(--radius-lg); padding: var(--space-4);
-            font: var(--font-body-m); color: var(--on-surface-variant);
-            box-shadow: var(--shadow-low); backdrop-filter: var(--glass-blur); }
-  .rv-save { border: none; cursor: pointer; background: var(--accent);
-             color: var(--accent-on); font: var(--font-title-s);
-             font-family: var(--font-stack); border-radius: var(--radius-md);
-             padding: var(--space-4); box-shadow: var(--shadow-mid); }
-
-  /* 补签透明脚注 */
-  .rv-foot { border: 1px dashed var(--divider); border-radius: var(--radius-lg);
-             padding: var(--space-3) var(--space-4); font: var(--font-body-s);
-             color: var(--on-surface-variant); display: flex; gap: var(--space-2);
-             align-items: flex-start; line-height: 1.6; }
-  .rv-foot svg { width: 14px; height: 14px; flex: none; margin-top: 2px; }
 
   /* 底部导航（照抄今日屏 R4 定稿：常驻条 + 等分页签 + 选中内胶囊） */
   .st-navwrap { flex: none; padding: var(--space-2) var(--space-6) var(--space-2); }
@@ -242,27 +189,25 @@
   [data-theme="dark"] .st-status, [data-theme="dark"] .gl-top .tt,
   [data-theme="dark"] .g-name, [data-theme="dark"] .rv-week .t,
   [data-theme="dark"] .rv-ratio b { color: var(--on-surface); }
-  [data-theme="dark"] .rv-card, [data-theme="dark"] .rv-ask {
+  [data-theme="dark"] .rv-card {
     background: var(--glass-card); border-color: var(--glass-border); }
-  [data-theme="dark"] .rv-day .tag { background: var(--surface); }
 </style>
 </head>
 <body>
 
-<h1 class="pt-title">周回顾 · 回看与调整</h1>
+<h1 class="pt-title">周回顾 · 回看这一周</h1>
 <p class="pt-sub">
   上周没有「完成率」，只有留下的记录：每天一格的节奏条说清这一周怎么过的，
-  近四周的走势说清方向；每个目标配一句教练语，「继续 / 调频 / 暂停」两步内定夺，
-  新频率下周一生效。忙碌周与补签都如实呈现、不作评判。
+  近四周的走势说清方向。每个目标左右滑动回看，一句观察语如实描述——
+  只看，不安排；要调整，去目标页找它。
 </p>
 
 <!-- ============ 画板一：典型周（可交互） ============ -->
 <div class="board">
   <h3>① 典型周 · 可交互</h3>
   <p class="desc">节奏条 = 签名元素：实心有记录、空圈没记录、小点不适用。
-    潜水卡预设「调频」展开态——试试各卡的三选胶囊与频率 chips，
-    两步完成一个决策。</p>
-  <div class="chips"><span class="chip t">典型态</span><span class="chip">决策 ≤3 步</span><span class="chip">语义转向</span></div>
+    左右滑动逐个目标回看，指示点可点跳转。</p>
+  <div class="chips"><span class="chip t">纯查看</span><span class="chip">逐目标横滑</span><span class="chip">语义转向</span></div>
 
   <div class="phone" id="b1">
     <div class="island"></div>
@@ -278,7 +223,6 @@
         <span><i class="f"></i>有记录</span>
         <span><i class="e"></i>没记录</span>
         <span><i class="d"></i>不适用</span>
-        <span><b class="b">补</b>后来补上</span>
       </div>
 
       <div class="rv-pager">
@@ -311,23 +255,6 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
           有几天被挤掉了，正常的一周。
         </p>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on" data-k="continue">继续</button>
-            <button type="button" data-k="adjust">调频</button>
-            <button type="button" data-k="pause">暂停</button>
-          </div>
-          <div class="rv-more" data-more="adjust" hidden>
-            <div class="rv-chips">
-              <button type="button">每天 1 次</button><button type="button">每周 1 次</button><button type="button">每周 2 次</button><button type="button">每周 3 次</button><button type="button">自定义</button>
-            </div>
-            <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>新频率下周一生效</p>
-          </div>
-          <div class="rv-more" data-more="pause" hidden>
-            <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M6 12a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>记录都保留，随时回来</p>
-          </div>
-        </div>
       </div>
 
       <div class="rv-card" style="--c:var(--goal-sage)">
@@ -357,25 +284,8 @@
         </div>
         <p class="rv-coach">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          周末两天都骑了，节奏很稳，照这个走就好。
+          周末两天都在骑，这周节奏很稳。
         </p>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on" data-k="continue">继续</button>
-            <button type="button" data-k="adjust">调频</button>
-            <button type="button" data-k="pause">暂停</button>
-          </div>
-          <div class="rv-more" data-more="adjust" hidden>
-            <div class="rv-chips">
-              <button type="button">每天 1 次</button><button type="button">每周 1 次</button><button type="button">每周 2 次</button><button type="button">每周 3 次</button><button type="button">自定义</button>
-            </div>
-            <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>新频率下周一生效</p>
-          </div>
-          <div class="rv-more" data-more="pause" hidden>
-            <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M6 12a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>记录都保留，随时回来</p>
-          </div>
-        </div>
       </div>
 
       <div class="rv-card" style="--c:var(--goal-teal)">
@@ -405,25 +315,8 @@
         </div>
         <p class="rv-coach low">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          这周只在周六下了一次水，连着两周在降——要不要把频率调小一点？
+          这周只在周六下了一次水，连着两周在降。
         </p>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" data-k="continue">继续</button>
-            <button type="button" class="on" data-k="adjust">调频</button>
-            <button type="button" data-k="pause">暂停</button>
-          </div>
-          <div class="rv-more" data-more="adjust">
-            <div class="rv-chips">
-              <button type="button">每天 1 次</button><button type="button" class="on">每周 1 次</button><button type="button">每周 2 次</button><button type="button">每周 3 次</button><button type="button">自定义</button>
-            </div>
-            <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>新频率下周一生效</p>
-          </div>
-          <div class="rv-more" data-more="pause" hidden>
-            <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M6 12a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>记录都保留，随时回来</p>
-          </div>
-        </div>
       </div>
 
       <div class="rv-card" style="--c:var(--goal-amber)">
@@ -453,25 +346,8 @@
         </div>
         <p class="rv-coach">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          三次拉练都在，四周连着往上走，状态很好。
+          三次拉练都在，连着四周往上走。
         </p>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on" data-k="continue">继续</button>
-            <button type="button" data-k="adjust">调频</button>
-            <button type="button" data-k="pause">暂停</button>
-          </div>
-          <div class="rv-more" data-more="adjust" hidden>
-            <div class="rv-chips">
-              <button type="button">每天 1 次</button><button type="button">每周 1 次</button><button type="button">每周 2 次</button><button type="button">每周 3 次</button><button type="button">自定义</button>
-            </div>
-            <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>新频率下周一生效</p>
-          </div>
-          <div class="rv-more" data-more="pause" hidden>
-            <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M6 12a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>记录都保留，随时回来</p>
-          </div>
-        </div>
       </div>
       </div>
       <div class="rv-dots">
@@ -480,9 +356,6 @@
         <i style="--c:var(--goal-teal)"></i>
         <i style="--c:var(--goal-amber)"></i>
       </div>
-
-      <p class="rv-ask">这一周，什么帮到了你？</p>
-      <button class="rv-save" type="button">记下这一周</button>
     </div>
 
     <div class="st-navwrap">
@@ -508,357 +381,10 @@
   </div>
 </div>
 
-<!-- ============ 画板二：忙碌周 ============ -->
+<!-- ============ 画板二：深色并列 ============ -->
 <div class="board">
-  <h3>② 忙碌周 · 最低档</h3>
-  <p class="desc">整周忙碌时目标只记一次也算数：摘要一句话说明、每卡忙碌徽记、
-    教练语换成不评判的口径；徒步卡演示「暂停」的温和展开。</p>
-  <div class="chips"><span class="chip t">忙碌态</span><span class="chip">最低档语义</span></div>
-
-  <div class="phone">
-    <div class="island"></div>
-    <div class="st-status"><span>9:41</span></div>
-    <div class="gl-top"><span class="tt">上周回顾</span></div>
-
-    <div class="gl-scroll">
-      <div class="rv-week">
-        <div class="t">8月10日 – 8月16日</div>
-        <div class="s">忙碌的一周 · 4 个目标各记了一次</div>
-      </div>
-      <div class="rv-legend">
-        <span><i class="f"></i>有记录</span>
-        <span><i class="e"></i>没记录</span>
-        <span><i class="d"></i>不适用</span>
-        <span><b class="b">补</b>后来补上</span>
-      </div>
-
-      <div class="rv-banner">
-        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        忙碌周 · 目标只记最低档，也算数
-      </div>
-
-      <div class="rv-pager">
-      <div class="rv-card" style="--c:var(--goal-indigo)">
-        <div class="rv-head">
-          <span class="g-ico" style="background:var(--goal-indigo)">
-            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 7.5h6M9 11h6M9 14.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <div class="g-mid">
-            <span class="g-name">第一个 App</span>
-            <span class="g-latest"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><em>最近 · 完成第一版交互稿</em></span>
-          </div>
-          <span class="rv-ratio"><b>1/7</b><small>天有记录</small></span>
-        </div>
-        <div class="rv-strip">
-          <span class="rv-day"><i></i><em>一</em></span>
-          <span class="rv-day"><i></i><em>二</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>三</em></span>
-          <span class="rv-day"><i></i><em>四</em></span>
-          <span class="rv-day"><i></i><em>五</em></span>
-          <span class="rv-day"><i></i><em>六</em></span>
-          <span class="rv-day"><i></i><em>日</em></span>
-        </div>
-        <div class="rv-trend">
-          <span class="cap">近 4 周</span>
-          <span class="rv-bars" aria-hidden="true">
-            <b style="height:16px;opacity:.35"></b><b style="height:21px;opacity:.55"></b><b style="height:21px;opacity:.75"></b><b style="height:9px;opacity:1"></b>
-          </span>
-        </div>
-        <p class="rv-coach">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          忙碌周记了一次就算数，下周照旧就好。
-        </p>
-        <span class="badge">忙碌周 · 每天 1 次</span>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on">继续</button>
-            <button type="button">调频</button>
-            <button type="button">暂停</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="rv-card" style="--c:var(--goal-sage)">
-        <div class="rv-head">
-          <span class="g-ico" style="background:var(--goal-sage)">
-            <svg viewBox="0 0 24 24" fill="none"><circle cx="6" cy="17" r="3.2" stroke="currentColor" stroke-width="1.8"/><circle cx="17.5" cy="15.5" r="2.4" stroke="currentColor" stroke-width="1.8"/><path d="M8.8 15.2L15 6.5M15 6.5l3.5 1.2M15 6.5l.6-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <div class="g-mid">
-            <span class="g-name">骑行大 PRO 计划</span>
-            <span class="g-latest"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><em>最近 · 均速突破 25 km/h</em></span>
-          </div>
-          <span class="rv-ratio"><b>1/2</b><small>天有记录</small></span>
-        </div>
-        <div class="rv-strip">
-          <span class="rv-day na"><i></i><em>一</em></span>
-          <span class="rv-day na"><i></i><em>二</em></span>
-          <span class="rv-day na"><i></i><em>三</em></span>
-          <span class="rv-day na"><i></i><em>四</em></span>
-          <span class="rv-day na"><i></i><em>五</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>六</em></span>
-          <span class="rv-day"><i></i><em>日</em></span>
-        </div>
-        <div class="rv-trend">
-          <span class="cap">近 4 周</span>
-          <span class="rv-bars" aria-hidden="true">
-            <b style="height:12px;opacity:.35"></b><b style="height:16px;opacity:.55"></b><b style="height:16px;opacity:.75"></b><b style="height:9px;opacity:1"></b>
-          </span>
-        </div>
-        <p class="rv-coach">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          忙碌里还是挤出了周六一骑，不容易。
-        </p>
-        <span class="badge">忙碌周 · 最低档</span>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on">继续</button>
-            <button type="button">调频</button>
-            <button type="button">暂停</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="rv-card" style="--c:var(--goal-amber)">
-        <div class="rv-head">
-          <span class="g-ico" style="background:var(--goal-amber)">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 18l6-8 4 5 3-4 3 7H4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="6" r="2.2" stroke="currentColor" stroke-width="1.8"/></svg></span>
-          <div class="g-mid">
-            <span class="g-name">冈仁波齐徒步</span>
-            <span class="g-latest"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><em>最近 · 格聂南线完成</em></span>
-          </div>
-          <span class="rv-ratio"><b>1/6</b><small>天有记录</small></span>
-        </div>
-        <div class="rv-strip">
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>一</em></span>
-          <span class="rv-day"><i></i><em>二</em></span>
-          <span class="rv-day"><i></i><em>三</em></span>
-          <span class="rv-day"><i></i><em>四</em></span>
-          <span class="rv-day"><i></i><em>五</em></span>
-          <span class="rv-day"><i></i><em>六</em></span>
-          <span class="rv-day na"><i></i><em>日</em></span>
-        </div>
-        <div class="rv-trend">
-          <span class="cap">近 4 周</span>
-          <span class="rv-bars" aria-hidden="true">
-            <b style="height:9px;opacity:.35"></b><b style="height:12px;opacity:.55"></b><b style="height:16px;opacity:.75"></b><b style="height:9px;opacity:1"></b>
-          </span>
-        </div>
-        <p class="rv-coach">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          拉练期撞上忙碌周，只保住了一次——先歇一周也没关系。
-        </p>
-        <span class="badge">忙碌周 · 最低档</span>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button">继续</button>
-            <button type="button">调频</button>
-            <button type="button" class="on">暂停</button>
-          </div>
-          <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M6 12a6 6 0 0 1 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M6 12v4a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>记录都保留，随时回来</p>
-        </div>
-      </div>
-      </div>
-      <div class="rv-dots">
-        <i style="--c:var(--goal-indigo)" class="on"></i>
-        <i style="--c:var(--goal-sage)"></i>
-        <i style="--c:var(--goal-amber)"></i>
-      </div>
-
-      <p class="rv-ask">这一周，什么帮到了你？</p>
-      <button class="rv-save" type="button">记下这一周</button>
-    </div>
-
-    <div class="st-navwrap">
-      <nav class="st-nav">
-        <a class="st-tab" href="screen-today.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
-          今日</a>
-        <a class="st-tab" href="screen-goals.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-          目标</a>
-        <span class="st-tab">
-          <span class="chipx">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
-            <span>回顾</span>
-          </span>
-        </span>
-        <a class="st-tab" href="screen-settings.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
-          我的</a>
-      </nav>
-    </div>
-    <div class="gl-home"><i></i></div>
-  </div>
-</div>
-
-<!-- ============ 画板三：补签透明 ============ -->
-<div class="board">
-  <h3>③ 补签透明 · 如实标注</h3>
-  <p class="desc">补上的日子在节奏条上带「补」角标——与当天的记录不混淆；
-    卡上说明哪几天是补的，脚注一句话交代态度：算数，但如实记。</p>
-  <div class="chips"><span class="chip t">补签画板</span><span class="chip">「补」角标</span></div>
-
-  <div class="phone">
-    <div class="island"></div>
-    <div class="st-status"><span>9:41</span></div>
-    <div class="gl-top"><span class="tt">上周回顾</span></div>
-
-    <div class="gl-scroll">
-      <div class="rv-week">
-        <div class="t">8月10日 – 8月16日</div>
-        <div class="s">留下 9 次记录 · 其中 3 次是后来补上的</div>
-      </div>
-      <div class="rv-legend">
-        <span><i class="f"></i>有记录</span>
-        <span><i class="e"></i>没记录</span>
-        <span><i class="d"></i>不适用</span>
-        <span><b class="b">补</b>后来补上</span>
-      </div>
-
-      <div class="rv-pager">
-      <div class="rv-card" style="--c:var(--goal-indigo)">
-        <div class="rv-head">
-          <span class="g-ico" style="background:var(--goal-indigo)">
-            <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="3" width="14" height="18" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M9 7.5h6M9 11h6M9 14.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>
-          <div class="g-mid">
-            <span class="g-name">第一个 App</span>
-            <span class="g-latest"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><em>最近 · 完成第一版交互稿</em></span>
-          </div>
-          <span class="rv-ratio"><b>4/7</b><small>天有记录</small></span>
-        </div>
-        <div class="rv-strip">
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><b class="tag">补</b><em>一</em></span>
-          <span class="rv-day"><i></i><em>二</em></span>
-          <span class="rv-day"><i></i><em>三</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>四</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><b class="tag">补</b><em>五</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>六</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>日</em></span>
-        </div>
-        <p class="rv-coach">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          四天有记录，其中周一、周五是晚上补记的。
-        </p>
-        <span class="badge">补签 2 次 · 周一、周五晚上补上</span>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on">继续</button>
-            <button type="button">调频</button>
-            <button type="button">暂停</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="rv-card" style="--c:var(--goal-teal)">
-        <div class="rv-head">
-          <span class="g-ico" style="background:var(--goal-teal)">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4s6 6 6 10a6 6 0 0 1-12 0c0-4 6-10 6-10z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-          <div class="g-mid">
-            <span class="g-name">潜水证 OW/AOW</span>
-            <span class="g-latest"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><em>最近 · 第一次 DSD 体验潜水</em></span>
-          </div>
-          <span class="rv-ratio"><b>2/3</b><small>天有记录</small></span>
-        </div>
-        <div class="rv-strip">
-          <span class="rv-day na"><i></i><em>一</em></span>
-          <span class="rv-day"><i></i><em>二</em></span>
-          <span class="rv-day na"><i></i><em>三</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>四</em></span>
-          <span class="rv-day na"><i></i><em>五</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><b class="tag">补</b><em>六</em></span>
-          <span class="rv-day"><i></i><em>日</em></span>
-        </div>
-        <p class="rv-coach">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          周四练了一次，周六那次是睡前想起来的。
-        </p>
-        <span class="badge">补签 1 次 · 周六睡前补上</span>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on">继续</button>
-            <button type="button">调频</button>
-            <button type="button">暂停</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="rv-card" style="--c:var(--goal-amber)">
-        <div class="rv-head">
-          <span class="g-ico" style="background:var(--goal-amber)">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 18l6-8 4 5 3-4 3 7H4z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="16" cy="6" r="2.2" stroke="currentColor" stroke-width="1.8"/></svg></span>
-          <div class="g-mid">
-            <span class="g-name">冈仁波齐徒步</span>
-            <span class="g-latest"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><em>最近 · 格聂南线完成</em></span>
-          </div>
-          <span class="rv-ratio"><b>3/3</b><small>天有记录</small></span>
-        </div>
-        <div class="rv-strip">
-          <span class="rv-day na"><i></i><em>一</em></span>
-          <span class="rv-day na"><i></i><em>二</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>三</em></span>
-          <span class="rv-day na"><i></i><em>四</em></span>
-          <span class="rv-day na"><i></i><em>五</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>六</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>日</em></span>
-        </div>
-        <p class="rv-coach">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          三次都是当天记的，这周节奏很实。
-        </p>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on">继续</button>
-            <button type="button">调频</button>
-            <button type="button">暂停</button>
-          </div>
-        </div>
-      </div>
-      </div>
-      <div class="rv-dots">
-        <i style="--c:var(--goal-indigo)" class="on"></i>
-        <i style="--c:var(--goal-teal)"></i>
-        <i style="--c:var(--goal-amber)"></i>
-      </div>
-
-      <p class="rv-foot">
-        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        补上的也算数，只是如实记下时间——节奏条里一眼能分清哪些是当天记的。
-      </p>
-      <p class="rv-ask">这一周，什么帮到了你？</p>
-      <button class="rv-save" type="button">记下这一周</button>
-    </div>
-
-    <div class="st-navwrap">
-      <nav class="st-nav">
-        <a class="st-tab" href="screen-today.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
-          今日</a>
-        <a class="st-tab" href="screen-goals.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-          目标</a>
-        <span class="st-tab">
-          <span class="chipx">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
-            <span>回顾</span>
-          </span>
-        </span>
-        <a class="st-tab" href="screen-settings.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
-          我的</a>
-      </nav>
-    </div>
-    <div class="gl-home"><i></i></div>
-  </div>
-</div>
-
-<!-- ============ 画板四：深色并列 ============ -->
-<div class="board">
-  <h3>④ 深色 · 典型并列</h3>
-  <p class="desc">暗紫底幕上玻璃卡降透明度，「补」角标换深色底，选中胶囊与青柠色系保持定稿语言。</p>
+  <h3>② 深色 · 典型并列</h3>
+  <p class="desc">暗紫底幕上玻璃卡降透明度，节奏条与走势柱的目标色提亮两档，保持定稿语言。</p>
   <div class="chips"><span class="chip">深色</span><span class="chip">静态并列</span></div>
 
   <div class="phone" data-theme="dark">
@@ -875,7 +401,6 @@
         <span><i class="f"></i>有记录</span>
         <span><i class="e"></i>没记录</span>
         <span><i class="d"></i>不适用</span>
-        <span><b class="b">补</b>后来补上</span>
       </div>
 
       <div class="rv-pager">
@@ -894,7 +419,7 @@
           <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>二</em></span>
           <span class="rv-day"><i></i><em>三</em></span>
           <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>四</em></span>
-          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><b class="tag">补</b><em>五</em></span>
+          <span class="rv-day on"><i><svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></i><em>五</em></span>
           <span class="rv-day"><i></i><em>六</em></span>
           <span class="rv-day"><i></i><em>日</em></span>
         </div>
@@ -908,14 +433,6 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
           有几天被挤掉了，正常的一周。
         </p>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button" class="on">继续</button>
-            <button type="button">调频</button>
-            <button type="button">暂停</button>
-          </div>
-        </div>
       </div>
 
       <div class="rv-card" style="--c:var(--goal-teal)">
@@ -939,29 +456,14 @@
         </div>
         <p class="rv-coach low">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 4l1.5 6.5L20 12l-6.5 1.5L12 20l-1.5-6.5L4 12l6.5-1.5L12 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-          连着两周在降——要不要把频率调小一点？
+          这周只在周六下了一次水，连着两周在降。
         </p>
-        <div class="rv-decide">
-          <span class="q">下周怎么走？</span>
-          <div class="rv-seg">
-            <button type="button">继续</button>
-            <button type="button" class="on">调频</button>
-            <button type="button">暂停</button>
-          </div>
-          <div class="rv-chips">
-            <button type="button">每天 1 次</button><button type="button" class="on">每周 1 次</button><button type="button">每周 2 次</button><button type="button">每周 3 次</button><button type="button">自定义</button>
-          </div>
-          <p class="rv-note"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>新频率下周一生效</p>
-        </div>
       </div>
       </div>
       <div class="rv-dots">
         <i style="--c:var(--goal-indigo)" class="on"></i>
         <i style="--c:var(--goal-teal)"></i>
       </div>
-
-      <p class="rv-ask">这一周，什么帮到了你？</p>
-      <button class="rv-save" type="button">记下这一周</button>
     </div>
 
     <div class="st-navwrap">
@@ -988,24 +490,6 @@
 </div>
 
 <script>
-  // 画板一：决策 ≤3 步演示（三选胶囊 1 击 → 调频 chips 第 2 击即定）
-  document.querySelectorAll('#b1 .rv-seg button[data-k]').forEach((b) => {
-    b.addEventListener('click', () => {
-      const seg = b.closest('.rv-seg');
-      seg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
-      const card = b.closest('.rv-card');
-      card.querySelectorAll('[data-more]').forEach((p) => {
-        p.hidden = p.dataset.more !== b.dataset.k;
-      });
-    });
-  });
-  document.querySelectorAll('#b1 .rv-chips button').forEach((b) => {
-    b.addEventListener('click', () => {
-      b.parentElement.querySelectorAll('button').forEach((x) =>
-        x.classList.toggle('on', x === b));
-    });
-  });
-
   // 逐目标左右滑动：指示点联动 + 点按跳转（R2 用户裁决）
   document.querySelectorAll('.rv-pager').forEach((pager) => {
     const dots = [...pager.parentElement.querySelectorAll('.rv-dots i')];

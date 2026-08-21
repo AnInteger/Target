@@ -110,7 +110,6 @@
             border-radius: var(--radius-full); background: var(--surface-alt);
             color: var(--on-surface-variant); border: 1px solid var(--divider);
             white-space: nowrap; }
-  .g-chip.busy { color: var(--warning); border-color: var(--warning); }
   .g-latest { display: flex; align-items: center; gap: 5px; margin-left: auto;
               font: var(--font-body-s); color: var(--on-surface-variant);
               min-width: 0; white-space: nowrap; overflow: hidden; }
@@ -210,7 +209,7 @@
 <!-- ============ 画板一：典型态 ============ -->
 <div class="board">
   <h3>① 典型 · 进行中</h3>
-  <p class="desc">四张真实目标卡：正常的、还没补为什么的（渐进补全）、忙碌降档中的；
+  <p class="desc">四张真实目标卡：正常的、还没补为什么的（渐进补全）、低频假期档的；
     右侧数字是本周节奏（记录语言），元行带频率 / 场景 / 徽标与最近一条记录。
     一次性 · 截止日目标同列呈现，卡上带徽标，不分区（FR-011）。点卡进目标详情。</p>
   <div class="chips"><span class="chip t">典型态</span><span class="chip">真实四目标</span><span class="chip">记录语言</span></div>
@@ -270,7 +269,7 @@
         </div>
         <p class="g-why">想看看海底安静的样子</p>
         <div class="g-meta">
-          <span class="g-chip">假期练</span><span class="g-chip busy">忙碌中 · 最低档</span>
+          <span class="g-chip">假期练</span>
           <span class="g-latest">
             <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
             <em>最近 · 第一次 DSD 体验潜水</em></span>
@@ -391,7 +390,7 @@
 <div class="board">
   <h3>③ 深色 · 典型并列</h3>
   <p class="desc">全部取值语义 token，深色作用域自动切换——玻璃卡降透明度、
-    选中胶囊反白、忙碌徽标转暖黄。</p>
+    选中胶囊反白。</p>
   <div class="chips"><span class="chip">深色</span><span class="chip">静态并列</span></div>
 
   <div class="phone" data-theme="dark">
@@ -433,7 +432,7 @@
         </div>
         <p class="g-why">想看看海底安静的样子</p>
         <div class="g-meta">
-          <span class="g-chip">假期练</span><span class="g-chip busy">忙碌中 · 最低档</span>
+          <span class="g-chip">假期练</span>
         </div>
       </div>
 

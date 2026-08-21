@@ -48,11 +48,11 @@
 
 | # | 屏幕 | 路径（现状） | 重设计要点 | 状态维度 |
 |---|---|---|---|---|
-| 1 | 今日视图 | `lib/features/today/today_view.dart` | 首屏总览、≤2 交互打卡、仪式感反馈、成就时刻 | 空/有目标/全完成/忙碌/深色 |
+| 1 | 今日视图 | `lib/features/today/today_view.dart` | 首屏总览、≤2 交互打卡、仪式感反馈、成就时刻 | 空/有目标/全完成/深色（忙碌态 2026-08-21 裁决移除） |
 | 2 | 目标列表 | `lib/features/goals/goals_view.dart` | 信息层级、生命周期操作 | 空/多目标/暂停态 |
 | 3 | 目标编辑器 | `lib/features/goals/goal_editor.dart` | **定义模型候选对比**、模板路径、SMART 内联；单一"目标"概念、无前置类型分叉（FR-011，`milestones/` 并入统一语言） | 创建/编辑/频率变更提示 |
 | 4 | 周回顾 | `lib/features/review/review_view.dart` | 数据→生活语言、图形化趋势、决策 ≤3 步 | 有/无数据、低于阈值教练建议 |
-| 5 | 忙碌模式 | `lib/features/busy_mode/busy_mode_view.dart` | 与正常态明确区分 | 开/关/最低档 |
+| 5 | ~~忙碌模式~~（2026-08-21 用户裁决全 App 移除，见 T022 改写） | `lib/features/busy_mode/busy_mode_view.dart` | 移除：路由/入口/今日屏分支/徽标/降档语义 | — |
 | 6 | 补签日历 | `lib/features/today/backfill_calendar.dart` | "补"标记视觉不混淆 | 14 天窗口 |
 | 7 | 设置 | `lib/features/settings/settings_view.dart` | 分组、备份入口、通知文案与时机（FR-012） | 深色/占位项 |
 | 8 | 品牌素材 | iOS 图标/启动屏/小组件 | 全套品牌（FR-008，名称 Target） | 浅/深系统外观 |

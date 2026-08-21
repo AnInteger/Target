@@ -60,7 +60,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 ### Implementation
 
-- [x] T009 [US2] 导航壳层与今日视图重写 `lib/app/router.dart`、`lib/app/app.dart`、`lib/features/today/today_view.dart`：按 T007 定稿落地（≤5 目标首屏无滚动、打卡 ≤2 交互、拇指热区、空/忙碌/全完成态）
+- [x] T009 [US2] 导航壳层与今日视图重写 `lib/app/router.dart`、`lib/app/app.dart`、`lib/features/today/today_view.dart`：按 T007 定稿落地（≤5 目标首屏无滚动、打卡 ≤2 交互、拇指热区、空/忙碌/全完成态）⚠️ 2026-08-21 裁决忙碌态全 App 移除——已实现的忙碌分支随 T022 拆除（原型侧已删忙碌画板）
 - [x] T010 [US2] 打卡反馈与成就时刻动效 `lib/features/today/today_view.dart`（可拆组件文件于 `lib/features/today/`）：内建动画 + 令牌时长/曲线（反馈 ≤600ms、庆祝 ≤1200ms）；连续快速打卡不阻塞不错乱；`lib/features/today/undo_toast.dart` 适配新语言
 - [x] T011 [US2] 今日动线能力等价保留：长按补签入口、Debug 时钟入口等既有快捷语义不丢失（`lib/features/today/`、`lib/features/settings/debug_clock.dart`）
 - [x] T012 [US2] US2 回归：更新/新增 widget 测试（打卡 ≤2 交互、成就时刻、撤销、忙碌态区分）`test/widget_test.dart`；Web release 走查 V1/V2/V6（quickstart 阶段 B）；`flutter analyze` + `flutter test` 全绿
@@ -91,16 +91,16 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 ## Phase 5: User Story 4 - 回顾与调整流程 (Priority: P4)
 
-**Goal**: 周回顾/忙碌/补签按新语言重设计：数据翻译成生活语言与图形，决策 ≤3 步
+**Goal**: 周回顾按新语言重设计：数据翻译成生活语言与图形，纯回看（2026-08-21 用户裁决：不控制下周、聚焦查看；忙碌态全 App 移除）
 
-**Independent Test**: V4 周结算全流程（Debug 时钟跳周一）、V5 补签、V6 忙碌在新 UI 下回归通过
+**Independent Test**: V4 周结算全流程（Debug 时钟跳周一）、V5 补签在新 UI 下回归通过；忙碌模式移除后无残留入口与视觉
 
 ### Implementation
 
-- [x] T020 [US4] 周回顾原型 `design/prototypes/screen-review.html`：完成率/近 4 周趋势/教练建议的图形化生活语言呈现、继续/调整/暂停决策 ≤3 步、忙碌与补签画板 ✅ 2026-08-20 R1 送审（语义转向落地：周节奏条替代完成率；四画板 ①典型可交互 ②忙碌 ③补签透明 ④深色）
-- [ ] T021 [US4] 周回顾评审（`design/reviews.md`）通过后重写 `lib/features/review/review_view.dart`：图形化趋势（`CustomPainter`）、生活化文案 `lib/core/copy.dart`、决策动线 ≤3 步保留"下周一生效"语义
-- [ ] T022 [US4] 忙碌模式视觉区分 `lib/features/busy_mode/busy_mode_view.dart` + 今日屏忙碌态：与正常态明确区分、最低档、恢复正常回落
-- [ ] T023 [US4] [P] 补签日历新视觉 `lib/features/today/backfill_calendar.dart`："补"标记与当日打卡不混淆、14 天窗口、FittedBox 布局保留 + V5 widget 测试更新 `test/widget_test.dart`
+- [x] T020 [US4] 周回顾原型 `design/prototypes/screen-review.html` ✅ **2026-08-21 R3 修订送审**——用户裁决「聚焦查看」：决策动线（继续/调频/暂停/一句话回顾/保存）全删、教练语改观察语、补签状态不上本屏（「补」角标/徽标/画板删）、忙碌画板删（六板→两板 ①典型 ②深色）；并修复 pager 纵向可滑 bug（flex-shrink:0 + overflow-y:hidden，根因见 reviews.md R3 条目）。（R1 2026-08-20 送审：语义转向落地，周节奏条替代完成率）
+- [ ] T021 [US4] 周回顾评审（`design/reviews.md`）通过后重写 `lib/features/review/review_view.dart`：图形化趋势（`CustomPainter`）、生活化观察语 `lib/core/copy.dart`、逐目标横滑卡 + 指示点（PageView）——**纯回看，无决策动线**（R3 裁决：决策语义移除，调频/暂停走目标编辑器）
+- [ ] T022 [US4] 忙碌模式全 App 移除（2026-08-21 用户裁决「忙碌的状态也可以去掉了，其他页面也去掉，不用设置这么多」）：收敛 `lib/features/busy_mode/busy_mode_view.dart` 与路由入口、拆今日屏忙碌态分支（today_view.dart/测试）、拆列表忙碌徽标、清理提醒降档语义与既有 busy 数据字段（保留列迁移可空，不丢历史库）；spec FR-005 等价物条款随此裁决豁免忙碌项（reviews.md R3 条目为凭）
+- [ ] T023 [US4] [P] 补签日历新视觉 `lib/features/today/backfill_calendar.dart`："补"标记与当日打卡不混淆、14 天窗口、FittedBox 布局保留 + V5 widget 测试更新 `test/widget_test.dart`（注：R3 裁决只去回顾屏的补签状态展示，今日屏长按补签功能保留——如用户再裁撤则本任务改为移除）
 - [ ] T024 [US4] US4 回归：V4/V5/V6 全场景走查（quickstart 阶段 B）、`flutter analyze` + `flutter test` 全绿
 
 **Checkpoint**: 产品"教练"角色完成升级，次级流程不再有旧观感
@@ -150,7 +150,8 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 - T009–T012（US2 实现）被 **T008 今日屏评审通过** 阻塞
 - T015/T016（数据库迁移、备份扩展）被 **T014 字段集评审通过** 阻塞
 - T021–T024 被 **T020+T021 前置评审** 阻塞；T026+ 被 **T025 评审通过** 阻塞
-- **2026-08-21 用户三条裁决**：① 目标列表 R1 否决重做（screen-goals.html R2 送审中——通过前 goals_view 列表部分不返工，避免二次返工）；② 周回顾逐目标卡改左右滑动（已改，随 R1/R2 合并裁决）；③ 设置聚焦 App 本身去目标内容（已改，随 R1/R2 合并裁决）
+- **2026-08-21 用户三条裁决**：① 目标列表 R1 否决重做（screen-goals.html R2 送审中——通过前 goals_view 列表部分不返工，避免二次返工）；② 周回顾逐目标卡改左右滑动（已改）；③ 设置聚焦 App 本身去目标内容（已改，随 R1/R2 合并裁决）
+- **2026-08-21 用户第二轮裁决（周回顾）**：① 回顾屏去决策动线、聚焦查看；② 补签状态不上回顾屏（今日屏补签功能保留）；③ 忙碌态全 App 移除（T022 改写为移除任务，涟漪见 reviews.md R3 条目）；④ pager 纵向可滑 bug 修复。周回顾随 R3 送审
 - 风格方向未定（T004）前禁止产出 `screen-*.html` 与任何令牌翻译（T005–T008 串行）
 
 ### Within Each User Story

@@ -10,7 +10,8 @@
      今日屏深化原型（T007 · R3 修订 · 努力记录模型）
      - 取值 100% 来自 ../tokens.css（SC-004）
      - 语义：目标无「完成度」，只记录为它做过的努力
-     - 画板：典型(可交互)/空态/忙碌/全部进展 + 深色并列
+     - 画板：典型(可交互)/空态/全部进展 + 深色并列
+     - 2026-08-21 用户裁决：忙碌态全 App 移除——忙碌画板/横幅/问候分支删除
      - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
 
@@ -122,15 +123,6 @@
     background: var(--goal-coral); border: 1.5px solid var(--surface);
   }
 
-  /* 忙碌横幅 */
-  .st-busy {
-    display: flex; align-items: center; gap: var(--space-2);
-    padding: var(--space-2) var(--space-3); margin-top: var(--space-3);
-    border-radius: var(--radius-md); background: var(--surface);
-    border: 1px solid var(--divider);
-    font: var(--font-body-s); color: var(--warning);
-    box-shadow: var(--shadow-low);
-  }
 
   /* display 大标题 */
   .st-display { font: var(--font-display-l); letter-spacing: var(--ls-display-l);
@@ -376,10 +368,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
       </button>
     </div>
-    <div class="st-busy" data-busy hidden>
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 3 14h7l-1 8 11-13h-7l0-7Z"/></svg>
-      忙碌模式 · 今天只需记录一次努力
-    </div>
     <h2 class="st-display" data-display></h2>
     <div class="st-hero">
       <div class="st-hero-title">今日进展</div>
@@ -472,26 +460,22 @@ const BOARDS = [
   { id: 'empty', theme: 'light', state: 'empty',
     title: '② 空态',
     desc: '无目标：大标题转为一句自然的提问，列表位让给虚线邀请卡；圆环与统计归零。' },
-  { id: 'busy', theme: 'light', state: 'busy',
-    title: '③ 忙碌态',
-    desc: '忙碌横幅（warning 语义）：今天只需记录一次努力；横幅不把第一张卡挤出首屏。' },
   { id: 'allgo', theme: 'light', state: 'allgo',
-    title: '④ 全部进展态',
+    title: '③ 全部进展态',
     desc: '每个目标今天都有记录：圆环走满、标题转晴空蓝、成就覆盖层常驻展示（点击体会 dismiss）。' },
   { id: 'typical-dark', theme: 'dark', state: 'typical', interactive: true,
-    title: '⑤ 典型态 · 深色',
+    title: '④ 典型态 · 深色',
     desc: '暗紫底幕 + 深玻璃卡；主操作反转为白实心，进展主卡保持深色，青柠环更亮。同样可点击记录。' },
   { id: 'allgo-dark', theme: 'dark', state: 'allgo',
-    title: '⑥ 全部进展态 · 深色',
+    title: '⑤ 全部进展态 · 深色',
     desc: '成就时刻在深色下的呈现：青柠辐射光晕 + 反色徽章。' },
 ];
 
 // today[i] = 第 i 个目标今天的记录次数
 const stateOf = (name) => ({
-  typical: { today: [2, 1, 0, 1], busy: false },
-  busy:    { today: [1, 0, 0, 0], busy: true },
-  allgo:   { today: [2, 1, 1, 1], busy: false },
-  empty:   { today: [], busy: false },
+  typical: { today: [2, 1, 0, 1] },
+  allgo:   { today: [2, 1, 1, 1] },
+  empty:   { today: [] },
 }[name]);
 
 function scaffoldCard(g, board, st) {
@@ -577,12 +561,9 @@ function render(board) {
       card.querySelector('.st-check').setAttribute('aria-pressed', t > 0);
       card.classList.toggle('done', t > 0);
     });
-    q('[data-busy]').hidden = !st.busy;
-    q('[data-display]').innerHTML = st.busy
-      ? '忙碌的一天'
-      : (n > 0 && gwa === n)
-          ? '每个目标<br>都有进展'
-          : '今天<br>做了什么？';
+    q('[data-display]').innerHTML = (n > 0 && gwa === n)
+      ? '每个目标<br>都有进展'
+      : '今天<br>做了什么？';
     q('[data-cele-note]').textContent = `今日 ${actions} 次记录`;
   }
 

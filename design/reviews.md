@@ -14,6 +14,12 @@
 
 ## 实现审计
 
+### T033 发布验证 · 用户侧完成归档 · 2026-08-22
+
+- **用户确认原话（2026-08-22）**：「2.侧载成功，可以归档」——Codemagic `ios-unsigned` 手动构建绿、unsigned.ipa 经 iLoader 自签侧载真机运行正常；**T029 小组件首次 Swift 编译随之实证**（本机无 Xcode 的挂起点就此解除：DesignTokens.swift pbxproj 四条目 + BackgroundIntent 双 target 回路构建通过）。
+- 真机核对口径：新 UI 整体运行正常为用户当前结论；**图标/启动屏当时仍为默认**（T028 尚未过链）——A 案资产已随后进链（见下方品牌图标条），真机看到新图标/启动屏需再手动触发一次构建 + 侧载。
+- 归档：T033 [x]，002 全任务收口。
+
 ### T032 全量走查（quickstart 阶段 B + V1–V8 回归 + SC 逐条）· 通过 · 2026-08-21
 
 - **基线**：`flutter analyze` 0 issue；`flutter test` 69 全绿（含 token 契约 SC-004、迁移零丢失、V5 补签、V7 备份、T021 纯回看、T026 设置+备份回归、FR-001 SMART、T017/T019 创建动线、US2 打卡闭环、T010 成就时刻、调度单测）。
@@ -62,6 +68,17 @@
 - 实现取值：100% token（SC-004）；Playwright 实测——两画板卡/圆点 4-4、2-2 配对，整页零横向溢出。
 - **涟漪（实现期任务已同步改写 specs/002 tasks.md）**：T021 review_view 重写不再含决策动线；T022 由「忙碌视觉区分」改为「忙碌模式全 App 移除」（busy_mode_view 收敛、今日屏忙碌态、列表徽标、提醒降档）；今日屏已实现的忙碌分支将随 US4 移除任务拆除。
 - 待用户裁决：纯查看口径是否成立；补签功能本身的去留（本屏已无状态展示）。
+
+### 品牌图标 · A 案「今日之环」选定 + 生成链通过 · 2026-08-22
+
+- **用户裁决原话（2026-08-22）**：「1.选择A 2.侧载成功，可以归档，更新下相关文档」——三案裁定 **A 今日之环**（App 自己的仪表语言升为标识）；同条确认真机侧载成功（T033 归档，见实现审计）。
+- **母版落地**：`design/brand/icon-a-light.svg` / `icon-a-dark.svg`（1024×1024，几何 1:1 派生自 proposal 的 markSVG('a')：环心 60,60 r34 stroke14、青柠 75° 弧自 12 点顺时针、靛蓝珠 94,60 r9；浅底 = bg-grad 四档 135°，深底同构暗紫四档；不透明全出血方图，squircle 蒙版交系统）。
+- **渲染与像素级核验**：Chromium 1024² 直渲 PNG，自写 PNG 解码器（zlib + 逐行反滤波）逐点采样对照几何——浅版四角 #ebd7e0→#d2ccf7 对角渐变、环左中带 #252230、环顶/弧中 #b5e550、珠心 #5b6ab0 全中；深版同构（环身 #f2eff7、珠 #9aa5e0、四角 #2b1f35→#130e1d）。
+- **过程坑（留档）**：light 版首渲全白报废——SVG 注释里写了 `--bg-grad-1..4`，**双连字符在 XML 注释中非法**，Chrome 给的是 XML 错误页；视觉模型读「无图形」为真、像素探针定位根因，改写注释后复验通过。教训两条：SVG 注释禁用 `--`；视觉读数与源码矛盾时用仪器仲裁，别急着归为误读。
+- **生成链（T025 门禁后执行）**：pubspec.yaml 增 `flutter_launcher_icons`（ios only / remove_alpha_ios / 其余平台 false）与 `flutter_native_splash`（color + color_dark、android/web false）配置块；`dart run flutter_launcher_icons` + `dart run flutter_native_splash:create` 全绿——AppIcon.appiconset 全档重生成、LaunchImage 浅/深双套（appearances luminosity dark）+ LaunchBackground 1px 拉伸层 + LaunchScreen.storyboard 全出血重构、Info.plist 增 `UIStatusBarHidden`（其余为重排）。
+- **iOS 18 深色图标变体（手工补）**：AppIconDark.png + Contents.json 单尺寸 1024 universal + dark appearances 条目；染色（tinted）变体未做，iOS 18 回退深色，可后续补。
+- **启动屏纯色近似口径**：LaunchScreen 不支持渐变，底色取四档均值——浅 #ded2ed / 深 #1f172a；前景 640×420 透明 PNG（220px 环 + 「生活目标守护」44px / .3em 字距），contentMode center 全出血不裁切（640/2=320pt 恰合最小屏宽，文本任何机型不出血）。
+- 验证：`flutter analyze` 0 issue + 69 测试全绿；**真机生效需再手动触发一次 Codemagic 构建 + 侧载**（当前装机仍是旧图标）。
 
 ### 品牌图标 · brand/icon-proposal.html · R1 候选送审 · 2026-08-21
 

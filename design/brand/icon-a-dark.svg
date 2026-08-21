@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Target 品牌图标 · 候选 A「今日之环」· 深色母版（T028，iOS 18 深色变体）
+       派生自 icon-proposal.html（markSVG('a','dark')）：底幕暗紫四档；
+       环身反白 #f2eff7；青柠 #b5e550；靛蓝珠深版 #9aa5e0。 -->
+  <defs>
+    <linearGradient id="bgd" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2c2036"/>
+      <stop offset="0.3333" stop-color="#221a30"/>
+      <stop offset="0.6667" stop-color="#1a1526"/>
+      <stop offset="1" stop-color="#120e1c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bgd)"/>
+  <g transform="scale(8.5333)">
+    <circle cx="60" cy="60" r="34" fill="none" stroke="#f2eff7" stroke-width="14"/>
+    <path d="M 60 26 A 34 34 0 0 1 92.8 71.2" fill="none" stroke="#b5e550"
+          stroke-width="14" stroke-linecap="round"/>
+    <circle cx="94" cy="60" r="9" fill="#9aa5e0"/>
+  </g>
+</svg>

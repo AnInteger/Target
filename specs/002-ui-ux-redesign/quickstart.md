@@ -51,9 +51,9 @@ flutter build web --release && (cd build/web && python3 -m http.server 8321)
 
 ## 阶段 C：品牌与真机（收尾）
 
-1. `design/brand/` 母版 → `dart run flutter_launcher_icons` / `dart run flutter_native_splash` → iOS 资产生成
+1. `design/brand/` 母版 → `dart run flutter_launcher_icons` / `dart run flutter_native_splash` → iOS 资产生成（已执行 2026-08-22，A 案「今日之环」；配置在 pubspec.yaml，重生成即重跑这两条）
 2. 小组件视觉与主 App 并排核对（深浅两态）
-3. Codemagic 控制台手动触发 `ios-unsigned` → 构建绿 → 下载 unsigned.ipa → iLoader 自签安装，真机核对：图标/启动屏、小组件（仅视觉，FR-008）、深色模式、打卡动效帧率（肉眼顺滑）、通知文案语气与按目标设定的提醒时机（FR-012，真机独占）
+3. Codemagic 控制台手动触发 `ios-unsigned` → 构建绿 → 下载 unsigned.ipa → iLoader 自签安装，真机核对：图标/启动屏、小组件（仅视觉，FR-008）、深色模式、打卡动效帧率（肉眼顺滑）、通知文案语气与按目标设定的提醒时机（FR-012，真机独占）。首轮验证已于 2026-08-22 通过（图标/启动屏当时为默认）；A 案资产进链后需再触发一次构建 + 侧载，方可在真机看到新图标/启动屏
 4. 备份回归：新 UI 下导出 → 导入覆盖 → 数据一致（含新维度字段）
 
 ## 完成口径

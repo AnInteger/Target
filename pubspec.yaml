@@ -59,6 +59,34 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.5
   build_runner: ^2.16.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.8
+
+# 品牌资产（T028，A 案「今日之环」）：母版在 design/brand/*.svg，
+# 生成物进 iOS 资产目录；iOS 18 深色变体由生成后手工补 Contents.json 条目。
+flutter_launcher_icons:
+  ios: true
+  image_path: design/brand/icon-a-light-1024.png
+  remove_alpha_ios: true
+  android: false
+  web:
+    generate: false
+  macos:
+    generate: false
+  windows:
+    generate: false
+  linux:
+    generate: false
+
+# 启动屏：LaunchScreen 不支持渐变，纯色取四档底幕均值近似
+# （浅 #ded2ed = #ecd8e0..#d1ccf8 均值；深 #1f172a = #2c2036..#120e1c 均值）。
+flutter_native_splash:
+  color: "#ded2ed"
+  color_dark: "#1f172a"
+  image: design/brand/splash-mark-light.png
+  image_dark: design/brand/splash-mark-dark.png
+  android: false
+  web: false
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

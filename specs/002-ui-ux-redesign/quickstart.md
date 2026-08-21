@@ -10,7 +10,7 @@ export PUB_HOSTED_URL=https://pub.flutter-io.cn
 export FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
 ```
 
-无 Mac 环境；iOS 真机经 Codemagic（push 触发 ios-testflight → TestFlight）。Web 为本地全功能验证面。
+无 Mac 环境；iOS 真机经 Codemagic **手动触发**（`ios-unsigned` → unsigned.ipa → 本地 iLoader 自签装机；无 TestFlight 链路——免费 Apple ID 回路）。Web 为本地全功能验证面。
 
 ## 阶段 A：原型评审（每屏/每方向）
 
@@ -53,7 +53,7 @@ flutter build web --release && (cd build/web && python3 -m http.server 8321)
 
 1. `design/brand/` 母版 → `dart run flutter_launcher_icons` / `dart run flutter_native_splash` → iOS 资产生成
 2. 小组件视觉与主 App 并排核对（深浅两态）
-3. `git push` → Codemagic 绿 → TestFlight 安装，真机核对：图标/启动屏、小组件（仅视觉，FR-008）、深色模式、打卡动效帧率（肉眼顺滑）、通知文案语气与按目标设定的提醒时机（FR-012，真机独占）
+3. Codemagic 控制台手动触发 `ios-unsigned` → 构建绿 → 下载 unsigned.ipa → iLoader 自签安装，真机核对：图标/启动屏、小组件（仅视觉，FR-008）、深色模式、打卡动效帧率（肉眼顺滑）、通知文案语气与按目标设定的提醒时机（FR-012，真机独占）
 4. 备份回归：新 UI 下导出 → 导入覆盖 → 数据一致（含新维度字段）
 
 ## 完成口径

@@ -132,8 +132,8 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 - [X] T031 令牌白名单清零：消灭 `test/design/token_contract_test.dart` 白名单中全部遗留硬编码条目（SC-004 达成 100% 取值于令牌）✅ **2026-08-20 提前达成**——唯一条目 goals_view.dart 3 处 fontSize 已随 T017 重写自然消灭，条目移除、白名单清空；契约测试绿（后续屏重写若引入硬编码将被空名单直接拦红，机制闭环）；flutter test 64 全绿
 - [x] T032 全量走查：quickstart.md 阶段 B 全表 + 001 的 V1–V8 全场景回归 + SC-001…SC-006 逐条核对 + `design/reviews.md` 确认全部核心屏"通过" ✅ **2026-08-21 通过**——analyze 0 issue + 69 测试全绿；web 实测打卡 1 次交互即时刷新 + 刷新持久（SC-002）；V1–V8 按当前裁决口径全过（V4 决策动线/V6 忙碌已由用户 2026-08-21 裁决废止，纯回看+忙碌清零按新口径核验；V3 挂 T033 真机）；SC-001 六屏全通过+方向留档、SC-004 白名单空复跑绿、SC-005 随 T030、SC-006 并存 0 屏；核心屏 reviews.md 状态全「通过」（品牌图标非核心屏仍挂起）；明细见 reviews.md「实现审计」T032 节
-- [ ] T033 发布验证：`flutter analyze` + `flutter test` 全绿 → `git push` → Codemagic 绿 → TestFlight 真机核对（quickstart 阶段 C：图标/启动屏/小组件/深色/动效帧率/通知时机与文案）
-- [ ] T034 文档收尾：更新 `specs/002-ui-ux-redesign/` 各文档状态与根 README（若涉及新命令/新目录说明）
+- [ ] T033 发布验证：`flutter analyze` + `flutter test` 全绿 → `git push` → Codemagic 绿 → TestFlight 真机核对（quickstart 阶段 C：图标/启动屏/小组件/深色/动效帧率/通知时机与文案）⏳ 2026-08-21 agent 侧完成：analyze 0 issue + 69 测试全绿、45 提交已 push（4666294..24277b5）；**Codemagic 为手动触发**（codemagic.yaml `ios-unsigned`：unsigned.ipa → iLoader 自签装机，无 TestFlight 链路）——剩用户手动：控制台触发构建（T029 小组件首次 Swift 编译验证点）→ 下载 unsigned.ipa 自签装机 → quickstart 阶段 C 真机核对
+- [x] T034 文档收尾：更新 `specs/002-ui-ux-redesign/` 各文档状态与根 README（若涉及新命令/新目录说明）✅ 2026-08-21——README 由 Flutter 模板实体化（项目定位/常用命令/结构要点：令牌三端真源、design 原型先行、specs 结构/验证指南）；spec.md Status → Implemented（遗留 T028 选案与 T033 用户手动侧）；quickstart 前置与阶段 C 修正为实际发布回路（Codemagic 手动触发 ios-unsigned → unsigned.ipa → iLoader 自签，无 TestFlight 链路）
 
 ---
 

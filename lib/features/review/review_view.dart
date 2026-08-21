@@ -1,17 +1,23 @@
-/// 周回顾页（US4 T038，FR-008 / research D11）：上周各目标完成率卡 +
-/// 近 4 周趋势；反思输入；决策三选（T021 将按 R3 裁决整屏重写为纯回看）
-/// （继续 / 调频下周生效 / 暂停）。展示实时重算，快照仅留痕。
+/// 周回顾页（US4 · T021 R3 重写 · 2026-08-21 screen-review.html 定稿）。
+///
+/// 纯回看：周摘要（日期区间 + 留下 N 次记录 · M 个目标）+ 三态图例 +
+/// 逐目标左右滑卡（签名元素 = 周节奏条：每天一格，实心有勾 / 空圈没
+/// 记录 / 小点不适用）+ 近 4 周走势柱 + 一句观察语（只描述不建议）。
+/// 决策动线（继续/调频/暂停/一句话/保存）按 R3 裁决全拆——结算与
+/// WeeklyReview 实体保留在服务层做历史留痕，本屏不再写库。
 library;
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
+import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
-import '../../core/models/frequency_pattern.dart';
+import '../../core/stats/stats_engine.dart';
 
 class ReviewView extends ConsumerStatefulWidget {
   const ReviewView({super.key});
@@ -21,12 +27,11 @@ class ReviewView extends ConsumerStatefulWidget {
 }
 
 class _ReviewViewState extends ConsumerState<ReviewView> {
-  final _note = TextEditingController();
-  final _decisions = <String, ReviewDecision>{};
+  PageController? _pager;
 
   @override
   void dispose() {
-    _note.dispose();
+    _pager?.dispose();
     super.dispose();
   }
 
@@ -37,231 +42,549 @@ class _ReviewViewState extends ConsumerState<ReviewView> {
     final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
     final stats = ref.watch(statsProvider);
 
-    final cards = <Widget>[];
+    if (stats == null) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: TargetPalette.of(context).accent,
+          ),
+        ),
+      );
+    }
+
+    // 上周已存在的习惯目标 + 有适用日的周统计。
+    final cards = <_CardData>[];
     for (final g in goals) {
       if (!g.isHabit || g.createdAt.isAfter(week.sunday)) continue;
-      final w = stats?.weekStatOf(g.id, week);
-      if (w == null || w.applicableDays == 0) continue;
-      cards.add(_GoalReviewCard(
+      final w = stats.weekStatOf(g.id, week);
+      if (w.applicableDays == 0) continue;
+      cards.add(_CardData(
         goal: g,
         stat: w,
+        days: [for (var i = 0; i < 7; i++) stats.dayStatusOf(g.id, week.monday.addDays(i))],
         rates: [
           for (var i = 3; i >= 0; i--)
-            stats?.weekStatOf(g.id, week.addWeeks(-i)).completionRate ?? 0,
+            stats.weekStatOf(g.id, week.addWeeks(-i)).completionRate ?? 0,
         ],
-        decision: _decisions[g.id] ?? const ContinueDecision(),
-        onDecision: (d) => setState(() => _decisions[g.id] = d),
       ));
     }
+    final records = cards.fold<int>(0, (sum, c) => sum + c.stat.metDays);
 
     return Scaffold(
-      appBar: AppBar(title: Text(Copy.reviewTitle)),
-      body: stats == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                Text('${week.monday.isoString} 起',
-                    style: Theme.of(context).textTheme.bodySmall),
-                const SizedBox(height: 12),
-                if (cards.isEmpty)
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Text(Copy.goalsEmpty),
-                    ),
-                  )
-                else
-                  ...cards,
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _note,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            hintText: Copy.reviewNoteHint,
-                            border: InputBorder.none,
-                          ),
-                        ),
-                      ],
-                    ),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        // 水平零内边距：pager 出血滑到屏缘，其余各行自带 s6。
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(0, AppSpace.s2, 0, AppSpace.s12),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpace.s6),
+              child: Text(Copy.reviewTitle,
+                  style: Theme.of(context).textTheme.displayS),
+            ),
+            if (cards.isEmpty) ...[
+              const SizedBox(height: AppSpace.s4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpace.s6),
+                child: _EmptyCard(),
+              ),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpace.s6),
+                child: _WeekSummary(
+                    week: week, records: records, goals: cards.length),
+              ),
+              const _Legend(),
+              SizedBox(
+                height: 204,
+                child: PageView.builder(
+                  controller: _pager ??= PageController(),
+                  itemCount: cards.length,
+                  onPageChanged: (i) => setState(() {}),
+                  itemBuilder: (_, i) => Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpace.s6),
+                    child: _GoalReviewCard(cards[i]),
                   ),
                 ),
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: cards.isEmpty ? null : _save,
-                  child: Text(Copy.reviewSave),
-                ),
-              ],
-            ),
-    );
-  }
-
-  Future<void> _save() async {
-    final settlement = ref.read(settlementServiceProvider);
-    final today = ref.watch(todayProvider);
-    // 幂等确保回顾行存在（快照仅留痕），再落决策与笔记。
-    final review =
-        await settlement.settleLastWeekIfNeeded(today: today, now: DateTime.now());
-    ReviewDecision aggregate = const ContinueDecision();
-    for (final e in _decisions.entries) {
-      if (e.value is ContinueDecision) continue;
-      await settlement.applyDecision(e.key, e.value, today: today);
-      aggregate = e.value;
-    }
-    final note = _note.text.trim();
-    await ref
-        .read(reviewRepoProvider)
-        .save(review.copyWith(note: note.isEmpty ? null : note, decision: aggregate));
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text(Copy.reviewSaved)));
-      context.pop();
-    }
-  }
-}
-
-class _GoalReviewCard extends StatelessWidget {
-  const _GoalReviewCard({
-    required this.goal,
-    required this.stat,
-    required this.rates,
-    required this.decision,
-    required this.onDecision,
-  });
-
-  final Goal goal;
-  final GoalWeekStat stat;
-  final List<double?> rates;
-  final ReviewDecision decision;
-  final void Function(ReviewDecision) onDecision;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = GoalColor.byKey(goal.colorKey).of(context);
-    final percent = ((stat.completionRate ?? 0) * 100).round();
-    final struggling = percent < 50;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.18),
-                    shape: BoxShape.circle),
-                child:
-                    Icon(GoalIcon.byKey(goal.iconKey).icon, color: color, size: 18),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: Text(goal.name,
-                      maxLines: 1, overflow: TextOverflow.ellipsis)),
-              Text(Copy.reviewCompletion(stat.completionRate ?? 0),
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(
-                          color: struggling
-                              ? Theme.of(context).colorScheme.tertiary
-                              : color,
-                          fontWeight: FontWeight.w700)),
-            ]),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: stat.completionRate ?? 0,
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(3),
-            ),
-            const SizedBox(height: 6),
-            Row(children: [
-              Text(Copy.reviewMetDays(stat.metDays, stat.applicableDays),
-                  style: Theme.of(context).textTheme.bodySmall),
-              const Spacer(),
-            ]),
-            const SizedBox(height: 4),
-            Row(children: [
-              Text(Copy.trendWeeks(4),
-                  style: Theme.of(context).textTheme.bodySmall),
-              const SizedBox(width: 8),
-              SizedBox(
-                height: 30,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    for (final r in rates)
-                      Container(
-                        width: 10,
-                        margin: const EdgeInsets.only(right: 4),
-                        height: 6 + (r ?? 0) * 24,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.25 + (r ?? 0) * 0.7),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                  ],
-                ),
+              _Dots(
+                cards: cards,
+                index: _pager?.hasClients == true ? _pager!.page?.round() ?? 0 : 0,
+                onTap: (i) => _pager?.animateToPage(i,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut),
               ),
-            ]),
-            if (struggling) ...[
-              const SizedBox(height: 4),
-              Text(Copy.reviewSuggestionLow,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.tertiary)),
-            ],
-            const SizedBox(height: 8),
-            Text(Copy.reviewDecisionTitle,
-                style: Theme.of(context).textTheme.labelMedium),
-            const SizedBox(height: 4),
-            SegmentedButton<_Choice>(
-              segments: const [
-                ButtonSegment(
-                    value: _Choice.continue_, label: Text(Copy.reviewDecisionContinue)),
-                ButtonSegment(
-                    value: _Choice.adjust, label: Text(Copy.reviewDecisionAdjust)),
-                ButtonSegment(
-                    value: _Choice.pause, label: Text(Copy.reviewDecisionPause)),
-              ],
-              selected: {_choiceOf(decision)},
-              onSelectionChanged: (s) =>
-                  onDecision(_decisionOf(s.first, decision)),
-            ),
-            if (decision is AdjustDecision) ...[
-              const SizedBox(height: 4),
-              Text(
-                  '${(decision as AdjustDecision).newPattern} · ${Copy.reviewAdjustHint}',
-                  style: Theme.of(context).textTheme.bodySmall),
             ],
           ],
         ),
       ),
     );
   }
-
 }
 
-enum _Choice { continue_, adjust, pause }
+/// 一张回顾卡的数据：目标 + 周统计 + 七天状态 + 近 4 周走势。
+class _CardData {
+  const _CardData({
+    required this.goal,
+    required this.stat,
+    required this.days,
+    required this.rates,
+  });
 
-_Choice _choiceOf(ReviewDecision d) => switch (d) {
-      ContinueDecision() => _Choice.continue_,
-      AdjustDecision() => _Choice.adjust,
-      PauseDecision() => _Choice.pause,
-    };
+  final Goal goal;
+  final GoalWeekStat stat;
+  final List<DayStatus> days;
+  final List<double> rates;
+}
 
-ReviewDecision _decisionOf(_Choice c, ReviewDecision current) => switch (c) {
-      _Choice.continue_ => const ContinueDecision(),
-      _Choice.pause => const PauseDecision(),
-      _Choice.adjust => current is AdjustDecision
-          ? current
-          : const AdjustDecision(DailyFrequency(1)),
-    };
+/// 周摘要：日期区间 + 「留下 N 次记录 · M 个目标」。
+class _WeekSummary extends StatelessWidget {
+  const _WeekSummary({
+    required this.week,
+    required this.records,
+    required this.goals,
+  });
+
+  final WeekStart week;
+  final int records;
+  final int goals;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.s1),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${week.monday.month}月${week.monday.day}日'
+            ' – ${week.sunday.month}月${week.sunday.day}日',
+            style: Theme.of(context).textTheme.titleL,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            Copy.reviewWeekSum(records, goals),
+            style: Theme.of(context).textTheme.bodyM.copyWith(
+                color: palette.onSurfaceVariant,
+                fontFeatures: const [FontFeature.tabularFigures()]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 三态图例：实心 = 有记录 / 空圈 = 没记录 / 小点 = 不适用。
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final style = Theme.of(context)
+        .textTheme
+        .labelS
+        .copyWith(color: palette.onSurfaceVariant);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpace.s6 + AppSpace.s1, AppSpace.s2, AppSpace.s6, 0),
+      child: Row(
+        children: [
+          Container(
+              width: 10,
+              height: 10,
+              decoration:
+                  BoxDecoration(shape: BoxShape.circle, color: palette.onSurface)),
+          const SizedBox(width: 5),
+          Text(Copy.reviewLegendRecorded, style: style),
+          const SizedBox(width: AppSpace.s3),
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: palette.divider, width: 2)),
+          ),
+          const SizedBox(width: 5),
+          Text(Copy.reviewLegendMissed, style: style),
+          const SizedBox(width: AppSpace.s3),
+          Container(
+              width: 4,
+              height: 4,
+              decoration:
+                  BoxDecoration(shape: BoxShape.circle, color: palette.divider)),
+          const SizedBox(width: 5),
+          Text(Copy.reviewLegendNa, style: style),
+        ],
+      ),
+    );
+  }
+}
+
+/// 目标回顾卡：头行 + 周节奏条 + 近 4 周走势 + 观察语。
+class _GoalReviewCard extends ConsumerWidget {
+  const _GoalReviewCard(this.data);
+
+  final _CardData data;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = TargetPalette.of(context);
+    final color = GoalColor.byKey(data.goal.colorKey).of(context);
+    final checkIns = ref.watch(checkInsProvider).value ?? const <CheckIn>[];
+    final today = ref.watch(todayProvider);
+
+    return Material(
+      color: palette.glassCard,
+      borderRadius: AppRadius.rLg,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpace.s4),
+        decoration: BoxDecoration(
+          borderRadius: AppRadius.rLg,
+          border: Border.all(color: palette.glassBorder),
+          boxShadow: palette.shadowLow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _head(context, color, checkIns, today),
+            const SizedBox(height: AppSpace.s3),
+            _strip(context, color),
+            const SizedBox(height: AppSpace.s3),
+            _trend(context, color),
+            const SizedBox(height: AppSpace.s3),
+            _coach(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 头行：40 图标 + 名称与「最近 · ××」+ 右上 N/M 天有记录。
+  Widget _head(BuildContext context, Color color,
+      List<CheckIn> checkIns, LocalDate today) {
+    final palette = TargetPalette.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(color: color, borderRadius: AppRadius.rMd),
+          child: Icon(GoalIcon.byKey(data.goal.iconKey).icon,
+              size: 19, color: Colors.white),
+        ),
+        const SizedBox(width: AppSpace.s3),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                data.goal.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleS,
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Icon(Icons.history, size: 12, color: palette.onSurfaceVariant),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      _latestLabel(
+                          checkIns
+                              .where((c) => c.goalId == data.goal.id)
+                              .toList(),
+                          today),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyS
+                          .copyWith(color: palette.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpace.s2),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${data.stat.metDays}/${data.stat.applicableDays}',
+              style: Theme.of(context).textTheme.titleM.copyWith(
+                  height: 1,
+                  fontFeatures: const [FontFeature.tabularFigures()]),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              Copy.goalsDaysRecorded,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelS
+                  .copyWith(color: palette.onSurfaceVariant, height: 1),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 签名元素 · 周节奏条：每天一格，26px 圆。
+  Widget _strip(BuildContext context, Color color) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s1),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          for (final (i, st) in data.days.indexed)
+            Column(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: st.met ? color : null,
+                    border: st.met || !st.applicable
+                        ? null
+                        : Border.all(color: palette.divider, width: 2),
+                  ),
+                  child: st.met
+                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      : !st.applicable
+                          ? Center(
+                              child: Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: palette.divider),
+                              ),
+                            )
+                          : null,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _dayLabel(i),
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelS
+                      .copyWith(color: palette.onSurfaceVariant),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 近 4 周走势：透明度阶梯柱（最新一根最实）。
+  Widget _trend(BuildContext context, Color color) {
+    const ladder = [.35, .55, .75, 1.0];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Text(
+            Copy.reviewTrendCap,
+            style: Theme.of(context).textTheme.labelS.copyWith(
+                color: TargetPalette.of(context).onSurfaceVariant),
+          ),
+        ),
+        const SizedBox(width: AppSpace.s4),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            for (final (i, r) in data.rates.indexed)
+              Padding(
+                padding: EdgeInsets.only(left: i == 0 ? 0 : 5),
+                child: Container(
+                  width: 13,
+                  height: 4 + r * 17,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: ladder[i]),
+                    borderRadius: AppRadius.rSm,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 观察语：三档，低档转警示色（只描述，不建议）。
+  Widget _coach(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final rate = data.stat.completionRate ?? 0;
+    final String coach;
+    if (data.stat.metDays == data.stat.applicableDays) {
+      coach = Copy.reviewCoachAll;
+    } else if (rate >= 0.5) {
+      coach = Copy.reviewCoachOkay;
+    } else {
+      coach = Copy.reviewCoachLow;
+    }
+    final low = coach == Copy.reviewCoachLow;
+    final tint = low ? palette.warning : palette.onSurfaceVariant;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(Icons.auto_awesome, size: 14, color: tint),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            coach,
+            style: Theme.of(context)
+                .textTheme
+                .bodyS
+                .copyWith(color: tint, height: 1.6),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 圆点指示器：6px，选中转目标色并放大（点按跳卡）。
+class _Dots extends StatelessWidget {
+  const _Dots({required this.cards, required this.index, required this.onTap});
+
+  final List<_CardData> cards;
+  final int index;
+  final void Function(int) onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.s2, bottom: AppSpace.s1),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (final (i, c) in cards.indexed)
+            GestureDetector(
+              onTap: () => onTap(i),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 18,
+                height: 14,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOut,
+                    width: i == index ? 8.4 : 6,
+                    height: i == index ? 8.4 : 6,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: i == index
+                          ? GoalColor.byKey(c.goal.colorKey).of(context)
+                          : palette.divider,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 空态：虚线卡一句邀请（上周没有适用目标或没有记录）。
+class _EmptyCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return CustomPaint(
+      foregroundPainter: _DashedRRectPainter(
+          color: palette.divider, radius: AppRadius.xl, strokeWidth: 1.5),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.s6, vertical: AppSpace.s8),
+        child: Column(
+          children: [
+            Text(Copy.reviewEmptyTitle,
+                style: Theme.of(context).textTheme.titleM),
+            const SizedBox(height: AppSpace.s3),
+            Text(
+              Copy.reviewEmptySub,
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyM
+                  .copyWith(color: palette.onSurfaceVariant, height: 1.8),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 「最近 · 今天 / 昨天 / N 天前」：最后一次有效记录的归属日
+/// （与目标列表同一语义）。
+String _latestLabel(List<CheckIn> mine, LocalDate today) {
+  final valid = mine.where((c) => c.isValid).toList();
+  if (valid.isEmpty) return Copy.todayLatestNone;
+  valid.sort((a, b) => a.day != b.day
+      ? a.day.compareTo(b.day)
+      : a.createdAt.compareTo(b.createdAt));
+  final gap = today.differenceInDays(valid.last.day);
+  if (gap <= 0) return Copy.todayLatestToday;
+  if (gap == 1) return Copy.todayLatestYesterday;
+  return Copy.todayLatestDaysAgo(gap);
+}
+
+/// 周一至周日的单字标签（节奏条列头）。
+String _dayLabel(int i) =>
+    const ['一', '二', '三', '四', '五', '六', '日'][i];
+
+/// 虚线圆角容器描边（与目标列表空态同一语言）。
+class _DashedRRectPainter extends CustomPainter {
+  _DashedRRectPainter({
+    required this.color,
+    required this.radius,
+    this.strokeWidth = 1.2,
+  });
+
+  final Color color;
+  final double radius;
+  final double strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Offset.zero & size, Radius.circular(radius)));
+    const dash = 6.0, gap = 5.0;
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        canvas.drawPath(
+            metric.extractPath(d, math.min(d + dash, metric.length)), paint);
+        d += dash + gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedRRectPainter old) =>
+      old.color != color || old.radius != radius;
+}

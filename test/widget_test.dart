@@ -570,4 +570,69 @@ void main() {
     );
     await db.close();
   });
+
+  testWidgets('T021 周回顾 R3：纯回看语言——周摘要/图例/节奏条/观察语，无决策控件',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final lastWeek = today.weekStart.previous;
+    final repo = GoalRepository(db);
+    final checkIns = CheckInRepository(db);
+
+    // 三周前立的习惯，上周 7 天适用、留下 4 次（一/二/四/五）。
+    final createdAt = today.addDays(-21);
+    final goal = await repo.create(
+      Goal(
+        name: '锻炼',
+        kind: GoalKind.habit,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: createdAt,
+      ),
+    );
+    await repo.addInitial(
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(createdAt),
+    );
+    for (final d in [0, 1, 3, 4]) {
+      await checkIns.add(goal.id, lastWeek.monday.addDays(d), DateTime.now());
+    }
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 切到回顾页签。
+    await tester.tap(find.text(Copy.reviewNav));
+    await tester.pumpAndSettle();
+
+    // 周摘要 + 三态图例 + N/M 节奏数（努力语言，无完成率百分比）。
+    expect(find.text(Copy.reviewTitle), findsOneWidget);
+    expect(find.text(Copy.reviewWeekSum(4, 1)), findsOneWidget);
+    expect(find.text(Copy.reviewLegendRecorded), findsOneWidget);
+    expect(find.text(Copy.reviewLegendMissed), findsOneWidget);
+    expect(find.text(Copy.reviewLegendNa), findsOneWidget);
+    expect(find.text('4/7'), findsOneWidget);
+    expect(find.text(Copy.goalsDaysRecorded), findsOneWidget);
+    // 观察语（okay 档，4/7 = 57%）。
+    expect(find.text(Copy.reviewCoachOkay), findsOneWidget);
+    // R3 裁决：决策动线与保存不再上屏。
+    expect(find.textContaining('下周怎么走'), findsNothing);
+    expect(find.textContaining('记下这一周'), findsNothing);
+    await db.close();
+  });
 }

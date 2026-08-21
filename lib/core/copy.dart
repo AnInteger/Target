@@ -26,27 +26,23 @@ abstract final class Copy {
   static const streakBroken = '忙就先放下，线还在'; // 连击断裂
   static String todayProgress(int done, int target) => '$done/$target';
 
-  // ---- 周回顾（FR-008，R6 补签透明）----
+  // ---- 周回顾（FR-008 · R3 纯回看：只描述，不建议，不决策）----
 
   static const reviewTitle = '上周回顾';
-  static String reviewCompletion(double rate) =>
-      '${(rate * 100).round()}%';
-  static const reviewNoteHint = '这一周，什么帮到了你？';
-  static const reviewDecisionContinue = '继续';
-  static const reviewDecisionAdjust = '调频';
-  static const reviewDecisionPause = '暂停';
-  static const reviewSuggestionLow = '要不要调小一点？'; // <50%，非红色警告
-  static String trendWeeks(int n) => '近 $n 周趋势';
-  static const reviewNoApplicableDays = '本周不适用'; // 完成率不呈现（非 0）
-
-
-  // ---- 周回顾补充（FR-008，与上节文案表合并使用）----
-
-  static const reviewDecisionTitle = '下周怎么走？';
-  static const reviewAdjustHint = '新频率下周一生效';
-  static const reviewSave = '记下这一周';
-  static const reviewSaved = '已记下';
-  static String reviewMetDays(int met, int applicable) => '$met/$applicable 天';
+  static const reviewNoApplicableDays = '本周不适用'; // 目标列表右栏空值复用
+  /// 周摘要：「留下 N 次记录 · M 个目标」（努力语言，无完成率）。
+  static String reviewWeekSum(int records, int goals) =>
+      records == 0 ? '还没有留下记录' : '留下 $records 次记录 · $goals 个目标';
+  static const reviewLegendRecorded = '有记录';
+  static const reviewLegendMissed = '没记录';
+  static const reviewLegendNa = '不适用';
+  static const reviewTrendCap = '近 4 周';
+  // 观察语三档（R3：只说这一周怎么过的，不指挥下周）。
+  static const reviewCoachAll = '这一周很扎实，该在的都在。';
+  static const reviewCoachOkay = '有几天被挤掉了，正常的一周。';
+  static const reviewCoachLow = '这周留下得不多，看看都停在哪几天。';
+  static const reviewEmptyTitle = '上周还没有记录';
+  static const reviewEmptySub = '这一周还没留下什么。去今天屏记上一笔，下周这里就有得看了。';
 
   // ---- 目标创建 / 编辑（FR-001/011/012）----
 

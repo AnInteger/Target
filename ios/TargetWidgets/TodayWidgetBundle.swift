@@ -21,7 +21,6 @@ struct WidgetGoal: Codable, Identifiable {
     let targetCount: Int?
     let doneCount: Int?
     let met: Bool?
-    let busyMode: Bool?
     // T044 里程碑扩展（可选）：kind == "milestone" 时有效。
     let kind: String?
     let stepsDone: Int?
@@ -230,12 +229,6 @@ struct MediumView: View {
                             Text(goal.name)
                                 .font(.footnote)
                                 .lineLimit(1)
-                            if goal.busyMode == true {
-                                Text("忙碌中")
-                                    .font(.caption2)
-                                    .padding(.horizontal, 4)
-                                    .background(Capsule().fill(Color.secondary.opacity(0.2)))
-                            }
                             Spacer()
                             Text("\(goal.doneCount ?? 0)/\(goal.targetCount ?? 0)")
                                 .font(.footnote.monospacedDigit())

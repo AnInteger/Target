@@ -58,7 +58,8 @@ final settlementServiceProvider = Provider((ref) => WeeklySettlementService(
     ref.watch(checkInRepoProvider),
     ref.watch(reviewRepoProvider)));
 
-/// 忙碌模式（US4）：一键降档/恢复。
+/// 忙碌收尾（2026-08-21 裁决：忙碌态全 App 移除）：入口与视图已删，
+/// 服务仅用于 App 启动时自动收尾升级前遗留的活跃降档会话（见 app.dart）。
 final busyModeServiceProvider =
     Provider((ref) => BusyModeService(ref.watch(goalRepoProvider)));
 final settingsRepoProvider =

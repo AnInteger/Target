@@ -2,7 +2,7 @@
 /// App Group。
 ///
 /// schema：battery / updatedAt / goals[{id,name,colorKey,iconKey,
-/// targetCount,doneCount,met,busyMode,kind?,stepsDone?,stepsTotal?,
+/// targetCount,doneCount,met,kind?,stepsDone?,stepsTotal?,
 /// deadline?}]（T044 里程碑扩展，可选键兼容旧快照）/ weekProgress{weekStart,
 /// metGoals,totalGoals}。本文件 Web 可达（无 home_widget 依赖）；
 /// 原生写盘由 WidgetGateway 完成，Web 网关为 no-op。
@@ -36,7 +36,6 @@ Map<String, Object?> buildTodaySnapshot({
         'targetCount': st.targetCount,
         'doneCount': st.doneCount,
         'met': st.met,
-        'busyMode': st.busyMode,
       });
     } else {
       // 里程碑（T044）：medium 家族只读行 — 步骤进度 + 倒计时。

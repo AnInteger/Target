@@ -59,7 +59,7 @@ Future<void> showGoalActions(BuildContext context, WidgetRef ref, Goal goal) {
       ListTile(
         leading: const Icon(Icons.pause_circle_outline),
         title: const Text('暂停'),
-        subtitle: const Text(Copy.busySubtitle),
+        subtitle: const Text(Copy.goalPauseHint),
         onTap: () {
           Navigator.of(context).pop();
           pauseGoal(ref, goal);

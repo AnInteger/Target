@@ -99,7 +99,7 @@ description: "Task list: UI/UX 全面重设计（原型先行）"
 
 - [x] T020 [US4] 周回顾原型 `design/prototypes/screen-review.html` ✅ **2026-08-21 R3 修订送审**——用户裁决「聚焦查看」：决策动线（继续/调频/暂停/一句话回顾/保存）全删、教练语改观察语、补签状态不上本屏（「补」角标/徽标/画板删）、忙碌画板删（六板→两板 ①典型 ②深色）；并修复 pager 纵向可滑 bug（flex-shrink:0 + overflow-y:hidden，根因见 reviews.md R3 条目）。（R1 2026-08-20 送审：语义转向落地，周节奏条替代完成率）
 - [ ] T021 [US4] 周回顾评审（`design/reviews.md`）通过后重写 `lib/features/review/review_view.dart`：图形化趋势（`CustomPainter`）、生活化观察语 `lib/core/copy.dart`、逐目标横滑卡 + 指示点（PageView）——**纯回看，无决策动线**（R3 裁决：决策语义移除，调频/暂停走目标编辑器）
-- [ ] T022 [US4] 忙碌模式全 App 移除（2026-08-21 用户裁决「忙碌的状态也可以去掉了，其他页面也去掉，不用设置这么多」）：收敛 `lib/features/busy_mode/busy_mode_view.dart` 与路由入口、拆今日屏忙碌态分支（today_view.dart/测试）、拆列表忙碌徽标、清理提醒降档语义与既有 busy 数据字段（保留列迁移可空，不丢历史库）；spec FR-005 等价物条款随此裁决豁免忙碌项（reviews.md R3 条目为凭）
+- [x] T022 [US4] 忙碌模式全 App 移除（2026-08-21 用户裁决「忙碌的状态也可以去掉了，其他页面也去掉，不用设置这么多」）：收敛 `lib/features/busy_mode/busy_mode_view.dart` 与路由入口、拆今日屏忙碌态分支（today_view.dart/测试）、拆列表忙碌徽标、清理提醒降档语义与既有 busy 数据字段（保留列迁移可空，不丢历史库）；spec FR-005 等价物条款随此裁决豁免忙碌项（reviews.md R3 条目为凭）（✅ 2026-08-21 完成：busy_mode 视图目录与 /busy 路由删除；today/goals/review/补签日历/iOS 小组件的忙碌展示与文案全拆（回顾屏补签计数一并撤）；`BusyModeService` 保留但仅剩一个职责——App 启动自动收尾升级前遗留的活跃降档会话（app.dart `_closeLegacyBusySessions`，恢复原频率+结束会话，历史留痕不丢）；busy 表/FrequencySource.busyMode/结算统计/备份往返等历史解释链原样保留；analyze 零告警、63/63 测试全绿——忙碌用例随功能移除，64→63）
 - [ ] T023 [US4] [P] 补签日历新视觉 `lib/features/today/backfill_calendar.dart`："补"标记与当日打卡不混淆、14 天窗口、FittedBox 布局保留 + V5 widget 测试更新 `test/widget_test.dart`（注：R3 裁决只去回顾屏的补签状态展示，今日屏长按补签功能保留——如用户再裁撤则本任务改为移除）
 - [ ] T024 [US4] US4 回归：V4/V5/V6 全场景走查（quickstart 阶段 B）、`flutter analyze` + `flutter test` 全绿
 

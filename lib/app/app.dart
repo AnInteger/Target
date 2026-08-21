@@ -40,6 +40,21 @@ class _TargetAppState extends ConsumerState<TargetApp> {
         SnackBar(content: Text('${b.title}\n${b.body}')),
       );
     });
+    // T022（2026-08-21 裁决：忙碌态全 App 移除）：升级前若仍有进行中的
+    // 降档会话，启动即恢复原频率并收尾——历史留痕保留，仅清入口。
+    _closeLegacyBusySessions();
+  }
+
+  /// 收尾遗留忙碌会话：恢复各目标原频率 + 结束会话（幂等，无会话则空转）。
+  Future<void> _closeLegacyBusySessions() async {
+    try {
+      final sessions = await ref.read(busySessionsProvider.future);
+      for (final s in sessions.where((s) => s.isActive)) {
+        await ref
+            .read(busyModeServiceProvider)
+            .deactivate(s, now: DateTime.now());
+      }
+    } catch (_) {}
   }
 
   @override

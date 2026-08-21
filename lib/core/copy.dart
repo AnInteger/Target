@@ -23,7 +23,7 @@ abstract final class Copy {
   // ---- 连击 / 频率 ----
 
   static String streakDays(int n) => '连击 $n 天';
-  static const streakBroken = '忙就先降档，线还在'; // 连击断裂，配忙碌模式入口
+  static const streakBroken = '忙就先放下，线还在'; // 连击断裂
   static String todayProgress(int done, int target) => '$done/$target';
 
   // ---- 周回顾（FR-008，R6 补签透明）----
@@ -31,8 +31,6 @@ abstract final class Copy {
   static const reviewTitle = '上周回顾';
   static String reviewCompletion(double rate) =>
       '${(rate * 100).round()}%';
-  static String reviewBackfills(int n) => '补签 $n 次';
-  static const reviewBusyTag = '忙碌周';
   static const reviewNoteHint = '这一周，什么帮到了你？';
   static const reviewDecisionContinue = '继续';
   static const reviewDecisionAdjust = '调频';
@@ -41,19 +39,6 @@ abstract final class Copy {
   static String trendWeeks(int n) => '近 $n 周趋势';
   static const reviewNoApplicableDays = '本周不适用'; // 完成率不呈现（非 0）
 
-  // ---- 忙碌模式（FR-018）----
-
-  static const busyTitle = '忙碌模式';
-  static const busySubtitle = '降档不熄火，忙完这阵再回来';
-  static const busyBadge = '忙碌中';
-  static String busyPreview(String from, String to) => '$from → $to';
-  static const busyStart = '开启降档';
-  static const busyStartHint = '本周生效';
-  static const busyResume = '恢复正常';
-  static const busyResumed = '已恢复，节奏回来了';
-  static const busySelectHint = '选要降档的目标，忙完一键恢复';
-  static const busyFloorNote = '已是最低档';
-  static const busyActiveNow = '忙碌模式进行中';
 
   // ---- 周回顾补充（FR-008，与上节文案表合并使用）----
 
@@ -117,6 +102,7 @@ abstract final class Copy {
   static const goalsEmptyCta = '创建第一个目标';
   static const goalsWeekRate = '本周';
   static const goalsInviteWhy = '＋ 补一句为什么';
+  static const goalPauseHint = '先放一放，想回来随时继续';
   static const goalsEmptyTitle = '想守护点什么？';
   static const goalsEmptySub = '从一句熟悉的话开始，或者写一句自己的。';
   static const goalsEmptyOwn = '写一句自己的';
@@ -228,7 +214,6 @@ abstract final class Copy {
   static const todayReminderSettings = '提醒设置';
   static const todayDetail = '目标详情';
   static const todayCheckAction = '记录一次努力';
-  static const todayBusyBanner = '忙碌模式 · 今天只需记录一次努力';
   static String todayPillActions(int n) => '今日 $n 次记录';
   static String todayPillGoals(int n) => '$n 个目标';
   static String todayCountLabel(int n) => '今日 $n 次';
@@ -239,7 +224,6 @@ abstract final class Copy {
 
   // 大标题四态（displayLarge 两行编辑级）。
   static const todayDisplayTypical = '今天\n做了什么？';
-  static const todayDisplayBusy = '忙碌的一天';
   static const todayDisplayAllProgress = '每个目标\n都有进展';
   static const todayDisplayEmpty = '今天想做点什么？';
 

@@ -2,7 +2,7 @@
 ///
 /// 努力记录模型：目标无「完成度」，只记录为它做过的努力。
 /// 结构：顶栏（问候/新建/提醒）→ display 大标题 → 今日进展主卡（圆环 +
-/// 竖排统计）→ 今日目标（状态胶囊 + 目标卡）。空/忙碌/全部进展态按
+/// 竖排统计）→ 今日目标（状态胶囊 + 目标卡）。空/全部进展态按
 /// 原型切换；壳层底幕渐变由 router 壳层负责，本页透明叠画。
 library;
 
@@ -45,9 +45,6 @@ class TodayView extends ConsumerWidget {
     final today = ref.watch(todayProvider);
     final checkIns = ref.watch(checkInsProvider).value ?? const <CheckIn>[];
     final versions = ref.watch(versionsProvider).value ?? const [];
-    final busyActive = (ref.watch(busySessionsProvider).value ?? const []).any(
-      (s) => s.isActive,
-    );
     final settings = ref.watch(settingsProvider).value;
 
     final active = goalsAsync.value!
@@ -72,8 +69,6 @@ class TodayView extends ConsumerWidget {
     final String display;
     if (isEmpty) {
       display = Copy.todayDisplayEmpty;
-    } else if (busyActive) {
-      display = Copy.todayDisplayBusy;
     } else if (allProgress) {
       display = Copy.todayDisplayAllProgress;
     } else {
@@ -92,7 +87,6 @@ class TodayView extends ConsumerWidget {
                 padding: const EdgeInsets.all(AppSpace.s6),
                 children: [
                   _TopBar(settings: settings),
-                  if (busyActive) const _BusyBanner(),
                   Padding(
                     padding: const EdgeInsets.only(
                       top: AppSpace.s6,
@@ -269,15 +263,6 @@ class _TopBar extends ConsumerWidget {
                 context.go('/settings');
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.bolt_outlined),
-              title: const Text(Copy.busyTitle),
-              subtitle: const Text(Copy.busySubtitle),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                context.push('/busy');
-              },
-            ),
           ],
         ),
       ),
@@ -379,50 +364,6 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
-/// 忙碌横幅：warning 语义，点击进忙碌模式（调整/恢复）。
-class _BusyBanner extends StatelessWidget {
-  const _BusyBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.s3),
-      child: Material(
-        color: palette.surface,
-        borderRadius: AppRadius.rMd,
-        child: InkWell(
-          onTap: () => context.push('/busy'),
-          borderRadius: AppRadius.rMd,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpace.s3,
-              vertical: AppSpace.s2,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.rMd,
-              border: Border.all(color: palette.divider),
-              boxShadow: palette.shadowLow,
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.bolt_outlined, size: 15, color: palette.warning),
-                const SizedBox(width: AppSpace.s2),
-                Expanded(
-                  child: Text(
-                    Copy.todayBusyBanner,
-                    style: Theme.of(context).textTheme.bodyS
-                        .copyWith(color: palette.warning),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// 今日进展主卡：浅色 = 墨色反色卡（卡内文本令牌就地反转）；
 /// 深色 = 深底幕卡 + 玻璃描边（文本令牌不反转）。
@@ -732,10 +673,7 @@ class _HabitCard extends ConsumerWidget {
     final palette = TargetPalette.of(context);
     final color = GoalColor.byKey(goal.colorKey).of(context);
     final done = status.doneCount > 0;
-    final rhythm = [
-      if (pattern != null) '$pattern',
-      if (status.busyMode) Copy.busyBadge,
-    ].join(' · ');
+    final rhythm = pattern == null ? '' : '$pattern';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpace.s4),

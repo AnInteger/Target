@@ -244,46 +244,6 @@ void main() {
     await db.close();
   });
 
-  testWidgets('US2 忙碌态区分：降档会话活跃 → display 转忙碌 + 横幅在场（FR-018）',
-      (tester) async {
-    usePhoneSurface(tester);
-    final db = AppDatabase(NativeDatabase.memory());
-    final gateway = FakeNotificationGateway();
-    final today = LocalDate.fromDateTime(DateTime.now());
-    final repo = GoalRepository(db);
-    final goal = await repo.create(Goal(
-      name: '锻炼',
-      kind: GoalKind.habit,
-      iconKey: 'fitness',
-      colorKey: 'sage',
-      createdAt: today,
-    ));
-    await repo.addInitial(goal.id, const DailyFrequency(3), WeekStart.containing(today));
-    await repo.openSession(
-      WeekStart.containing(today),
-      [BusyModeEntry(goalId: goal.id, downgraded: const DailyFrequency(1))],
-      DateTime.now(),
-    );
-    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
-        const SettingsRowsCompanion(onboardingCompleted: Value(true)));
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(gateway),
-          dayTickerProvider.overrideWith((ref) {}),
-        ],
-        child: const TargetApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text(Copy.todayDisplayBusy), findsOneWidget);
-    expect(find.text(Copy.todayBusyBanner), findsOneWidget);
-    expect(find.text(Copy.todayDisplayTypical), findsNothing);
-    await db.close();
-  });
 
   testWidgets('FR-001：输入模糊名当场出 SMART 建议，采用即替换（回归：输入需触发刷新）', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());

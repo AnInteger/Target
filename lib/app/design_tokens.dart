@@ -123,7 +123,7 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
   final Color positiveFill;
   final Color positiveOn;
 
-  /// 忙碌/落后（克制琥珀）。
+  /// 落后/注意（克制琥珀）。
   final Color warning;
 
   /// 发丝分隔线。

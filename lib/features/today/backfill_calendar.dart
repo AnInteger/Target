@@ -32,7 +32,6 @@ class _BackfillSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final today = ref.watch(todayProvider);
-    final stats = ref.watch(statsProvider);
     final checkIns = ref.watch(checkInsProvider).value ?? const [];
     final mine = checkIns
         .where((c) => c.goalId == goal.id && c.isValid && c.day.isBefore(today))
@@ -68,8 +67,6 @@ class _BackfillSheet extends ConsumerWidget {
                       _DayCell(
                         day: day,
                         done: mine.contains(day),
-                        accent: stats != null &&
-                            stats.dayStatusOf(goal.id, day).busyMode,
                         onTap: () async {
                           final c = await ref
                               .read(checkInServiceProvider)
@@ -93,15 +90,11 @@ class _DayCell extends StatelessWidget {
   const _DayCell({
     required this.day,
     required this.done,
-    required this.accent,
     required this.onTap,
   });
 
   final LocalDate day;
   final bool done;
-
-  /// 忙碌模式周的日格：降档口径下的补卡提示色。
-  final bool accent;
   final VoidCallback onTap;
 
   @override
@@ -113,11 +106,7 @@ class _DayCell extends StatelessWidget {
         width: 42,
         height: 52,
         decoration: BoxDecoration(
-          color: done
-              ? theme.colorScheme.primaryContainer
-              : accent
-                  ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.4)
-                  : null,
+          color: done ? theme.colorScheme.primaryContainer : null,
           borderRadius: BorderRadius.circular(10),
           border: done ? null : Border.all(color: theme.colorScheme.outlineVariant),
         ),

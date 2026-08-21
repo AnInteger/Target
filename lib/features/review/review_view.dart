@@ -1,5 +1,5 @@
 /// 周回顾页（US4 T038，FR-008 / research D11）：上周各目标完成率卡 +
-/// 近 4 周趋势 + 补签透明 + 忙碌标注；反思输入；决策三选
+/// 近 4 周趋势；反思输入；决策三选（T021 将按 R3 裁决整屏重写为纯回看）
 /// （继续 / 调频下周生效 / 暂停）。展示实时重算，快照仅留痕。
 library;
 
@@ -185,12 +185,9 @@ class _GoalReviewCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Row(children: [
-              Text(
-                  '${Copy.reviewMetDays(stat.metDays, stat.applicableDays)}'
-                  ' · ${Copy.reviewBackfills(stat.backfillCount)}',
+              Text(Copy.reviewMetDays(stat.metDays, stat.applicableDays),
                   style: Theme.of(context).textTheme.bodySmall),
               const Spacer(),
-              if (stat.busyModeApplied) _tag(context, Copy.reviewBusyTag),
             ]),
             const SizedBox(height: 4),
             Row(children: [
@@ -251,14 +248,6 @@ class _GoalReviewCard extends StatelessWidget {
     );
   }
 
-  Widget _tag(BuildContext context, String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(text, style: Theme.of(context).textTheme.labelSmall),
-      );
 }
 
 enum _Choice { continue_, adjust, pause }

@@ -1,5 +1,5 @@
 /// go_router 路由表（ui-contract.md：主栈 Today → Goals → Review → Mine；
-/// Editor/Milestone/Busy 模态；深链 target://today|review|goal/{id}，research D14）。
+/// Editor 模态 / GoalDetail 页；深链 target://today|review|goal/{id}，research D14）。
 ///
 /// 导航壳层按今日屏 R4 定稿（screen-today.html）：底部白色悬浮全圆角胶囊条，
 /// 四页签（今日/目标/回顾/我的），选中 = 墨色胶囊内图标上文字下；
@@ -13,7 +13,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/copy.dart';
-import '../features/busy_mode/busy_mode_view.dart';
 import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
 import '../features/goals/goal_templates.dart';
@@ -60,7 +59,6 @@ GoRouter _build() => GoRouter(
             path: '/goal/:id',
             builder: (_, s) =>
                 GoalDetailPage(goalId: s.pathParameters['id']!)),
-        GoRoute(path: '/busy', builder: (_, _) => const BusyModeView()),
       ],
     );
 

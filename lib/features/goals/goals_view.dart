@@ -1,7 +1,7 @@
 /// GoalsView（002 T017 重写，FR-005/009/010/011 · screen-goals.html 列表语言）。
 ///
 /// 卡片两行语言：名称 + 第二行「为什么」（无则虚线邀请「补一句为什么」，
-/// 点卡片即渐进补全入口 T014 B 案）；元行 = 频率/倒计时 + 徽标（忙碌/一次性）。
+/// 点卡片即渐进补全入口 T014 B 案）；元行 = 频率/倒计时/一次性。
 /// 暂停区 = 虚线行 + 恢复按钮；空态 = 虚线邀请卡（模板一句话 + 写一句自己的）。
 /// 长按/菜单进生命周期动作（goal_lifecycle.dart）。
 library;
@@ -178,10 +178,6 @@ class _GoalCard extends ConsumerWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleMedium)),
-                      if ((stats?.dayStatusOf(goal.id).busyMode ?? false)) ...[
-                        const SizedBox(width: 6),
-                        _badge(context, Copy.busyBadge),
-                      ],
                     ]),
                     const SizedBox(height: 2),
                     _whyLine(context),
@@ -227,13 +223,11 @@ class _GoalCard extends ConsumerWidget {
   /// 元行：habit = 频率；milestone = 倒计时·步骤 + 「一次性 · 截止」。
   String _metaLine(
       WidgetRef ref, LocalDate today, FrequencyPattern? pattern) {
-    final busy = ref.watch(statsProvider)?.dayStatusOf(goal.id).busyMode;
-    final busyNote = (busy ?? false) ? '${Copy.busyBadge} · ' : '';
     if (goal.isMilestone) {
       final short = _shortDeadline(goal.deadline, today);
-      return '$busyNote${Copy.goalsOnceBadge(short ?? '')} · ${_milestoneLine(ref, today)}';
+      return '${Copy.goalsOnceBadge(short ?? '')} · ${_milestoneLine(ref, today)}';
     }
-    return '$busyNote${pattern?.toString() ?? ''}';
+    return pattern?.toString() ?? '';
   }
 
   String? _shortDeadline(LocalDate? d, LocalDate today) => d == null
@@ -251,16 +245,6 @@ class _GoalCard extends ConsumerWidget {
     return '${Copy.milestoneCountdown(days)}$suffix';
   }
 
-  Widget _badge(BuildContext context, String text) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.tertiaryContainer,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: Text(text,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onTertiaryContainer)),
-      );
 
   /// 右侧数字：habit = 连击 + 本周完成率；里程碑留白。
   Widget _trailing(BuildContext context, WidgetRef ref, StatsEvaluation? stats) {

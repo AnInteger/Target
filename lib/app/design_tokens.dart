@@ -347,6 +347,9 @@ extension AppTextX on TextTheme {
   /// displayMedium：28 / 1.25 / 700。
   TextStyle get displayM => displayMedium!;
 
+  /// displaySmall：22 / 1.3 / 700（页题）。
+  TextStyle get displayS => displaySmall!;
+
   /// titleLarge：22 / 1.3 / 700。
   TextStyle get titleL => titleLarge!;
 

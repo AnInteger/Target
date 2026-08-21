@@ -93,6 +93,13 @@ abstract final class Copy {
   // ---- 目标管理页 ----
 
   static const goalsTitle = '目标';
+  static const goalsNew = '新建';
+  static String goalsSum(int n, int m) =>
+      m == 0 ? '$n 个目标 · 本周还没有记录' : '$n 个目标 · 本周留下 $m 次记录';
+  static const goalsDaysRecorded = '天有记录';
+  static const goalsStepsDone = '步完成';
+  static const goalsDeadlineLabel = '截止';
+  static const goalsOnceShort = '一次性';
   static String goalsActiveHeader(int n) => '进行中 $n/5';
   static const goalsPausedHeader = '已暂停';
   static const goalsPausedNote = '暂停中 · 记录保留';

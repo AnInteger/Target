@@ -404,7 +404,8 @@ void main() {
     await tester.tap(find.text(Copy.goalsResume));
     await tester.pumpAndSettle();
     expect(find.textContaining(Copy.goalsPausedNote), findsNothing);
-    expect(find.text(Copy.goalsActiveHeader(3)), findsOneWidget);
+    // R2 列表语言：分节头「进行中 N/5」被小结行「N 个目标 · 本周…」取代。
+    expect(find.textContaining('3 个目标'), findsOneWidget);
     await db.close();
   });
 

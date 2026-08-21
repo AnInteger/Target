@@ -1,13 +1,13 @@
-/// GoalsView（002 T017 重写，FR-005/009/010/011 · screen-goals.html 列表语言）。
+/// GoalsView（T017 R2 返工 · 2026-08-21 screen-goals.html R2 通过定稿）。
 ///
-/// 卡片两行语言：名称 + 第二行「为什么」（无则虚线邀请「补一句为什么」，
-/// 点卡片即渐进补全入口 T014 B 案）；元行 = 频率/倒计时/一次性。
-/// 暂停区 = 虚线行 + 恢复按钮；空态 = 虚线邀请卡（模板一句话 + 写一句自己的）。
-/// 长按/菜单进生命周期动作（goal_lifecycle.dart）。
+/// 列表说「这目标最近怎么样」：卡 = 图标 + 名称 + 本周节奏数
+/// （N/M 天有记录，努力语言）+ 为什么第二行（无则虚线胶囊邀请）+
+/// 元行（场景 chip + 最近一次记录）；每日打卡进度归今日屏。
+/// 顶下小结行汇总「N 个目标 · 本周留下 M 次记录」；暂停区 = 虚线行 +
+/// 恢复；空态 = 提问 + 模板一句话 + 写一句自己的。长按进生命周期动作。
 library;
 
 import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,9 +17,6 @@ import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
-import '../../core/models/frequency_pattern.dart';
-import '../../core/stats/stats_engine.dart';
-import '../../core/stats/versioning.dart';
 import 'goal_lifecycle.dart';
 import 'goal_templates.dart';
 
@@ -31,108 +28,138 @@ class GoalsView extends ConsumerWidget {
     final goalsAsync = ref.watch(goalsProvider);
     final stats = ref.watch(statsProvider);
     if (!goalsAsync.hasValue || stats == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: TargetPalette.of(context).accent,
+          ),
+        ),
+      );
     }
     final goals = goalsAsync.value!;
+    final today = ref.watch(todayProvider);
+    final checkIns = ref.watch(checkInsProvider).value ?? const <CheckIn>[];
     final active = goals.where((g) => g.status == GoalStatus.active).toList();
     final paused = goals.where((g) => g.status == GoalStatus.paused).toList();
     final closed = goals
         .where((g) =>
             g.status == GoalStatus.archived || g.status == GoalStatus.achieved)
         .toList();
+    // 本周全目标有效记录数（小结行）。
+    final weekRecords = checkIns
+        .where((c) => c.isValid && !c.day.isBefore(today.weekStart.monday))
+        .length;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(Copy.goalsTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: Copy.editorNewGoal,
-            onPressed: () => context.push('/goal-editor'),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpace.s6, AppSpace.s2, AppSpace.s6, AppSpace.s12),
+          children: [
+            _TopBar(),
+            if (goals.isEmpty) ...[
+              const SizedBox(height: AppSpace.s8),
+              _EmptyBoard(),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.only(
+                    left: AppSpace.s1, top: AppSpace.s2, bottom: AppSpace.s1),
+                child: Text(
+                  Copy.goalsSum(active.length, weekRecords),
+                  style: Theme.of(context).textTheme.bodyM.copyWith(
+                      color: TargetPalette.of(context).onSurfaceVariant,
+                      fontFeatures: const [FontFeature.tabularFigures()]),
+                ),
+              ),
+              for (final g in active) _GoalCard(goal: g),
+              if (paused.isNotEmpty) ...[
+                _SectionHeader(text: Copy.goalsPausedHeader),
+                for (final g in paused) _PausedRow(goal: g),
+              ],
+              if (closed.isNotEmpty)
+                ExpansionTile(
+                  title: Text(Copy.goalsClosedHeader,
+                      style: Theme.of(context).textTheme.labelS.copyWith(
+                          letterSpacing: 0.9,
+                          color: TargetPalette.of(context).onSurfaceVariant)),
+                  initiallyExpanded: false,
+                  children: [for (final g in closed) _GoalCard(goal: g)],
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 顶栏：页题「目标」+ 新建胶囊（accent 实心）。
+class _TopBar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.s2, bottom: AppSpace.s2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(Copy.goalsTitle,
+                style: Theme.of(context).textTheme.displayS),
+          ),
+          InkWell(
+            onTap: () => context.push('/goal-editor'),
+            borderRadius: AppRadius.rFull,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.s4, vertical: AppSpace.s2),
+              decoration: BoxDecoration(
+                color: palette.accent,
+                borderRadius: AppRadius.rFull,
+                boxShadow: palette.shadowMid,
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.add, size: 14, color: palette.accentOn),
+                  const SizedBox(width: AppSpace.s2),
+                  Text(Copy.goalsNew,
+                      style: Theme.of(context).textTheme.bodyM.copyWith(
+                          color: palette.accentOn,
+                          fontWeight: FontWeight.w600)),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-      body: goals.isEmpty
-          ? _empty(context)
-          : ListView(
-              children: [
-                _header(context, Copy.goalsActiveHeader(active.length)),
-                for (final g in active) _GoalCard(goal: g),
-                if (paused.isNotEmpty) ...[
-                  _header(context, Copy.goalsPausedHeader),
-                  for (final g in paused) _PausedRow(goal: g),
-                ],
-                if (closed.isNotEmpty)
-                  ExpansionTile(
-                    title: Text(Copy.goalsClosedHeader,
-                        style: Theme.of(context).textTheme.titleSmall),
-                    initiallyExpanded: false,
-                    children: [for (final g in closed) _GoalCard(goal: g)],
-                  ),
-                const SizedBox(height: 88),
-              ],
-            ),
     );
   }
-
-  Widget _header(BuildContext context, String text) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-        child: Text(
-          text,
-          style: Theme.of(context)
-              .textTheme
-              .labelMedium
-              ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
-        ),
-      );
-
-  /// 空态：虚线邀请卡（screen-goals.html ②）——模板一句话 + 写一句自己的。
-  Widget _empty(BuildContext context) => ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const SizedBox(height: 48),
-          _DashedCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(Copy.goalsEmptyTitle,
-                    style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(Copy.goalsEmptySub,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final t in kAllTemplates)
-                      ActionChip(
-                        avatar: CircleAvatar(
-                          backgroundColor:
-                              GoalColor.byKey(t.colorKey).of(context),
-                          radius: 9,
-                          child: Icon(GoalIcon.byKey(t.iconKey).icon,
-                              size: 11, color: Colors.white),
-                        ),
-                        label: Text(t.name),
-                        onPressed: () => context.push('/goal-editor', extra: t),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                FilledButton.tonal(
-                  onPressed: () => context.push('/goal-editor'),
-                  child: const Text(Copy.goalsEmptyOwn),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
 }
 
-/// 单张目标卡片：图标 + 名称 + 「为什么」第二行 + 元行徽标 + 连击/周完成率。
+/// 分节小标（已暂停/已结束）：labelS + 字距。
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(
+          left: AppSpace.s1, top: AppSpace.s2, bottom: AppSpace.s1),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelS.copyWith(
+            letterSpacing: 0.9,
+            color: TargetPalette.of(context).onSurfaceVariant),
+      ),
+    );
+  }
+}
+
+/// 目标卡：图标 + 名称 + 本周节奏数 / 为什么（或虚线邀请）/ 元行。
 class _GoalCard extends ConsumerWidget {
   const _GoalCard({required this.goal});
 
@@ -140,135 +167,238 @@ class _GoalCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(statsProvider);
-    final today = ref.watch(todayProvider);
-    final versions = ref.watch(versionsProvider).value ?? const [];
+    final palette = TargetPalette.of(context);
     final color = GoalColor.byKey(goal.colorKey).of(context);
-    final pattern = effectivePattern(
-        versions.where((v) => v.goalId == goal.id).toList(), today);
+    final today = ref.watch(todayProvider);
+    final checkIns =
+        ref.watch(checkInsProvider).value ?? const <CheckIn>[];
 
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        // 点卡片 = 编辑/渐进补全（旧目标空维度由此补一句为什么）。
-        onTap: () => context.push('/goal-editor?id=${goal.id}'),
-        onLongPress: () => showGoalActions(context, ref, goal),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(GoalIcon.byKey(goal.iconKey).icon, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.s3),
+      child: Material(
+        color: palette.glassCard,
+        borderRadius: AppRadius.rLg,
+        child: InkWell(
+          // 点卡片 = 编辑/渐进补全（空为什么由此补一句）。
+          onTap: () => context.push('/goal-editor?id=${goal.id}'),
+          onLongPress: () => showGoalActions(context, ref, goal),
+          borderRadius: AppRadius.rLg,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpace.s4),
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.rLg,
+              border: Border.all(color: palette.divider),
+              boxShadow: palette.shadowLow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Row(children: [
-                      Flexible(
-                          child: Text(goal.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleMedium)),
-                    ]),
-                    const SizedBox(height: 2),
-                    _whyLine(context),
-                    const SizedBox(height: 4),
-                    Text(
-                      _metaLine(ref, today, pattern),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: AppRadius.rMd,
+                      ),
+                      child: Icon(GoalIcon.byKey(goal.iconKey).icon,
+                          size: 19, color: Colors.white),
                     ),
+                    const SizedBox(width: AppSpace.s3),
+                    Expanded(
+                      child: Text(
+                        goal.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleS,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpace.s2),
+                    _RatioTrailing(goal: goal),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              _trailing(context, ref, stats),
-            ],
+                const SizedBox(height: AppSpace.s2),
+                _whyLine(context),
+                const SizedBox(height: AppSpace.s2),
+                _metaRow(
+                  context,
+                  latest: _latestLabel(
+                      checkIns.where((c) => c.goalId == goal.id).toList(),
+                      today),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  /// 第二行「为什么」：有则一句带出；无则虚线邀请（渐进补全，T014 B 案）。
+  /// 第二行「为什么」：有则一句带出；无则虚线胶囊邀请（渐进补全）。
   Widget _whyLine(BuildContext context) {
+    final palette = TargetPalette.of(context);
     final why = goal.motivation;
     if (why == null || why.isEmpty) {
-      return Text(
-        Copy.goalsInviteWhy,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            decoration: TextDecoration.underline,
-            decorationStyle: TextDecorationStyle.dotted),
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: CustomPaint(
+          foregroundPainter: _DashedRRectPainter(
+              color: palette.divider, radius: 50),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s2, vertical: 2),
+            child: Text(
+              Copy.goalsInviteWhy,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyS
+                  .copyWith(color: palette.onSurfaceVariant),
+            ),
+          ),
+        ),
       );
     }
-    return Text(why,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant));
+    return Text(
+      why,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context)
+          .textTheme
+          .bodyS
+          .copyWith(color: palette.onSurfaceVariant),
+    );
   }
 
-  /// 元行：habit = 频率；milestone = 倒计时·步骤 + 「一次性 · 截止」。
-  String _metaLine(
-      WidgetRef ref, LocalDate today, FrequencyPattern? pattern) {
-    if (goal.isMilestone) {
-      final short = _shortDeadline(goal.deadline, today);
-      return '${Copy.goalsOnceBadge(short ?? '')} · ${_milestoneLine(ref, today)}';
-    }
-    return pattern?.toString() ?? '';
-  }
-
-  String? _shortDeadline(LocalDate? d, LocalDate today) => d == null
-      ? null
-      : d.year == today.year
-          ? '${d.month}/${d.day}'
-          : '${d.year}/${d.month}/${d.day}';
-
-  String _milestoneLine(WidgetRef ref, LocalDate today) {
-    final days = goal.deadline?.differenceInDays(today) ?? 0;
-    final steps = ref.watch(stepsProvider(goal.id)).value;
-    final suffix = steps == null || steps.isEmpty
-        ? ''
-        : ' · ${Copy.milestoneProgress(steps.where((s) => s.isDone).length, steps.length)}';
-    return '${Copy.milestoneCountdown(days)}$suffix';
-  }
-
-
-  /// 右侧数字：habit = 连击 + 本周完成率；里程碑留白。
-  Widget _trailing(BuildContext context, WidgetRef ref, StatsEvaluation? stats) {
-    if (goal.isMilestone || stats == null) return const SizedBox.shrink();
-    final streak = stats.streakOf(goal.id);
-    final rate = stats.weekStatOf(goal.id, ref.watch(todayProvider).weekStart);
-    final rateLabel = rate.completionRate == null
-        ? Copy.reviewNoApplicableDays
-        : Copy.reviewCompletion(rate.completionRate!);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
+  /// 元行：场景 chip（有则）+ 右侧「最近 · ×××」。
+  Widget _metaRow(BuildContext context, {required String latest}) {
+    final palette = TargetPalette.of(context);
+    final scene = goal.cueScene;
+    final hasScene = scene != null && scene.isNotEmpty;
+    return Row(
       children: [
-        Text(Copy.streakDays(streak),
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: GoalColor.byKey(goal.colorKey).of(context))),
-        Text('${Copy.goalsWeekRate} $rateLabel',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        if (hasScene) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s2, vertical: 1),
+            decoration: BoxDecoration(
+              color: palette.surfaceAlt,
+              borderRadius: AppRadius.rFull,
+              border: Border.all(color: palette.divider),
+            ),
+            child: Text(
+              scene,
+              style: Theme.of(context)
+                  .textTheme
+                  .labelS
+                  .copyWith(color: palette.onSurfaceVariant),
+            ),
+          ),
+          const Spacer(),
+        ],
+        Flexible(
+          child: Row(
+            mainAxisAlignment:
+                hasScene ? MainAxisAlignment.end : MainAxisAlignment.start,
+            children: [
+              Icon(Icons.history, size: 12, color: palette.onSurfaceVariant),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  latest,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyS
+                      .copyWith(color: palette.onSurfaceVariant),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 }
 
-/// 暂停行：虚线包裹 + 恢复按钮（screen-goals.html ① 暂停区语言）。
+/// 「最近 · 今天 / 昨天 / N 天前」：最后一次有效记录的归属日。
+String _latestLabel(List<CheckIn> mine, LocalDate today) {
+  final valid = mine.where((c) => c.isValid).toList();
+  if (valid.isEmpty) return Copy.todayLatestNone;
+  valid.sort((a, b) => a.day != b.day
+      ? a.day.compareTo(b.day)
+      : a.createdAt.compareTo(b.createdAt));
+  final gap = today.differenceInDays(valid.last.day);
+  if (gap <= 0) return Copy.todayLatestToday;
+  if (gap == 1) return Copy.todayLatestYesterday;
+  return Copy.todayLatestDaysAgo(gap);
+}
+
+/// 右上角本周节奏数：habit = N/M 天有记录（tnum）；里程碑 = 步骤或截止。
+class _RatioTrailing extends ConsumerWidget {
+  const _RatioTrailing({required this.goal});
+
+  final Goal goal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = TargetPalette.of(context);
+    final today = ref.watch(todayProvider);
+
+    String big;
+    String small;
+    if (goal.isMilestone) {
+      final steps = ref.watch(stepsProvider(goal.id)).value;
+      if (steps != null && steps.isNotEmpty) {
+        big = '${steps.where((s) => s.isDone).length}/${steps.length}';
+        small = Copy.goalsStepsDone;
+      } else if (goal.deadline
+          case LocalDate d) {
+        big = d.year == today.year
+            ? '${d.month}/${d.day}'
+            : '${d.year}/${d.month}/${d.day}';
+        small = Copy.goalsDeadlineLabel;
+      } else {
+        big = '—';
+        small = Copy.goalsOnceShort;
+      }
+    } else {
+      final stats = ref.watch(statsProvider);
+      final rate = stats?.weekStatOf(goal.id, today.weekStart);
+      if (rate == null || rate.applicableDays == 0) {
+        big = '—';
+        small = Copy.reviewNoApplicableDays;
+      } else {
+        big = '${rate.metDays}/${rate.applicableDays}';
+        small = Copy.goalsDaysRecorded;
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          big,
+          style: Theme.of(context).textTheme.titleM.copyWith(
+              color: palette.onSurface,
+              height: 1,
+              fontFeatures: const [FontFeature.tabularFigures()]),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          small,
+          style: Theme.of(context)
+              .textTheme
+              .labelS
+              .copyWith(color: palette.onSurfaceVariant, height: 1),
+        ),
+      ],
+    );
+  }
+}
+
+/// 暂停行：虚线包裹 + 32px 图标 + 名与说明两行 + 恢复胶囊。
 class _PausedRow extends ConsumerWidget {
   const _PausedRow({required this.goal});
 
@@ -276,24 +406,129 @@ class _PausedRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = TargetPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-      child: _DashedCard(
-        child: Row(
-          children: [
-            Icon(GoalIcon.byKey(goal.iconKey).icon,
-                size: 20, color: Theme.of(context).colorScheme.outline),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text('${goal.name} · ${Copy.goalsPausedNote}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+      padding: const EdgeInsets.only(bottom: AppSpace.s3),
+      child: Opacity(
+        opacity: .75,
+        child: CustomPaint(
+          foregroundPainter: _DashedRRectPainter(
+              color: palette.divider, radius: AppRadius.lg),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s4, vertical: AppSpace.s3),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: GoalColor.byKey(goal.colorKey).of(context),
+                    borderRadius: AppRadius.rMd,
+                  ),
+                  child: Icon(GoalIcon.byKey(goal.iconKey).icon,
+                      size: 15, color: Colors.white),
+                ),
+                const SizedBox(width: AppSpace.s3),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        goal.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyL,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        Copy.goalsPausedNote,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                InkWell(
+                  onTap: () => resumeGoal(context, ref, goal),
+                  borderRadius: AppRadius.rFull,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpace.s3, vertical: AppSpace.s1),
+                    decoration: BoxDecoration(
+                      color: palette.surface,
+                      borderRadius: AppRadius.rFull,
+                      border: Border.all(color: palette.divider),
+                    ),
+                    child: Text(
+                      Copy.goalsResume,
+                      style: Theme.of(context).textTheme.bodyS,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => resumeGoal(context, ref, goal),
-              child: const Text(Copy.goalsResume),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 空态：提问 + 模板一句话（chip）+ 写一句自己的（screen-goals.html ②）。
+class _EmptyBoard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return CustomPaint(
+      foregroundPainter: _DashedRRectPainter(
+          color: palette.divider, radius: AppRadius.xl, strokeWidth: 1.5),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.s6, vertical: AppSpace.s8),
+        child: Column(
+          children: [
+            Text(Copy.goalsEmptyTitle,
+                style: Theme.of(context).textTheme.titleM),
+            const SizedBox(height: AppSpace.s3),
+            Text(
+              Copy.goalsEmptySub,
+              textAlign: TextAlign.center,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyM
+                  .copyWith(color: palette.onSurfaceVariant, height: 1.8),
+            ),
+            const SizedBox(height: AppSpace.s4),
+            Wrap(
+              spacing: AppSpace.s2,
+              runSpacing: AppSpace.s2,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final t in kAllTemplates)
+                  _TemplateChip(template: t),
+              ],
+            ),
+            const SizedBox(height: AppSpace.s4),
+            InkWell(
+              onTap: () => context.push('/goal-editor'),
+              borderRadius: AppRadius.rMd,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpace.s8, vertical: AppSpace.s4),
+                decoration: BoxDecoration(
+                  color: palette.accent,
+                  borderRadius: AppRadius.rMd,
+                  boxShadow: palette.shadowMid,
+                ),
+                child: Text(
+                  Copy.goalsEmptyOwn,
+                  style: Theme.of(context).textTheme.titleS.copyWith(
+                      color: palette.accentOn),
+                ),
+              ),
             ),
           ],
         ),
@@ -302,44 +537,71 @@ class _PausedRow extends ConsumerWidget {
   }
 }
 
-/// 虚线圆角容器（暂停行/空态邀请卡的「未完成」视觉语言）。
-class _DashedCard extends StatelessWidget {
-  const _DashedCard({required this.child});
+/// 模板胶囊：26px 色点图标 + 一句话（进编辑器并预填模板）。
+class _TemplateChip extends StatelessWidget {
+  const _TemplateChip({required this.template});
 
-  final Widget child;
+  final GoalTemplate template;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return CustomPaint(
-      foregroundPainter: _DashedRRectPainter(
-        color: scheme.outline.withValues(alpha: 0.6),
-        radius: 14,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: child,
+    final palette = TargetPalette.of(context);
+    return InkWell(
+      onTap: () => context.push('/goal-editor', extra: template),
+      borderRadius: AppRadius.rFull,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpace.s2, AppSpace.s2, AppSpace.s4, AppSpace.s2),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: AppRadius.rFull,
+          border: Border.all(color: palette.divider),
+          boxShadow: palette.shadowLow,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: GoalColor.byKey(template.colorKey).of(context),
+              ),
+              child: Icon(GoalIcon.byKey(template.iconKey).icon,
+                  size: 14, color: Colors.white),
+            ),
+            const SizedBox(width: AppSpace.s2),
+            Text(template.name, style: Theme.of(context).textTheme.bodyM),
+          ],
+        ),
       ),
     );
   }
 }
 
+/// 虚线圆角容器描边（胶囊 radius 50 即跑道形）。
 class _DashedRRectPainter extends CustomPainter {
-  _DashedRRectPainter({required this.color, required this.radius});
+  _DashedRRectPainter({
+    required this.color,
+    required this.radius,
+    this.strokeWidth = 1.2,
+  });
 
   final Color color;
   final double radius;
+  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 1.2
+      ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
     final path = Path()
       ..addRRect(RRect.fromRectAndRadius(
           Offset.zero & size, Radius.circular(radius)));
-    const dash = 5.0, gap = 4.0;
+    const dash = 6.0, gap = 5.0;
     for (final metric in path.computeMetrics()) {
       var d = 0.0;
       while (d < metric.length) {

@@ -1,5 +1,6 @@
 // App Shell 冒烟测试（T014 + T022）：内存库启动 → 空库首启进引导页（SC-001）。
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
@@ -11,6 +12,7 @@ import 'package:target/app/app.dart';
 import 'package:target/app/providers.dart';
 import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goal_editor.dart';
+import 'package:target/core/backup/backup_exporter.dart';
 import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart'
     show AppDatabase, SettingsRowsCompanion;
@@ -44,6 +46,34 @@ class FakeNotificationGateway implements NotificationGateway {
   Future<void> cancelAll() async {}
   @override
   Stream<NotificationBanner> get banners => const Stream.empty();
+}
+
+/// 测试假分享网关：记录导出、零平台副作用。
+class FakeShareGateway implements ShareGateway {
+  final exported = <String>[];
+
+  @override
+  Future<void> shareText(String text) async {}
+
+  @override
+  Future<void> exportFile({
+    required String fileName,
+    required List<int> bytes,
+    required String mime,
+  }) async {
+    exported.add(fileName);
+  }
+}
+
+/// 测试假文件选择：固定返回预置备份字节。
+class FakeFilePickGateway implements FilePickGateway {
+  FakeFilePickGateway(this.bytes);
+
+  final List<int> bytes;
+
+  @override
+  Future<PickedFile?> pickBackupFile() async =>
+      PickedFile(name: 'backup.targetbackup', bytes: bytes);
 }
 
 void main() {
@@ -656,6 +686,81 @@ void main() {
     expect(find.text('读书'), findsOneWidget);
     expect(find.text('1/7'), findsOneWidget);
     expect(find.text(Copy.reviewCoachLow), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets(
+      'T026 设置 R2 + V7 备份回归：身份卡/提醒/隐私脚注 + 导出 toast + 冲突弹层 → 覆盖 → 计数 toast',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final createdAt = today.addDays(-7);
+    final goal = await repo.create(Goal(
+      name: '锻炼',
+      kind: GoalKind.habit,
+      iconKey: 'fitness',
+      colorKey: 'sage',
+      createdAt: createdAt,
+    ));
+    await repo.addInitial(
+        goal.id, const DailyFrequency(1), WeekStart.containing(createdAt));
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+
+    // V7 往返：备份文件 = 从同一库导出的 JSON。
+    final backupJson = await BackupExporter(db).exportString();
+    final sharer = FakeShareGateway();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          shareGatewayProvider.overrideWithValue(sharer),
+          filePickGatewayProvider
+              .overrideWithValue(FakeFilePickGateway(utf8.encode(backupJson))),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text(Copy.mineNav));
+    await tester.pumpAndSettle();
+
+    // R2 骨架：身份卡（无目标统计）+ 概要行副文 + 场景指引 + 隐私脚注。
+    // 标题「我的」与底部 nav 标签同文，断言至少一处即可。
+    expect(find.text(Copy.settingsTitle), findsWidgets);
+    expect(find.text(Copy.settingsMeName), findsOneWidget);
+    expect(find.text(Copy.dailyBriefSub), findsOneWidget);
+    expect(find.text(Copy.reminderGoalHint), findsOneWidget);
+    expect(find.text(Copy.privacyFoot), findsOneWidget);
+    // 聚焦 App 本身：目标内容不上设置屏（旧版逐目标提醒行已删）。
+    expect(find.text('锻炼'), findsNothing);
+
+    // V7 导出：走分享网关 + 备份已生成 toast。
+    await scrollTo(tester, find.text(Copy.backupExport));
+    await tester.tap(find.text(Copy.backupExport));
+    await tester.pumpAndSettle();
+    expect(sharer.exported.length, 1);
+    expect(find.text(Copy.backupExported), findsOneWidget);
+
+    // V7 导入：本地有数据 → 必显式确认，不静默合并（FR-015）。
+    await tester.pump(const Duration(seconds: 4)); // 等 toast 退场
+    await tester.pumpAndSettle();
+    await scrollTo(tester, find.text(Copy.backupImport));
+    await tester.tap(find.text(Copy.backupImport));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.backupImportConflictTitle), findsOneWidget);
+    await tester.tap(find.text(Copy.backupImportOverwrite));
+    await tester.pumpAndSettle();
+    expect(find.textContaining(Copy.backupImportDone), findsOneWidget);
+    expect(find.textContaining('目标 1'), findsOneWidget);
     await db.close();
   });
 }

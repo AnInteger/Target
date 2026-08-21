@@ -1,8 +1,13 @@
-/// 设置页（US3 T034/T035）：通知权限降级说明（不反复弹窗）、
-/// 每日概要时间与开关、逐目标提醒开关与时间。
+/// 设置页（US5 · T026 R2 重写 · 2026-08-21 screen-settings.html 定稿）。
+///
+/// R2 裁决「聚焦 App 本身」：身份卡（无目标统计）+ 提醒组（概要一行 +
+/// 场景指引两条——逐目标提醒行全删，目标提醒时刻在编辑器选场景）+
+/// 备份与数据（导出/导入，导入冲突显式确认）+ 隐私脚注。
+/// 权限被拒不反复弹窗（FR-007）：未开启只说明一次，「知道了」后不再打扰。
 library;
 
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -20,104 +25,111 @@ import 'debug_clock.dart';
 /// dailyBrief 提醒行固定 id（goalId=null ⇔ 概要）。
 const _briefRowId = 'daily-brief';
 
-/// 新开目标提醒的默认时间（晚间轻提醒）。
-const LocalTime _defaultGoalTime = LocalTime(20, 0);
-
-class SettingsView extends ConsumerWidget {
+class SettingsView extends ConsumerStatefulWidget {
   const SettingsView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
-    final habits = goals
-        .where((g) => g.isHabit && g.status == GoalStatus.active)
-        .toList();
+  ConsumerState<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends ConsumerState<SettingsView> {
+  /// 通知权限态（null = 还没查到）；只在 iOS 实机上存在，Web 恒视为已授权。
+  bool? _granted;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) {
+      ref
+          .read(notificationGatewayProvider)
+          .isPermissionGranted
+          .then((v) => _setGranted(v));
+    }
+  }
+
+  void _setGranted(bool v) {
+    if (mounted) setState(() => _granted = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final reminders = ref.watch(remindersProvider).value ?? const <Reminder>[];
     final settings = ref.watch(settingsProvider).value;
 
     final briefRow = reminders.where((r) => r.isDailyBrief).firstOrNull;
-    final briefTime = briefRow?.time ?? settings?.dailyBriefTime ?? const LocalTime(8, 0);
+    final briefTime =
+        briefRow?.time ?? settings?.dailyBriefTime ?? const LocalTime(8, 0);
     final briefEnabled = briefRow?.isEnabled ?? true;
 
+    // 权限卡可见 = 非 Web、已知未开启、未「知道了」；此时提示换成开关说明（画板②）。
+    final permCardVisible = !kIsWeb &&
+        _granted == false &&
+        (settings?.notificationDeniedAcknowledged ?? true) == false;
+
     return Scaffold(
-      appBar: AppBar(title: Text(Copy.settingsTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const _PermissionCard(),
-          const SizedBox(height: 16),
-          _SectionTitle(Copy.dailyBriefTimeLabel),
-          Card(
-            child: Column(children: [
-              ListTile(
-                title: Text(Copy.dailyBriefTitle),
-                subtitle: Text(briefTime.isoString,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
-                trailing: Switch(
-                  value: briefEnabled,
-                  onChanged: (v) => _saveBrief(ref, briefTime, v),
-                ),
-                onTap: () => _pickBriefTime(context, ref, briefTime, briefEnabled),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(Copy.reminderMondayHint,
-                    style: Theme.of(context).textTheme.bodySmall),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(
+              AppSpace.s6, AppSpace.s2, AppSpace.s6, AppSpace.s12),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.s1, vertical: AppSpace.s2),
+              child: Text(Copy.settingsTitle,
+                  style: Theme.of(context).textTheme.displayS),
+            ),
+            const _MeCard(),
+            const _SectionLabel(Copy.dailyBriefTimeLabel),
+            if (permCardVisible) _PermCard(onRequest: _requestPermission),
+            _GroupCard(children: [
+              _SettingsRow(
+                icon: Icons.notifications_outlined,
+                title: Copy.dailyBriefTitle,
+                sub: Copy.dailyBriefSub,
+                time: briefTime,
+                switchValue: briefEnabled,
+                onSwitch: (v) => _saveBrief(ref, briefTime, v),
+                onTap: () =>
+                    _pickBriefTime(context, briefTime, briefEnabled),
               ),
             ]),
-          ),
-          const SizedBox(height: 16),
-          _SectionTitle(Copy.remindersHeader),
-          if (habits.isEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Text(Copy.goalsEmpty,
-                    style: Theme.of(context).textTheme.bodyMedium),
+            _Hints(hints: permCardVisible
+                ? const [Copy.notifOffHint]
+                : const [Copy.reminderMondayHint, Copy.reminderGoalHint]),
+            const _SectionLabel(Copy.backupHeader),
+            const _BackupCard(),
+            const SizedBox(height: AppSpace.s2),
+            const _PrivacyFoot(),
+            if (kDebugMode) ...[
+              const SizedBox(height: AppSpace.s4),
+              const _SectionLabel(Copy.debugClock),
+              _GroupCard(children: const [DebugClockTile()]),
+            ],
+            if (kIsWeb) ...[
+              const SizedBox(height: AppSpace.s4),
+              Text(
+                Copy.widgetIosOnly,
+                textAlign: TextAlign.center,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyS
+                    .copyWith(color: TargetPalette.of(context).onSurfaceVariant),
               ),
-            )
-          else
-            Card(
-              child: Column(
-                children: [
-                  for (final g in habits)
-                    _GoalReminderTile(
-                      goal: g,
-                      reminder: reminders
-                          .where((r) => r.goalId == g.id)
-                          .firstOrNull,
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: Text(Copy.reminderGoalHint,
-                        style: Theme.of(context).textTheme.bodySmall),
-                  ),
-                ],
-              ),
-            ),
-          const SizedBox(height: 16),
-          _SectionTitle(Copy.backupHeader),
-          const _BackupCard(),
-          const SizedBox(height: 16),
-          const _DataRiskCard(),
-          if (kDebugMode) ...[
-            const SizedBox(height: 16),
-            _SectionTitle(Copy.debugClock),
-            Card(child: const DebugClockTile()),
+            ],
           ],
-          if (kIsWeb) ...[
-            const SizedBox(height: 16),
-            Text(Copy.widgetIosOnly,
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center),
-          ],
-        ],
+        ),
       ),
     );
   }
 
+  Future<void> _requestPermission() async {
+    _setGranted(await ref.read(notificationGatewayProvider).requestPermission());
+  }
+
   Future<void> _pickBriefTime(
-      BuildContext context, WidgetRef ref, LocalTime current, bool enabled) async {
+      BuildContext context, LocalTime current, bool enabled) async {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: current.hour, minute: current.minute),
@@ -137,20 +149,309 @@ class SettingsView extends ConsumerWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
+/// 身份卡：44 头像（装饰渐变）+ 名字；R2 裁决不带目标统计。
+class _MeCard extends StatelessWidget {
+  const _MeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Material(
+      color: palette.glassCard,
+      borderRadius: AppRadius.rLg,
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpace.s4),
+        decoration: BoxDecoration(
+          borderRadius: AppRadius.rLg,
+          border: Border.all(color: palette.divider),
+          boxShadow: palette.shadowLow,
+        ),
+        child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [kAvatarGradA, kAvatarGradB],
+              ),
+            ),
+            child: Center(
+              child: Text(
+                Copy.settingsMeName.characters.first,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleS
+                    .copyWith(color: Colors.white, height: 1),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpace.s3),
+          Text(Copy.settingsMeName, style: Theme.of(context).textTheme.titleS),
+        ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 分组小标：labelS + 字距。
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
 
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 8),
-        child: Text(text, style: Theme.of(context).textTheme.titleSmall),
-      );
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpace.s1, AppSpace.s3, AppSpace.s1, AppSpace.s1),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.labelS.copyWith(
+            letterSpacing: 0.9,
+            color: TargetPalette.of(context).onSurfaceVariant),
+      ),
+    );
+  }
 }
 
-/// 备份卡（T045/T046，FR-015）：导出（Web 下载 / iOS 分享面板）、
-/// 导入（校验 → 冲突弹窗"覆盖本地/取消" → 原子替换 → 摘要）。
+/// 组卡：玻璃容器，行间细分隔。
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    // Material 承色 + Container 描边投影（goals 卡同款习惯，墨迹可见）。
+    return Material(
+      color: palette.glassCard,
+      borderRadius: AppRadius.rLg,
+      clipBehavior: Clip.antiAlias,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: AppRadius.rLg,
+          border: Border.all(color: palette.divider),
+          boxShadow: palette.shadowLow,
+        ),
+        child: Column(
+          children: [
+            for (final (i, child) in children.indexed) ...[
+              if (i > 0)
+                Divider(height: 1, thickness: 1, color: palette.divider),
+              child,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 通用设置行：32 图标格 + 标题/副文 + 时间 + 开关。
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.icon,
+    required this.title,
+    required this.sub,
+    this.time,
+    this.switchValue,
+    this.onSwitch,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String sub;
+  final LocalTime? time;
+  final bool? switchValue;
+  final ValueChanged<bool>? onSwitch;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.s4, vertical: AppSpace.s3),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: palette.surfaceAlt,
+                borderRadius: AppRadius.rMd,
+              ),
+              child: Icon(icon, size: 16, color: palette.onSurfaceVariant),
+            ),
+            const SizedBox(width: AppSpace.s3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.bodyL),
+                  const SizedBox(height: 2),
+                  Text(
+                    sub,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyS
+                        .copyWith(color: palette.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            if (time case LocalTime t) ...[
+              const SizedBox(width: AppSpace.s2),
+              Text(
+                t.isoString,
+                style: Theme.of(context).textTheme.bodyM.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()]),
+              ),
+            ],
+            if (switchValue case bool v) ...[
+              const SizedBox(width: AppSpace.s2),
+              Switch(
+                value: v,
+                onChanged: onSwitch,
+                activeThumbColor: palette.positiveFill,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 提示行（场景指引）：卡外小字，bodyS。
+class _Hints extends StatelessWidget {
+  const _Hints({required this.hints});
+
+  final List<String> hints;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpace.s1, AppSpace.s2, AppSpace.s1, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final h in hints) ...[
+            Text(
+              h,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyS
+                  .copyWith(color: palette.onSurfaceVariant, height: 1.6),
+            ),
+            const SizedBox(height: 2),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 通知权限卡（FR-007）：未开启只说明一次，「知道了」后不再打扰。
+/// 可见性由父级判定（与提示文案联动），这里只负责展示与两个动作。
+class _PermCard extends ConsumerWidget {
+  const _PermCard({required this.onRequest});
+
+  final VoidCallback onRequest;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = TargetPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.s2),
+      child: Material(
+        color: palette.glassCard,
+        borderRadius: AppRadius.rLg,
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpace.s4),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.rLg,
+            border: Border.all(color: palette.divider),
+            boxShadow: palette.shadowLow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(Copy.notifDeniedTitle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleS
+                      .copyWith(color: palette.warning, height: 1)),
+              const SizedBox(height: AppSpace.s2),
+              Text(
+                Copy.notifDeniedBody,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyS
+                    .copyWith(color: palette.onSurfaceVariant, height: 1.6),
+              ),
+              const SizedBox(height: AppSpace.s3),
+              Row(
+                children: [
+                  InkWell(
+                    onTap: onRequest,
+                    borderRadius: AppRadius.rMd,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpace.s4, vertical: AppSpace.s2),
+                      decoration: BoxDecoration(
+                        color: palette.accent,
+                        borderRadius: AppRadius.rMd,
+                        boxShadow: palette.shadowMid,
+                      ),
+                      child: Text(
+                        Copy.notifEnable,
+                        style: Theme.of(context).textTheme.bodyM.copyWith(
+                            color: palette.accentOn,
+                            fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final s = await ref.read(settingsRepoProvider).get();
+                      await ref.read(settingsRepoProvider).update(s.copyWith(
+                          notificationDeniedAcknowledged: true));
+                    },
+                    child: Text(
+                      Copy.notifAck,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyM
+                          .copyWith(color: palette.onSurfaceVariant),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 备份卡（FR-015）：导出（Web 下载 / iOS 分享面板）、导入（校验 →
+/// 冲突弹窗「覆盖本地/取消」→ 原子替换 → 摘要）。
 class _BackupCard extends ConsumerStatefulWidget {
   const _BackupCard();
 
@@ -159,7 +460,6 @@ class _BackupCard extends ConsumerStatefulWidget {
 }
 
 class _BackupCardState extends ConsumerState<_BackupCard> {
-
   static const _entityLabels = {
     'goals': '目标',
     'frequencyVersions': '频率版本',
@@ -172,28 +472,26 @@ class _BackupCardState extends ConsumerState<_BackupCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Column(children: [
-        ListTile(
-          leading: const Icon(Icons.file_upload_outlined),
-          title: Text(Copy.backupExport),
-          subtitle: Text(Copy.dataRiskNote.split('。').first),
-          onTap: _export,
-        ),
-        const Divider(height: 1),
-        ListTile(
-          leading: const Icon(Icons.file_download_outlined),
-          title: Text(Copy.backupImport),
-          onTap: _import,
-        ),
-      ]),
-    );
+    return _GroupCard(children: [
+      _SettingsRow(
+        icon: Icons.file_upload_outlined,
+        title: Copy.backupExport,
+        sub: Copy.backupExportSub,
+        onTap: _export,
+      ),
+      _SettingsRow(
+        icon: Icons.file_download_outlined,
+        title: Copy.backupImport,
+        sub: Copy.backupImportSub,
+        onTap: _import,
+      ),
+    ]);
   }
 
   Future<void> _export() async {
     final now = DateTime.now();
-    final json = await BackupExporter(ref.read(dbProvider))
-        .exportString(now: now);
+    final json =
+        await BackupExporter(ref.read(dbProvider)).exportString(now: now);
     await ref.read(shareGatewayProvider).exportFile(
           fileName: backupFileName(now),
           bytes: utf8.encode(json),
@@ -250,29 +548,37 @@ class _BackupCardState extends ConsumerState<_BackupCard> {
   }
 }
 
-/// 数据风险与隐私说明卡（T048，FR-014）。
-class _DataRiskCard extends StatelessWidget {
-  const _DataRiskCard();
+/// 隐私脚注：虚线卡 + 锁图标。
+class _PrivacyFoot extends StatelessWidget {
+  const _PrivacyFoot();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final palette = TargetPalette.of(context);
+    return CustomPaint(
+      foregroundPainter: _DashedRRectPainter(
+          color: palette.divider, radius: AppRadius.lg),
       child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.s4, vertical: AppSpace.s3),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              const Icon(Icons.lock_outline),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: Text(Copy.dataRiskTitle,
-                      style: Theme.of(context).textTheme.titleSmall)),
-            ]),
-            const SizedBox(height: 6),
-            Text(Copy.dataRiskNote,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(Icons.lock_outline,
+                  size: 14, color: palette.onSurfaceVariant),
+            ),
+            const SizedBox(width: AppSpace.s2),
+            Expanded(
+              child: Text(
+                Copy.privacyFoot,
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyS
+                    .copyWith(color: palette.onSurfaceVariant, height: 1.6),
+              ),
+            ),
           ],
         ),
       ),
@@ -280,140 +586,37 @@ class _DataRiskCard extends StatelessWidget {
   }
 }
 
-/// 通知权限卡（T034，FR-007）：被拒 → 全功能可用 + 开启指引，
-/// 绝不自动重复弹权限（仅用户点击才请求）。
-class _PermissionCard extends ConsumerStatefulWidget {
-  const _PermissionCard();
+/// 虚线圆角容器描边（与各屏空态同一语言）。
+class _DashedRRectPainter extends CustomPainter {
+  _DashedRRectPainter({
+    required this.color,
+    required this.radius,
+  });
+
+  final Color color;
+  final double radius;
 
   @override
-  ConsumerState<_PermissionCard> createState() => _PermissionCardState();
-}
-
-class _PermissionCardState extends ConsumerState<_PermissionCard> {
-  Future<bool>? _grantedFuture;
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Offset.zero & size, Radius.circular(radius)));
+    const dash = 6.0, gap = 5.0;
+    for (final metric in path.computeMetrics()) {
+      var d = 0.0;
+      while (d < metric.length) {
+        canvas.drawPath(
+            metric.extractPath(d, math.min(d + dash, metric.length)), paint);
+        d += dash + gap;
+      }
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    // Web 模拟网关恒授权，不展示权限卡。
-    if (kIsWeb) return const SizedBox.shrink();
-    final settings = ref.watch(settingsProvider).value;
-    if (settings == null) return const SizedBox.shrink();
-    final acknowledged = settings.notificationDeniedAcknowledged;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: FutureBuilder<bool>(
-          future: _grantedFuture ??
-              ref.read(notificationGatewayProvider).isPermissionGranted,
-          builder: (context, snap) {
-            final granted = snap.data ?? false;
-            if (granted) {
-              return Row(children: [
-                const Icon(Icons.notifications_active_outlined),
-                const SizedBox(width: 12),
-                Expanded(child: Text(Copy.notifEnabled)),
-              ]);
-            }
-            if (acknowledged) {
-              return Row(children: [
-                const Icon(Icons.notifications_off_outlined),
-                const SizedBox(width: 12),
-                Expanded(child: Text(Copy.notifDeniedTitle)),
-              ]);
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(Copy.notifDeniedTitle,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(color: Theme.of(context).colorScheme.tertiary)),
-                const SizedBox(height: 4),
-                Text(Copy.notifDeniedBody),
-                const SizedBox(height: 8),
-                Wrap(spacing: 8, children: [
-                  FilledButton.tonal(
-                    onPressed: _request,
-                    child: Text(Copy.notifEnable),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      final s = await ref.read(settingsRepoProvider).get();
-                      await ref.read(settingsRepoProvider).update(s.copyWith(
-                          notificationDeniedAcknowledged: true));
-                    },
-                    child: Text(Copy.notifAck),
-                  ),
-                ]),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Future<void> _request() async {
-    setState(() {
-      _grantedFuture =
-          ref.read(notificationGatewayProvider).requestPermission();
-    });
-    await _grantedFuture;
-    if (mounted) setState(() {});
-  }
-}
-
-class _GoalReminderTile extends ConsumerWidget {
-  const _GoalReminderTile({required this.goal, this.reminder});
-
-  final Goal goal;
-  final Reminder? reminder;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final enabled = reminder?.isEnabled ?? false;
-    final time = reminder?.time ?? _defaultGoalTime;
-    final color = GoalColor.byKey(goal.colorKey).of(context);
-
-    return ListTile(
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration:
-            BoxDecoration(color: color.withValues(alpha: 0.18), shape: BoxShape.circle),
-        child: Icon(GoalIcon.byKey(goal.iconKey).icon, color: color, size: 20),
-      ),
-      title: Text(goal.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: enabled
-          ? Text(time.isoString,
-              style: const TextStyle(fontWeight: FontWeight.w600))
-          : null,
-      trailing: Switch(
-        value: enabled,
-        onChanged: (v) => _save(ref, time, v),
-      ),
-      onTap: enabled
-          ? () async {
-              final picked = await showTimePicker(
-                context: context,
-                initialTime: TimeOfDay(hour: time.hour, minute: time.minute),
-              );
-              if (picked != null) {
-                await _save(ref, LocalTime(picked.hour, picked.minute), true);
-              }
-            }
-          : null,
-    );
-  }
-
-  Future<void> _save(WidgetRef ref, LocalTime time, bool enabled) {
-    return ref.read(reminderRepoProvider).upsert(Reminder(
-          id: 'goal-${goal.id}',
-          goalId: goal.id,
-          time: time,
-          isEnabled: enabled,
-        ));
-  }
+  bool shouldRepaint(_DashedRRectPainter old) =>
+      old.color != color || old.radius != radius;
 }

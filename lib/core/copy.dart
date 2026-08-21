@@ -100,8 +100,6 @@ abstract final class Copy {
   static const goalsPausedNote = '暂停中 · 记录保留';
   static const goalsResume = '恢复';
   static const goalsClosedHeader = '已结束';
-  static const goalsEmpty = '还没有目标，从一件小事开始';
-  static const goalsEmptyCta = '创建第一个目标';
   static const goalsWeekRate = '本周';
   static const goalsInviteWhy = '＋ 补一句为什么';
   static const goalPauseHint = '先放一放，想回来随时继续';
@@ -141,7 +139,6 @@ abstract final class Copy {
   static const notifDeniedTitle = '通知未开启';
   static const notifDeniedBody = '不开通知也能用全部功能；想开的话，去系统设置里找 Target。';
   static const notifEnable = '开启通知';
-  static const notifEnabled = '通知已开启';
   static const notifAck = '知道了';
 
   // ---- 每日概要 / 逐目标提醒（FR-006/008）----
@@ -154,9 +151,10 @@ abstract final class Copy {
   static const dailyBriefReviewLine = '上周回顾已生成，花两分钟看看这一周';
   static String goalReminderBody(int done, int target) =>
       '今天 $done/$target，不着急';
-  static const remindersHeader = '目标提醒';
-  static const reminderGoalHint = '到点轻轻提醒，不催促';
-  static const reminderMondayHint = '周一的概要会带上上周回顾';
+  static const reminderGoalHint =
+      '目标提醒的时刻在编辑目标时选——早起后 / 午休时 / 晚饭后 / 睡前；'
+      '没选的 20:00 轻提醒，同一时段几个目标合并成一条，不连环打扰。';
+  static const reminderMondayHint = '周一的概要会带上上周回顾。';
 
   // ---- 备份（FR-015）----
 
@@ -170,20 +168,21 @@ abstract final class Copy {
   static const backupImportCancel = '取消';
   static const backupHeader = '备份与数据';
   static const backupExported = '备份已生成';
-  static const backupHint = '数据只存在这台设备上，记得定期导出备份';
 
   // ---- 数据风险与隐私（FR-014）----
 
-  static const dataRiskTitle = '数据只在这台设备上';
-  static const dataRiskNote =
-      '所有数据仅存本地、不上传。换机或删除应用前，请先导出备份；'
-      '备份文件包含全部目标数据，请妥善保管。';
   static const onboardingDataNote = '数据只存在这台设备上，不上传云端';
 
-  // ---- 设置 / 其他 ----
+  // ---- 设置 / 其他（T026 R2：聚焦 App 本身，无目标内容）----
 
-  static const settingsTitle = '设置';
-  static const dailyBriefTimeLabel = '每日概要时间';
+  static const settingsTitle = '我的';
+  static const settingsMeName = '星行';
+  static const dailyBriefTimeLabel = '提醒';
+  static const dailyBriefSub = '每天一份，不催促';
+  static const notifOffHint = '开关会记住你的偏好，开通知后按这里的时间提醒。';
+  static const backupExportSub = '生成一份文件，带走全部记录';
+  static const backupImportSub = '整份替换，不与现有数据混合';
+  static const privacyFoot = '数据只在这台设备上——不上传、不联网，记得定期导出备份。';
   static const widgetIosOnly = '桌面小组件与提醒推送为 iPhone 专属功能';
   static const debugClock = 'Debug 时钟';
   static const appName = 'Target';
@@ -194,7 +193,6 @@ abstract final class Copy {
   static const backfillHint = '点想补的日期，线就接回来';
   static const todayNav = '今日';
   static const goalsNav = '目标';
-  static const settingsNav = '设置';
   static const reviewNav = '回顾';
   static const mineNav = '我的';
 

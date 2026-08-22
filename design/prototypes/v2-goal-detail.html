@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>目标详情 · Target（v2 延展设计 · FR-015 门禁稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=0823a">
+<script src="goal-icons.js"></script>
+<style>
+  /* ============================================================
+     v2-goal-detail · 目标详情延展原型（004 · T007 · R1）
+     ------------------------------------------------------------
+     - 语言：v2 基准图延展——身份区用大类色，打卡主行动 = accent
+       实心大按钮；完成态青柠 + 对勾（不单靠色相，FR-013）
+     - 形态决策（评审项）：全屏 push 无底部页签；顶栏 返回 + 标题
+       +「⋯」更多（暂停/恢复/删除收纳于此，删除二次确认）
+     - FR-016 能力对账：打卡+选填一句话记录 · 补签（近 14 天，未来
+       不可选）· 历史记录（含补签标记）· 标记达成 · 续期（改截止，
+       倒计时重置）· 编辑入口 · 暂停/恢复 · 删除；短期另有里程碑步骤
+       （添加/勾选/撤销/删除 + 进度）
+     - FR-012 语域：正式 App 文案，无行为解释句/存储位置说明
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 720px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 242, 247, .7); }
+  .chip.t { color: var(--accent); }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+
+  /* ---- 屏内 ---- */
+  .dt-status { height: 52px; flex: none; display: flex; align-items: flex-end;
+               justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+               font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
+  .dt-top { flex: none; display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-3) var(--space-5) var(--space-2); }
+  .dt-btn { width: 38px; height: 38px; border-radius: var(--radius-full);
+            background: var(--surface); color: var(--on-surface); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--divider); box-shadow: var(--shadow-low);
+            font-size: 20px; line-height: 1; padding: 0; }
+  .dt-btn.txt { width: auto; padding: 0 var(--space-4); font: var(--font-body-m); }
+  .dt-top .tt { font: var(--font-title-m); color: var(--on-surface); }
+  .dt-top .spacer { flex: 1; }
+
+  .dt-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
+               padding: var(--space-2) var(--space-5) var(--space-5);
+               display: flex; flex-direction: column; gap: var(--space-4); }
+  .dt-scroll::-webkit-scrollbar { display: none; }
+
+  /* 身份区（大类色） */
+  .hero { background: var(--surface); border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-low); padding: var(--space-5);
+          display: flex; flex-direction: column; gap: var(--space-3); }
+  .hero .h1 { display: flex; align-items: center; gap: var(--space-3); }
+  .h-ic { width: 52px; height: 52px; border-radius: var(--radius-md); flex: none;
+          display: flex; align-items: center; justify-content: center;
+          color: var(--hclr, var(--accent)); background: var(--surface-alt); }
+  .h-ic svg { width: 28px; height: 28px; }
+  .hero .nm { font: var(--font-title-l); color: var(--on-surface); margin: 0; }
+  .badge { font: var(--font-label); padding: 2px var(--space-2);
+           border-radius: var(--radius-full); white-space: nowrap;
+           color: var(--hclr, var(--accent)); background: var(--surface-alt); }
+  .hero .meta { display: flex; flex-wrap: wrap; gap: var(--space-2);
+                font: var(--font-body-s); color: var(--on-surface-variant); }
+  .meta .m { display: flex; align-items: center; gap: 4px;
+             background: var(--surface-alt); border-radius: var(--radius-full);
+             padding: var(--space-1) var(--space-3); }
+  .meta .dot { width: 6px; height: 6px; border-radius: var(--radius-full);
+               background: var(--hclr, var(--accent)); }
+
+  /* 今日行动区 */
+  .card { background: var(--surface); border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-low); padding: var(--space-4); }
+  .card-title { font: var(--font-label); letter-spacing: .08em;
+                color: var(--on-surface-variant); margin: 0 0 var(--space-3); }
+  .note-in { display: flex; flex-direction: column; gap: var(--space-2);
+             margin-bottom: var(--space-3); }
+  .input { border: 1px solid var(--divider); background: var(--surface-alt);
+           border-radius: var(--radius-md); color: var(--on-surface);
+           font: var(--font-body-l); padding: var(--space-3) var(--space-4);
+           outline: none; }
+  .input.ph { color: var(--on-surface-variant); }
+  .btn-primary { width: 100%; border: none; cursor: pointer;
+                 background: var(--accent); color: var(--accent-on);
+                 font: var(--font-title-s); border-radius: var(--radius-full);
+                 padding: var(--space-4) 0; box-shadow: var(--shadow-mid);
+                 display: flex; align-items: center; justify-content: center;
+                 gap: var(--space-2); transition: transform var(--motion-fast) var(--ease-standard); }
+  .btn-primary:active { transform: scale(.98); }
+  .btn-primary.done { background: var(--positive-fill); color: var(--positive-on); }
+  .btn-line { width: 100%; border: 1px solid var(--divider); cursor: pointer;
+              background: var(--surface); color: var(--on-surface);
+              font: var(--font-body-l); border-radius: var(--radius-full);
+              padding: var(--space-3) 0; display: flex; align-items: center;
+              justify-content: center; gap: var(--space-2); }
+  .btn-line.danger { color: var(--badge); border-color: var(--badge); }
+
+  /* 近 7 天点阵 */
+  .week { display: flex; justify-content: space-between; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+         font: var(--font-body-s); color: var(--on-surface-variant);
+         font-variant-numeric: tabular-nums; }
+  .day .c { width: 34px; height: 34px; border-radius: var(--radius-full);
+            background: var(--surface-alt); border: 1px solid var(--divider);
+            display: flex; align-items: center; justify-content: center; }
+  .day.hit .c { background: var(--positive-fill); border-color: transparent; }
+  .day.hit .c svg { width: 16px; height: 16px; color: var(--positive-on); }
+  .day.bf .c { border-style: dashed; }
+  .day.bf.hit .c svg { width: 14px; height: 14px; }
+  .day.today { color: var(--on-surface); font-weight: 700; }
+
+  /* 行式 */
+  .lrow { display: flex; align-items: center; gap: var(--space-3);
+          padding: var(--space-3) 0; }
+  .lrow + .lrow { border-top: 1px solid var(--divider); }
+  .lrow .ic { width: 28px; height: 28px; border-radius: var(--radius-sm);
+              background: var(--surface-alt); color: var(--on-surface-variant);
+              display: flex; align-items: center; justify-content: center; flex: none; }
+  .lrow .ic svg { width: 16px; height: 16px; }
+  .lrow .lab { font: var(--font-body-l); color: var(--on-surface); }
+  .lrow .val { margin-left: auto; font: var(--font-body-m); color: var(--on-surface-variant);
+               display: flex; align-items: center; gap: var(--space-1);
+               font-variant-numeric: tabular-nums; }
+  .caret { color: var(--on-surface-variant); font-size: 12px; }
+  .sub { font: var(--font-body-s); color: var(--on-surface-variant); margin: var(--space-2) 0 0; }
+
+  /* 里程碑 */
+  .ms { display: flex; align-items: center; gap: var(--space-3);
+        padding: var(--space-2) 0; }
+  .ms .cb { width: 26px; height: 26px; border-radius: var(--radius-full);
+            border: 1.5px solid var(--divider); background: transparent; flex: none;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            color: var(--positive-on); padding: 0; }
+  .ms.done .cb { background: var(--positive-fill); border-color: transparent; }
+  .ms .cb svg { width: 14px; height: 14px; }
+  .ms .t { font: var(--font-body-l); color: var(--on-surface); }
+  .ms.done .t { color: var(--on-surface-variant);
+                text-decoration: line-through; }
+  .ms .del { margin-left: auto; border: none; background: none; cursor: pointer;
+             color: var(--on-surface-variant); font-size: 16px; padding: var(--space-1); }
+  .ms-add { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
+  .ms-add .input { flex: 1; padding: var(--space-2) var(--space-3);
+                   font: var(--font-body-m); }
+  .ms-add .btn { border: none; border-radius: var(--radius-md);
+                 background: var(--surface-alt); color: var(--accent); cursor: pointer;
+                 padding: 0 var(--space-4); font: var(--font-body-m); }
+  .prog { height: 8px; border-radius: var(--radius-full); background: var(--surface-alt);
+          overflow: hidden; }
+  .prog i { display: block; height: 100%; border-radius: var(--radius-full);
+            background: var(--hclr, var(--accent)); }
+  .prog-row { display: flex; align-items: center; gap: var(--space-3); }
+  .prog-row .pc { font: var(--font-title-s); color: var(--on-surface);
+                  font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+
+  /* 历史 */
+  .hist { display: flex; flex-direction: column; }
+  .hrow { display: flex; gap: var(--space-3); padding: var(--space-3) 0; }
+  .hrow + .hrow { border-top: 1px solid var(--divider); }
+  .hrow .d { font: var(--font-body-m); color: var(--on-surface);
+             font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .hrow .n { font: var(--font-body-s); color: var(--on-surface-variant); flex: 1; }
+  .tagbf { font: var(--font-label); padding: 1px var(--space-2); height: fit-content;
+           border-radius: var(--radius-full); background: var(--surface-alt);
+           color: var(--on-surface-variant); white-space: nowrap; }
+
+  /* 暂停横幅 */
+  .paused { display: flex; align-items: center; gap: var(--space-3);
+            background: var(--surface); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-low); padding: var(--space-3) var(--space-4);
+            font: var(--font-body-m); color: var(--on-surface); }
+  .paused .dotp { width: 10px; height: 10px; border-radius: var(--radius-full);
+                  background: var(--warning); flex: none; }
+  .paused b { margin-left: auto; color: var(--accent); font-weight: 600; cursor: pointer; }
+
+  /* 弹层（补签日历 / 管理菜单 / 删除确认） */
+  .sheet-wrap { position: absolute; inset: 0; z-index: 30; }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0;
+           background: var(--surface); border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+           box-shadow: var(--shadow-high);
+           padding: var(--space-3) var(--space-5) calc(var(--space-5) + 8px); }
+  .grab { width: 40px; height: 4px; border-radius: var(--radius-full);
+          background: var(--divider); margin: 0 auto var(--space-3); }
+  .sheet h4 { font: var(--font-title-s); color: var(--on-surface); margin: 0 0 var(--space-3); }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--space-2); }
+  .cal .wd { font: var(--font-label); color: var(--on-surface-variant);
+             text-align: center; margin-bottom: var(--space-1); }
+  .cal .cd { aspect-ratio: 1; border-radius: var(--radius-full); border: none;
+             background: var(--surface-alt); color: var(--on-surface);
+             font: var(--font-body-m); cursor: pointer;
+             font-variant-numeric: tabular-nums;
+             display: flex; align-items: center; justify-content: center; }
+  .cal .cd.picked { background: var(--accent); color: var(--accent-on); font-weight: 700; }
+  .cal .cd.off { opacity: .3; pointer-events: none; }
+  .cal .cd.done { box-shadow: inset 0 0 0 2px var(--positive-fill); }
+  .menu { display: flex; flex-direction: column; }
+  .menu button { display: flex; align-items: center; gap: var(--space-3);
+                 border: none; background: none; cursor: pointer;
+                 font: var(--font-body-l); color: var(--on-surface);
+                 padding: var(--space-4) var(--space-2); }
+  .menu button + button { border-top: 1px solid var(--divider); }
+  .menu button svg { width: 20px; height: 20px; color: var(--on-surface-variant); }
+  .menu button.danger { color: var(--badge); }
+  .menu button.danger svg { color: var(--badge); }
+  .dlg { position: absolute; left: var(--space-6); right: var(--space-6); top: 38%;
+         background: var(--surface); border-radius: var(--radius-xl);
+         box-shadow: var(--shadow-high); padding: var(--space-5);
+         display: flex; flex-direction: column; gap: var(--space-4); }
+  .dlg h5 { font: var(--font-title-s); color: var(--on-surface); margin: 0; }
+  .dlg p { font: var(--font-body-m); color: var(--on-surface-variant); margin: 0;
+           line-height: 1.7; }
+  .dlg .acts { display: flex; gap: var(--space-3); }
+  .dlg .acts button { flex: 1; border-radius: var(--radius-full); border: none;
+                      cursor: pointer; padding: var(--space-3) 0;
+                      font: var(--font-body-l); }
+  .dlg .no { background: var(--surface-alt); color: var(--on-surface); }
+  .dlg .yes { background: var(--badge); color: var(--badge-on); }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">目标详情 · v2 延展稿 R1</h1>
+<p class="pt-sub">004 T007（FR-015 门禁输入）。身份区随三大类变色（健康绿/习惯橙/目标蓝）；打卡主按钮 = accent 实心，完成态青柠+对勾；
+补签近 14 天（未来不可选）；暂停/恢复/删除收纳「⋯」菜单，删除二次确认；短期含里程碑步骤与续期。</p>
+
+<div class="row">
+  <!-- ===================== 板 1：浅色 · 习惯详情 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light" style="--hclr:var(--major-health)">
+      <div class="island"></div>
+      <div class="dt-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="dt-top">
+        <button class="dt-btn" aria-label="返回">‹</button>
+        <span class="tt">目标详情</span><span class="spacer"></span>
+        <button class="dt-btn" aria-label="更多">⋯</button>
+      </div>
+      <div class="dt-scroll">
+
+        <div class="hero">
+          <div class="h1">
+            <span class="h-ic" data-gi="directions_bike"></span>
+            <div>
+              <p class="nm">骑行大 PRO 计划</p>
+              <span class="badge">习惯 · 运动 · 健康</span>
+            </div>
+          </div>
+          <div class="meta">
+            <span class="m"><span class="dot"></span>连续 12 天</span>
+            <span class="m">本周 5/6 次</span>
+            <span class="m">每天 · 08:00 提醒</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">今日记录</p>
+          <div class="note-in">
+            <div class="input ph">一句话记录（选填）</div>
+            <button class="btn-primary">
+              <svg viewBox="0 -960 960 960" width="18" height="18" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>
+              记录打卡
+            </button>
+          </div>
+          <div class="week">
+            <div class="day hit"><span class="c"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>17</div>
+            <div class="day hit"><span class="c"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>18</div>
+            <div class="day"><span class="c"></span>19</div>
+            <div class="day hit"><span class="c"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>20</div>
+            <div class="day hit"><span class="c"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>21</div>
+            <div class="day bf hit"><span class="c"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>22</div>
+            <div class="day today"><span class="c"></span>23</div>
+          </div>
+          <p class="sub">虚线圈 = 补签记录；点任意过去日可补签</p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">历史记录</p>
+          <div class="hist">
+            <div class="hrow"><span class="d">08-22</span><span class="n">均速突破 25km/h</span><span class="tagbf">补签</span></div>
+            <div class="hrow"><span class="d">08-21</span><span class="n">夜骑 30 公里</span></div>
+            <div class="hrow"><span class="d">08-20</span><span class="n">完成打卡</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="lrow">
+            <span class="ic" data-gi="directions_bike"></span>
+            <span class="lab">编辑目标</span>
+            <span class="val"><span class="caret">›</span></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <h3>浅色 · 习惯详情</h3>
+    <p class="desc">身份区 = 大类色（运动→健康绿）+ 连续/本周/提醒摘要；今日记录 = 选填一句话 + accent 打卡按钮；近 7 天点阵（对勾完成、虚线补签）；历史含补签标记。</p>
+    <div class="chips"><span class="chip t">打卡+选填记录</span><span class="chip t">7 天点阵</span><span class="chip t">历史</span><span class="chip t">编辑</span><span class="chip">补签入口</span></div>
+  </div>
+
+  <!-- ===================== 板 2：深色 · 短期详情（里程碑） ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="dark" style="--hclr:var(--major-goal)">
+      <div class="island"></div>
+      <div class="dt-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="dt-top">
+        <button class="dt-btn" aria-label="返回">‹</button>
+        <span class="tt">目标详情</span><span class="spacer"></span>
+        <button class="dt-btn" aria-label="更多">⋯</button>
+      </div>
+      <div class="dt-scroll">
+
+        <div class="hero">
+          <div class="h1">
+            <span class="h-ic" data-gi="explore"></span>
+            <div>
+              <p class="nm">考下潜水证 OW/AOW</p>
+              <span class="badge">短期 · 旅行 · 目标</span>
+            </div>
+          </div>
+          <div class="meta">
+            <span class="m"><span class="dot"></span>距截止 100 天</span>
+            <span class="m">2026-11-30 截止</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">里程碑</p>
+          <div class="prog-row" style="margin-bottom:var(--space-3)">
+            <div class="prog" style="flex:1"><i style="width:40%"></i></div>
+            <span class="pc">40%</span>
+          </div>
+          <div class="ms done">
+            <button class="cb"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></button>
+            <span class="t">完成 OW 开放水域课程</span>
+            <button class="del" aria-label="删除步骤">✕</button>
+          </div>
+          <div class="ms done">
+            <button class="cb"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></button>
+            <span class="t">第一次 DSD 体验潜水</span>
+            <button class="del" aria-label="删除步骤">✕</button>
+          </div>
+          <div class="ms">
+            <button class="cb"></button>
+            <span class="t">AOW 进阶课程报名</span>
+            <button class="del" aria-label="删除步骤">✕</button>
+          </div>
+          <div class="ms-add">
+            <div class="input ph" style="font:var(--font-body-m)">添加步骤…</div>
+            <button class="btn">添加</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="lrow">
+            <span class="ic"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q134 0 227 93t93 227q0 134-93 227t-227 93Zm0-80q100 0 170-70t70-170q0-100-70-170t-170-70q-100 0-170 70t-70 170q0 100 70 170t170 70Z"/></svg></span>
+            <span class="lab">标记达成</span>
+            <span class="val"><span class="caret">›</span></span>
+          </div>
+          <div class="lrow">
+            <span class="ic"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q134 0 227 93t93 227q0 134-93 227t-227 93Zm-40-160h80v-120h120v-80H520v-120h-80v120H320v80h120v120Z"/></svg></span>
+            <span class="lab">续期（调整截止日期）</span>
+            <span class="val">2026-11-30 <span class="caret">›</span></span>
+          </div>
+          <p class="sub">续期后倒计时重置，已有记录保留</p>
+        </div>
+
+        <div class="card">
+          <p class="card-title">历史记录</p>
+          <div class="hist">
+            <div class="hrow"><span class="d">08-18</span><span class="n">完成 OW 开放水域课程</span></div>
+            <div class="hrow"><span class="d">08-10</span><span class="n">第一次 DSD 体验潜水</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <h3>深色 · 短期详情</h3>
+    <p class="desc">倒计时身份区 + 里程碑（勾选/撤销/删除/添加 + 进度百分比）+ 标记达成 + 续期行（改截止、倒计时重置）；旅行小类 → 目标蓝。</p>
+    <div class="chips"><span class="chip t">里程碑全动线</span><span class="chip t">标记达成</span><span class="chip t">续期</span><span class="chip">深色可读性</span></div>
+  </div>
+
+  <!-- ===================== 板 3：浅色 · 补签弹层 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light" style="--hclr:var(--major-health)">
+      <div class="island"></div>
+      <div class="dt-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="dt-top">
+        <button class="dt-btn" aria-label="返回">‹</button>
+        <span class="tt">目标详情</span><span class="spacer"></span>
+        <button class="dt-btn" aria-label="更多">⋯</button>
+      </div>
+      <div class="dt-scroll" style="filter:blur(1px)">
+        <div class="hero">
+          <div class="h1"><span class="h-ic" data-gi="directions_bike"></span>
+            <div><p class="nm">骑行大 PRO 计划</p><span class="badge">习惯 · 运动 · 健康</span></div></div>
+        </div>
+      </div>
+      <div class="sheet-wrap">
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <h4>补签日期</h4>
+          <div class="cal">
+            <span class="wd">一</span><span class="wd">二</span><span class="wd">三</span>
+            <span class="wd">四</span><span class="wd">五</span><span class="wd">六</span><span class="wd">日</span>
+            <button class="cd off">10</button><button class="cd off">11</button><button class="cd">12</button>
+            <button class="cd">13</button><button class="cd done">14</button><button class="cd">15</button><button class="cd">16</button>
+            <button class="cd done">17</button><button class="cd done">18</button><button class="cd">19</button>
+            <button class="cd done">20</button><button class="cd done">21</button><button class="cd done">22</button>
+            <button class="cd">23</button><button class="cd off">24</button><button class="cd off">25</button>
+            <button class="cd off">26</button><button class="cd off">27</button><button class="cd off">28</button>
+            <button class="cd off">29</button><button class="cd off">30</button><button class="cd off">31</button>
+          </div>
+          <p class="sub">青圈边 = 已有记录；灰且不可点 = 未来日期或超出 14 天</p>
+          <div style="margin-top:var(--space-4)">
+            <button class="btn-primary">补签 8 月 19 日</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h3>浅色 · 补签弹层</h3>
+    <p class="desc">点 7 天点阵的过去日或「补签」入口上滑：14 天窗口日历单选，已记录日带青柠描边、未来日禁用；确认后计入统计与健康度（与打卡同计）。</p>
+    <div class="chips"><span class="chip t">补签</span><span class="chip t">未来不可选</span><span class="chip t">已记录可视</span><span class="chip">弹层形态</span></div>
+  </div>
+
+  <!-- ===================== 板 4：深色 · 管理菜单与删除确认 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="dark" style="--hclr:var(--major-health)">
+      <div class="island"></div>
+      <div class="dt-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="dt-top">
+        <button class="dt-btn" aria-label="返回">‹</button>
+        <span class="tt">目标详情</span><span class="spacer"></span>
+        <button class="dt-btn" aria-label="更多">⋯</button>
+      </div>
+      <div class="dt-scroll" style="filter:blur(1px)">
+        <div class="hero">
+          <div class="h1"><span class="h-ic" data-gi="directions_bike"></span>
+            <div><p class="nm">骑行大 PRO 计划</p><span class="badge">习惯 · 运动 · 健康</span></div></div>
+        </div>
+      </div>
+      <div class="sheet-wrap">
+        <div class="scrim"></div>
+        <div class="dlg">
+          <h5>删除目标</h5>
+          <p>「骑行大 PRO 计划」及其全部记录将被删除，此操作不可恢复。</p>
+          <div class="acts">
+            <button class="no">取消</button>
+            <button class="yes">删除</button>
+          </div>
+        </div>
+        <div class="sheet" style="bottom:46%; opacity:.5">
+          <div class="grab"></div>
+          <div class="menu">
+            <button><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>编辑目标</button>
+            <button><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M520-200h240v-120L520-320v120ZM120-120q-33 0-56.5-23.5T40-200v-560q0-33 23.5-56.5T120-840h720q33 0 56.5 23.5T920-760v240h-80v-240H120v560h80v80h-80Z"/></svg>暂停目标</button>
+            <button class="danger"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Z"/></svg>删除目标</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h3>深色 · 管理（⋯ 菜单 + 删除确认）</h3>
+    <p class="desc">「⋯」上滑菜单：编辑 / 暂停（活跃态显示；暂停态变「恢复」）/ 删除（红）；删除弹出居中确认对话框（不可恢复警示），双按钮确认。</p>
+    <div class="chips"><span class="chip t">暂停/恢复</span><span class="chip t">删除二次确认</span><span class="chip t">编辑</span><span class="chip">菜单收纳</span></div>
+  </div>
+
+  <!-- ===================== 板 5：浅色 · 暂停态 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light" style="--hclr:var(--major-goal)">
+      <div class="island"></div>
+      <div class="dt-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="dt-top">
+        <button class="dt-btn" aria-label="返回">‹</button>
+        <span class="tt">目标详情</span><span class="spacer"></span>
+        <button class="dt-btn" aria-label="更多">⋯</button>
+      </div>
+      <div class="dt-scroll">
+
+        <div class="paused">
+          <span class="dotp"></span>
+          目标已暂停，不参与统计与提醒
+          <b>恢复</b>
+        </div>
+
+        <div class="hero" style="opacity:.75">
+          <div class="h1">
+            <span class="h-ic" data-gi="brush"></span>
+            <div>
+              <p class="nm">做出第一个 App 并上架</p>
+              <span class="badge">长期 · 创作 · 目标 · 已暂停</span>
+            </div>
+          </div>
+          <div class="meta">
+            <span class="m">历史 23 条记录</span>
+            <span class="m">创建于 2026-05-02</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <p class="card-title">历史记录</p>
+          <div class="hist">
+            <div class="hrow"><span class="d">07-30</span><span class="n">完成第一版交互稿</span></div>
+            <div class="hrow"><span class="d">07-12</span><span class="n">完成打卡</span></div>
+          </div>
+        </div>
+
+        <button class="btn-line danger" style="margin-top:var(--space-2)">删除目标</button>
+
+      </div>
+    </div>
+    <h3>浅色 · 暂停态</h3>
+    <p class="desc">暂停横幅（琥珀点 + 恢复行动）置顶；身份区降透明度、行动按钮让位（不可打卡）；历史与删除仍可达（数据不丢）。</p>
+    <div class="chips"><span class="chip t">暂停态</span><span class="chip t">恢复</span><span class="chip t">删除直达</span><span class="chip">不可打卡</span></div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('[data-gi]').forEach(el => {
+    el.innerHTML = gi(el.dataset.gi, el.classList.contains('h-ic') ? 28 : 16);
+  });
+  document.querySelectorAll('.ms .cb').forEach(cb => cb.addEventListener('click', () => {
+    cb.parentElement.classList.toggle('done');
+    cb.innerHTML = cb.parentElement.classList.contains('done')
+      ? '<svg viewBox="0 -960 960 960" fill="currentColor" width="14" height="14"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>' : '';
+  }));
+  document.querySelectorAll('.cal .cd:not(.off)').forEach(cd => cd.addEventListener('click', () => {
+    document.querySelectorAll('.cal .cd').forEach(x => x.classList.remove('picked'));
+    cd.classList.add('picked');
+  }));
+</script>
+
+</body>
+</html>

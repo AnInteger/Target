@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:target/core/models/goal_icon_catalog.dart';
 
@@ -48,25 +50,20 @@ void main() {
     expect(migrateIconKey(null), 'explore');
   });
 
-  test('与原型侧 goal-icons.js 键名对账（39 枚逐一一致）', () {
-    // 消费者 design/prototypes/goal-icons.js 的 GOAL_ICONS 键清单。
-    // 若两侧任一侧增删图标，此测试失败——迫使同步（D1 零漂移契约）。
-    const jsKeys = [
-      'directions_bike', 'directions_run', 'pool', 'hiking', 'fitness_center',
-      'menu_book', 'school', 'translate', 'auto_stories',
-      'favorite', 'monitor_heart', 'bedtime', 'water_drop',
-      'brush', 'camera', 'palette', 'music_note',
-      'flight', 'luggage', 'map', 'cabin', 'explore',
-      'savings', 'trending_up', 'account_balance_wallet', 'paid',
-      'home', 'restaurant', 'cleaning_services', 'eco',
-      'self_improvement', 'spa', 'air', 'forest',
-      'groups', 'volunteer_activism', 'forum',
-      'pets',
-    ];
+  test('与原型侧 goal-icons.js 键名对账（直读真文件，38 枚逐一一致）', () {
+    // 直读 design/prototypes/goal-icons.js 的 GOAL_ICONS 键清单
+    // （flutter test 的 cwd = 包根）。若两侧任一侧增删图标，此测试
+    // 失败——迫使同步（D1 零漂移契约）。
+    final js = File('design/prototypes/goal-icons.js').readAsStringSync();
+    final jsKeys = RegExp(r'^  ([a-z][a-z_0-9]*): \{ domain:', multiLine: true)
+        .allMatches(js)
+        .map((m) => m.group(1)!)
+        .toSet();
+    expect(jsKeys, isNotEmpty, reason: '未能从 goal-icons.js 解析出键（文件被移动？）');
     final dartKeys = GoalIconCatalog.values.map((i) => i.key).toSet();
     expect(dartKeys.containsAll(jsKeys), isTrue,
-        reason: 'Dart 目录缺：${jsKeys.where((k) => !dartKeys.contains(k)).toList()}');
-    expect(jsKeys.toSet().containsAll(dartKeys), isTrue,
-        reason: '对账清单缺：${dartKeys.where((k) => !jsKeys.contains(k)).toList()}');
+        reason: 'Dart 目录缺：${jsKeys.difference(dartKeys).toList()}');
+    expect(jsKeys.containsAll(dartKeys), isTrue,
+        reason: 'goal-icons.js 缺：${dartKeys.difference(jsKeys).toList()}');
   });
 }

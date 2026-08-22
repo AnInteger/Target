@@ -30,7 +30,7 @@ enum GoalIconDomain {
   final String zhLabel;
 }
 
-/// 目标图标目录（39 枚 / 10 领域）。
+/// 目标图标目录（38 枚 / 10 领域）。
 enum GoalIconCatalog {
   directionsBike('directions_bike', GoalIconDomain.fitness,
       Icons.directions_bike_rounded),

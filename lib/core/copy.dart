@@ -46,11 +46,8 @@ abstract final class Copy {
   // ---- 目标创建 / 编辑（FR-001/011/012）----
 
   static const editorNewGoal = '新的目标';
-  static const editorKindHabit = '习惯';
-  static const editorKindMilestone = '里程碑';
   static const editorCustom = '自定义';
   static const editorFromTemplate = '从模板开始';
-  static const editorNextWeekEffect = '新频率下周一生效，本周仍按原口径';
   static const editorFrequency = '频率';
   static const editorIconColor = '图标与颜色';
   static const editorDeadline = '截止日期';
@@ -269,4 +266,30 @@ abstract final class Copy {
   // 成就时刻（每个目标今天都有记录）。
   static const celebrationTitle = '🎉 每个目标都有进展';
   static String celebrationNote(int n) => '今日 $n 次记录';
+
+  // ---- 003 文案层（T014：三 Tab / 编辑器分组 / 通知列表 / 类型徽章）----
+
+  // 账号资料（FR-004：未填写不强迫，默认头像 + 默认昵称）。
+  static const profileDefaultNickname = '我';
+
+  // 通知列表（sheet，推导式 D6：无已读态，空态一句话）。
+  static const notificationEmptyHint = '这里会出现你的提醒和值得记下的时刻';
+
+  // 编辑器分组标题（ui-contract「编辑器分组折叠」）。
+  static const editorSectionBasics = '基础信息';
+  static const editorSectionType = '目标类型';
+  static const editorSectionIcon = '图标';
+
+  // 类型徽章（D2 三类型域：长期/短期/习惯）。
+  static const typeBadgeLongTerm = '长期';
+  static const typeBadgeShortTerm = '短期';
+  static const typeBadgeHabit = '习惯';
+
+  // 短期到期询问（D4：截止日只提醒不判决，到点推送 + 通知列表条目）。
+  static const shortTermDueAsk = '到日子了，怎么样？';
+
+  // 习惯提醒频率档（FR-013 开关化 cadence）。
+  static const cadenceDaily = '一天一次';
+  static const cadenceThreeDay = '三天一次';
+  static const cadenceWeekly = '一周一次';
 }

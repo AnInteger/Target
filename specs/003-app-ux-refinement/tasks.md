@@ -56,7 +56,8 @@
   - ✅ 2026-08-22：引擎全量重写（DayStatus{doneCount,backfilledCount,done}、streakOf/totalStreak/allCompleteToday、weekStatOf{metDays,totalChecks}、totalWeekStat 去重留痕日、battery=done 占比、evaluate 去 frequencyVersions）；GoalWeekStat 实体改 metDays/totalChecks；消费面九文件接新口径（providers/repositories/backup_exporter/widget×2/settlement/review/today/goals/reminder）+ 今日页局部 streak 收敛进 totalStreak；today 环「周三不在一二仍催」按退役口径翻转；备份 importer 快照校验新键必填/旧键（applicableDays/completionRate）宽容放行；测试五文件改写全绿 78/78、analyze 0
 - [x] T013 FrequencyVersions 停写：`lib/core/stats/versioning.dart` 及调用点——新目标不再创建频率版本，存量整表只读保全；`test/frequency_version_test.dart` 改写为「停写+保全」断言
   - ✅ 2026-08-22：仓储删除四个写入 API（addInitial/addUserEdit/addBusyMode/removeBusyMode）只留 versionsOf/watchAllVersions；busy_mode 只记会话（busyModeApplied 取自 sessions）；settlement adjust 决策停写（pause 保留）；编辑器创建/编辑路径去版本写入 + 摘「下周生效」提示；versioning 纯函数保留供回显；备份 importer 直插还原=保全不冲突；测试夹具 version_seed.dart 直插存量行，frequency_version_test 改写「新目标零版本行/直插照读回显」，widget/backup/settlement 调用点机械换 seedVersion；analyze 0 + 76/76 全绿
-- [ ] T014 [P] 文案层：`lib/core/copy.dart`——默认昵称「我」、通知列表空态语「这里会出现你的提醒和值得记下的时刻」、编辑器分组标题（基础信息/目标类型/图标）、短期到期询问「到日子了，怎么样？」、类型徽章名（长期/短期/习惯）等新文案常量
+- [x] T014 [P] 文案层：`lib/core/copy.dart`——默认昵称「我」、通知列表空态语「这里会出现你的提醒和值得记下的时刻」、编辑器分组标题（基础信息/目标类型/图标）、短期到期询问「到日子了，怎么样？」、类型徽章名（长期/短期/习惯）等新文案常量
+  - ✅ 2026-08-22：新增 003 文案段（profileDefaultNickname/notificationEmptyHint/editorSection×3/typeBadge×3/shortTermDueAsk/cadence×3，均注明契约出处）；顺手清三枚死常量（editorKindHabit/editorKindMilestone/editorNextWeekEffect——后者 T013 停写后无消费方）；analyze 0 + 76/76 全绿
 
 **Checkpoint**: 数据层就绪——四分支迁移对账绿、stats 新口径绿、目录编译绿；Phase 1 门禁通过后即可进故事相位
 

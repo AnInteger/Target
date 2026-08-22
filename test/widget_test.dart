@@ -1848,7 +1848,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // R2 骨架 → T034 四分组：账号卡（真资料昵称兜底「我」+ 编辑入口）
-    // + 概要行副文 + 场景指引 + 隐私脚注。
+    // + 概要行副文 + 场景指引。
     // 标题「我的」与底部 nav 标签同文，断言至少一处即可。
     expect(find.text(Copy.settingsTitle), findsWidgets);
     expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
@@ -1856,8 +1856,8 @@ void main() {
     expect(find.text(Copy.settingsBriefTitle), findsOneWidget);
     expect(find.text(Copy.settingsNotifMasterTitle), findsOneWidget);
     expect(find.text(Copy.reminderGoalHint), findsOneWidget);
-    await scrollTo(tester, find.text(Copy.privacyFoot)); // 通知组变高，脚注挤出首屏
-    expect(find.text(Copy.privacyFoot), findsOneWidget);
+    // T045 语域清查：隐私脚注（本地存储说明）不上屏（FR-021）。
+    expect(find.textContaining('这台设备'), findsNothing);
     // 聚焦 App 本身：目标内容不上设置屏（旧版逐目标提醒行已删）。
     expect(find.text('锻炼'), findsNothing);
 

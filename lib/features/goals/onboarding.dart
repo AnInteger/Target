@@ -62,11 +62,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             Text(Copy.onboardingSubtitle,
                 style: theme.textTheme.bodyLarge?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant)),
-            const SizedBox(height: 12),
-            // 数据风险首启明示（FR-014）：本地存储、不上传。
-            Text(Copy.onboardingDataNote,
-                style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant)),
+            // 003 T045 语域清查：本地存储说明行移除（FR-021）。
             const SizedBox(height: 24),
             // 与编辑器同一语言：v3 图标 + 一句话（无颜色步，FR-015）。
             Wrap(

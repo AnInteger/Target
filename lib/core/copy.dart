@@ -4,14 +4,6 @@
 library;
 
 abstract final class Copy {
-  // ---- 今日 / 生活电量（FR-017）----
-
-  static const batteryEmpty = '—'; // 无活跃习惯目标的空态（R9：不呈现 0）
-  static String batteryLow(int percent) => '该充电了 · $percent%'; // <30%，提示照顾自己
-  static String batteryValue(int percent) => '$percent%';
-  static const allDoneTitle = '今天都照顾到了';
-  static const allDoneSubtitle = '剩下的时间，安心休息。';
-
   // ---- 打卡 / 撤销（FR-004）----
 
   static const checkInDone = '记下了';
@@ -19,19 +11,14 @@ abstract final class Copy {
   static String backfillDone(String day) => '已补上 $day 的记录';
   static const checkInRevoked = '已撤销，统计同步更新';
 
-  // ---- 连击 / 频率 ----
-
-  static String streakDays(int n) => '连击 $n 天';
-  static const streakBroken = '忙就先放下，线还在'; // 连击断裂
-  static String todayProgress(int done, int target) => '$done/$target';
-
   // ---- 周回顾（FR-008 · R3 纯回看：只描述，不建议，不决策）----
 
   static const reviewTitle = '上周回顾';
-  static const reviewNoApplicableDays = '本周不适用'; // 目标列表右栏空值复用
+
   /// 周摘要：「留下 N 次记录 · M 个目标」（努力语言，无完成率）。
   static String reviewWeekSum(int records, int goals) =>
       records == 0 ? '还没有留下记录' : '留下 $records 次记录 · $goals 个目标';
+
   static const reviewLegendRecorded = '有记录';
   static const reviewLegendMissed = '没记录';
   static const reviewLegendNa = '不适用';
@@ -46,12 +33,7 @@ abstract final class Copy {
   // ---- 目标创建 / 编辑（FR-001/011/012）----
 
   static const editorNewGoal = '新的目标';
-  static const editorCustom = '自定义';
-  static const editorFromTemplate = '从模板开始';
-  static const editorFrequency = '频率';
   static const editorIconColor = '图标与颜色';
-  static const editorDeadline = '截止日期';
-  static const editorDeadlineRequired = '选一个日子，给里程碑一个锚点';
   static const editorSave = '保存';
   static const focusLimitTitle = '先照顾好这 5 个';
   static const focusLimitBody = '目标贵在聚焦。暂停或归档一个，再放新的进来。';
@@ -59,54 +41,18 @@ abstract final class Copy {
 
   // ---- 编辑器 · B 案动线（002 T014 定稿：单一概念 + 动机先行）----
 
-  static const editorTemplatesLabel = '从一句熟悉的话开始';
-  static const editorNameLabel = '想做什么？';
   static const editorFrequencyLabel = '多久做一次？';
   static const editorWhyLabel = '为什么想做？';
-  static const editorWhyHint = '一句就够，累的时候它会提醒你';
-  static const editorWhyRequired = '写一句为什么吧——哪怕只有几个字';
   static const editorCriterionLabel = '怎样算做到？';
-  static const editorCriterionAutoNote = '已按名称拟好，可改';
   static const editorCueLabel = '什么时候提醒你？';
-  static const editorCueFallback = '不选场景则按默认时段提醒，同类目标合并打扰';
-  static const editorCueScenes = [
-    cueEarly,
-    cueMidday,
-    cueEvening,
-    cueNight,
-    cueNone,
-  ];
-  static String editorCuePreview(String scene) => '$scene会提醒你，文案里带上你的「为什么」';
-  static const editorOnceLabel = '这是一次性目标';
-  static const editorOnceSub = '有完成那天，比如「年底前跑一次 10km」';
-  static const editorDdlThisYear = '今年内';
-  static const editorDdl3Months = '三个月内';
-  static const editorDdlCustom = '自选日期';
-  static const editorOnceKindNote = '一次性目标 · 创建后类型不再变更';
-  static const editorSaveCreate = '立下这个心愿';
-  static const editorLooksLabel = '它长什么样？';
 
   // ---- 目标管理页 ----
 
   static const goalsTitle = '目标';
-  static const goalsNew = '新建';
-  static String goalsSum(int n, int m) =>
-      m == 0 ? '$n 个目标 · 本周还没有记录' : '$n 个目标 · 本周留下 $m 次记录';
   static const goalsDaysRecorded = '天有记录';
-  static const goalsStepsDone = '步完成';
-  static const goalsDeadlineLabel = '截止';
-  static const goalsOnceShort = '一次性';
-  static String goalsActiveHeader(int n) => '进行中 $n/5';
-  static const goalsPausedHeader = '已暂停';
   static const goalsPausedNote = '暂停中 · 记录保留';
-  static const goalsResume = '恢复';
-  static const goalsClosedHeader = '已结束';
-  static const goalsWeekRate = '本周';
   static const goalPauseHint = '先放一放，想回来随时继续';
-  static const goalsEmptyTitle = '想守护点什么？';
-  static const goalsEmptySub = '从一句熟悉的话开始，或者写一句自己的。';
   static const goalsEmptyOwn = '写一句自己的';
-  static String goalsOnceBadge(String deadline) => '一次性 · $deadline';
 
   // ---- 目标详情（T021：管理动线 + 打卡描述 + 历史记录）----
 
@@ -136,10 +82,8 @@ abstract final class Copy {
   static const milestoneStepsHeader = '拆成小步';
   static const milestoneAddStep = '加一步';
   static const milestoneDeleteStep = '删除步骤';
-  static const milestoneStepHint = '一步就好，别贪多';
+  static const milestoneStepHint = '一句话描述这一步'; // 003 T045 语域清查：口语劝诫改正式描述
   static const milestonePostponed = '截止日已更新';
-  static const milestoneCloseTitle = '先放下';
-  static const milestoneCloseAck = '这个目标先收进抽屉，不打分';
 
   // 短期到期处理（003 D4：到点只提醒不判决——标记达成/续期双入口）。
   static const goalMarkAchieved = '标记达成';
@@ -158,7 +102,6 @@ abstract final class Copy {
   static const cueMidday = '午休时';
   static const cueEvening = '晚饭后';
   static const cueNight = '睡前';
-  static const cueNone = '不打扰';
 
   // ---- 每日概要 / 逐目标提醒（FR-006/008/012）----
 
@@ -171,25 +114,12 @@ abstract final class Copy {
 
   // 逐目标提醒（场景档驱动）：单目标带「为什么」（编辑器预览承诺的句式）。
 
-  /// 场景档单目标标题：「晚饭后 · 散步」。
-  static String reminderTitleScene(String scene, String name) => '$scene · $name';
-
-  /// 场景档合并标题（同档多目标合成一条，FR-012）。
-  static String reminderTitleSceneMany(String scene, int n) => '$scene · $n 件小事';
-
-  /// 默认档（未选场景，20:00 轻提醒）合并标题。
-  static String reminderTitleDefaultMany(int n) => '今晚 · $n 件小事';
-
   /// 单目标正文（写了为什么）：「为了身体轻一点，今天散步了吗？」
   static String reminderAsk(String motivation, String name) =>
       '为了$motivation，今天$name了吗？';
 
-  /// 单目标正文（没写为什么）。
-  static const reminderNudge = '今天还没记录，做一次就算数。';
-
-  /// 合并档正文：名单 + 挑一件顺手的。
-  static String reminderNames(List<String> names) =>
-      '${names.join(' · ')}，挑一件顺手的开始。';
+  /// 单目标正文（没写为什么）。003 T045 语域清查：口语化改正式陈述。
+  static const reminderNudge = '今天还没有记录。';
 
   static const reminderGoalHint = '目标提醒在编辑目标时设置，按所选频率定时提醒。';
   static const reminderMondayHint = '周一的概要会带上上周回顾。';
@@ -204,18 +134,11 @@ abstract final class Copy {
   static const backupImportCorrupt = '备份文件不完整，已取消导入';
   static const backupImportDone = '导入完成';
   static const backupImportCancel = '取消';
-  static const backupHeader = '备份与数据';
   static const backupExported = '备份已生成';
-
-  // ---- 数据风险与隐私（FR-014）----
-
-  static const onboardingDataNote = '数据只存在这台设备上，不上传云端';
 
   // ---- 设置 / 其他（T026 R2：聚焦 App 本身，无目标内容）----
 
   static const settingsTitle = '我的';
-  static const settingsMeName = '星行';
-  static const dailyBriefTimeLabel = '提醒';
 
   // 我的页结构（003 R3 原型：账号卡 + 通知/目标/数据/关于四分组，
   // 行 = 图标 + 标题 + 行尾值|开关|箭头）。
@@ -231,7 +154,6 @@ abstract final class Copy {
   static const settingsBackfillSub = '长按今日页的目标卡，可为往日补一条记录';
   static const settingsVersionTitle = '版本';
   static const settingsVersionValue = '1.0.0';
-  static const dailyBriefSub = '每天一份，不催促';
 
   // 通知分组行（T035 · 原型 s-row 三行 + s-nest 二级）。
   static const settingsNotifMasterTitle = '提醒';
@@ -251,7 +173,6 @@ abstract final class Copy {
   static const notifOffHint = '开关会记住你的偏好，开通知后按这里的时间提醒。';
   static const backupExportSub = '生成一份文件，带走全部记录';
   static const backupImportSub = '整份替换，不与现有数据混合';
-  static const privacyFoot = '数据只在这台设备上——不上传、不联网，记得定期导出备份。';
   static const widgetIosOnly = '桌面小组件与提醒推送为 iPhone 专属功能';
   static const debugClock = 'Debug 时钟';
   static const appName = 'Target';
@@ -314,7 +235,6 @@ abstract final class Copy {
   // 四源条目文案（行 = 图标 + 标题 + 副题 + 时刻）。
   static const notifSubGoalReminder = '目标提醒';
   static const notifSubBrief = '每天一份，不催促';
-  static const notifSubDue = '短期目标';
   static const notifSubMilestone = '里程碑';
   static const notifSubAchievement = '成就时刻';
 

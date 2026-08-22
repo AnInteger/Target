@@ -14,6 +14,15 @@
 
 ## 实现审计
 
+### T045 文案语域清查（FR-021 · 违禁处置 + 死键清理 + 全屏走查）· 通过 · 2026-08-22
+
+- **基线**：`flutter analyze` 0 issue；`flutter test` 128 全绿（清查前后两次全量）。
+- **违禁常量处置**：`onboardingDataNote`（引导页「数据只存在这台设备上，不上传云端」）与 `privacyFoot`（设置页「数据只在这台设备上……记得定期导出备份。」）删除——常量 + 消费方（onboarding.dart 说明行、settings_view `_PrivacyFoot` 卡与 `_DashedRRectPainter` 专用 painter、widget_test 断言）整链移除；FR-021「本地存储位置说明不得出现在任何界面」闭环，测试补渗漏断言 `textContaining('这台设备') findsNothing`。
+- **口语化正式化**：`reminderNudge`「今天还没记录，做一次就算数。」→「今天还没有记录。」；`milestoneStepHint`「一步就好，别贪多」→「一句话描述这一步」（走查补获，空态说明与输入 hint 双用）。
+- **死键清理 55 个**（002 遗留为主：editor B 案 envelope 组 / goals 管理页组 / 生活电量 / 连击 / cue 场景档 / 通知多目标标题等）——`Copy` 无引用常量全删，三个成员清空的分组注释一并移除。注：行内尾注释常量的删除曾越界吞并相邻 `reviewWeekSum`（活键），analyze 兜底发现后已原位恢复——行尾注释不以 `;` 收束是删除脚本的盲区。
+- **保留项裁定**（R3/R4 评审定稿的教练式语域 = ui-contract「文案与语气」基线，非 FR-021 所禁「口语化解释句」）：reviewCoach* 三档观察语、`reviewEmptySub`、`focusLimitTitle/Body`、`goalPauseHint`、`dailyBrief*`「不着急/安心过今天」、`backfillHint`、`onboardingSkip`「先随便看看」、`milestoneOverdue`「不急，下一步是什么？」；用户裁定通知文案 `notifDueTitle`「到日子了，怎么样？」原样保留。
+- **全屏走查**：今日/回顾/我的/详情/编辑器现存文案逐条过审；UI 层裸字符串抽查仅数据类（模板内容 / 周标签 / 对话框动作 / 导入计数实体名），无寒暄、比喻式提示、本地存储说明残留。
+
 ### T040 V1–V8 全回归（001 口径在新信息架构下逐条映射 · FR-017/SC-007）· 通过 · 2026-08-22
 
 - **基线**：`flutter analyze` 0 issue；`flutter test` 128 全绿。

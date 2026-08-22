@@ -4,12 +4,11 @@
 /// 资料编辑 sheet；通知组（T035：总开关聚合 Reminders 行 isEnabled，切换
 /// 全开/全关——与排程器「Reminders 行 = 唯一真源」一致，零 schema 变更；
 /// 简报时间值行 + 按目标提醒二级展开逐行开关）；目标组活跃数 → 今日页 +
-/// 补签只读；数据组备份导出/导入；关于组版本 + 隐私脚注。
+/// 补签只读；数据组备份导出/导入；关于组版本。
 /// 权限被拒不反复弹窗（FR-007）：未开启只说明一次，「知道了」后不再打扰。
 library;
 
 import 'dart:convert';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -201,8 +200,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 value: Copy.settingsVersionValue,
               ),
             ]),
-            const SizedBox(height: AppSpace.s2),
-            const _PrivacyFoot(),
+            // 003 T045 语域清查：隐私脚注移除——本地存储说明不上屏（FR-021）。
             if (kDebugMode) ...[
               const SizedBox(height: AppSpace.s4),
               const _SectionLabel(Copy.debugClock),
@@ -704,75 +702,3 @@ class _BackupCardState extends ConsumerState<_BackupCard> {
   }
 }
 
-/// 隐私脚注：虚线卡 + 锁图标。
-class _PrivacyFoot extends StatelessWidget {
-  const _PrivacyFoot();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return CustomPaint(
-      foregroundPainter: _DashedRRectPainter(
-          color: palette.divider, radius: AppRadius.lg),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.s4, vertical: AppSpace.s3),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Icon(Icons.lock_outline,
-                  size: 14, color: palette.onSurfaceVariant),
-            ),
-            const SizedBox(width: AppSpace.s2),
-            Expanded(
-              child: Text(
-                Copy.privacyFoot,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyS
-                    .copyWith(color: palette.onSurfaceVariant, height: 1.6),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 虚线圆角容器描边（与各屏空态同一语言）。
-class _DashedRRectPainter extends CustomPainter {
-  _DashedRRectPainter({
-    required this.color,
-    required this.radius,
-  });
-
-  final Color color;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-          Offset.zero & size, Radius.circular(radius)));
-    const dash = 6.0, gap = 5.0;
-    for (final metric in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < metric.length) {
-        canvas.drawPath(
-            metric.extractPath(d, math.min(d + dash, metric.length)), paint);
-        d += dash + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedRRectPainter old) =>
-      old.color != color || old.radius != radius;
-}

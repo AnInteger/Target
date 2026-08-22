@@ -314,8 +314,19 @@ abstract final class Copy {
   static const editorDeadlineLabel = '截止日';
   static const editorRequiredTag = '必填';
 
-  /// 习惯/长期提醒开关行标签（频率档+时间 = T025）。
+  /// 习惯/长期提醒开关行标签与副题（原型 R3 attr 行）。
   static const editorReminderSwitch = '提醒';
+  static const editorReminderSub = '按频率定时提醒';
+
+  /// 提醒时间行标签（开关开后出现，T025）。
+  static const editorRemindTimeLabel = '提醒时间';
+
+  /// 短期倒计时预告（原型 R3 count-pv；0/已过分支同款）。
+  static String editorCountdownPreview(int days) => days > 0
+      ? '距截止还有 $days 天'
+      : days == 0
+          ? '截止日就是今天'
+          : '已过 ${-days} 天';
 
   // 类型徽章（D2 三类型域：长期/短期/习惯）。
   static const typeBadgeLongTerm = '长期';

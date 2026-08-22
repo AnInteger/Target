@@ -475,6 +475,207 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T025 提醒组：习惯默认开→三档→保存写 Reminders；关开关不建行（FR-013）', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final navKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          navigatorKey: navKey,
+          home: const Scaffold(body: Text('root')),
+        ),
+      ),
+    );
+
+    Future<void> openEditor() async {
+      navKey.currentState!.push(MaterialPageRoute(
+          fullscreenDialog: true, builder: (_) => const GoalEditorPage()));
+      await tester.pumpAndSettle();
+    }
+
+    // 习惯型：开关默认开 → 频率档（默认一天一次）+ 时间行（默认 09:00）。
+    await openEditor();
+    await tester.enterText(
+        find.byKey(const ValueKey('goalNameField')), '睡前读 5 页书');
+    await tester.tap(find.text(Copy.typeBadgeHabit));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      isTrue,
+    );
+    expect(find.byKey(const ValueKey('goalCadenceSeg')), findsOneWidget);
+    expect(find.byKey(const ValueKey('goalRemindTimeField')), findsOneWidget);
+    expect(find.text('09:00'), findsOneWidget);
+    expect(
+      tester
+          .widget<SegmentedButton<Cadence>>(
+              find.byKey(const ValueKey('goalCadenceSeg')))
+          .selected,
+      {Cadence.daily},
+    );
+
+    // 切「三天一次」→ 保存 → Reminders 行（enabled/threeDay/09:00/goalId）。
+    await scrollTo(tester, find.text(Copy.cadenceThreeDay));
+    await tester.tap(find.text(Copy.cadenceThreeDay));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+
+    final goals = await GoalRepository(db).getGoals();
+    final rows = await ReminderRepository(db).all();
+    expect(rows, hasLength(1));
+    expect(rows.single.goalId, goals.single.id);
+    expect(rows.single.isEnabled, isTrue);
+    expect(rows.single.cadence, Cadence.threeDay);
+    expect(rows.single.time, const LocalTime(9, 0));
+
+    // 长期型：默认关；手动开 → 默认一天一次档。
+    await openEditor();
+    await tester.enterText(
+        find.byKey(const ValueKey('goalNameField')), '把冈仁波齐走完');
+    await tester.tap(find.text(Copy.typeBadgeLongTerm));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      isFalse,
+    );
+    expect(find.byKey(const ValueKey('goalCadenceSeg')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('goalRemindSwitch')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+
+    final rows2 = await ReminderRepository(db).all();
+    expect(rows2, hasLength(2));
+    expect(rows2.last.isEnabled, isTrue);
+    expect(rows2.last.cadence, Cadence.daily);
+
+    // 习惯型但开关关 → 不建行。
+    await openEditor();
+    await tester.enterText(
+        find.byKey(const ValueKey('goalNameField')), '好好吃饭');
+    await tester.tap(find.text(Copy.typeBadgeHabit));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalRemindSwitch')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalCadenceSeg')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+    expect(await ReminderRepository(db).all(), hasLength(2));
+    await db.close();
+  });
+
+  testWidgets('T025 编辑回填提醒行 + 改型短期删行（goal-type-model 口径）', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goal = await GoalRepository(db).create(Goal(
+      name: '规律运动',
+      goalType: GoalType.habit,
+      iconKey: 'directions_run',
+      colorKey: 'teal',
+      createdAt: today,
+    ));
+    final reminderId = (await ReminderRepository(db).upsert(Reminder(
+      goalId: goal.id,
+      time: const LocalTime(21, 30),
+      isEnabled: true,
+      cadence: Cadence.threeDay,
+    )))
+        .id;
+    final navKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          navigatorKey: navKey,
+          home: const Scaffold(body: Text('root')),
+        ),
+      ),
+    );
+
+    Future<void> openEditor() async {
+      navKey.currentState!.push(MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => GoalEditorPage(goalId: goal.id)));
+      await tester.pumpAndSettle();
+    }
+
+    // 回填：开关开、时间 21:30、档=三天一次。
+    await openEditor();
+    expect(
+      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      isTrue,
+    );
+    expect(find.text('21:30'), findsOneWidget);
+    expect(
+      tester
+          .widget<SegmentedButton<Cadence>>(
+              find.byKey(const ValueKey('goalCadenceSeg')))
+          .selected,
+      {Cadence.threeDay},
+    );
+
+    // 不动保存 → 原行续写（同 id，不重复建行）。
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+    final rows = await ReminderRepository(db).all();
+    expect(rows, hasLength(1));
+    expect(rows.single.id, reminderId);
+
+    // 改型短期 → cadence 恒不适用 → 行删除。
+    await openEditor();
+    await tester.tap(find.text(Copy.typeBadgeShortTerm));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+    expect(await ReminderRepository(db).all(), isEmpty);
+    await db.close();
+  });
+
+  testWidgets('T025 短期截止行：倒计时预告在场，tap 弹日期选择器（FR-012）', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const GoalEditorPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 创建态默认 today+39 → 倒计时预告。
+    expect(find.text(Copy.editorCountdownPreview(39)), findsOneWidget);
+
+    // tap 截止行 → 系统日期选择器弹出，确认关闭后预告仍在。
+    await tester.tap(find.byKey(const ValueKey('goalDeadlineField')));
+    await tester.pumpAndSettle();
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(find.byType(DatePickerDialog), findsNothing);
+    expect(find.byKey(const ValueKey('goalCountdownPreview')), findsOneWidget);
+
+    // 提醒时间选择器（习惯型开关开后）。
+    await tester.tap(find.text(Copy.typeBadgeHabit));
+    await tester.pumpAndSettle();
+    await scrollTo(tester, find.byKey(const ValueKey('goalRemindTimeField')));
+    await tester.tap(find.byKey(const ValueKey('goalRemindTimeField')));
+    await tester.pumpAndSettle();
+    expect(find.byType(TimePickerDialog), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('09:00'), findsOneWidget); // 取消不改值
+    await db.close();
+  });
+
   testWidgets('US1 路由三分支：页签恰三枚、目标页签退役（FR-001）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());

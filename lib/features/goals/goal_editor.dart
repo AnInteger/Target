@@ -46,8 +46,14 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   LocalDate? _deadline;
 
   /// 提醒开关（习惯/长期共用区）：切型时重置——习惯默认开、长期默认关。
-  /// 频率档与时间 = T025。
   bool _remindOn = false;
+  Cadence _cadence = Cadence.daily;
+
+  /// 提醒时间默认 09:00（原型 R3 同款）。
+  LocalTime _remindTime = const LocalTime(9, 0);
+
+  /// 编辑模式下既有提醒行 id（保存时原行续写，避免重复建行）。
+  String? _reminderId;
   bool _hydrated = false;
 
   bool get _isEdit => widget.goalId != null;
@@ -70,8 +76,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     }
   }
 
-  void _hydrate(Goal goal) {
-    final reminders = ref.read(remindersProvider).value ?? const <Reminder>[];
+  Future<void> _hydrate(Goal goal) async {
+    // 直查仓库：编辑器首帧时 remindersProvider 流可能未首发，读缓存会漏行。
+    final reminders = await ref.read(reminderRepoProvider).all();
     final mine = reminders.where((r) => r.goalId == goal.id).firstOrNull;
     setState(() {
       _hydrated = true;
@@ -80,6 +87,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       _iconKey = goal.iconKey;
       _deadline = goal.deadline ?? ref.read(todayProvider).addDays(39);
       _remindOn = mine?.isEnabled ?? false;
+      _cadence = mine?.effectiveCadence ?? Cadence.daily;
+      _remindTime = mine?.time ?? const LocalTime(9, 0);
+      _reminderId = mine?.id;
     });
   }
 
@@ -108,9 +118,40 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
 
   Future<void> _save() async {
     final repo = ref.read(goalRepoProvider);
+    final reminderRepo = ref.read(reminderRepoProvider);
     final today = ref.read(todayProvider);
     final name = _name.text.trim();
     if (name.isEmpty) return;
+
+    // 提醒写入口径（goal-type-model）：习惯/长期开关开 → upsert 行
+    // （isEnabled/cadence/time）；关 → 既有行置 isEnabled=false（即时取消，
+    // 历史不受影响）；改型短期 → cadence 恒不适用，删行（到期询问由
+    // 排程器按 deadline 推导，无行承载）。
+    Future<void> syncReminder(String goalId) async {
+      final wants = _type != GoalType.shortTerm && _remindOn;
+      if (wants) {
+        await reminderRepo.upsert(Reminder(
+          id: _reminderId,
+          goalId: goalId,
+          time: _remindTime,
+          isEnabled: true,
+          cadence: _cadence,
+        ));
+      } else if (_reminderId != null) {
+        if (_type == GoalType.shortTerm) {
+          await reminderRepo.removeByGoal(goalId);
+        } else {
+          await reminderRepo.upsert(Reminder(
+            id: _reminderId,
+            goalId: goalId,
+            time: _remindTime,
+            isEnabled: false,
+            cadence: _cadence,
+          ));
+        }
+      }
+    }
+
     try {
       if (_isEdit) {
         final goal = (ref.read(goalsProvider).value ?? [])
@@ -131,8 +172,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
           cueScene: goal.cueScene,
           achievedAt: goal.achievedAt,
         ));
+        await syncReminder(goal.id);
       } else {
-        await repo.create(Goal(
+        final created = await repo.create(Goal(
           name: name,
           goalType: _type,
           iconKey: _iconKey,
@@ -140,6 +182,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
           createdAt: today,
           deadline: _type == GoalType.shortTerm ? _deadline : null,
         ));
+        await syncReminder(created.id);
       }
       if (mounted) Navigator.of(context).pop();
     } on ActiveGoalLimitException {
@@ -260,52 +303,151 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     );
   }
 
-  /// 短期子区：截止日（必填；选择器与倒计时预告 = T025）。
+  /// 短期子区：截止日（必填，tap 弹日期选择器）+ 倒计时预告。
   Widget _deadlineRow(TargetPalette palette) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpace.s4, vertical: AppSpace.s3),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: AppRadius.rMd,
-        border: Border.all(color: palette.divider),
-      ),
-      child: Row(
-        children: [
-          const Text(Copy.editorDeadlineLabel),
-          const SizedBox(width: AppSpace.s2),
-          const _RequiredTag(),
-          const Spacer(),
-          Text(_deadline?.isoString ?? '',
-              style: Theme.of(context).textTheme.bodyM),
-        ],
-      ),
+    final theme = Theme.of(context);
+    final today = ref.watch(todayProvider);
+    final days = _deadline?.differenceInDays(today) ?? 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          key: const ValueKey('goalDeadlineField'),
+          onTap: _pickDeadline,
+          borderRadius: AppRadius.rMd,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s4, vertical: AppSpace.s3),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: AppRadius.rMd,
+              border: Border.all(color: palette.divider),
+            ),
+            child: Row(
+              children: [
+                const Text(Copy.editorDeadlineLabel),
+                const SizedBox(width: AppSpace.s2),
+                const _RequiredTag(),
+                const Spacer(),
+                Text(_deadline?.isoString ?? '',
+                    style: theme.textTheme.bodyM),
+                Icon(Icons.expand_more,
+                    size: 20, color: palette.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpace.s2),
+        Text(Copy.editorCountdownPreview(days),
+            key: const ValueKey('goalCountdownPreview'),
+            style: theme.textTheme.bodyS
+                .copyWith(color: palette.onSurfaceVariant)),
+      ],
     );
   }
 
-  /// 习惯/长期子区：提醒开关（频率档 + 时间选择器 = T025）。
+  /// 习惯/长期子区：提醒开关 →（开）频率档 + 提醒时间（FR-013）。
   Widget _reminderRow(TargetPalette palette) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpace.s3),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: AppRadius.rMd,
-        border: Border.all(color: palette.divider),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(Copy.editorReminderSwitch,
-                style: Theme.of(context).textTheme.bodyM),
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppSpace.s3),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: AppRadius.rMd,
+            border: Border.all(color: palette.divider),
           ),
-          Switch(
-            key: const ValueKey('goalRemindSwitch'),
-            value: _remindOn,
-            onChanged: (v) => setState(() => _remindOn = v),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(Copy.editorReminderSwitch,
+                        style: theme.textTheme.bodyM),
+                    Text(Copy.editorReminderSub,
+                        style: theme.textTheme.bodyS
+                            .copyWith(color: palette.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              Switch(
+                key: const ValueKey('goalRemindSwitch'),
+                value: _remindOn,
+                onChanged: (v) => setState(() => _remindOn = v),
+              ),
+            ],
+          ),
+        ),
+        if (_remindOn) ...[
+          const SizedBox(height: AppSpace.s3),
+          SegmentedButton<Cadence>(
+            key: const ValueKey('goalCadenceSeg'),
+            segments: const [
+              ButtonSegment(value: Cadence.daily, label: Text(Copy.cadenceDaily)),
+              ButtonSegment(
+                  value: Cadence.threeDay, label: Text(Copy.cadenceThreeDay)),
+              ButtonSegment(
+                  value: Cadence.weekly, label: Text(Copy.cadenceWeekly)),
+            ],
+            selected: {_cadence},
+            onSelectionChanged: (s) => setState(() => _cadence = s.first),
+          ),
+          const SizedBox(height: AppSpace.s3),
+          InkWell(
+            key: const ValueKey('goalRemindTimeField'),
+            onTap: _pickTime,
+            borderRadius: AppRadius.rMd,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.s4, vertical: AppSpace.s3),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: AppRadius.rMd,
+                border: Border.all(color: palette.divider),
+              ),
+              child: Row(
+                children: [
+                  Text(Copy.editorRemindTimeLabel,
+                      style: theme.textTheme.bodyM),
+                  const Spacer(),
+                  Text(_remindTime.isoString, style: theme.textTheme.bodyM),
+                  Icon(Icons.expand_more,
+                      size: 20, color: palette.onSurfaceVariant),
+                ],
+              ),
+            ),
           ),
         ],
-      ),
+      ],
     );
+  }
+
+  Future<void> _pickDeadline() async {
+    final today = ref.read(todayProvider);
+    final picked = await showDatePicker(
+      context: context,
+      // 宽松下界：超期目标编辑时 initialDate 可在过去。
+      firstDate: DateTime(2020, 1, 1),
+      lastDate: DateTime(2035, 12, 31),
+      initialDate: (_deadline ?? today.addDays(39)).atStartOfDay,
+    );
+    if (picked != null) {
+      setState(() => _deadline = LocalDate.fromDateTime(picked));
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _remindTime.hour, minute: _remindTime.minute),
+    );
+    if (picked != null) {
+      setState(
+          () => _remindTime = LocalTime(picked.hour, picked.minute));
+    }
   }
 }
 

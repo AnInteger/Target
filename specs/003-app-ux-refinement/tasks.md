@@ -210,7 +210,9 @@
 - [x] T041 深链与外部入口回归：`lib/app/router.dart` target:// 深链映射全走查（today/review/goal-{id} 不变、goal 无 id 兜底 /today）+ 通知 tap 落地页 + iOS 小组件 tap 入口在新路由下可达（spec 边界用例 7）
   - ✅ 2026-08-22：US1 路由用例扩断言 target://today/review；新用例「T041 通知落地」——铃铛 → sheet 条目（今日/明日两行）tap → /goal/{id} 详情 + 三页签不退场（遮罩下同名今日卡以 sheet 内查找规避误点）；小组件 widgetURL 同走 mapDeepLink 代码层覆盖、真机归 T043；结论归档 reviews.md；analyze 0 + 128/128 绿
 - [ ] T042 [P] 文档收口：`design/reviews.md` 记录本特性全部送审/验收结论；`specs/003-app-ux-refinement/quickstart.md` 完成口径核对（SC-001~007 逐条）；spec.md Status 更新；memory 更新实现状态
-- [ ] T043 [P] 真机合并轮清单：整理用户侧动作清单（Codemagic 手动触发 `ios-unsigned` → iLoader 侧载）——核对点：新图标/启动屏（T028 资产首次真机亮相）、三 Tab 手感、通知到点语气、打卡动效帧率（quickstart 阶段 C；用户「顺带测试」合并轮）
+- [x] T043 [P] 真机合并轮清单：整理用户侧动作清单（Codemagic 手动触发 `ios-unsigned` → iLoader 侧载）——核对点：新图标/启动屏（T028 资产首次真机亮相）、三 Tab 手感、通知到点语气、打卡动效帧率（quickstart 阶段 C；用户「顺带测试」合并轮）
+  - ✅ 改了什么：quickstart 阶段 C-3 扩为七步动作清单——触发构建 → iLoader 覆盖装机（不清数据）→ 首启迁移面核对 → 视觉 → 手感 → 通知 → 结论回写 reviews.md；reviews.md 归档 T043 条目（核对点 ↔ FR/T 映射）
+  - ✅ 验了什么：真机存量库定为 v2→v4 迁移真实样本（SC-003 真机面与 T038 代码层对账互补）；执行归属用户侧载轮、结论待回填；纯文档任务（analyze 0 + 128/128 维持基线）
 - [x] T045 [P] 文案语域清查（FR-021，R3 裁决 3）：`lib/core/copy.dart` 违禁常量处置——onboardingDataNote/privacyFoot（本地存储说明）删除并同步消费方、reminderNudge「做一次就算数」等口语化提示正式化或删除（shortTermDueAsk「到日子了，怎么样？」为用户裁定通知文案，保留）；全屏走查无寒暄/比喻式提示残留；`flutter analyze && flutter test` 全绿
   - ✅ 改了什么：删 onboardingDataNote/privacyFoot 常量 + 消费方（onboarding 说明行、settings `_PrivacyFoot` 卡与专用 `_DashedRRectPainter`、widget_test 断言，补 `textContaining('这台设备') findsNothing` 渗漏断言）；reminderNudge→「今天还没有记录。」、milestoneStepHint→「一句话描述这一步」（走查补获）；死键 55 个全删 + 三个空分组注释；保留项（R3/R4 定稿教练式语域 + 用户裁定 notifDueTitle）逐条裁定注记
   - ✅ 验了什么：全屏走查（现存文案逐条过审 + UI 裸字符串抽查仅数据类，无寒暄/比喻/本地存储残留）；结论归档 reviews.md；analyze 0 + 128/128 全绿（清查前后两轮全量）

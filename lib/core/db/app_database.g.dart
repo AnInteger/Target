@@ -1804,6 +1804,15 @@ class $CheckInsTable extends CheckIns with TableInfo<$CheckInsTable, CheckIn> {
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       ).withConverter<CheckInStatus>($CheckInsTable.$converterstatus);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1812,6 +1821,7 @@ class $CheckInsTable extends CheckIns with TableInfo<$CheckInsTable, CheckIn> {
     createdAt,
     isBackfill,
     status,
+    note,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1845,6 +1855,12 @@ class $CheckInsTable extends CheckIns with TableInfo<$CheckInsTable, CheckIn> {
       );
     } else if (isInserting) {
       context.missing(_isBackfillMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
     }
     return context;
   }
@@ -1885,6 +1901,10 @@ class $CheckInsTable extends CheckIns with TableInfo<$CheckInsTable, CheckIn> {
           data['${effectivePrefix}status'],
         )!,
       ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
     );
   }
 
@@ -1907,6 +1927,10 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
   final DateTime createdAt;
   final bool isBackfill;
   final CheckInStatus status;
+
+  /// 一句话描述（FR-019，003 T044 / schema v4）：NULL=未填，
+  /// 显示层兜底「完成打卡」。
+  final String? note;
   const CheckIn({
     required this.id,
     required this.goalId,
@@ -1914,6 +1938,7 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
     required this.createdAt,
     required this.isBackfill,
     required this.status,
+    this.note,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1934,6 +1959,9 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
         $CheckInsTable.$converterstatus.toSql(status),
       );
     }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
     return map;
   }
 
@@ -1945,6 +1973,7 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
       createdAt: Value(createdAt),
       isBackfill: Value(isBackfill),
       status: Value(status),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
     );
   }
 
@@ -1960,6 +1989,7 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isBackfill: serializer.fromJson<bool>(json['isBackfill']),
       status: serializer.fromJson<CheckInStatus>(json['status']),
+      note: serializer.fromJson<String?>(json['note']),
     );
   }
   @override
@@ -1972,6 +2002,7 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'isBackfill': serializer.toJson<bool>(isBackfill),
       'status': serializer.toJson<CheckInStatus>(status),
+      'note': serializer.toJson<String?>(note),
     };
   }
 
@@ -1982,6 +2013,7 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
     DateTime? createdAt,
     bool? isBackfill,
     CheckInStatus? status,
+    Value<String?> note = const Value.absent(),
   }) => CheckIn(
     id: id ?? this.id,
     goalId: goalId ?? this.goalId,
@@ -1989,6 +2021,7 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
     createdAt: createdAt ?? this.createdAt,
     isBackfill: isBackfill ?? this.isBackfill,
     status: status ?? this.status,
+    note: note.present ? note.value : this.note,
   );
   CheckIn copyWithCompanion(CheckInsCompanion data) {
     return CheckIn(
@@ -2000,6 +2033,7 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
           ? data.isBackfill.value
           : this.isBackfill,
       status: data.status.present ? data.status.value : this.status,
+      note: data.note.present ? data.note.value : this.note,
     );
   }
 
@@ -2011,14 +2045,15 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
           ..write('day: $day, ')
           ..write('createdAt: $createdAt, ')
           ..write('isBackfill: $isBackfill, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('note: $note')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, goalId, day, createdAt, isBackfill, status);
+      Object.hash(id, goalId, day, createdAt, isBackfill, status, note);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2028,7 +2063,8 @@ class CheckIn extends DataClass implements Insertable<CheckIn> {
           other.day == this.day &&
           other.createdAt == this.createdAt &&
           other.isBackfill == this.isBackfill &&
-          other.status == this.status);
+          other.status == this.status &&
+          other.note == this.note);
 }
 
 class CheckInsCompanion extends UpdateCompanion<CheckIn> {
@@ -2038,6 +2074,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
   final Value<DateTime> createdAt;
   final Value<bool> isBackfill;
   final Value<CheckInStatus> status;
+  final Value<String?> note;
   final Value<int> rowid;
   const CheckInsCompanion({
     this.id = const Value.absent(),
@@ -2046,6 +2083,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
     this.createdAt = const Value.absent(),
     this.isBackfill = const Value.absent(),
     this.status = const Value.absent(),
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CheckInsCompanion.insert({
@@ -2055,6 +2093,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
     required DateTime createdAt,
     required bool isBackfill,
     required CheckInStatus status,
+    this.note = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        goalId = Value(goalId),
@@ -2069,6 +2108,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
     Expression<String>? createdAt,
     Expression<bool>? isBackfill,
     Expression<String>? status,
+    Expression<String>? note,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2078,6 +2118,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
       if (createdAt != null) 'created_at': createdAt,
       if (isBackfill != null) 'is_backfill': isBackfill,
       if (status != null) 'status': status,
+      if (note != null) 'note': note,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2089,6 +2130,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
     Value<DateTime>? createdAt,
     Value<bool>? isBackfill,
     Value<CheckInStatus>? status,
+    Value<String?>? note,
     Value<int>? rowid,
   }) {
     return CheckInsCompanion(
@@ -2098,6 +2140,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
       createdAt: createdAt ?? this.createdAt,
       isBackfill: isBackfill ?? this.isBackfill,
       status: status ?? this.status,
+      note: note ?? this.note,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2129,6 +2172,9 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
         $CheckInsTable.$converterstatus.toSql(status.value),
       );
     }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2144,6 +2190,7 @@ class CheckInsCompanion extends UpdateCompanion<CheckIn> {
           ..write('createdAt: $createdAt, ')
           ..write('isBackfill: $isBackfill, ')
           ..write('status: $status, ')
+          ..write('note: $note, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5441,6 +5488,7 @@ typedef $$CheckInsTableCreateCompanionBuilder = CheckInsCompanion Function({
   required DateTime createdAt,
   required bool isBackfill,
   required CheckInStatus status,
+  Value<String?> note,
   Value<int> rowid,
 });
 typedef $$CheckInsTableUpdateCompanionBuilder = CheckInsCompanion Function({
@@ -5450,6 +5498,7 @@ typedef $$CheckInsTableUpdateCompanionBuilder = CheckInsCompanion Function({
   Value<DateTime> createdAt,
   Value<bool> isBackfill,
   Value<CheckInStatus> status,
+  Value<String?> note,
   Value<int> rowid,
 });
 
@@ -5512,6 +5561,11 @@ class $$CheckInsTableFilterComposer
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$GoalsTableFilterComposer get goalId {
     final $$GoalsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -5570,6 +5624,11 @@ class $$CheckInsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$GoalsTableOrderingComposer get goalId {
     final $$GoalsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -5619,6 +5678,9 @@ class $$CheckInsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<CheckInStatus, String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
   $$GoalsTableAnnotationComposer get goalId {
     final $$GoalsTableAnnotationComposer composer = $composerBuilder(
@@ -5678,6 +5740,7 @@ class $$CheckInsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isBackfill = const Value.absent(),
                 Value<CheckInStatus> status = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CheckInsCompanion(
                 id: id,
@@ -5686,6 +5749,7 @@ class $$CheckInsTableTableManager
                 createdAt: createdAt,
                 isBackfill: isBackfill,
                 status: status,
+                note: note,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5696,6 +5760,7 @@ class $$CheckInsTableTableManager
                 required DateTime createdAt,
                 required bool isBackfill,
                 required CheckInStatus status,
+                Value<String?> note = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CheckInsCompanion.insert(
                 id: id,
@@ -5704,6 +5769,7 @@ class $$CheckInsTableTableManager
                 createdAt: createdAt,
                 isBackfill: isBackfill,
                 status: status,
+                note: note,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

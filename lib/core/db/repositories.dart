@@ -259,9 +259,12 @@ class CheckInRepository {
   Future<List<CheckIn>> all() =>
       _db.select(_db.checkIns).map(_to).get();
 
-  /// 打卡（当日/补签统一入口）；isBackfill 由实体构造自动判定。
-  Future<CheckIn> add(String goalId, LocalDate day, DateTime now) async {
-    final c = CheckIn(goalId: goalId, day: day, createdAt: now.toUtc());
+  /// 打卡（当日/补签统一入口）；isBackfill 由实体构造自动判定；
+  /// note = 一句话描述（FR-019，可空，NULL 显示层兜底「完成打卡」）。
+  Future<CheckIn> add(String goalId, LocalDate day, DateTime now,
+      {String? note}) async {
+    final c =
+        CheckIn(goalId: goalId, day: day, createdAt: now.toUtc(), note: note);
     await _db.into(_db.checkIns).insert(db.CheckInsCompanion.insert(
           id: c.id,
           goalId: c.goalId,
@@ -269,6 +272,7 @@ class CheckInRepository {
           createdAt: c.createdAt,
           isBackfill: c.isBackfill,
           status: c.status,
+          note: Value(c.note),
         ));
     return c;
   }
@@ -285,6 +289,7 @@ class CheckInRepository {
         day: r.day,
         createdAt: r.createdAt,
         status: r.status,
+        note: r.note,
       );
 }
 

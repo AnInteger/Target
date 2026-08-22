@@ -48,6 +48,12 @@ class _V1Database extends AppDatabase {
               'NULL PRIMARY KEY, "goal_id" TEXT NOT NULL, '
               '"effective_from_week" TEXT NOT NULL, "pattern" TEXT NOT NULL, '
               '"source" TEXT NOT NULL)');
+          // v4 迁移（T044）触碰 check_ins（ADD COLUMN note）——一并建。
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "check_ins" ("id" TEXT NOT NULL '
+              'PRIMARY KEY, "goal_id" TEXT NOT NULL, "day" TEXT NOT NULL, '
+              '"created_at" TEXT NOT NULL, "is_backfill" INTEGER NOT NULL, '
+              '"status" TEXT NOT NULL)');
         },
       );
 }
@@ -87,6 +93,27 @@ class _V2Database extends AppDatabase {
               'NULL PRIMARY KEY, "goal_id" TEXT NOT NULL, '
               '"effective_from_week" TEXT NOT NULL, "pattern" TEXT NOT NULL, '
               '"source" TEXT NOT NULL)');
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "check_ins" ("id" TEXT NOT NULL '
+              'PRIMARY KEY, "goal_id" TEXT NOT NULL, "day" TEXT NOT NULL, '
+              '"created_at" TEXT NOT NULL, "is_backfill" INTEGER NOT NULL, '
+              '"status" TEXT NOT NULL)');
+        },
+      );
+}
+
+/// v3 旧库（schemaVersion=3）：check_ins 尚无 note 列——T044 的 v4 存量形态。
+/// v4 迁移只触碰 check_ins（纯 ADD COLUMN），goals 等表从简不建
+/// （FK 未开 pragma，插入不受影响）。
+class _V3Database extends AppDatabase {
+  _V3Database(super.e);
+
+  @override
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
           await customStatement(
               'CREATE TABLE IF NOT EXISTS "check_ins" ("id" TEXT NOT NULL '
               'PRIMARY KEY, "goal_id" TEXT NOT NULL, "day" TEXT NOT NULL, '
@@ -348,5 +375,33 @@ void main() {
     final brief =
         reminders.firstWhere((r) => r.readNullable<String>('goal_id') == null);
     expect(brief.readNullable<String>('cadence'), isNull);
+  });
+
+  test('v3→v4（T044）：check_ins 增 note 列，存量记录零丢失', () async {
+    // 1) v3 建库 + 一行无 note 的存量打卡。
+    {
+      final v3 = _V3Database(NativeDatabase(file));
+      await v3.customStatement(
+          "INSERT INTO check_ins (id, goal_id, day, created_at, "
+          "is_backfill, status) VALUES ('c1', 'g1', '2026-08-01', "
+          "'2026-08-01T02:00:00.000Z', 0, 'valid')");
+      await v3.close();
+    }
+
+    // 2) 同库 v4 开启 → 纯 ADD COLUMN，存量照读、note 为 NULL。
+    final db = AppDatabase(NativeDatabase(file));
+    final repo = CheckInRepository(db);
+    final legacy = await repo.all();
+    expect(legacy.single.id, 'c1');
+    expect(legacy.single.note, isNull);
+
+    // 3) 新写入两形态：带描述 / 不带。
+    final today = LocalDate.fromDateTime(DateTime.now());
+    await repo.add('g1', today, DateTime.now(), note: '晚上十分钟');
+    await repo.add('g1', today, DateTime.now());
+    final after = await repo.all();
+    expect(after.where((c) => c.note == '晚上十分钟'), hasLength(1));
+    expect(after.where((c) => c.note == null), hasLength(2));
+    await db.close();
   });
 }

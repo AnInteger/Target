@@ -112,6 +112,9 @@ class BackupExporter {
         'createdAt': c.createdAt.toUtc().toIso8601String(),
         'isBackfill': c.isBackfill,
         'status': c.status.name,
+        // 一句话描述（FR-019，schema v4）：可选键，NULL 不导出——
+        // 旧版备份缺键可导回（全量 v4 格式升版在 US5 T037）。
+        if (c.note != null) 'note': c.note,
       };
 
   static Map<String, Object?> _stepJson(db.MilestoneStep s) => {

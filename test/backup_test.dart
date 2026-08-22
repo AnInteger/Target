@@ -55,6 +55,9 @@ Future<db.AppDatabase> _seededDb() async {
   final c1 = await checkIns.add(habit.id, const LocalDate(2026, 8, 12),
       DateTime(2026, 8, 13, 9)); // 13 号补 12 号 → isBackfill
   await checkIns.revoke(c1.id);
+  // 003 T044：带一句话描述的打卡（未填 note 的形态由上面的补签代表）。
+  await checkIns.add(habit.id, const LocalDate(2026, 8, 20),
+      DateTime(2026, 8, 20, 21), note: '晚上吃得很慢，很舒服');
 
   await reminders.upsert(
       Reminder(id: 'r-brief', time: const LocalTime(8, 0), isEnabled: true));
@@ -167,6 +170,17 @@ void main() {
             .firstWhere((c) => c.day == const LocalDate(2026, 8, 12))
             .isBackfill,
         isTrue);
+    // note（FR-019，v4）：带描述的往返还原；未填的保持 NULL。
+    expect(
+        checkIns
+            .firstWhere((c) => c.day == const LocalDate(2026, 8, 20))
+            .note,
+        '晚上吃得很慢，很舒服');
+    expect(
+        checkIns
+            .firstWhere((c) => c.day == const LocalDate(2026, 8, 12))
+            .note,
+        isNull);
 
     final reminderRows = await ReminderRepository(target).all();
     expect(reminderRows.length, 2);
@@ -233,6 +247,20 @@ void main() {
     expect(map['version'], 1);
     expect(map['exportedAt'], contains('2026-08-22'));
     expect(backupFileName(DateTime(2026, 8, 22)), 'Target-备份-20260822.targetbackup');
+  });
+
+  test('v4 note 宽容：旧备份缺 note 键 → 导入 NULL 不报错（FR-019）', () async {
+    final json = await BackupExporter(source)
+        .exportString(now: DateTime.utc(2026, 8, 22));
+    final data = BackupImporter(target).parse(json);
+    // 剥掉全部 note 键 = v4 之前的备份形态。
+    for (final c in data.checkIns) {
+      c.remove('note');
+    }
+    await BackupImporter(target).apply(data, overwriteLocal: true);
+    final all = await CheckInRepository(target).all();
+    expect(all, isNotEmpty);
+    expect(all.every((c) => c.note == null), isTrue);
   });
 
   test('001 备份（goals 无 envelope 键）→ 导入成功，新字段为 NULL（T016）', () async {

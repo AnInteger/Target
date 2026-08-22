@@ -81,7 +81,8 @@
 - [ ] T019 [P] [US1] 通知列表推导：新建 `lib/features/notifications/notification_list.dart` + 推导逻辑——四源合成（①Reminders 排程+cadence 的今日/明日提醒时刻 ②近 7 天成就与全完成日 ③streak 里程碑 ④deadline≤今天且未 achieved 的到期询问，research D6），时间倒序、按天分组、行=类型图标+标题+相对时间、空态友好语；tap 行→/goal/:id；配套推导单测（四源各自+混排排序）
 - [ ] T020 [US1] 铃铛接入：`lib/features/today/today_view.dart`——铃铛 tap 打开通知列表 sheet（不遮底部导航）、角标数=今日新增推导条目；今日页旧通知设置入口拆除（迁往 US4 T035 落位）
 - [ ] T021 [US1] 详情管理动线补全：`lib/features/goals/goal_detail.dart`——吸收 goals_view 退役后的管理职能（编辑/暂停/恢复/删除全入口可达，FR-002）；极简目标详情不空（图标+描述+类型徽章+打卡节奏占位，spec 边界用例 3）；打卡动线内选填一句话描述（写 CheckIns.note，FR-019），历史记录行显示描述（未填兜底「完成打卡」）
-- [ ] T044 [US1] CheckIns 描述列（schema v4，R2 评审追加）：`lib/core/db/tables.dart` + `app_database.dart`——CheckIns +note TEXT NULL、schemaVersion 3→4（纯 ADD COLUMN 迁移 + drift schema 刷新）；repositories 打卡写入贯通 note；备份 v4 导出/导入（note 缺失宽容 NULL，contracts/backup-format.md）；配套迁移与备份往返用例
+- [x] T044 [US1] CheckIns 描述列（schema v4，R2 评审追加）：`lib/core/db/tables.dart` + `app_database.dart`——CheckIns +note TEXT NULL、schemaVersion 3→4（纯 ADD COLUMN 迁移 + drift schema 刷新）；repositories 打卡写入贯通 note；备份 v4 导出/导入（note 缺失宽容 NULL，contracts/backup-format.md）；配套迁移与备份往返用例
+  - ✅ 2026-08-22：schemaVersion=4 + onUpgrade from<4 纯 ADD COLUMN；CheckIn 实体 +note（构造/revoked 保 note/==与 hashCode 纳入）；CheckInRepository.add 增可选 {note}、_to 回读；备份走「可选键导出（NULL 不导出）+ 宽容导入（缺失→NULL）」增量口径——全量 v4 格式升版（version 头/goalType 等）仍归 T037；用例 +3（v3→v4 存量零丢失+两形态写入 / 往返 note 还原+NULL 保持 / 剥 note 键模拟旧备份导入）；v1 夹具补建 check_ins（v4 迁移触碰）；analyze 0 + 79/79 绿
 - [ ] T022 [US1] 验收走查：FR-001~006 逐条核对——`flutter build web --release` 走查（导航恒三页签/滚动无分隔线/账号编辑往返/铃铛列表空态与四类混排）+ `flutter analyze && flutter test` 全绿；结论记 `design/reviews.md`
 
 **Checkpoint**: MVP 可交付——三 Tab 骨架 + 今日页新头部独立可用，V1–V8 主路径不回退

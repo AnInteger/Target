@@ -163,6 +163,10 @@ class CheckIns extends Table {
   BoolColumn get isBackfill => boolean()();
   TextColumn get status => text().map(checkInStatusConverter)();
 
+  /// 一句话描述（FR-019，003 T044 / schema v4）：NULL=未填，
+  /// 显示层兜底「完成打卡」。
+  TextColumn get note => text().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }

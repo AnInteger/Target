@@ -286,6 +286,7 @@ class CheckIn {
     required this.day,
     required this.createdAt,
     this.status = CheckInStatus.valid,
+    this.note,
   })  : id = id ?? newId(),
         // day < 操作日 → 必为补签（不变量，构造时自动判定，恢复自备份同样成立）。
         isBackfill =
@@ -302,6 +303,9 @@ class CheckIn {
   final bool isBackfill;
   final CheckInStatus status;
 
+  /// 一句话描述（FR-019，schema v4）：NULL=未填，显示层兜底「完成打卡」。
+  final String? note;
+
   /// 撤销 = 置 revoked，不物理删除（统计即时回退，SC-003）。
   CheckIn revoked() => CheckIn(
         id: id,
@@ -309,6 +313,7 @@ class CheckIn {
         day: day,
         createdAt: createdAt,
         status: CheckInStatus.revoked,
+        note: note,
       );
 
   bool get isValid => status == CheckInStatus.valid;
@@ -321,10 +326,11 @@ class CheckIn {
       other.day == day &&
       other.createdAt == createdAt &&
       other.isBackfill == isBackfill &&
-      other.status == status;
+      other.status == status &&
+      other.note == note;
 
   @override
-  int get hashCode => Object.hash(id, goalId, day, createdAt, isBackfill, status);
+  int get hashCode => Object.hash(id, goalId, day, createdAt, isBackfill, status, note);
 }
 
 // ---------------------------------------------------------------------------

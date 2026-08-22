@@ -4,7 +4,8 @@
 /// iOS/Android=NativeDatabase、测试=NativeDatabase.memory()），
 /// 因此构造函数只收 QueryExecutor。schemaVersion 见下方 getter
 /// （v2：goals 增 B 案 envelope 三可空列；v3：003 三类型/提醒档/
-/// 资料列 + 存量重映射，见 _migrateV3）。
+/// 资料列 + 存量重映射，见 _migrateV3；v4：check_ins 增 note 可空列，
+/// 纯 ADD COLUMN，FR-019）。
 library;
 
 import 'package:drift/drift.dart';
@@ -33,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -54,6 +55,10 @@ class AppDatabase extends _$AppDatabase {
           // v2 → v3（003 T009，research D3 一次性重映射）。
           if (from < 3) {
             await _migrateV3();
+          }
+          // v3 → v4（003 T044，FR-019）：打卡一句话描述，纯 ADD COLUMN。
+          if (from < 4) {
+            await m.addColumn(checkIns, checkIns.note);
           }
         },
       );

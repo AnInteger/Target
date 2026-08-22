@@ -330,6 +330,8 @@ class BackupImporter {
               isBackfill: c['isBackfill']! as bool,
               status:
                   CheckInStatus.values.byName(c['status']! as String),
+              // note 可选键（FR-019，v4）：旧备份缺失 → NULL，显示层兜底。
+              note: Value(c['note'] as String?),
             ));
       }
       counts['checkIns'] = data.checkIns.length;

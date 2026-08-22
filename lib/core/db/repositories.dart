@@ -461,6 +461,11 @@ class SettingsRepository {
       );
 
   /// 003 v3 账号资料（D7：单例行 nickname/avatar_key 两列）。
+  Stream<Profile> watchProfile() =>
+      (_db.select(_db.settingsRows)..where((t) => t.id.equals(1)))
+          .map((r) => Profile(nickname: r.nickname, avatarKey: r.avatarKey))
+          .watchSingle();
+
   Future<Profile> getProfile() async {
     final rows = await _db.select(_db.settingsRows).get();
     return rows.isEmpty

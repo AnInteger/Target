@@ -72,13 +72,21 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         bottom: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(
-              AppSpace.s6, AppSpace.s2, AppSpace.s6, AppSpace.s12),
+              AppSpace.s6, 0, AppSpace.s6, AppSpace.s12),
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpace.s1, vertical: AppSpace.s2),
-              child: Text(Copy.settingsTitle,
-                  style: Theme.of(context).textTheme.displayS),
+            // FR-008 三屏标题带同构（今日屏基准）：左缘 24、顶垫 8、44px 带。
+            ConstrainedBox(
+              constraints:
+                  const BoxConstraints(minHeight: AppScreen.titleBand),
+              child: Padding(
+                padding: const EdgeInsets.only(top: AppScreen.titleTop),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(Copy.settingsTitle,
+                      key: const ValueKey('screenTitle'),
+                      style: Theme.of(context).textTheme.displayS),
+                ),
+              ),
             ),
             const _MeCard(),
             const _SectionLabel(Copy.dailyBriefTimeLabel),

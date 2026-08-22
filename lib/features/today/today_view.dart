@@ -65,7 +65,10 @@ class TodayView extends ConsumerWidget {
             child: SafeArea(
               bottom: false,
               child: ListView(
-                padding: const EdgeInsets.all(AppSpace.s6),
+                // FR-008：水平 24 = 三屏标题带左缘基准；顶垫 0——
+                // 头部带自带 titleTop，与回顾/我的竖直基线一致。
+                padding: const EdgeInsets.fromLTRB(
+                    AppScreen.padX, 0, AppScreen.padX, AppSpace.s6),
                 children: [
                   const _HeaderBand(),
                   if (!isEmpty) ...[
@@ -131,9 +134,12 @@ class _HeaderBand extends ConsumerWidget {
     final badge = todayBadgeCount(
         ref.watch(notificationItemsProvider), today);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.s2),
-      child: Row(
+    // FR-008 三屏标题带同构：顶垫 titleTop、最小带高 44（原型 st-top）。
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: AppScreen.titleBand),
+      child: Padding(
+        padding: const EdgeInsets.only(top: AppScreen.titleTop),
+        child: Row(
         children: [
           // 账号区：头像外缘 surface 描一圈环（原型 box-shadow 语义）。
           InkWell(
@@ -187,6 +193,7 @@ class _HeaderBand extends ConsumerWidget {
             onTap: () => context.push('/goal-editor'),
           ),
         ],
+        ),
       ),
     );
   }

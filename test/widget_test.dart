@@ -15,6 +15,7 @@ import 'package:target/app/router.dart';
 import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/features/goals/goal_templates.dart';
+import 'package:target/features/profile/profile.dart';
 import 'package:target/core/backup/backup_exporter.dart';
 import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart'
@@ -1092,6 +1093,54 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
     expect(find.text(Copy.todayNav), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('T032 三屏标题对齐：左缘与竖直基线逐屏一致（FR-008/SC-004）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+
+    // 今日屏基准：头部带（账号区）在带内左上——头像左缘 ≥ padX、
+    // 顶部与后续两屏标题同带相容（差 < 一行）。
+    final avatar = tester.getRect(find.byType(ProfileAvatar));
+    expect(avatar.left, greaterThanOrEqualTo(24));
+
+    router.go('/review');
+    await tester.pumpAndSettle();
+    final reviewTitle =
+        tester.getRect(find.byKey(const ValueKey('screenTitle')));
+
+    router.go('/settings');
+    await tester.pumpAndSettle();
+    final settingsTitle =
+        tester.getRect(find.byKey(const ValueKey('screenTitle')));
+
+    // 回顾/我的：displayS 标题左缘、顶部逐像素一致（同一令牌规格）。
+    expect(reviewTitle.left, settingsTitle.left,
+        reason: '左缘缩进应逐屏相同');
+    expect(reviewTitle.top, settingsTitle.top, reason: '竖直基线应逐屏相同');
+    // 三屏同带：今日屏头像与两屏标题都在「带顶 + 8..24」区间内。
+    expect((avatar.top - reviewTitle.top).abs(), lessThan(16),
+        reason: '今日屏头部带与标题带应竖直相容');
     await db.close();
   });
 

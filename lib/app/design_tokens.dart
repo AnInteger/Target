@@ -335,6 +335,14 @@ abstract final class AppSpace {
   static const double s12 = 48;
 }
 
+/// 屏级布局语义（003 FR-008 三屏标题带对齐基准；tokens.css --screen-* 镜像）。
+/// 今日/回顾/我的 同构：左缘 24、顶垫 8、最小带高 44。
+abstract final class AppScreen {
+  static const double padX = 24;
+  static const double titleTop = 8;
+  static const double titleBand = 44;
+}
+
 /// 圆角刻度（sm 8 / md 12 / lg 16 / xl 24 / full）。
 abstract final class AppRadius {
   static const double sm = 8;

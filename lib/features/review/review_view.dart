@@ -80,11 +80,21 @@ class _ReviewViewState extends ConsumerState<ReviewView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(AppSpace.s6, AppSpace.s2, AppSpace.s6, 0),
-              child: Text(Copy.reviewTitle,
-                  style: Theme.of(context).textTheme.displayS),
+            // FR-008 三屏标题带同构：左缘 padX、顶垫 titleTop、44px 带
+            //（今日屏 st-top 基准，标题在带内垂直居中）。
+            ConstrainedBox(
+              constraints:
+                  const BoxConstraints(minHeight: AppScreen.titleBand),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppScreen.padX, AppScreen.titleTop, AppScreen.padX, 0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(Copy.reviewTitle,
+                      key: const ValueKey('screenTitle'),
+                      style: Theme.of(context).textTheme.displayS),
+                ),
+              ),
             ),
             if (cards.isEmpty)
               // 空态竖直居中（FR-007：非偏上卡框，标题以下导航以上取中）。

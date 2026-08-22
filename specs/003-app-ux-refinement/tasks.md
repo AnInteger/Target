@@ -93,7 +93,9 @@
   - ✅ 验了什么：analyze 0 issues；widget_test「T018 统一详情」重写为 T021 用例（头部块四要素+退役字段不上屏+昨日无描述历史行兜底+今日填描述落库 note/历史行呈现+⋯ 暂停→状态行/打卡动线隐藏→恢复回 active+步骤增改勾）+ 新增极简详情用例（仅名称长期目标：图标/描述/∞徽章/打卡动线/两 AppBar 入口齐全）；全量 104/104 绿
 - [x] T044 [US1] CheckIns 描述列（schema v4，R2 评审追加）：`lib/core/db/tables.dart` + `app_database.dart`——CheckIns +note TEXT NULL、schemaVersion 3→4（纯 ADD COLUMN 迁移 + drift schema 刷新）；repositories 打卡写入贯通 note；备份 v4 导出/导入（note 缺失宽容 NULL，contracts/backup-format.md）；配套迁移与备份往返用例
   - ✅ 2026-08-22：schemaVersion=4 + onUpgrade from<4 纯 ADD COLUMN；CheckIn 实体 +note（构造/revoked 保 note/==与 hashCode 纳入）；CheckInRepository.add 增可选 {note}、_to 回读；备份走「可选键导出（NULL 不导出）+ 宽容导入（缺失→NULL）」增量口径——全量 v4 格式升版（version 头/goalType 等）仍归 T037；用例 +3（v3→v4 存量零丢失+两形态写入 / 往返 note 还原+NULL 保持 / 剥 note 键模拟旧备份导入）；v1 夹具补建 check_ins（v4 迁移触碰）；analyze 0 + 79/79 绿
-- [ ] T022 [US1] 验收走查：FR-001~006 逐条核对——`flutter build web --release` 走查（导航恒三页签/滚动无分隔线/账号编辑往返/铃铛列表空态与四类混排）+ `flutter analyze && flutter test` 全绿；结论记 `design/reviews.md`
+- [x] T022 [US1] 验收走查：FR-001~006 逐条核对——`flutter build web --release` 走查（导航恒三页签/滚动无分隔线/账号编辑往返/铃铛列表空态与四类混排）+ `flutter analyze && flutter test` 全绿；结论记 `design/reviews.md`
+  - ✅ 改了什么：零代码改动（纯验收任务）——结论落 `design/reviews.md`「T022 US1 验收走查」节：新用户全链（引导→模板→编辑器→保存→今日页）web release 构建 + Playwright 语义树逐 FR 走查
+  - ✅ 验了什么：FR-001 三页签恒定（含推入页）/ FR-002 详情⋯面板暂停→恢复往返（状态行与打卡动线随动，习惯无「达成」合状态机）/ FR-003 无 AppBar 无分隔线 / FR-004 昵称+头像编辑往返头部即时刷新且跨页同步 / FR-005 铃铛列表按天分组+条目跳详情+无设置控件（四类混排由 T019 单测覆盖）/ FR-006 今日页无设置入口；analyze 0 + 104/104 绿。Findings 非阻塞留档：onboardingDataNote/privacyFoot 语域违例归 T045、账号区选图形头像后语义名缺失（低严重度 a11y）
 
 **Checkpoint**: MVP 可交付——三 Tab 骨架 + 今日页新头部独立可用，V1–V8 主路径不回退
 

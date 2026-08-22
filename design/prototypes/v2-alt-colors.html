@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全站色系 · 方案对比（004 · R2 备选）</title>
+<link rel="stylesheet" href="../tokens.css?v=0823a">
+<script src="goal-icons.js"></script>
+<style>
+  /* ============================================================
+     v2-alt-colors · 全站色系方案对比（004 · T011 R2 备选稿）
+     ------------------------------------------------------------
+     - 背景：用户裁定关注卡大小与配色不舒服，全站色不统一、缺美感
+     - 四系并列：系 1 静白·蓝点睛（推荐）/ 系 2 雾面浅彩 /
+       系 3 单色蓝 / 系 4 现行饱和彩（参照）
+     - 控制变量：四系统一用「案 A 单环平均分」+ 统一紧凑卡尺寸
+       （宽 296 / 内距 16 / 标题 18 / 一行描述），只比色系
+     - 判据：卡片与底色是否打架、三屏（卡/列表/dock）是否同语言；
+       选定后回填 tokens 三端 + 全部门禁稿
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 800px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board h3 em { font-style: normal; color: #7ecb9b; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 242, 247, .7); }
+  .chip.t { color: #7ecb9b; }
+  .chip.w { color: #e8b06a; }
+
+  .phone {
+    position: relative; width: 390px; height: 720px; border-radius: 44px;
+    background: var(--background); overflow: hidden;
+    box-shadow: var(--shadow-high); display: flex; flex-direction: column;
+    color: var(--on-surface);
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+  .st { height: 52px; flex: none; display: flex; align-items: flex-end;
+        justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+        font: var(--font-body-m); font-weight: 600; }
+  .head { flex: none; display: flex; align-items: center; gap: var(--space-3);
+          padding: var(--space-3) var(--space-6) 0; }
+  .head .date { font: var(--font-label); color: var(--on-surface-variant);
+                letter-spacing: .06em; }
+  .head h1 { font: var(--font-display-l); margin: var(--space-1) 0 0; }
+  .avatar { width: 40px; height: 40px; border-radius: var(--radius-full); flex: none;
+            margin-left: auto;
+            background: linear-gradient(135deg, var(--grad-avatar-a), var(--grad-avatar-b));
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font: var(--font-body-m); }
+
+  .mid { flex: 1; overflow: hidden; display: flex; flex-direction: column;
+         padding: var(--space-2) var(--space-5) 0; }
+
+  /* 单环（案 A 形态，四系共用结构，颜色走系内变量） */
+  .ringrow { flex: none; display: flex; align-items: center; gap: var(--space-4);
+             padding: var(--space-3) var(--space-1) var(--space-4); }
+  .ring { position: relative; width: 92px; height: 92px; flex: none; }
+  .ring .ctr { position: absolute; inset: 0; display: flex; flex-direction: column;
+               align-items: center; justify-content: center; }
+  .ring .ctr b { font: var(--font-title-m); font-variant-numeric: tabular-nums; }
+  .ring .ctr i { font: var(--font-label); font-style: normal;
+                 color: var(--on-surface-variant); }
+  .lgs { display: flex; flex-direction: column; gap: var(--space-2); }
+  .lgs .li { display: flex; align-items: center; gap: 6px;
+             font: var(--font-body-s); color: var(--on-surface);
+             font-variant-numeric: tabular-nums; }
+  .lgs .li .d { width: 8px; height: 8px; border-radius: var(--radius-full); }
+
+  /* 关注标题行 */
+  .cap { flex: none; display: flex; align-items: baseline;
+         justify-content: space-between; padding: 0 var(--space-1) var(--space-2); }
+  .cap .t { font: var(--font-title-s); }
+  .cap .see { font: var(--font-body-s); color: var(--acc); }
+
+  /* 紧凑关注卡（四系统一尺寸：296 宽 / 16 内距 / 18 标题） */
+  .caro { flex: none; display: flex; gap: var(--space-2); align-items: stretch;
+          padding-bottom: var(--space-2); }
+  .fcard { width: 296px; flex: none; border-radius: var(--radius-md);
+           padding: var(--space-4); box-shadow: var(--shadow-low); }
+  .fcard .tg { display: inline-flex; align-items: center; font: var(--font-label);
+               border-radius: var(--radius-full); padding: 2px var(--space-2); }
+  .fcard .nm { font: var(--font-title-s); margin: var(--space-2) 0 2px; }
+  .fcard .ds { font: var(--font-body-s); margin: 0 0 var(--space-3);
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fcard .r2 { display: flex; align-items: center; gap: var(--space-2); }
+  .fcard .go { border: none; cursor: pointer; font: var(--font-body-s); font-weight: 700;
+               border-radius: var(--radius-full); padding: 6px var(--space-4); }
+  .fcard .meta { font: var(--font-label); font-variant-numeric: tabular-nums; }
+  .peek { width: 22px; flex: none; border-radius: var(--radius-md);
+          background: var(--surface); box-shadow: var(--shadow-low); }
+  .dots { flex: none; display: flex; gap: 5px; padding: var(--space-1) 0 var(--space-3); }
+  .dots i { width: 5px; height: 5px; border-radius: var(--radius-full);
+            background: var(--divider); }
+  .dots i.on { width: 14px; background: var(--acc); }
+
+  /* 列表行（goals-all 同语言） */
+  .lrow { flex: none; display: flex; align-items: center; gap: var(--space-3);
+          background: var(--surface); border-radius: var(--radius-md);
+          box-shadow: var(--shadow-low); padding: var(--space-3) var(--space-4);
+          margin-bottom: var(--space-2); }
+  .lrow .ic { width: 36px; height: 36px; border-radius: var(--radius-sm); flex: none;
+              display: flex; align-items: center; justify-content: center; }
+  .lrow .nm { font: var(--font-body-m); }
+  .lrow .mt { font: var(--font-label); color: var(--on-surface-variant);
+              font-variant-numeric: tabular-nums; }
+  .lrow .chev { margin-left: auto; color: var(--on-surface-variant); }
+
+  /* dock */
+  .dock { flex: none; height: 78px; display: flex; align-items: flex-start;
+          justify-content: space-around; padding-top: var(--space-2);
+          background: var(--glass-card); backdrop-filter: blur(18px);
+          border-top: 1px solid var(--divider); }
+  .tab { width: 88px; display: flex; flex-direction: column; align-items: center;
+         gap: 3px; font: var(--font-label); color: var(--on-surface-variant);
+         padding: 0; border: none; background: none; }
+  .tab svg { width: 20px; height: 20px; }
+  .tab.on { color: var(--acc); font-weight: 700; }
+  .fab { width: 52px; height: 52px; margin-top: -20px; border-radius: var(--radius-full);
+         background: var(--acc); color: #fff; border: 4px solid var(--surface);
+         display: flex; align-items: center; justify-content: center;
+         box-shadow: var(--shadow-mid); cursor: pointer; }
+  .fab svg { width: 22px; height: 22px; }
+
+  /* ============ 系 1 静白·蓝点睛：全中性卡，蓝只做动作色，大类色仅小色点/小图标glyph ============ */
+  .s1 { --acc: var(--accent); }
+  .s1 .fcard { background: var(--surface); }
+  .s1 .fcard .tg { background: var(--surface-alt); color: var(--on-surface-variant); }
+  .s1 .fcard .nm, .s1 .fcard .ds { color: var(--on-surface); }
+  .s1 .fcard .ds { color: var(--on-surface-variant); }
+  .s1 .fcard .go { background: var(--acc); color: #fff; }
+  .s1 .fcard .meta { color: var(--on-surface-variant); }
+  .s1 .lrow .ic { background: var(--surface-alt); color: var(--major-health); }
+  .s1 .lrow .ic.g { color: var(--major-goal); }
+
+  /* ============ 系 2 雾面浅彩：白卡+8% 大类雾面底，图标chip同雾面色，进度细条大类色 ============ */
+  .s2 { --acc: var(--accent); }
+  .s2 .fcard { background: #EAF6EE; }
+  .s2 .fcard .tg { background: rgba(52, 168, 83, .14); color: #1e7e40; }
+  .s2 .fcard .nm { color: #14432a; }
+  .s2 .fcard .ds { color: #43614d; }
+  .s2 .fcard .go { background: #fff; color: #1e7e40; box-shadow: var(--shadow-low); }
+  .s2 .fcard .meta { color: #43614d; }
+  .s2 .lrow .ic { background: #EAF6EE; color: #1e7e40; }
+  .s2 .lrow .ic.g { background: #E8F2FD; color: #1565c0; }
+
+  /* ============ 系 3 单色蓝：无大类色，类别只靠文字/图标glyph区分 ============ */
+  .s3 { --acc: var(--accent); }
+  .s3 .lgs .li .d { background: var(--accent); }
+  .s3 .fcard { background: var(--surface); border: 1px solid #dbe7f5; }
+  .s3 .fcard .tg { background: #E8F2FD; color: #1565c0; }
+  .s3 .fcard .nm { color: var(--on-surface); }
+  .s3 .fcard .ds { color: var(--on-surface-variant); }
+  .s3 .fcard .go { background: var(--acc); color: #fff; }
+  .s3 .fcard .meta { color: var(--on-surface-variant); }
+  .s3 .lrow .ic { background: #E8F2FD; color: #1565c0; }
+  .s3 .lrow .ic.g { background: #E8F2FD; color: #1565c0; }
+
+  /* ============ 系 4 现行参照：饱和大类渐变实底卡 ============ */
+  .s4 { --acc: var(--accent); }
+  .s4 .fcard { background: linear-gradient(135deg, #34a853, #1e7e40); color: #fff; }
+  .s4 .fcard .tg { background: rgba(255, 255, 255, .22); color: #fff; }
+  .s4 .fcard .nm, .s4 .fcard .ds { color: #fff; }
+  .s4 .fcard .ds { color: rgba(255, 255, 255, .85); }
+  .s4 .fcard .go { background: #fff; color: #1e7e40; }
+  .s4 .fcard .meta { color: rgba(255, 255, 255, .85); }
+  .s4 .lrow .ic { background: #EAF6EE; color: #1e7e40; }
+  .s4 .lrow .ic.g { background: #E8F2FD; color: #1565c0; }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">全站色系 · 四系对比</h1>
+<p class="pt-sub">004 R2 备选稿。控制变量：四系同用「单环平均分」与同一紧凑卡尺寸（296 宽/16 内距/18px 标题/一行描述——即卡片已比 R1 缩小），只比色系语言。每屏含：单环图例 / 关注卡 / 全部目标列表行 / dock，用于检验跨区块一致性。</p>
+
+<div class="row">
+
+  <!-- ===================== 系 1：静白·蓝点睛（推荐） ===================== -->
+  <div class="board">
+    <div class="phone s1">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="mid">
+        <div class="ringrow">
+          <div class="ring">
+            <svg width="92" height="92" viewBox="0 0 92 92" style="transform:rotate(-90deg)">
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--divider)" stroke-width="8"/>
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--acc)" stroke-width="8"
+                      stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="7.2"/>
+            </svg>
+            <div class="ctr"><b>97</b><i>健康度</i></div>
+          </div>
+          <div class="lgs">
+            <div class="li"><span class="d" style="background:var(--major-health)"></span>健康 97</div>
+            <div class="li"><span class="d" style="background:var(--major-habit)"></span>习惯 100</div>
+            <div class="li"><span class="d" style="background:var(--major-goal)"></span>目标 94</div>
+          </div>
+        </div>
+
+        <div class="cap"><span class="t">关注 · 3 个</span><span class="see">查看全部 ›</span></div>
+        <div class="caro">
+          <div class="fcard">
+            <span class="tg">● 进行中</span>
+            <p class="nm">骑行大 PRO 计划</p>
+            <p class="ds">下班后沿江骑 20 公里，保持配速。</p>
+            <div class="r2"><button class="go">记录打卡</button><span class="meta">连续 12 天</span></div>
+          </div>
+          <div class="peek"></div>
+        </div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+
+        <div class="lrow">
+          <span class="ic" data-gi="directions_bike"></span>
+          <div><div class="nm">骑行大 PRO 计划</div><div class="mt">连续 12 天 · 每天</div></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="lrow">
+          <span class="ic g" data-gi="menu_book"></span>
+          <div><div class="nm">读完《设计中的设计》</div><div class="mt">85% · 距截止 12 天</div></div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="tab on"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg>今日</button>
+        <button class="fab" aria-label="新建目标"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg></button>
+        <button class="tab"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>回顾</button>
+      </div>
+    </div>
+    <h3><em>系 1</em> · 静白·蓝点睛（推荐）</h3>
+    <p class="desc">卡与列表全部中性白/浅灰，蓝只出现在「可动作」处（打卡钮/FAB/当前页签/查看全部）；大类色降级为图例小色点与图标_glyph 底色，全屏几乎只有一种彩色=蓝。最接近 iOS 系统感，一致性最强。</p>
+    <div class="chips"><span class="chip t">全屏一色系</span><span class="chip t">最耐看</span><span class="chip w">大类识别弱化</span></div>
+  </div>
+
+  <!-- ===================== 系 2：雾面浅彩 ===================== -->
+  <div class="board">
+    <div class="phone s2">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="mid">
+        <div class="ringrow">
+          <div class="ring">
+            <svg width="92" height="92" viewBox="0 0 92 92" style="transform:rotate(-90deg)">
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--divider)" stroke-width="8"/>
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--major-health)" stroke-width="8"
+                      stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="7.2"/>
+            </svg>
+            <div class="ctr"><b>97</b><i>健康度</i></div>
+          </div>
+          <div class="lgs">
+            <div class="li"><span class="d" style="background:var(--major-health)"></span>健康 97</div>
+            <div class="li"><span class="d" style="background:var(--major-habit)"></span>习惯 100</div>
+            <div class="li"><span class="d" style="background:var(--major-goal)"></span>目标 94</div>
+          </div>
+        </div>
+
+        <div class="cap"><span class="t">关注 · 3 个</span><span class="see">查看全部 ›</span></div>
+        <div class="caro">
+          <div class="fcard">
+            <span class="tg">● 进行中</span>
+            <p class="nm">骑行大 PRO 计划</p>
+            <p class="ds">下班后沿江骑 20 公里，保持配速。</p>
+            <div class="r2"><button class="go">记录打卡</button><span class="meta">连续 12 天</span></div>
+          </div>
+          <div class="peek"></div>
+        </div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+
+        <div class="lrow">
+          <span class="ic" data-gi="directions_bike"></span>
+          <div><div class="nm">骑行大 PRO 计划</div><div class="mt">连续 12 天 · 每天</div></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="lrow">
+          <span class="ic g" data-gi="menu_book"></span>
+          <div><div class="nm">读完《设计中的设计》</div><div class="mt">85% · 距截止 12 天</div></div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="tab on"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg>今日</button>
+        <button class="fab" aria-label="新建目标"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg></button>
+        <button class="tab"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>回顾</button>
+      </div>
+    </div>
+    <h3><em>系 2</em> · 雾面浅彩</h3>
+    <p class="desc">卡底用大类 8% 雾面浅底（健康薄荷绿/目标冰蓝/习惯奶油橙），图标 chip 同雾面色、文字用同族深色；无任何饱和色块。保留三类身份识别，又不像 R1 那样撞色。环色跟随第一大类。</p>
+    <div class="chips"><span class="chip t">保类别识别</span><span class="chip t">低饱和耐看</span><span class="chip w">三浅底仍并存</span></div>
+  </div>
+
+  <!-- ===================== 系 3：单色蓝 ===================== -->
+  <div class="board">
+    <div class="phone s3">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="mid">
+        <div class="ringrow">
+          <div class="ring">
+            <svg width="92" height="92" viewBox="0 0 92 92" style="transform:rotate(-90deg)">
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--divider)" stroke-width="8"/>
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--acc)" stroke-width="8"
+                      stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="7.2"/>
+            </svg>
+            <div class="ctr"><b>97</b><i>健康度</i></div>
+          </div>
+          <div class="lgs">
+            <div class="li"><span class="d"></span>健康 97</div>
+            <div class="li"><span class="d"></span>习惯 100</div>
+            <div class="li"><span class="d"></span>目标 94</div>
+          </div>
+        </div>
+
+        <div class="cap"><span class="t">关注 · 3 个</span><span class="see">查看全部 ›</span></div>
+        <div class="caro">
+          <div class="fcard">
+            <span class="tg">● 进行中</span>
+            <p class="nm">骑行大 PRO 计划</p>
+            <p class="ds">下班后沿江骑 20 公里，保持配速。</p>
+            <div class="r2"><button class="go">记录打卡</button><span class="meta">连续 12 天</span></div>
+          </div>
+          <div class="peek"></div>
+        </div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+
+        <div class="lrow">
+          <span class="ic" data-gi="directions_bike"></span>
+          <div><div class="nm">骑行大 PRO 计划</div><div class="mt">连续 12 天 · 每天</div></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="lrow">
+          <span class="ic g" data-gi="menu_book"></span>
+          <div><div class="nm">读完《设计中的设计》</div><div class="mt">85% · 距截止 12 天</div></div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="tab on"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg>今日</button>
+        <button class="fab" aria-label="新建目标"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg></button>
+        <button class="tab"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>回顾</button>
+      </div>
+    </div>
+    <h3><em>系 3</em> · 单色蓝</h3>
+    <p class="desc">比系 1 更极致：连图例色点、图标底色都统一蓝色，类别只靠文字与图标形状区分。全屏绝对一色，但「三大类」的色彩语义完全让位（FR-013 需文字兜底）。</p>
+    <div class="chips"><span class="chip t">绝对统一</span><span class="chip w">类别语义全失</span><span class="chip w">蓝占比过高</span></div>
+  </div>
+
+  <!-- ===================== 系 4：现行饱和彩（参照） ===================== -->
+  <div class="board">
+    <div class="phone s4">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="mid">
+        <div class="ringrow">
+          <div class="ring">
+            <svg width="92" height="92" viewBox="0 0 92 92" style="transform:rotate(-90deg)">
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--divider)" stroke-width="8"/>
+              <circle cx="46" cy="46" r="38" fill="none" stroke="var(--major-health)" stroke-width="8"
+                      stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="7.2"/>
+            </svg>
+            <div class="ctr"><b>97</b><i>健康度</i></div>
+          </div>
+          <div class="lgs">
+            <div class="li"><span class="d" style="background:var(--major-health)"></span>健康 97</div>
+            <div class="li"><span class="d" style="background:var(--major-habit)"></span>习惯 100</div>
+            <div class="li"><span class="d" style="background:var(--major-goal)"></span>目标 94</div>
+          </div>
+        </div>
+
+        <div class="cap"><span class="t">关注 · 3 个</span><span class="see">查看全部 ›</span></div>
+        <div class="caro">
+          <div class="fcard">
+            <span class="tg">● 进行中</span>
+            <p class="nm">骑行大 PRO 计划</p>
+            <p class="ds">下班后沿江骑 20 公里，保持配速。</p>
+            <div class="r2"><button class="go">记录打卡</button><span class="meta">连续 12 天</span></div>
+          </div>
+          <div class="peek"></div>
+        </div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+
+        <div class="lrow">
+          <span class="ic" data-gi="directions_bike"></span>
+          <div><div class="nm">骑行大 PRO 计划</div><div class="mt">连续 12 天 · 每天</div></div>
+          <span class="chev">›</span>
+        </div>
+        <div class="lrow">
+          <span class="ic g" data-gi="menu_book"></span>
+          <div><div class="nm">读完《设计中的设计》</div><div class="mt">85% · 距截止 12 天</div></div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="tab on"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg>今日</button>
+        <button class="fab" aria-label="新建目标"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg></button>
+        <button class="tab"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>回顾</button>
+      </div>
+    </div>
+    <h3><em>系 4</em> · 现行饱和彩（参照）</h3>
+    <p class="desc">R1 现行语言：饱和渐变实底卡。对照可见其问题——大面积高饱和色与中性底打架、三色互相竞争。保留仅供诊断，不建议选。</p>
+    <div class="chips"><span class="chip w">撞色</span><span class="chip w">与底打架</span><span class="chip">仅作对照</span></div>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('[data-gi]').forEach(el => {
+    el.replaceChildren(gi(el.dataset.gi, 20));
+  });
+</script>
+
+</body>
+</html>

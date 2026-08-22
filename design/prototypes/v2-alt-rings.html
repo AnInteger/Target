@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>健康度呈现 · 方案对比（004 · R2 备选）</title>
+<link rel="stylesheet" href="../tokens.css?v=0823a">
+<script src="goal-icons.js"></script>
+<style>
+  /* ============================================================
+     v2-alt-rings · 健康度可视化方案对比（004 · T011 R2 备选稿）
+     ------------------------------------------------------------
+     - 背景：用户裁定现行嵌套三环观感奇怪，征集备选（含单环平均
+       分），不限现行样式
+     - 六案并列：A 单环平均分 / B 三小环并排 / C 单环三段弧 /
+       D 半环仪表盘 / E 进度条卡 / F 现行嵌套三环（参照）
+     - 本页为裁决输入，非门禁屏；选定后回填 v2-today 与
+       v2-notifications 底幕，并同步 contracts/health-score 呈现注记
+     - 每案均按浅色呈现（公平对比），均可深色适配
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 760px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board h3 em { font-style: normal; color: var(--accent); }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 242, 247, .7); }
+  .chip.t { color: #7ecb9b; }
+  .chip.w { color: #e8b06a; }
+
+  .phone {
+    position: relative; width: 390px; height: 560px; border-radius: 44px;
+    background: var(--background); overflow: hidden;
+    box-shadow: var(--shadow-high); display: flex; flex-direction: column;
+    color: var(--on-surface);
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+  .st { height: 52px; flex: none; display: flex; align-items: flex-end;
+        justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+        font: var(--font-body-m); font-weight: 600; }
+  .head { flex: none; display: flex; align-items: center; gap: var(--space-3);
+          padding: var(--space-3) var(--space-6) 0; }
+  .head .date { font: var(--font-label); color: var(--on-surface-variant);
+                letter-spacing: .06em; }
+  .head h1 { font: var(--font-display-l); margin: var(--space-1) 0 0; }
+  .avatar { width: 40px; height: 40px; border-radius: var(--radius-full); flex: none;
+            margin-left: auto;
+            background: linear-gradient(135deg, var(--grad-avatar-a), var(--grad-avatar-b));
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font: var(--font-body-m); }
+
+  .viz { flex: 1; display: flex; flex-direction: column; align-items: center;
+         justify-content: center; gap: var(--space-4); padding: var(--space-3) var(--space-6); }
+
+  .ctr { display: flex; flex-direction: column; align-items: center; }
+  .ctr b { font: var(--font-title-m); font-variant-numeric: tabular-nums; }
+  .ctr i { font: var(--font-label); font-style: normal; color: var(--on-surface-variant); }
+
+  .pills { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; }
+  .pill { display: inline-flex; align-items: center; gap: 6px;
+          font: var(--font-body-s); color: var(--on-surface);
+          background: var(--surface); border: 1px solid var(--divider);
+          border-radius: var(--radius-full); padding: var(--space-1) var(--space-3);
+          font-variant-numeric: tabular-nums; }
+  .pill .d { width: 8px; height: 8px; border-radius: var(--radius-full); }
+  .pill b { font-weight: 700; }
+
+  .bars { width: 100%; max-width: 300px; display: flex; flex-direction: column;
+          gap: var(--space-3); }
+  .bar { display: flex; align-items: center; gap: var(--space-3); }
+  .bar .lb { width: 34px; font: var(--font-body-s); color: var(--on-surface-variant);
+             flex: none; }
+  .bar .tr { flex: 1; height: 10px; border-radius: var(--radius-full);
+             background: var(--surface-alt); overflow: hidden; }
+  .bar .tr i { display: block; height: 100%; border-radius: var(--radius-full); }
+  .bar .n { width: 30px; text-align: right; font: var(--font-body-s);
+            color: var(--on-surface); flex: none; font-variant-numeric: tabular-nums; }
+
+  .tri { display: flex; gap: var(--space-6); }
+  .tri .one { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .tri .one .lb { font: var(--font-body-s); color: var(--on-surface-variant);
+                  display: flex; align-items: center; gap: 5px; }
+  .tri .one .lb .d { width: 7px; height: 7px; border-radius: var(--radius-full); }
+
+  .total-line { font: var(--font-body-m); color: var(--on-surface);
+                display: flex; align-items: center; gap: var(--space-2); }
+  .total-line b { font: var(--font-title-m); font-variant-numeric: tabular-nums; }
+  .total-line i { font-style: normal; color: var(--on-surface-variant);
+                  font: var(--font-body-s); }
+
+  .note { position: absolute; bottom: 0; left: 0; right: 0;
+          padding: var(--space-2) var(--space-5); text-align: center;
+          font: var(--font-label); color: var(--on-surface-variant);
+          border-top: 1px solid var(--divider); background: var(--surface); }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">健康度呈现 · 六案对比</h1>
+<p class="pt-sub">004 R2 备选稿：数据统一为 健康 97 / 习惯 100 / 目标 94（平均 97），六案同尺寸手机并列，均浅色呈现；选定一案后回填今日页/通知底幕，其余弃用。</p>
+
+<div class="row">
+
+  <!-- ===================== 案 A：单环·平均分 ===================== -->
+  <div class="board">
+    <div class="phone">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="viz">
+        <div style="position:relative;width:150px;height:150px">
+          <svg width="150" height="150" viewBox="0 0 150 150" style="transform:rotate(-90deg)">
+            <circle cx="75" cy="75" r="62" fill="none" stroke="var(--divider)" stroke-width="12"/>
+            <circle cx="75" cy="75" r="62" fill="none" stroke="var(--accent)" stroke-width="12"
+                    stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="11.7"/>
+          </svg>
+          <div class="ctr" style="position:absolute;inset:0;justify-content:center">
+            <b style="font:var(--font-display-l)">97</b><i>健康度</i>
+          </div>
+        </div>
+        <div class="pills">
+          <span class="pill"><span class="d" style="background:var(--major-health)"></span>健康 <b>97</b></span>
+          <span class="pill"><span class="d" style="background:var(--major-habit)"></span>习惯 <b>100</b></span>
+          <span class="pill"><span class="d" style="background:var(--major-goal)"></span>目标 <b>94</b></span>
+        </div>
+      </div>
+      <div class="note">一图一义：环=综合，胶囊=分项</div>
+    </div>
+    <h3><em>案 A</em> · 单环平均分（您点名的方向）</h3>
+    <p class="desc">单个大环只讲综合分，主强调色一色到底；三大类降级为环下小胶囊（色点+分数）。视线最聚焦，语义最直白。</p>
+    <div class="chips"><span class="chip t">最简洁</span><span class="chip t">主色统一</span><span class="chip w">分项弱化为文字</span></div>
+  </div>
+
+  <!-- ===================== 案 B：三小环并排 ===================== -->
+  <div class="board">
+    <div class="phone">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="viz">
+        <div class="total-line">综合健康度 <b>97</b><i>= 三类平均</i></div>
+        <div class="tri">
+          <div class="one">
+            <div style="position:relative;width:88px;height:88px">
+              <svg width="88" height="88" viewBox="0 0 88 88" style="transform:rotate(-90deg)">
+                <circle cx="44" cy="44" r="35" fill="none" stroke="var(--divider)" stroke-width="9"/>
+                <circle cx="44" cy="44" r="35" fill="none" stroke="var(--major-health)" stroke-width="9"
+                        stroke-linecap="round" stroke-dasharray="219.9" stroke-dashoffset="6.6"/>
+              </svg>
+              <div class="ctr" style="position:absolute;inset:0;justify-content:center"><b>97</b></div>
+            </div>
+            <span class="lb"><span class="d" style="background:var(--major-health)"></span>健康</span>
+          </div>
+          <div class="one">
+            <div style="position:relative;width:88px;height:88px">
+              <svg width="88" height="88" viewBox="0 0 88 88" style="transform:rotate(-90deg)">
+                <circle cx="44" cy="44" r="35" fill="none" stroke="var(--divider)" stroke-width="9"/>
+                <circle cx="44" cy="44" r="35" fill="none" stroke="var(--major-habit)" stroke-width="9"
+                        stroke-linecap="round" stroke-dasharray="219.9" stroke-dashoffset="0"/>
+              </svg>
+              <div class="ctr" style="position:absolute;inset:0;justify-content:center"><b>100</b></div>
+            </div>
+            <span class="lb"><span class="d" style="background:var(--major-habit)"></span>习惯</span>
+          </div>
+          <div class="one">
+            <div style="position:relative;width:88px;height:88px">
+              <svg width="88" height="88" viewBox="0 0 88 88" style="transform:rotate(-90deg)">
+                <circle cx="44" cy="44" r="35" fill="none" stroke="var(--divider)" stroke-width="9"/>
+                <circle cx="44" cy="44" r="35" fill="none" stroke="var(--major-goal)" stroke-width="9"
+                        stroke-linecap="round" stroke-dasharray="219.9" stroke-dashoffset="13.2"/>
+              </svg>
+              <div class="ctr" style="position:absolute;inset:0;justify-content:center"><b>94</b></div>
+            </div>
+            <span class="lb"><span class="d" style="background:var(--major-goal)"></span>目标</span>
+          </div>
+        </div>
+      </div>
+      <div class="note">三环平权并排，综合分为标题行</div>
+    </div>
+    <h3><em>案 B</em> · 三小环并排</h3>
+    <p class="desc">三个等权小环各讲各类，互不嵌套不挤压；综合分让位为上方一行文字。类别对比一目了然，无嵌套怪异感。</p>
+    <div class="chips"><span class="chip t">类别对比清晰</span><span class="chip t">无嵌套</span><span class="chip w">综合分变弱</span></div>
+  </div>
+
+  <!-- ===================== 案 C：单环·三段弧 ===================== -->
+  <div class="board">
+    <div class="phone">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="viz">
+        <div style="position:relative;width:150px;height:150px">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <g transform="rotate(-90 75 75)">
+              <circle cx="75" cy="75" r="62" fill="none" stroke="var(--surface-alt)" stroke-width="12"/>
+              <circle cx="75" cy="75" r="62" fill="none" stroke="var(--major-health)" stroke-width="12"
+                      stroke-linecap="butt" stroke-dasharray="114.3 275.3" transform="rotate(2 75 75)"/>
+              <circle cx="75" cy="75" r="62" fill="none" stroke="var(--major-habit)" stroke-width="12"
+                      stroke-linecap="butt" stroke-dasharray="117.9 271.7" transform="rotate(122 75 75)"/>
+              <circle cx="75" cy="75" r="62" fill="none" stroke="var(--major-goal)" stroke-width="12"
+                      stroke-linecap="butt" stroke-dasharray="110.5 279.1" transform="rotate(242 75 75)"/>
+            </g>
+          </svg>
+          <div class="ctr" style="position:absolute;inset:0;justify-content:center">
+            <b style="font:var(--font-display-l)">97</b><i>平均</i>
+          </div>
+        </div>
+        <div class="pills">
+          <span class="pill"><span class="d" style="background:var(--major-health)"></span>健康 <b>97</b></span>
+          <span class="pill"><span class="d" style="background:var(--major-habit)"></span>习惯 <b>100</b></span>
+          <span class="pill"><span class="d" style="background:var(--major-goal)"></span>目标 <b>94</b></span>
+        </div>
+      </div>
+      <div class="note">一环三色各占 1/3 弧段，弧长=完成度</div>
+    </div>
+    <h3><em>案 C</em> · 单环·三段弧</h3>
+    <p class="desc">保留「一整个圆」的完形，内部按 健康/习惯/目标 切三段弧，每段弧长=该类分数；中心是平均分。兼顾整体感与分色。</p>
+    <div class="chips"><span class="chip t">完形整体感</span><span class="chip t">三色可辨</span><span class="chip w">弧长读数不直观</span></div>
+  </div>
+
+  <!-- ===================== 案 D：半环仪表盘 ===================== -->
+  <div class="board">
+    <div class="phone">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="viz">
+        <div style="position:relative;width:190px;height:110px">
+          <svg width="190" height="110" viewBox="0 0 190 110">
+            <g transform="rotate(150 95 95)">
+              <circle cx="95" cy="95" r="76" fill="none" stroke="var(--surface-alt)" stroke-width="13"/>
+              <circle cx="95" cy="95" r="76" fill="none" stroke="var(--accent)" stroke-width="13"
+                      stroke-linecap="round" stroke-dasharray="341.6" stroke-dashoffset="27.7"/>
+            </g>
+            <g stroke="var(--on-surface-variant)" stroke-width="2" stroke-linecap="round">
+              <line x1="30" y1="57" x2="36" y2="60"/>
+              <line x1="95" y1="26" x2="95" y2="33"/>
+              <line x1="160" y1="57" x2="154" y2="60"/>
+            </g>
+          </svg>
+          <div class="ctr" style="position:absolute;left:0;right:0;bottom:-6px;align-items:center">
+            <b style="font:var(--font-display-l)">97</b><i>健康度 · 0–100</i>
+          </div>
+        </div>
+        <div class="pills">
+          <span class="pill"><span class="d" style="background:var(--major-health)"></span>健康 <b>97</b></span>
+          <span class="pill"><span class="d" style="background:var(--major-habit)"></span>习惯 <b>100</b></span>
+          <span class="pill"><span class="d" style="background:var(--major-goal)"></span>目标 <b>94</b></span>
+        </div>
+      </div>
+      <div class="note">仪表盘语义：指针刻度=离满分距离</div>
+    </div>
+    <h3><em>案 D</em> · 半环仪表盘</h3>
+    <p class="desc">240° 表盘弧+刻度，读数语义最强（像速度表：离满还有多远）；占位更扁，给下方内容让空间。风格偏「工具感」。</p>
+    <div class="chips"><span class="chip t">读数感强</span><span class="chip t">纵向省空间</span><span class="chip w">偏仪表盘风</span></div>
+  </div>
+
+  <!-- ===================== 案 E：进度条卡 ===================== -->
+  <div class="board">
+    <div class="phone">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="viz">
+        <div style="background:var(--surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-low);padding:var(--space-5);width:100%;max-width:310px">
+          <div style="display:flex;align-items:center;gap:var(--space-4);margin-bottom:var(--space-4)">
+            <b style="font:var(--font-display-l)">97</b>
+            <div>
+              <div style="font:var(--font-body-m)">综合健康度</div>
+              <div style="font:var(--font-body-s);color:var(--on-surface-variant)">100 − 3 × 近 7 天零记录目标</div>
+            </div>
+          </div>
+          <div class="bars">
+            <div class="bar"><span class="lb">健康</span><span class="tr"><i style="width:97%;background:var(--major-health)"></i></span><span class="n">97</span></div>
+            <div class="bar"><span class="lb">习惯</span><span class="tr"><i style="width:100%;background:var(--major-habit)"></i></span><span class="n">100</span></div>
+            <div class="bar"><span class="lb">目标</span><span class="tr"><i style="width:94%;background:var(--major-goal)"></i></span><span class="n">94</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="note">去环化：数字+横条，信息密度最高</div>
+    </div>
+    <h3><em>案 E</em> · 进度条卡</h3>
+    <p class="desc">彻底放弃圆环：总分大数字+三行横条，能顺带放下计分公式说明。最理性、最省纵向空间，也最不「仪式感」。</p>
+    <div class="chips"><span class="chip t">信息最全</span><span class="chip t">实现最简</span><span class="chip w">无图形仪式感</span></div>
+  </div>
+
+  <!-- ===================== 案 F：现行嵌套三环（参照） ===================== -->
+  <div class="board">
+    <div class="phone">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div><div class="date">星期日 · 8 月 23 日</div><h1>今日</h1></div>
+        <div class="avatar">星</div>
+      </div>
+      <div class="viz">
+        <div style="position:relative;width:150px;height:150px">
+          <svg width="150" height="150" viewBox="0 0 150 150" style="transform:rotate(-90deg)">
+            <circle cx="75" cy="75" r="64" fill="none" stroke="var(--divider)" stroke-width="11"/>
+            <circle cx="75" cy="75" r="64" fill="none" stroke="var(--major-health)" stroke-width="11"
+                    stroke-linecap="round" stroke-dasharray="402.1" stroke-dashoffset="12.1"/>
+            <circle cx="75" cy="75" r="48" fill="none" stroke="var(--divider)" stroke-width="11"/>
+            <circle cx="75" cy="75" r="48" fill="none" stroke="var(--major-habit)" stroke-width="11"
+                    stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="0"/>
+            <circle cx="75" cy="75" r="32" fill="none" stroke="var(--divider)" stroke-width="11"/>
+            <circle cx="75" cy="75" r="32" fill="none" stroke="var(--major-goal)" stroke-width="11"
+                    stroke-linecap="round" stroke-dasharray="201.1" stroke-dashoffset="12.1"/>
+          </svg>
+          <div class="ctr" style="position:absolute;inset:0;justify-content:center">
+            <b style="font:var(--font-display-l)">97</b><i>健康度</i>
+          </div>
+        </div>
+        <div class="pills">
+          <span class="pill"><span class="d" style="background:var(--major-health)"></span>健康 <b>97</b></span>
+          <span class="pill"><span class="d" style="background:var(--major-habit)"></span>习惯 <b>100</b></span>
+          <span class="pill"><span class="d" style="background:var(--major-goal)"></span>目标 <b>94</b></span>
+        </div>
+      </div>
+      <div class="note">现行方案：三环同心嵌套（被评「奇怪」）</div>
+    </div>
+    <h3><em>案 F</em> · 现行嵌套三环（参照）</h3>
+    <p class="desc">保留在此仅为对照。三层同心弧线在视觉上互相挤压、端点圆帽交叠，是「奇怪感」来源；供与上五案对照诊断。</p>
+    <div class="chips"><span class="chip w">嵌套挤压</span><span class="chip w">端点交叠</span><span class="chip">仅作对照</span></div>
+  </div>
+
+</div>
+</body>
+</html>

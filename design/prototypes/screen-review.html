@@ -7,7 +7,10 @@
 <link rel="stylesheet" href="../tokens.css?v=0820f">
 <style>
   /* ============================================================
-     周回顾原型（T020 · R3 · US4）
+     周回顾原型（T020 · R3 · US4 → 003 · T004 · R4）
+     - 003 T004：三页签收敛（目标 tab 退役，职能并入今日页）；
+       空态画板（FR-007 竖直居中 + 「新建目标」CTA ≤1 交互）；
+       三屏标题带对齐基准稿（FR-008）；gl-top 补 44px 带规格
      - R3 用户裁决（2026-08-21）：回顾屏不控制下周干什么，聚焦
        查看——决策动线（继续/调频/暂停、一句话回顾、保存）全删；
        补签状态（「补」角标/徽标/脚注）不上回顾屏；忙碌态全 App
@@ -62,8 +65,11 @@
                justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
                font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
 
+  /* 头部标题带：FR-008 三屏对齐基准——左缘 space-6、44px 带、
+     与今日屏 st-top 同构（min-height 44 + 顶垫 space-2，底垫 0） */
   .gl-top { flex: none; display: flex; align-items: center; gap: var(--space-3);
-            padding: var(--space-2) var(--space-6) var(--space-2); }
+            min-height: 44px;
+            padding: var(--space-2) var(--space-6) 0; }
   .gl-top .tt { font: var(--font-display-s); color: var(--on-surface); flex: 1; }
 
   .gl-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
@@ -185,6 +191,68 @@
   .gl-home i { width: 120px; height: 5px; border-radius: var(--radius-full);
                background: var(--on-surface); opacity: .8; }
 
+  /* ---- 空态（003 FR-007：竖直居中 + 引导文案 + CTA ≤1 交互） ---- */
+  .rv-empty { margin: auto; /* gl-scroll 纵向 flex 中上下吸走余量 = 竖直居中 */
+              display: flex; flex-direction: column; align-items: center;
+              text-align: center; gap: var(--space-2);
+              padding: var(--space-6) var(--space-4); }
+  .rv-estrip { display: flex; gap: var(--space-2); margin-bottom: var(--space-2); }
+  .rv-estrip i { width: 22px; height: 22px; border-radius: var(--radius-full);
+                 border: 2px solid var(--divider); box-sizing: border-box; }
+  .rv-estrip i.today { border-style: dashed; border-color: var(--accent); }
+  .rv-etitle { font: var(--font-title-l); color: var(--on-surface); }
+  .rv-ebody { font: var(--font-body-m); color: var(--on-surface-variant);
+              margin: 0; line-height: 1.7; }
+  .rv-ecta { display: inline-flex; align-items: center; gap: var(--space-1);
+             background: var(--accent); color: var(--accent-on);
+             font: var(--font-title-s); text-decoration: none;
+             padding: var(--space-2) var(--space-6);
+             border-radius: var(--radius-full); box-shadow: var(--shadow-mid);
+             margin-top: var(--space-3); }
+  .rv-ecta svg { width: 16px; height: 16px; }
+  .rv-ecta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .rv-ecta:active { transform: scale(.96); }
+
+  /* ---- 三屏标题带对齐基准稿（003 FR-008 · T004） ----
+     忠实镜像三屏第一行：同左缘 space-6、同顶缘（状态栏 52px 下沿）、
+     同 44px 带高；横向虚线导轨 = 带顶缘/带中心线，纵向 = 24px 左缘。 */
+  .al-row { position: relative; display: flex; gap: var(--space-6); }
+  .al-col { position: relative; display: flex; flex-direction: column;
+            align-items: center; gap: var(--space-2); }
+  .al-col::before { content: ''; position: absolute; left: var(--space-6);
+                    top: -14px; bottom: 24px;
+                    border-left: 1px dashed rgba(242, 239, 247, .3); }
+  .al-ex { width: 390px; border-radius: 28px 28px 12px 12px; overflow: hidden;
+           background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                       var(--bg-grad-2));
+           box-shadow: var(--shadow-low); }
+  .al-guide { position: absolute; left: -14px; right: -14px; pointer-events: none;
+              border-top: 1px dashed rgba(242, 239, 247, .3); }
+  .al-guide.g1 { top: 56px; } /* 带顶缘 = 状态栏下沿（52 内容 + 4 底垫） */
+  .al-guide.g2 { top: 86px; } /* 行内容中心线（56 + 顶垫 8 + 44/2） */
+  .al-cap { font: var(--font-body-s); color: rgba(242, 239, 247, .55); }
+  .al-hint { height: 56px; margin: var(--space-2) var(--space-6) var(--space-3);
+             border-radius: var(--radius-lg); background: var(--glass-card);
+             border: 1px solid var(--glass-border); }
+  /* 今日列账号行（镜像 screen-today .st-account/.st-btn 语言） */
+  .al-avatar { width: 36px; height: 36px; border-radius: var(--radius-full);
+               flex: none;
+               background: linear-gradient(135deg, var(--grad-avatar-a),
+                           var(--grad-avatar-b));
+               display: flex; align-items: center; justify-content: center;
+               color: var(--accent-on); font: var(--font-body-m); font-weight: 700;
+               box-shadow: 0 0 0 2px var(--surface); }
+  .al-name { font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
+  .al-flex { flex: 1; }
+  .al-bell, .al-plus { width: 36px; height: 36px; border-radius: var(--radius-full);
+                       flex: none; display: flex; align-items: center;
+                       justify-content: center; }
+  .al-bell svg, .al-plus svg { width: 18px; height: 18px; }
+  .al-bell { background: var(--surface); color: var(--on-surface);
+             border: 1px solid var(--divider); box-shadow: var(--shadow-low); }
+  .al-plus { background: var(--accent); color: var(--accent-on);
+             box-shadow: 0 4px 12px rgba(37, 34, 48, .3); }
+
   /* 深色并列（沿用今日屏 [data-theme="dark"] 作用域改写） */
   [data-theme="dark"] .st-status, [data-theme="dark"] .gl-top .tt,
   [data-theme="dark"] .g-name, [data-theme="dark"] .rv-week .t,
@@ -199,7 +267,7 @@
 <p class="pt-sub">
   上周没有「完成率」，只有留下的记录：每天一格的节奏条说清这一周怎么过的，
   近四周的走势说清方向。每个目标左右滑动回看，一句观察语如实描述——
-  只看，不安排；要调整，去目标页找它。
+  只看，不安排；要调整，回今日页找它。
 </p>
 
 <!-- ============ 画板一：典型周（可交互） ============ -->
@@ -363,9 +431,6 @@
         <a class="st-tab" href="screen-today.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
           今日</a>
-        <a class="st-tab" href="screen-goals.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-          目标</a>
         <span class="st-tab">
           <span class="chipx">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
@@ -381,9 +446,54 @@
   </div>
 </div>
 
-<!-- ============ 画板二：深色并列 ============ -->
+<!-- ============ 画板二：空态（003 FR-007） ============ -->
 <div class="board">
-  <h3>② 深色 · 典型并列</h3>
+  <h3>② 空态 · 竖直居中 + 单一 CTA</h3>
+  <p class="desc">没有任何目标时：七格空圈说清「这页在等什么」（末格虚线 =
+    将开始的那天），「新建目标」直达编辑器——回顾的空，用今日的动作来填。</p>
+  <div class="chips"><span class="chip t">竖直居中</span><span class="chip">≤1 交互直达新建</span><span class="chip">节奏条语言延续</span></div>
+
+  <div class="phone" id="b2">
+    <div class="island"></div>
+    <div class="st-status"><span>9:41</span></div>
+    <div class="gl-top"><span class="tt">上周回顾</span></div>
+
+    <div class="gl-scroll">
+      <div class="rv-empty">
+        <div class="rv-estrip" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i class="today"></i>
+        </div>
+        <div class="rv-etitle">还没有可回看的一周</div>
+        <p class="rv-ebody">先建一个目标、留下几次记录，<br>这里会把那一周替你收好。</p>
+        <a class="rv-ecta" href="screen-editor.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          新建目标</a>
+      </div>
+    </div>
+
+    <div class="st-navwrap">
+      <nav class="st-nav">
+        <a class="st-tab" href="screen-today.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          今日</a>
+        <span class="st-tab">
+          <span class="chipx">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
+            <span>回顾</span>
+          </span>
+        </span>
+        <a class="st-tab" href="screen-settings.html">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></svg>
+          我的</a>
+      </nav>
+    </div>
+    <div class="gl-home"><i></i></div>
+  </div>
+</div>
+
+<!-- ============ 画板三：深色并列 ============ -->
+<div class="board">
+  <h3>③ 深色 · 典型并列</h3>
   <p class="desc">暗紫底幕上玻璃卡降透明度，节奏条与走势柱的目标色提亮两档，保持定稿语言。</p>
   <div class="chips"><span class="chip">深色</span><span class="chip">静态并列</span></div>
 
@@ -471,9 +581,6 @@
         <a class="st-tab" href="screen-today.html">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
           今日</a>
-        <a class="st-tab" href="screen-goals.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-          目标</a>
         <span class="st-tab">
           <span class="chipx">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 14l3-3 2 2 3-4"/></svg>
@@ -486,6 +593,50 @@
       </nav>
     </div>
     <div class="gl-home"><i></i></div>
+  </div>
+</div>
+
+<!-- ============ 画板四：三屏标题带对齐基准稿（003 FR-008 · T004） ============ -->
+<div class="board">
+  <h3>④ 三屏标题带 · 对齐基准稿</h3>
+  <p class="desc">今日（账号行）/ 回顾（页题）/ 我的（页题）的第一行：
+    同左缘 24px、同顶缘（状态栏下沿）、同 44px 带高、同竖直中心——
+    虚线导轨可查；Flutter 落地（T015 起）以此为验收基准。</p>
+  <div class="chips"><span class="chip">24px 左缘</span><span class="chip">44px 带高</span><span class="chip t">FR-008</span></div>
+
+  <div class="al-row">
+    <div class="al-col">
+      <div class="al-ex">
+        <div class="st-status"><span>9:41</span></div>
+        <div class="gl-top">
+          <span class="al-avatar">行</span>
+          <span class="al-name">星行</span>
+          <span class="al-flex"></span>
+          <span class="al-bell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+          <span class="al-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+        </div>
+        <div class="al-hint"></div>
+      </div>
+      <span class="al-cap">今日 · 账号行</span>
+    </div>
+    <div class="al-col">
+      <div class="al-ex">
+        <div class="st-status"><span>9:41</span></div>
+        <div class="gl-top"><span class="tt">上周回顾</span></div>
+        <div class="al-hint"></div>
+      </div>
+      <span class="al-cap">回顾 · 页题</span>
+    </div>
+    <div class="al-col">
+      <div class="al-ex">
+        <div class="st-status"><span>9:41</span></div>
+        <div class="gl-top"><span class="tt">我的</span></div>
+        <div class="al-hint"></div>
+      </div>
+      <span class="al-cap">我的 · 页题</span>
+    </div>
+    <i class="al-guide g1"></i>
+    <i class="al-guide g2"></i>
   </div>
 </div>
 

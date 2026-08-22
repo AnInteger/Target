@@ -98,10 +98,13 @@
   --grad-avatar-b: #ef8a80;
 
   /* ============================================================
-     三、字阶 · 九档（数字一律 tabular，见 .tnum）
+     三、字阶 · 十档（数字一律 tabular，见 .tnum）
      ============================================================ */
   --font-display-l: 800 36px/1.25 var(--font-stack);
   --font-display-m: 700 28px/1.25 var(--font-stack);
+  /* display-s 与 title-l 同规格、语义不同：display=屏题（L/M/S 成套，
+     Dart 侧 displaySmall 已存在；本行 003 T004 补齐 CSS 侧缺口） */
+  --font-display-s: 700 22px/1.3 var(--font-stack);
   --font-title-l: 700 22px/1.3 var(--font-stack);
   --font-title-m: 700 18px/1.35 var(--font-stack);
   --font-title-s: 700 16px/1.45 var(--font-stack);

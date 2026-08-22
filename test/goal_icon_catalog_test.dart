@@ -1,10 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:target/core/models/calendar_types.dart';
+import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/goal_icon_catalog.dart';
 
 /// GoalIconCatalog 单测（003 · T008）——key 唯一性 / 领域覆盖 / 旧键映射
 /// 完备性 / 与原型侧 goal-icons.js 的键名对账（防两侧漂移）。
+/// 004 T005 增补：十领域 → 三大类归属对账 + Goal.major 派生兜底。
 void main() {
   test('key 唯一（snake_case 即持久化值域）', () {
     final keys = GoalIconCatalog.values.map((i) => i.key).toList();
@@ -65,5 +68,45 @@ void main() {
         reason: 'Dart 目录缺：${jsKeys.difference(dartKeys).toList()}');
     expect(jsKeys.containsAll(dartKeys), isTrue,
         reason: 'goal-icons.js 缺：${dartKeys.difference(jsKeys).toList()}');
+  });
+
+  test('十领域 → 三大类归属对账（004 T005·D4；social/pets→健康为 2026-08-23 用户裁定 B）', () {
+    const expected = <GoalIconDomain, MajorCategory>{
+      GoalIconDomain.fitness: MajorCategory.health,
+      GoalIconDomain.health: MajorCategory.health,
+      GoalIconDomain.mind: MajorCategory.health,
+      GoalIconDomain.social: MajorCategory.health,
+      GoalIconDomain.pets: MajorCategory.health,
+      GoalIconDomain.life: MajorCategory.habit,
+      GoalIconDomain.learning: MajorCategory.goal,
+      GoalIconDomain.create: MajorCategory.goal,
+      GoalIconDomain.travel: MajorCategory.goal,
+      GoalIconDomain.finance: MajorCategory.goal,
+    };
+    // 十域逐一登记、无遗漏无多余。
+    expect(GoalIconDomain.values.toSet(), expected.keys.toSet());
+    for (final d in GoalIconDomain.values) {
+      expect(d.major, expected[d], reason: '${d.name} 归属与裁决不符');
+    }
+    // 大类键名（冻结为未来持久化键）与中文界面名。
+    expect(MajorCategory.values.map((m) => m.name), ['health', 'habit', 'goal']);
+    expect(MajorCategory.values.map((m) => m.zhLabel), ['健康', '习惯', '目标']);
+  });
+
+  test('Goal.major 派生与未匹配 iconKey 兜底（004 T005）', () {
+    Goal goalOf(String iconKey) => Goal(
+        id: 'g',
+        name: '样例',
+        goalType: GoalType.habit,
+        iconKey: iconKey,
+        colorKey: '',
+        createdAt: const LocalDate(2026, 8, 23));
+    expect(goalOf('directions_run').major, MajorCategory.health); // 运动→健康
+    expect(goalOf('savings').major, MajorCategory.goal); // 理财→目标
+    expect(goalOf('home').major, MajorCategory.habit); // 生活→习惯
+    expect(goalOf('pets').major, MajorCategory.health); // 宠物→健康（裁定 B）
+    // 未匹配 → explore（travel 域）→ 目标大类。
+    expect(goalOf('not_a_key').major, MajorCategory.goal);
+    expect(goalOf('').major, MajorCategory.goal);
   });
 }

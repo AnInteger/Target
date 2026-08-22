@@ -52,7 +52,9 @@ description: "Task list for 004 UI v2 重构"
 - [x] T004 themeModeProvider 与注入：lib/app/providers.dart 新增 themeModeProvider（读 Settings，缺省 system）+ lib/app/app.dart MaterialApp 接 themeMode:（与 003 行为等价，存量用户零感知）（depends T003）
   - ✅ themeModeProvider 落地：watch settingsProvider 映射 AppThemeMode→ThemeMode（未加载/NULL→system），MaterialApp.router 接 themeMode:；Settings 流变化即时生效，存量库 NULL 列 = 003 行为零感知
   - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（131 全绿零回归；三档写读与持久化往返已由 T003 迁移/备份用例覆盖）
-- [ ] T005 [P] MajorCategory 与十领域映射（D4）：lib/core/models/goal_icon_catalog.dart GoalIconDomain 新增 major 属性（MajorCategory{health 健康, habit 习惯, goal 目标}；social/pets→health，2026-08-23 用户裁定）+ lib/core/models/entities.dart Goal.majorOf 派生（iconKey→domain→major，未匹配兜底 explore→goal）；test/goal_icon_catalog_test.dart 增十领域归属对账
+- [x] T005 [P] MajorCategory 与十领域映射（D4）：lib/core/models/goal_icon_catalog.dart GoalIconDomain 新增 major 属性（MajorCategory{health 健康, habit 习惯, goal 目标}；social/pets→health，2026-08-23 用户裁定）+ lib/core/models/entities.dart Goal.majorOf 派生（iconKey→domain→major，未匹配兜底 explore→goal）；test/goal_icon_catalog_test.dart 增十领域归属对账
+  - ✅ MajorCategory 枚举（zhLabel 键名 health/habit/goal 冻结）+ GoalIconDomain 增 major 构造参数：fitness/health/mind/social/pets→健康、life→习惯、learning/create/travel/finance→目标（social/pets→健康为用户裁定 B）；Goal.major getter 派生（零落库，未匹配 byKey 兜底 explore→travel 域→目标大类，与 data-model.md 结论一致——原文「创作域」为笔误）
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（133 全绿 = 131 + 新增十领域归属对账、Goal.major 派生兜底两用例）
 
 **Checkpoint**: 地基就绪——令牌/主题持久化/大类映射可用，用户故事可开工
 

@@ -12,22 +12,41 @@ library;
 
 import 'package:flutter/material.dart';
 
-/// 图标领域（≥9 类，research D1 策展；中文名与 JS 侧 GOAL_ICON_DOMAINS 一致）。
-enum GoalIconDomain {
-  fitness('运动'),
-  learning('学习'),
+/// 三大类（004 T005 · research D4 / data-model.md）：十领域小类的静态
+/// 归属载体，零落库（领域本就由 iconKey 运行时派生）。键名
+/// health/habit/goal 已冻结（未来小组件/导出以此为持久化键），与
+/// 令牌侧 [MajorColors] 三色一一对应（lib/app/design_tokens.dart）。
+enum MajorCategory {
   health('健康'),
-  create('创作'),
-  travel('旅行'),
-  finance('理财'),
-  life('生活'),
-  mind('冥想'),
-  social('社交'),
-  pets('宠物');
+  habit('习惯'),
+  goal('目标');
 
-  const GoalIconDomain(this.zhLabel);
+  const MajorCategory(this.zhLabel);
+
+  /// 中文界面名（三环图例/筛选 chips 消费）。
+  final String zhLabel;
+}
+
+/// 图标领域（10 类，research D1 策展；中文名与 JS 侧 GOAL_ICON_DOMAINS 一致）。
+enum GoalIconDomain {
+  fitness('运动', MajorCategory.health),
+  learning('学习', MajorCategory.goal),
+  health('健康', MajorCategory.health),
+  create('创作', MajorCategory.goal),
+  travel('旅行', MajorCategory.goal),
+  finance('理财', MajorCategory.goal),
+  life('生活', MajorCategory.habit),
+  mind('冥想', MajorCategory.health),
+  social('社交', MajorCategory.health),
+  pets('宠物', MajorCategory.health);
+
+  const GoalIconDomain(this.zhLabel, this.major);
 
   final String zhLabel;
+
+  /// 所属三大类（004 T005）。social/pets → 健康为 2026-08-23 用户
+  /// clarify 裁定 B（推翻 plan 阶段代定的「习惯」）。
+  final MajorCategory major;
 }
 
 /// 目标图标目录（38 枚 / 10 领域）。

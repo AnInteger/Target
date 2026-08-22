@@ -9,6 +9,7 @@ import 'dart:math';
 
 import 'calendar_types.dart';
 import 'frequency_pattern.dart';
+import 'goal_icon_catalog.dart' show GoalIconCatalog, MajorCategory;
 
 /// 生成 UUID v4（实体主键）。无 uuid 依赖，Random.secure 足够。
 String newId() {
@@ -106,6 +107,11 @@ class Goal {
   bool get isHabit => goalType == GoalType.habit;
   bool get isShortTerm => goalType == GoalType.shortTerm;
   bool get isLongTerm => goalType == GoalType.longTerm;
+
+  /// 三大类派生（004 T005 · data-model.md 的 majorOf）：iconKey →
+  /// 领域 → 大类，零落库；未匹配键兜底 explore（travel 域 → 目标
+  /// 大类，沿 byKey 兜底，结论与 data-model 一致）。
+  MajorCategory get major => GoalIconCatalog.byKey(iconKey).domain.major;
 
   /// 状态机（003 D4）：active ⇄ paused；active → achieved（habit 持续型
   /// 不可达成）；active/paused → archived（终态）。创建后类型不可变更。

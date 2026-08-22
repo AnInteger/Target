@@ -13,17 +13,6 @@ import 'package:flutter/material.dart';
 import '../../app/design_tokens.dart';
 import '../../core/copy.dart';
 
-/// 奋斗目标色环（原型 palette 7 色循环）。
-const _kDotPalette = <String>[
-  'coral',
-  'amber',
-  'sage',
-  'teal',
-  'sky',
-  'indigo',
-  'plum',
-];
-
 class Celebration extends StatefulWidget {
   const Celebration({super.key, required this.active, required this.actions});
 
@@ -187,7 +176,7 @@ class _CelebrationState extends State<Celebration>
                           t: _burst.value,
                           delay: (i % 5) * 40 / 1000,
                           index: i,
-                          color: GoalColor.byKey(_kDotPalette[i % 7])
+                          color: kCelebrationDotPalette[i % 7]
                               .of(context),
                         ),
                     ],

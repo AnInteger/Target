@@ -43,7 +43,9 @@ description: "Task list for 004 UI v2 重构"
 
 **⚠️ CRITICAL**: US1–US6 的实现任务均不得早于本相完成
 
-- [ ] T002 [P] 令牌三端全量换值（D1）：lib/app/design_tokens.dart 重定义 TargetPalette 深浅成对值（深 #121212 底/浅 #F5F5F7 底、主色、大圆角、字阶）+ 三大类常驻色（健康/习惯/目标）+ GoalColor 枚举退役清引用；同提交同步 design/tokens.css 与 ios/TargetWidgets/DesignTokens.swift；更新 test/design/token_contract_test.dart 对账
+- [x] T002 [P] 令牌三端全量换值（D1）：lib/app/design_tokens.dart 重定义 TargetPalette 深浅成对值（深 #121212 底/浅 #F5F5F7 底、主色、大圆角、字阶）+ 三大类常驻色（健康/习惯/目标）+ GoalColor 枚举退役清引用；同提交同步 design/tokens.css 与 ios/TargetWidgets/DesignTokens.swift；更新 test/design/token_contract_test.dart 对账
+  - ✅ 三端换值完成：深 #121212/#1E1E1E/#252525 ↔ 浅 #F5F5F7/白卡/中性墨、主强调蓝 #2196F3↔#00B0FF、完成绿 #34C759↔#4ADE80、bgGrad 收近平、玻璃材质近实卡化、字阶 displayL 32/titleM 20·600/bodyL 16；MajorColors 三色（绿/橙/蓝）+ kAvatarRingByKey 8 色 + kCelebrationDotPalette 7 色入真源；GoalColor 枚举删除（colorKey 恒空，5 处调用点迁 accent/positive，Swift goalColor() 退役统一 accent，widget 零行为回归）；tokens.css --goal-* 收编 --major-*，DesignTokens.swift 增 majorColor() 备 T005 接驳
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（+129，新增三端逐键对账用例：CSS :root/dark 17 键 + Swift light/dark 9 键 + GoalColor 三端不复活断言）
 - [ ] T003 [P] schema v5 主题偏好列（D2）：lib/core/db/tables.dart SettingsRows 新增 themeMode TEXT 枚举（system|light|dark，NULL=system）+ lib/core/db/app_database.dart 纯 ADD COLUMN 迁移 v4→v5 + lib/core/db/repositories.dart 读写 + lib/core/backup/backup_exporter.dart 与 backup_importer.dart 可选键双向宽容（缺失→NULL，沿 T044 note 先例）；test/migration_test.dart 与 test/backup_test.dart 增补（v4→v5 对账 + themeMode 往返）
 - [ ] T004 themeModeProvider 与注入：lib/app/providers.dart 新增 themeModeProvider（读 Settings，缺省 system）+ lib/app/app.dart MaterialApp 接 themeMode:（与 003 行为等价，存量用户零感知）（depends T003）
 - [ ] T005 [P] MajorCategory 与十领域映射（D4）：lib/core/models/goal_icon_catalog.dart GoalIconDomain 新增 major 属性（MajorCategory{health 健康, habit 习惯, goal 目标}；social/pets→health，2026-08-23 用户裁定）+ lib/core/models/entities.dart Goal.majorOf 派生（iconKey→domain→major，未匹配兜底 explore→goal）；test/goal_icon_catalog_test.dart 增十领域归属对账

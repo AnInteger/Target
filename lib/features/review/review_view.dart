@@ -256,7 +256,7 @@ class _GoalReviewCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = TargetPalette.of(context);
-    final color = GoalColor.byKey(data.goal.colorKey).of(context);
+    final color = palette.accent;
     final checkIns = ref.watch(checkInsProvider).value ?? const <CheckIn>[];
     final today = ref.watch(todayProvider);
 
@@ -494,7 +494,7 @@ class _Dots extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          for (final (i, c) in cards.indexed)
+          for (final (i, _) in cards.indexed)
             GestureDetector(
               onTap: () => onTap(i),
               behavior: HitTestBehavior.opaque,
@@ -510,7 +510,7 @@ class _Dots extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: i == index
-                          ? GoalColor.byKey(c.goal.colorKey).of(context)
+                          ? palette.accent
                           : palette.divider,
                     ),
                   ),

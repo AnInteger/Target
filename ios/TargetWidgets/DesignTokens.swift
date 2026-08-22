@@ -32,68 +32,57 @@ struct WidgetPalette {
     let warning: Color
     let divider: Color
 
-    /// 浅色 ·「柔彩仪表盘」（同步自 tokens.css :root；accent 墨梅 #252230）。
+    /// 浅色 · v2（同步自 tokens.css :root；#F5F5F7 灰底 + 白卡 + 蓝强调）。
     static let light = WidgetPalette(
         surface: Color(hex: 0xFFFFFF),
-        surfaceAlt: Color(hex: 0xF5F0F9),
-        onSurface: Color(hex: 0x1D1A24),
-        onSurfaceVariant: Color(hex: 0x565264),
-        accent: Color(hex: 0x252230),
-        positive: Color(hex: 0x5C7D10),
-        positiveFill: Color(hex: 0xB5E550),
-        warning: Color(hex: 0x9A6700),
-        divider: Color(hex: 0xE8E3F0))
+        surfaceAlt: Color(hex: 0xF2F2F7),
+        onSurface: Color(hex: 0x1C1C1E),
+        onSurfaceVariant: Color(hex: 0x6E6E73),
+        accent: Color(hex: 0x2196F3),
+        positive: Color(hex: 0x188038),
+        positiveFill: Color(hex: 0x34C759),
+        warning: Color(hex: 0xB26100),
+        divider: Color(hex: 0xE5E5EA))
 
-    /// 深色 · 暗紫底幕 + 反色强调（同步自 tokens.css dark 块）。
+    /// 深色 · v2（同步自 tokens.css dark 块；#121212 底 + 深灰卡 + 亮蓝强调）。
     static let dark = WidgetPalette(
-        surface: Color(hex: 0x241E33),
-        surfaceAlt: Color(hex: 0x2D2640),
-        onSurface: Color(hex: 0xF2EFF7),
-        onSurfaceVariant: Color(hex: 0xA8A1B8),
-        accent: Color(hex: 0xF2EFF7),
-        positive: Color(hex: 0xB5E550),
-        positiveFill: Color(hex: 0xB5E550),
-        warning: Color(hex: 0xE8B04B),
-        divider: Color(hex: 0x322B44))
+        surface: Color(hex: 0x1E1E1E),
+        surfaceAlt: Color(hex: 0x252525),
+        onSurface: Color(hex: 0xFFFFFF),
+        onSurfaceVariant: Color(hex: 0xB3B3B3),
+        accent: Color(hex: 0x00B0FF),
+        positive: Color(hex: 0x4ADE80),
+        positiveFill: Color(hex: 0x4ADE80),
+        warning: Color(hex: 0xFFB86B),
+        divider: Color(hex: 0x333333))
 }
 
 enum DesignTokens {
-    /// 目标色（**键名冻结** = Goal.colorKey 持久化数据；浅 ≈ -500/-600
-    /// 重量，深提亮两档保持 8 色互可区分——与 GoalColor 枚举逐值对齐）。
-    static let goalLight: [String: Color] = [
-        "coral": Color(hex: 0xD9534F),
-        "amber": Color(hex: 0xC98A1B),
-        "sage": Color(hex: 0x4E9D68),
-        "teal": Color(hex: 0x2B8F84),
-        "sky": Color(hex: 0x4483C4),
-        "indigo": Color(hex: 0x5B6AB0),
-        "plum": Color(hex: 0x9A5FA0),
-        "stone": Color(hex: 0x7A7E87),
-    ]
+    /// 三大类常驻色（004：GoalColor 8 色退役——colorKey 003 起恒空，
+    /// 小组件目标行暂统一主强调蓝，键位 = MajorCategory.name）。
+    static let majorHealthLight = Color(hex: 0x34A853)
+    static let majorHabitLight = Color(hex: 0xFF9800)
+    static let majorGoalLight = Color(hex: 0x2196F3)
+    static let majorHealthDark = Color(hex: 0x4ADE80)
+    static let majorHabitDark = Color(hex: 0xFFA726)
+    static let majorGoalDark = Color(hex: 0x00B0FF)
 
-    static let goalDark: [String: Color] = [
-        "coral": Color(hex: 0xEF8A80),
-        "amber": Color(hex: 0xEAB54E),
-        "sage": Color(hex: 0x7CC796),
-        "teal": Color(hex: 0x6FC4B9),
-        "sky": Color(hex: 0x85B8E8),
-        "indigo": Color(hex: 0x9AA5E0),
-        "plum": Color(hex: 0xCF9DD2),
-        "stone": Color(hex: 0xADAFB6),
-    ]
-
-    static func goalColor(_ key: String, dark: Bool) -> Color {
-        let table = dark ? goalDark : goalLight
-        return table[key] ?? table["teal"]!
+    static func majorColor(_ key: String, dark: Bool) -> Color {
+        switch key {
+        case "health": return dark ? majorHealthDark : majorHealthLight
+        case "habit": return dark ? majorHabitDark : majorHabitLight
+        default: return dark ? majorGoalDark : majorGoalLight
+        }
     }
 
     static func palette(_ dark: Bool) -> WidgetPalette {
         dark ? .dark : .light
     }
 
-    /// 头像装饰渐变对（浅深同值；kAvatarGradA/B，身份填充非文字场景）。
-    static let avatarGradA = Color(hex: 0xEAB54E)
-    static let avatarGradB = Color(hex: 0xEF8A80)
+    /// 头像装饰渐变对（浅深同值；kAvatarGradA/B，身份填充非文字场景；
+    /// 004 v2 = 品牌绿→蓝）。
+    static let avatarGradA = Color(hex: 0x34C759)
+    static let avatarGradB = Color(hex: 0x2196F3)
 
     /// 圆角刻度（AppRadius.md/lg 的组件侧镜像）。
     static let radiusMd: CGFloat = 12

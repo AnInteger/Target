@@ -35,7 +35,7 @@ class _BackfillSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = TargetPalette.of(context);
-    final color = GoalColor.byKey(goal.colorKey).of(context);
+    final color = palette.positive;
     final today = ref.watch(todayProvider);
     final checkIns = ref.watch(checkInsProvider).value ?? const <CheckIn>[];
     final mine = checkIns

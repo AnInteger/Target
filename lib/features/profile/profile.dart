@@ -12,19 +12,9 @@ import '../../core/copy.dart';
 import '../../core/models/entities.dart' show Profile;
 import '../../core/models/goal_icon_catalog.dart';
 
-/// 8 枚预设头像（research D7：图标库取 + 令牌环色；与原型
-/// screen-settings.html 的 AV_PRESETS 同源同序）。键即持久化
-/// avatarKey 值域，环色取 [GoalColor]（浅深自适应）。
-const Map<String, GoalColor> kAvatarRingByKey = {
-  'favorite': GoalColor.coral,
-  'directions_run': GoalColor.sage,
-  'menu_book': GoalColor.sky,
-  'brush': GoalColor.plum,
-  'flight': GoalColor.teal,
-  'savings': GoalColor.amber,
-  'pets': GoalColor.stone,
-  'spa': GoalColor.indigo,
-};
+/// 8 枚预设头像（research D7：图标库取 + 令牌环色）。键即持久化
+/// avatarKey 值域，环色表 [kAvatarRingByKey] 已随 004 T002 移入
+/// design_tokens.dart（色值真源单一化，浅深自适应）。
 
 /// 昵称展示值：空/未填 → 默认「我」。
 String profileNicknameOf(Profile? p) {
@@ -263,7 +253,7 @@ class _AvatarCell extends StatelessWidget {
     required this.onTap,
   });
 
-  final MapEntry<String, GoalColor> entry;
+  final MapEntry<String, MajorColor> entry;
   final bool selected;
   final VoidCallback onTap;
 
@@ -285,7 +275,9 @@ class _AvatarCell extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: '${Copy.profileAvatarLabel} ${entry.value.zhLabel}',
+      // 004：环色退役 zhLabel，无障碍名取图标所属领域（如「运动」）。
+      label:
+          '${Copy.profileAvatarLabel} ${GoalIconCatalog.byKey(entry.key).domain.zhLabel}',
       child: InkWell(
         key: ValueKey('avatarCell-${entry.key}'),
         onTap: onTap,

@@ -150,7 +150,8 @@ struct GoalChip: View {
     let dark: Bool
 
     var body: some View {
-        let color = DesignTokens.goalColor(goal.colorKey, dark: dark)
+        // 004：colorKey 恒空退役，组件目标行统一主强调蓝（MajorColor 接驳待 T005+）。
+        let color = DesignTokens.palette(dark).accent
         return RoundedRectangle(cornerRadius: 10)
             .fill(color.opacity(0.18))
             .frame(width: 26, height: 26)
@@ -250,10 +251,10 @@ struct MediumView: View {
                                 Image(systemName: goal.met == true
                                     ? "checkmark.circle.fill"
                                     : "plus.circle")
-                                    // 达成 = 青柠（App 完成语义对），未达成 = 目标色。
+                                    // 达成 = 绿（App 完成语义对），未达成 = 主强调蓝。
                                     .foregroundStyle(goal.met == true
                                         ? tokens.positiveFill
-                                        : DesignTokens.goalColor(goal.colorKey, dark: dark))
+                                        : DesignTokens.palette(dark).accent)
                             }
                             .buttonStyle(.plain)
                         }

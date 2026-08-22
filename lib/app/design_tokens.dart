@@ -1,14 +1,20 @@
-/// 设计令牌 ·「柔彩仪表盘」（FR-009 定稿，2026-08-19）。
+/// 设计令牌 ·「v2 基准图语言」（004 D1 全量换值，2026-08-23）。
 ///
 /// **本文件是三端令牌的唯一真源**（契约 design-language.md §2-4）：
 /// - CSS 镜像 `design/tokens.css`（原型侧）
 /// - Swift 镜像 `ios/TargetWidgets/DesignTokens.swift`（小组件侧，T029）
 /// 改色必须一次提交内完成双侧同步。
 ///
-/// 结构：语义色浅/深成对（[TargetPalette] ThemeExtension）、8 目标色
-/// （键名冻结 = Goal.colorKey 持久化数据）、九档字阶（数字一律
-/// tabular figures）、间距/圆角/阴影/动效刻度。屏幕代码只准取值于
-/// 本文件（token_contract_test.dart 扫描强制）。
+/// 结构：语义色浅/深成对（[TargetPalette] ThemeExtension）、三大类
+/// 常驻色（[MajorColors]，004 起 8 目标色 GoalColor 退役——colorKey
+/// 列 003 已恒空）、九档字阶（数字一律 tabular figures）、间距/圆角/
+/// 阴影/动效刻度。屏幕代码只准取值于本文件（token_contract_test.dart
+/// 扫描强制 + 三端值对账）。
+///
+/// 值基准：specs/004-ui-v2-redesign/references/ 四图——深 #121212 底 /
+/// 浅 #F5F5F7 底、白卡/深灰卡、蓝色主强调、绿色完成语义、大圆角、
+/// 克制留白；「柔彩仪表盘」的粉紫底幕/玻璃材质令牌位保留但换为
+/// v2 平实值（结构不变、值全换，D1）。
 ///
 /// 字体说明：Flutter 侧走系统字体栈（iOS = SF Pro + PingFang SC）；
 /// Web 原型的 Inter 为 HTML 侧专属（data URI 内嵌），两侧字形以
@@ -41,36 +47,69 @@ enum GoalIcon {
       GoalIcon.values.firstWhere((i) => i.name == key, orElse: () => GoalIcon.star);
 }
 
-/// 目标颜色键（**键名冻结**：Goal.colorKey 只存 .name，校准色值需
-/// 同步 design/tokens.css 与 DesignTokens.swift）。浅色 ≈ -500/-600
-/// 重量；深色提亮两档保持 8 色互可区分。
-enum GoalColor {
-  coral('珊瑚', Color(0xFFD9534F), Color(0xFFEF8A80)),
-  amber('琥珀', Color(0xFFC98A1B), Color(0xFFEAB54E)),
-  sage('鼠尾草', Color(0xFF4E9D68), Color(0xFF7CC796)),
-  teal('青瓷', Color(0xFF2B8F84), Color(0xFF6FC4B9)),
-  sky('晴空', Color(0xFF4483C4), Color(0xFF85B8E8)),
-  indigo('黛蓝', Color(0xFF5B6AB0), Color(0xFF9AA5E0)),
-  plum('紫檀', Color(0xFF9A5FA0), Color(0xFFCF9DD2)),
-  stone('石灰', Color(0xFF7A7E87), Color(0xFFADAFB6));
+/// 浅/深成对色值（004 v2：三大类常驻色等非语义槽位的通用载体）。
+class MajorColor {
+  const MajorColor(this.light, this.dark);
 
-  const GoalColor(this.zhLabel, this.light, this.dark);
-
-  final String zhLabel;
   final Color light;
   final Color dark;
-
-  static GoalColor byKey(String key) => GoalColor.values
-      .firstWhere((c) => c.name == key, orElse: () => GoalColor.teal);
 
   Color of(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? dark : light;
 }
 
+/// 三大类常驻色（004 D1：健康/习惯/目标——三环、关注卡与分类
+/// 筛选消费；键位 health/habit/goal 与 T005 MajorCategory 对齐，
+/// 值域冻结见 data-model.md）。基准图 02 chips 三色：绿/橙/蓝。
+abstract final class MajorColors {
+  /// 健康：绿。
+  static const MajorColor health =
+      MajorColor(Color(0xFF34A853), Color(0xFF4ADE80));
+
+  /// 习惯：橙。
+  static const MajorColor habit =
+      MajorColor(Color(0xFFFF9800), Color(0xFFFFA726));
+
+  /// 目标：蓝（= 主强调同族，关注主色）。
+  static const MajorColor goal =
+      MajorColor(Color(0xFF2196F3), Color(0xFF00B0FF));
+
+  static MajorColor byKey(String key) => switch (key) {
+        'health' => health,
+        'habit' => habit,
+        _ => goal,
+      };
+}
+
+/// 头像环 8 色（004 v2：8 预设头像的装饰环色，键即持久化 avatarKey
+/// 值域——profile 专属但色值必须出自本真源文件）。浅深成对，深色
+/// 提亮一档保持 8 色互可区分。
+const Map<String, MajorColor> kAvatarRingByKey = {
+  'favorite': MajorColor(Color(0xFFFF5C8A), Color(0xFFFF7FA5)), // 玫红
+  'directions_run': MajorColor(Color(0xFF34A853), Color(0xFF4ADE80)), // 绿
+  'menu_book': MajorColor(Color(0xFF2196F3), Color(0xFF00B0FF)), // 蓝
+  'brush': MajorColor(Color(0xFF8B5CF6), Color(0xFFA78BFA)), // 紫
+  'flight': MajorColor(Color(0xFF00BFA5), Color(0xFF4DD8C3)), // 青
+  'savings': MajorColor(Color(0xFFFFC400), Color(0xFFFFD54F)), // 金
+  'pets': MajorColor(Color(0xFF8E8E93), Color(0xFFB3B3B3)), // 石墨
+  'spa': MajorColor(Color(0xFF5C6BC0), Color(0xFF9FA8DA)), // 黛蓝
+};
+
+/// 庆祝迸点 7 色环（celebration 专属装饰，浅/深成对，循环取用）。
+const List<MajorColor> kCelebrationDotPalette = [
+  MajorColor(Color(0xFFFF5C8A), Color(0xFFFF7FA5)), // 玫红
+  MajorColor(Color(0xFF34A853), Color(0xFF4ADE80)), // 绿
+  MajorColor(Color(0xFF2196F3), Color(0xFF00B0FF)), // 蓝
+  MajorColor(Color(0xFF8B5CF6), Color(0xFFA78BFA)), // 紫
+  MajorColor(Color(0xFFFF9800), Color(0xFFFFA726)), // 橙
+  MajorColor(Color(0xFF00BFA5), Color(0xFF4DD8C3)), // 青
+  MajorColor(Color(0xFFFFC400), Color(0xFFFFD54F)), // 金
+];
+
 /// 头像装饰渐变对（身份填充，非文字场景——取填充级明度，不与
-/// 目标文字色共用；浅深同值）。对应 `--grad-avatar-a/b`。
-const Color kAvatarGradA = Color(0xFFEAB54E);
-const Color kAvatarGradB = Color(0xFFEF8A80);
+/// 文字色共用；浅深同值，004 v2 = 品牌绿→蓝）。对应 `--grad-avatar-a/b`。
+const Color kAvatarGradA = Color(0xFF34C759);
+const Color kAvatarGradB = Color(0xFF2196F3);
 
 /// 语义色与材质令牌（浅/深成对，经 [Theme.extension] 注入，
 /// 取值：`TargetPalette.of(context)`）。
@@ -153,72 +192,72 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
   final List<BoxShadow> shadowMid;
   final List<BoxShadow> shadowHigh;
 
-  /// 浅色 ·「柔彩仪表盘」（同步自 design/tokens.css :root）。
-  /// R4 修订（2026-08-20）：底幕渐变按参照图屏幕实测锚点重铸为可见的
-  /// 粉→紫对角（顶 #f1e0e6 → 底 #d9d3f5）；accent 纯黑 → 墨梅 #252230；
-  /// shadowLow 改弥散软影。
+  /// 浅色 · v2（同步自 design/tokens.css :root；基准图 02）：
+  /// #F5F5F7 灰底 + 纯白卡 + 蓝色主强调 + 绿色完成语义；底幕渐变
+  /// 收敛为近平的极淡纵向（v2 无可见渐变，四段结构保留）。
   static const TargetPalette light = TargetPalette(
-    background: Color(0xFFDED3ED),
+    background: Color(0xFFF5F5F7),
     surface: Color(0xFFFFFFFF),
-    surfaceAlt: Color(0xFFF5F0F9),
-    onSurface: Color(0xFF1D1A24),
-    onSurfaceVariant: Color(0xFF565264),
-    accent: Color(0xFF252230),
+    surfaceAlt: Color(0xFFF2F2F7),
+    onSurface: Color(0xFF1C1C1E),
+    onSurfaceVariant: Color(0xFF6E6E73),
+    accent: Color(0xFF2196F3),
     accentOn: Color(0xFFFFFFFF),
-    positive: Color(0xFF5C7D10),
-    positiveFill: Color(0xFFB5E550),
-    positiveOn: Color(0xFF24280F),
-    warning: Color(0xFF9A6700),
-    divider: Color(0xFFE8E3F0),
-    scrim: Color(0x591D1A24),
-    badge: Color(0xFFD9534F),
+    positive: Color(0xFF188038),
+    positiveFill: Color(0xFF34C759),
+    positiveOn: Color(0xFF0A3D1D),
+    warning: Color(0xFFB26100),
+    divider: Color(0xFFE5E5EA),
+    scrim: Color(0x591C1C1E),
+    badge: Color(0xFFFF3B30),
     badgeOn: Color(0xFFFFFFFF),
     bgGrad: [
-      Color(0xFFECD8E0),
-      Color(0xFFE2D3E9),
-      Color(0xFFD9D1F2),
-      Color(0xFFD1CCF8),
+      Color(0xFFFAFAFC),
+      Color(0xFFF5F5F7),
+      Color(0xFFF5F5F7),
+      Color(0xFFF0F0F5),
     ],
-    glassShell: Color(0x99FFFFFF),
-    glassCard: Color(0xCCFFFFFF),
-    glassBorder: Color(0xA6FFFFFF),
+    glassShell: Color(0xB8FFFFFF),
+    glassCard: Color(0xEBFFFFFF),
+    glassBorder: Color(0x0F000000),
     blur: 24,
     shadowLow: [
-      BoxShadow(offset: Offset(0, 2), blurRadius: 10, color: Color(0x0F252230)),
+      BoxShadow(offset: Offset(0, 2), blurRadius: 10, color: Color(0x0F1C1C1E)),
     ],
     shadowMid: [
-      BoxShadow(offset: Offset(0, 8), blurRadius: 22, color: Color(0x242E1A42)),
+      BoxShadow(offset: Offset(0, 8), blurRadius: 22, color: Color(0x243C3C43)),
     ],
     shadowHigh: [
-      BoxShadow(offset: Offset(0, 14), blurRadius: 38, color: Color(0x3D252230)),
+      BoxShadow(offset: Offset(0, 14), blurRadius: 38, color: Color(0x3D3C3C43)),
     ],
   );
 
-  /// 深色 · 暗紫底幕 + 深玻璃壳 + 反色强调（同步自 tokens.css dark 块）。
+  /// 深色 · v2（同步自 tokens.css dark 块；基准图 01）：#121212 近黑
+  /// 底 + #1E1E1E 深灰卡 + 亮蓝主强调 + 亮绿完成语义。
   static const TargetPalette dark = TargetPalette(
-    background: Color(0xFF1E1830),
-    surface: Color(0xFF241E33),
-    surfaceAlt: Color(0xFF2D2640),
-    onSurface: Color(0xFFF2EFF7),
-    onSurfaceVariant: Color(0xFFA8A1B8),
-    accent: Color(0xFFF2EFF7),
-    accentOn: Color(0xFF1A1622),
-    positive: Color(0xFFB5E550),
-    positiveFill: Color(0xFFB5E550),
-    positiveOn: Color(0xFF24280F),
-    warning: Color(0xFFE8B04B),
-    divider: Color(0xFF322B44),
+    background: Color(0xFF121212),
+    surface: Color(0xFF1E1E1E),
+    surfaceAlt: Color(0xFF252525),
+    onSurface: Color(0xFFFFFFFF),
+    onSurfaceVariant: Color(0xFFB3B3B3),
+    accent: Color(0xFF00B0FF),
+    accentOn: Color(0xFFFFFFFF),
+    positive: Color(0xFF4ADE80),
+    positiveFill: Color(0xFF4ADE80),
+    positiveOn: Color(0xFF062B15),
+    warning: Color(0xFFFFB86B),
+    divider: Color(0xFF333333),
     scrim: Color(0x80000000),
-    badge: Color(0xFFEF8A80),
-    badgeOn: Color(0xFF241014),
+    badge: Color(0xFFFF453A),
+    badgeOn: Color(0xFFFFFFFF),
     bgGrad: [
-      Color(0xFF2C2036),
-      Color(0xFF221A30),
-      Color(0xFF1A1526),
-      Color(0xFF120E1C),
+      Color(0xFF1B1B1B),
+      Color(0xFF161616),
+      Color(0xFF121212),
+      Color(0xFF101010),
     ],
-    glassShell: Color(0x8C14101C),
-    glassCard: Color(0x17FFFFFF),
+    glassShell: Color(0xB8121212),
+    glassCard: Color(0xEB1E1E1E),
     glassBorder: Color(0x14FFFFFF),
     blur: 24,
     shadowLow: [
@@ -374,7 +413,7 @@ abstract final class AppMotion {
 /// 数字场景（进度/计数/日期）已全档启用 tabular figures——避免逐场景
 /// 判断遗漏，宽度代价可忽略。
 extension AppTextX on TextTheme {
-  /// displayLarge：36 / 1.25 / 800 / -0.9（两行编辑级 display）。
+  /// displayLarge：32 / 1.25 / 800 / -0.8（大标题「今日/回顾」，004 v2）。
   TextStyle get displayL => displayLarge!;
 
   /// displayMedium：28 / 1.25 / 700。
@@ -386,13 +425,13 @@ extension AppTextX on TextTheme {
   /// titleLarge：22 / 1.3 / 700。
   TextStyle get titleL => titleLarge!;
 
-  /// titleMedium：18 / 1.35 / 700。
+  /// titleMedium：20 / 1.35 / 600（区块头，004 v2）。
   TextStyle get titleM => titleMedium!;
 
   /// titleSmall：16 / 1.45 / 700（卡片目标标题）。
   TextStyle get titleS => titleSmall!;
 
-  /// bodyLarge：17 / 1.5 / 400。
+  /// bodyLarge：16 / 1.5 / 400（正文，004 v2）。
   TextStyle get bodyL => bodyLarge!;
 
   /// bodyMedium：14 / 1.5 / 400。
@@ -437,28 +476,28 @@ abstract final class AppTheme {
       surfaceContainerLowest:
           brightness == Brightness.light
               ? const Color(0xFFFFFFFF)
-              : const Color(0xFF241E33),
+              : const Color(0xFF121212),
       surfaceContainerLow: p.surface,
       surfaceContainer: p.surfaceAlt,
       surfaceContainerHigh:
           brightness == Brightness.light
-              ? const Color(0xFFEDE5F7)
-              : const Color(0xFF352D4A),
+              ? const Color(0xFFEBEBF0)
+              : const Color(0xFF252525),
       surfaceContainerHighest:
           brightness == Brightness.light
-              ? const Color(0xFFE5DCEE)
-              : const Color(0xFF3D3454),
+              ? const Color(0xFFE3E3EA)
+              : const Color(0xFF2D2D2D),
       outline: brightness == Brightness.light
-          ? const Color(0xFF6F6A7C)
-          : const Color(0xFF8F88A0),
+          ? const Color(0xFF8A8A8E)
+          : const Color(0xFF8E8E93),
       outlineVariant: p.divider,
       inverseSurface: brightness == Brightness.light
-          ? const Color(0xFF2F2839)
-          : const Color(0xFFEDE9F5),
+          ? const Color(0xFF2C2C2E)
+          : const Color(0xFFF2F2F7),
       onInverseSurface: brightness == Brightness.light
-          ? const Color(0xFFF2EFF7)
-          : const Color(0xFF1A1622),
-      scrim: const Color(0xFF1D1A24),
+          ? const Color(0xFFF2F2F7)
+          : const Color(0xFF1C1C1E),
+      scrim: const Color(0xFF1C1C1E),
     );
     final theme = ThemeData(
       useMaterial3: true,
@@ -533,10 +572,10 @@ abstract final class AppTheme {
     final on = p.onSurface;
     final variant = p.onSurfaceVariant;
     return TextTheme(
-      // display：36/28。
+      // display：32/28（004 v2：大标题 32）。
       displayLarge: TextStyle(
-          fontSize: 36, height: 1.25, fontWeight: FontWeight.w800,
-          letterSpacing: -0.9, color: on, fontFeatures: f),
+          fontSize: 32, height: 1.25, fontWeight: FontWeight.w800,
+          letterSpacing: -0.8, color: on, fontFeatures: f),
       displayMedium: TextStyle(
           fontSize: 28, height: 1.25, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
@@ -553,19 +592,19 @@ abstract final class AppTheme {
       headlineSmall: TextStyle(
           fontSize: 16, height: 1.45, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
-      // title：22 / 18 / 16(700)。
+      // title：22 / 20(600) / 16(700)（004 v2：区块头 20/600）。
       titleLarge: TextStyle(
           fontSize: 22, height: 1.3, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
       titleMedium: TextStyle(
-          fontSize: 18, height: 1.35, fontWeight: FontWeight.w700,
+          fontSize: 20, height: 1.35, fontWeight: FontWeight.w600,
           color: on, fontFeatures: f),
       titleSmall: TextStyle(
           fontSize: 16, height: 1.45, fontWeight: FontWeight.w700,
           color: on, fontFeatures: f),
-      // body：17 / 14 / 12。
+      // body：16 / 14 / 12（004 v2：正文 16）。
       bodyLarge: TextStyle(
-          fontSize: 17, height: 1.5, color: on, fontFeatures: f),
+          fontSize: 16, height: 1.5, color: on, fontFeatures: f),
       bodyMedium: TextStyle(
           fontSize: 14, height: 1.5, color: on, fontFeatures: f),
       bodySmall: TextStyle(

@@ -366,7 +366,7 @@ class _GoalCard extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleS.copyWith(
                               color: done
-                                  ? GoalColor.sky.of(context)
+                                  ? palette.positive
                                   : palette.onSurface,
                             ),
                       ),

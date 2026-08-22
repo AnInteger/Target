@@ -1,5 +1,5 @@
 /* ============================================================
-   Target 设计令牌 ·「柔彩仪表盘」
+   Target 设计令牌 ·「v2 基准图语言」（004 T002 全量换值）
    ------------------------------------------------------------
    依据：contracts/design-language.md（schema）
          design/reviews.md FR-009 定稿（direction-g.html v3，2026-08-19）
@@ -29,86 +29,78 @@
      一、语义色 · 浅色（成对完整，契约 §2-2）
      ============================================================ */
 
-  /* 底幕：四段粉紫渐变（页面级，非纯色背景）——R4 追加修订：
-     用户要求渐变"跟图里一样"看得见。参照图屏幕内实测锚点直接采用：
-     顶部玫瑰粉 ≈#e9d3da、底部 periwinkle ≈#d6d0f7（此前四档近乎
-     全白、渐变不可感）。正文对两端 ≥10:1、次级文字全段 ≥4.5:1 */
-  --bg-grad-1: #ecd8e0;
-  --bg-grad-2: #e2d3e9;
-  --bg-grad-3: #d9d1f2;
-  --bg-grad-4: #d1ccf8;
+  /* 底幕：v2 近平的极淡纵向四段（基准图无可见渐变，结构保留
+     供画板级联；非渐变兜底直接用 --background） */
+  --bg-grad-1: #fafafc;
+  --bg-grad-2: #f5f5f7;
+  --bg-grad-3: #f5f5f7;
+  --bg-grad-4: #f0f0f5;
   --bg-grad-angle: 135deg;
 
   /* 页面底色（渐变的近似均值，供对比度计算与非渐变兜底） */
-  --background: #ded3ed;
+  --background: #f5f5f7; /* v2 灰底（基准图 02） */
 
-  /* 卡片/容器（白玻璃卡的实体等效） */
-  --surface: #ffffff;
-  --surface-alt: #f5f0f9; /* 次级分组底：与 surface 差异可感知 */
+  /* 卡片/容器（v2 纯白卡） */
+  --surface: #ffffff; /* 纯白卡 */
+  --surface-alt: #f2f2f7; /* 次级分组底 */
 
-  /* 文字（与墨色 accent 同族的微梅调近黑） */
-  --on-surface: #1d1a24; /* 对 background ≈ 14.7:1 */
-  --on-surface-variant: #565264; /* 对 surface ≈ 6.9:1，对渐变全段 ≥ 4.7:1 */
+  /* 文字（v2 中性墨） */
+  --on-surface: #1c1c1e; /* 对 surface ≈ 16:1 */
+  --on-surface-variant: #6e6e73; /* 对 surface ≈ 5.4:1 */
 
-  /* 强调（每方向仅一个：主操作实心）——纯黑 → 墨梅，
-     与定稿参照的深灰墨一致，去"死黑"的硬感 */
-  --accent: #252230;
-  --accent-on: #ffffff; /* 对 accent ≈ 15.5:1 */
+  /* 强调（每方向仅一个：主操作实心）——v2 蓝色行动色 */
+  --accent: #2196f3; /* 主强调·蓝（行动色） */
+  --accent-on: #ffffff;
 
   /* 完成/达成语义（青柠族）：文本用深橄榄绿保证可读，填充用定稿青柠 */
-  --positive: #5c7d10; /* 对 surface ≈ 4.6:1（AA 文本） */
-  --positive-fill: #b5e550; /* 进度环/选中胶囊/完成态填充 */
-  --positive-on: #24280f; /* 对 positive-fill ≈ 9.9:1 */
+  --positive: #188038; /* 对 surface ≈ 4.9:1（AA 文本） */
+  --positive-fill: #34c759; /* 完成态填充 */
+  --positive-on: #0a3d1d;
 
   /* 忙碌/落后语义（克制琥珀，非警告红） */
-  --warning: #9a6700;
+  --warning: #b26100;
 
   /* 分隔线（低存在感发丝线，随底幕调淡） */
-  --divider: #e8e3f0;
+  --divider: #e5e5ea;
 
   /* 弹层遮罩（003：通知列表/资料编辑/达成确认 bottom sheet 的底幕） */
-  --scrim: rgba(29, 26, 36, 0.35);
+  --scrim: rgba(28, 28, 30, 0.35);
 
   /* 未读角标（003：铃铛红点/计数——目标色系退役后语义化独立成对） */
-  --badge: #d9534f;
+  --badge: #ff3b30; /* 未读角标 */
   --badge-on: #ffffff;
 
-  /* ---- 补充：玻璃材质（柔彩仪表盘的两层景深） ---- */
-  --glass-shell: rgba(255, 255, 255, 0.6); /* 手机壳层 */
-  --glass-card: rgba(255, 255, 255, 0.8); /* 卡片层 */
+  /* ---- 补充：玻璃材质（v2 近实卡材质，透明度收敛） ---- */
+  --glass-shell: rgba(255, 255, 255, 0.72); /* v2 平实壳层 */
+  --glass-card: rgba(255, 255, 255, 0.92); /* 近实卡 */
   --glass-blur: 24px;
-  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-border: rgba(0, 0, 0, 0.06);
 
   /* ============================================================
-     二、目标色板 · 8 色（键名冻结：Goal.colorKey 持久化数据）
-     浅色 ≈ -500/-600 重量；深色见下方暗色块（≈ -300/-400）
+     二、三大类常驻色（004：GoalColor 8 色退役——colorKey 列 003 起
+     恒空；v2 三环/关注卡/分类筛选消费；键位 = MajorCategory.name）
      ============================================================ */
-  --goal-coral: #d9534f;
-  --goal-amber: #c98a1b;
-  --goal-sage: #4e9d68;
-  --goal-teal: #2b8f84;
-  --goal-sky: #4483c4;
-  --goal-indigo: #5b6ab0;
-  --goal-plum: #9a5fa0;
-  --goal-stone: #7a7e87;
+  --major-health: #34a853;
+  --major-habit: #ff9800;
+  --major-goal: #2196f3;
 
   /* 头像 · 装饰渐变对（身份填充，非文字场景——取填充级明度，
-     不与目标文字色共用；浅深同值，2026-08-20 自审增补） */
-  --grad-avatar-a: #eab54e;
-  --grad-avatar-b: #ef8a80;
+     不与文字色共用；浅深同值，004 v2 = 品牌绿→蓝） */
+  --grad-avatar-a: #34c759; /* 品牌绿→蓝（浅深同值） */
+  --grad-avatar-b: #2196f3;
 
   /* ============================================================
      三、字阶 · 十档（数字一律 tabular，见 .tnum）
      ============================================================ */
-  --font-display-l: 800 36px/1.25 var(--font-stack);
+  --font-display-l: 800 32px/1.25 var(--font-stack); /* 004 v2：大标题 32 */
   --font-display-m: 700 28px/1.25 var(--font-stack);
   /* display-s 与 title-l 同规格、语义不同：display=屏题（L/M/S 成套，
      Dart 侧 displaySmall 已存在；本行 003 T004 补齐 CSS 侧缺口） */
   --font-display-s: 700 22px/1.3 var(--font-stack);
   --font-title-l: 700 22px/1.3 var(--font-stack);
-  --font-title-m: 700 18px/1.35 var(--font-stack);
+  --font-title-m: 600 20px/1.35 var(--font-stack); /* 004 v2：区块头 20/600 */
   --font-title-s: 700 16px/1.45 var(--font-stack);
-  --font-body-l: 400 17px/1.5 var(--font-stack);
+  --font-body-l: 400 16px/1.5 var(--font-stack); /* 004 v2：正文 16 */
   --font-body-m: 400 14px/1.5 var(--font-stack);
   --font-body-s: 400 12px/1.4 var(--font-stack);
   --font-label: 400 11px/1.3 var(--font-stack);
@@ -146,9 +138,9 @@
   /* ============================================================
      六、阴影 · 三档（浅色）
      ============================================================ */
-  --shadow-low: 0 2px 10px rgba(37, 34, 48, 0.06); /* 底幕调淡后卡片靠更弥散的软影分层 */
-  --shadow-mid: 0 8px 22px rgba(46, 26, 66, 0.14);
-  --shadow-high: 0 14px 38px rgba(23, 24, 28, 0.24);
+  --shadow-low: 0 2px 10px rgba(28, 28, 30, 0.06);
+  --shadow-mid: 0 8px 22px rgba(60, 60, 67, 0.14);
+  --shadow-high: 0 14px 38px rgba(60, 60, 67, 0.24);
 
   /* ============================================================
      七、动效（统一标准减速曲线族）
@@ -166,52 +158,47 @@
    级联（screen-*.html 多画板并列浅/深）两种用法都成立。
    ============================================================ */
 [data-theme="dark"] {
-  --bg-grad-1: #2c2036;
-  --bg-grad-2: #221a30;
-  --bg-grad-3: #1a1526;
-  --bg-grad-4: #120e1c;
-  --background: #1e1830;
+  --bg-grad-1: #1b1b1b;
+  --bg-grad-2: #161616;
+  --bg-grad-3: #121212;
+  --bg-grad-4: #101010;
+  --background: #121212; /* v2 近黑底（基准图 01） */
 
-  --surface: #241e33;
-  --surface-alt: #2d2640;
+  --surface: #1e1e1e; /* 深灰卡 */
+  --surface-alt: #252525; /* 浮层 */
 
-  --on-surface: #f2eff7; /* 对 background ≈ 13:1 */
-  --on-surface-variant: #a8a1b8; /* 对 background ≈ 4.6:1 */
+  --on-surface: #ffffff; /* 对 background ≈ 18:1 */
+  --on-surface-variant: #b3b3b3; /* 对 background ≈ 9:1 */
 
-  --accent: #f2eff7; /* 反色强调：主操作白实心 */
-  --accent-on: #1a1622;
+  --accent: #00b0ff; /* 亮蓝（深色提亮档） */
+  --accent-on: #ffffff;
 
-  --positive: #b5e550; /* 深色下青柠直接作文本色（对 background ≈ 10:1） */
-  --positive-fill: #b5e550;
-  --positive-on: #24280f;
+  --positive: #4ade80; /* 对 background ≈ 11:1 */
+  --positive-fill: #4ade80;
+  --positive-on: #062b15;
 
-  --warning: #e8b04b;
+  --warning: #ffb86b;
 
-  --divider: #322b44;
+  --divider: #333333;
 
   --scrim: rgba(0, 0, 0, 0.5);
 
-  --badge: #ef8a80;
-  --badge-on: #241014;
+  --badge: #ff453a;
+  --badge-on: #ffffff;
 
-  --glass-shell: rgba(20, 16, 28, 0.55);
-  --glass-card: rgba(255, 255, 255, 0.09);
+  --glass-shell: rgba(18, 18, 18, 0.72);
+  --glass-card: rgba(30, 30, 30, 0.92);
   --glass-blur: 24px;
   --glass-border: rgba(255, 255, 255, 0.08);
 
-  /* 目标色 · 深色（提亮两档保持互可区分） */
-  --goal-coral: #ef8a80;
-  --goal-amber: #eab54e;
-  --goal-sage: #7cc796;
-  --goal-teal: #6fc4b9;
-  --goal-sky: #85b8e8;
-  --goal-indigo: #9aa5e0;
-  --goal-plum: #cf9dd2;
-  --goal-stone: #adafb6;
+  /* 三大类常驻色 · 深色（提亮一档保持三色互可区分） */
+  --major-health: #4ade80;
+  --major-habit: #ffa726;
+  --major-goal: #00b0ff;
 
   /* 头像 · 装饰渐变对（浅深同值，见浅色块注释） */
-  --grad-avatar-a: #eab54e;
-  --grad-avatar-b: #ef8a80;
+  --grad-avatar-a: #34c759;
+  --grad-avatar-b: #2196f3;
 
   /* 阴影 · 深色以亮度差表达层级，禁重阴影（契约 §1 刻度） */
   --shadow-low: 0 1px 4px rgba(0, 0, 0, 0.28);

@@ -56,7 +56,7 @@ class GoalDetailPage extends ConsumerWidget {
     final days = goal.deadline?.differenceInDays(today) ?? 0;
     final done = steps.where((s) => s.isDone).length;
     final allDone = steps.isNotEmpty && done == steps.length;
-    final color = GoalColor.byKey(goal.colorKey).of(context);
+    final color = TargetPalette.of(context).accent;
 
     return Scaffold(
       appBar: AppBar(

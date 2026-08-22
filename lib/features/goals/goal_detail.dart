@@ -17,6 +17,7 @@ import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/frequency_pattern.dart';
 import '../../core/stats/versioning.dart';
+import '../today/undo_toast.dart';
 import 'goal_lifecycle.dart';
 
 class GoalDetailPage extends ConsumerWidget {
@@ -81,6 +82,20 @@ class GoalDetailPage extends ConsumerWidget {
                 child: const Text(Copy.milestoneDone),
               ),
             ],
+          ],
+          // T017 保障段：今日页卡上打卡按钮退役后，详情页承接打卡
+          // 入口（T021 再扩为带一句话描述的完整动线）。
+          if (goal.status == GoalStatus.active) ...[
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () async {
+                final ci = await ref
+                    .read(checkInServiceProvider)
+                    .checkInToday(goalId);
+                if (context.mounted) showCheckInToast(context, ref, ci);
+              },
+              child: const Text(Copy.todayCheckAction),
+            ),
           ],
         ],
       ),

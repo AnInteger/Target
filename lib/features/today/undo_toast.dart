@@ -16,6 +16,9 @@ const _revokedDuration = Duration(seconds: 2);
 
 void showCheckInToast(BuildContext context, WidgetRef ref, CheckIn checkIn) {
   final messenger = ScaffoldMessenger.of(context);
+  // 撤销闭包捕获根容器而非调用方 ref：toast 挂在根 ScaffoldMessenger，
+  // 跨路由存活（详情页打卡后返回今日仍可撤销），页面元素可能已销毁。
+  final container = ProviderScope.containerOf(context, listen: false);
   final label = checkIn.isBackfill
       ? Copy.backfillDone(checkIn.day.isoString)
       : Copy.checkInDone;
@@ -28,7 +31,7 @@ void showCheckInToast(BuildContext context, WidgetRef ref, CheckIn checkIn) {
         action: SnackBarAction(
           label: Copy.undoCheckIn,
           onPressed: () async {
-            await ref.read(checkInServiceProvider).undo(checkIn.id);
+            await container.read(checkInServiceProvider).undo(checkIn.id);
             messenger.showSnackBar(
               const SnackBar(
                 content: Text(Copy.checkInRevoked),

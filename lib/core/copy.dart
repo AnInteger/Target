@@ -228,40 +228,28 @@ abstract final class Copy {
   static const reviewNav = '回顾';
   static const mineNav = '我的';
 
-  // ---- 今日页 · 新语言（US2，screen-today.html R4 定稿）----
+  // ---- 今日页 · R7 定稿（T017 头部带 + 统一卡；旧今日之环语言退役）----
 
-  static const greetingMorning = '早上好';
-  static const greetingAfternoon = '下午好';
-  static const greetingEvening = '晚上好';
-  static const todayHeroTitle = '今日进展';
-  static const todayRingLabel = '目标有进展';
-  static const todayRingEmptyLabel = '暂无目标';
-  static const todayStatActions = '今日行动';
-  static const todayStatStreak = '连续天数';
-  static const todayStatGoals = '进行中目标';
   static const todaySection = '今日目标';
-  static const todayViewAll = '查看全部';
   static const todayNewGoal = '新建目标';
-  static const todayReminder = '提醒';
-  static const todayReminderSettings = '提醒设置';
-  static const todayDetail = '目标详情';
   static const todayCheckAction = '记录一次努力';
-  static String todayPillActions(int n) => '今日 $n 次记录';
-  static String todayPillGoals(int n) => '$n 个目标';
-  static String todayCountLabel(int n) => '今日 $n 次';
+
+  /// 头部带日期语：「8月19日 周三」。
+  static String todayDateLine(int month, int day, String weekdayZh) =>
+      '$month月$day日 $weekdayZh';
+
+  /// 节注（今日之环退役后承接进度一句话）：「已记录 2/5」。
+  static String todayRecordedNote(int done, int total) => '已记录 $done/$total';
+
+  /// 最新记录行描述兜底（FR-019 未填描述时）。
+  static const checkInDefaultNote = '完成打卡';
+
   static const todayLatestNone = '还没有记录';
-  static const todayLatestToday = '最近 · 今天';
-  static const todayLatestYesterday = '最近 · 昨天';
-  static String todayLatestDaysAgo(int n) => '最近 · $n 天前';
+  static String todayLatestDaysAgo(int n) => '$n 天前';
 
-  // 大标题四态（displayLarge 两行编辑级）。
-  static const todayDisplayTypical = '今天\n做了什么？';
-  static const todayDisplayAllProgress = '每个目标\n都有进展';
-  static const todayDisplayEmpty = '今天想做点什么？';
-
-  // 空态邀请卡。
-  static const todayEmptyTitle = '记录第一个努力';
-  static const todayEmptyBody = '定一个想实现的目标，\n为它留下今天的第一次记录。';
+  // 空态邀请卡（R3 裁决 3：正式语域）。
+  static const todayEmptyTitle = '还没有目标';
+  static const todayEmptyBody = '点击右上角 ＋ 创建第一个目标';
 
   // 成就时刻（每个目标今天都有记录）。
   static const celebrationTitle = '🎉 每个目标都有进展';

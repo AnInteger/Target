@@ -533,8 +533,8 @@ class _EmptyCard extends StatelessWidget {
   }
 }
 
-/// 「最近 · 今天 / 昨天 / N 天前」：最后一次有效记录的归属日
-/// （与目标列表同一语义）。
+/// 「今天 / 昨天 / N 天前」：最后一次有效记录的归属日
+/// （与今日页最新记录行同一语义，003 口径收敛）。
 String _latestLabel(List<CheckIn> mine, LocalDate today) {
   final valid = mine.where((c) => c.isValid).toList();
   if (valid.isEmpty) return Copy.todayLatestNone;
@@ -542,8 +542,8 @@ String _latestLabel(List<CheckIn> mine, LocalDate today) {
       ? a.day.compareTo(b.day)
       : a.createdAt.compareTo(b.createdAt));
   final gap = today.differenceInDays(valid.last.day);
-  if (gap <= 0) return Copy.todayLatestToday;
-  if (gap == 1) return Copy.todayLatestYesterday;
+  if (gap <= 0) return Copy.notifDayToday;
+  if (gap == 1) return Copy.notifDayYesterday;
   return Copy.todayLatestDaysAgo(gap);
 }
 

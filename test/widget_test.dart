@@ -149,8 +149,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // TodayView 空态（新语言）：display 转提问 + 虚线邀请卡，仪表盘整体让位。
+    // TodayView 空态（R7）：节头隐藏 + 虚线邀请卡（正式语域）。
     expect(find.text(Copy.todayEmptyTitle), findsOneWidget);
+    expect(find.text(Copy.todaySection), findsNothing);
     expect(find.text(Copy.todayNav), findsOneWidget);
     await db.close();
   });
@@ -191,20 +192,30 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(Copy.todayPillActions(0)), findsOneWidget);
-    // 记录钮的 glyph 是自绘＋/对勾（非 Icons.add），按语义标签定位。
-    await tester.tap(find.bySemanticsLabel(Copy.todayCheckAction));
+    // R7 统一卡：整卡可点进详情，卡上无打卡钮。
+    expect(find.text(Copy.todayRecordedNote(0, 1)), findsOneWidget);
+    expect(find.bySemanticsLabel(Copy.todayCheckAction), findsNothing);
+    await tester.tap(find.text('锻炼'));
     await tester.pumpAndSettle();
+    expect(find.byType(GoalDetailPage), findsOneWidget);
 
-    // 每个目标都有记录 → display 转全部进展态；胶囊与成就徽章副文同串
-    // （celebrationNote = todayPillActions），故 findsWidgets。
-    expect(find.text(Copy.todayPillActions(1)), findsWidgets);
-    expect(find.text(Copy.todayDisplayAllProgress), findsOneWidget);
+    // 详情页打卡（T017 保障段动线）→ toast + 落库。
+    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.checkInDone), findsOneWidget);
+    expect((await CheckInRepository(db).all()).where((c) => c.isValid),
+        hasLength(1));
 
-    // 撤销 → 统计即时回退（R7/SC-003）。
+    // 返回今日 → 节注刷新 + 全完成绽放（单目标）。
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.todayRecordedNote(1, 1)), findsOneWidget);
+    expect(find.text(Copy.celebrationTitle), findsOneWidget);
+
+    // 撤销（toast 在根 ScaffoldMessenger，跨路由存活）→ 统计即时回退。
     await tester.tap(find.text(Copy.undoCheckIn));
     await tester.pumpAndSettle();
-    expect(find.text(Copy.todayPillActions(0)), findsOneWidget);
+    expect(find.text(Copy.todayRecordedNote(0, 1)), findsOneWidget);
     await db.close();
   });
 
@@ -243,24 +254,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 两枚记录钮：树序靠前 = 锻炼，靠后 = 阅读。第二卡在 390×844 下
-    // 位于底导航之下（已构建但不可命中），先滚动进视口再点。
-    final checkButtons = find.bySemanticsLabel(Copy.todayCheckAction);
-
-    // 只记锻炼 → 部分进展，不绽放。
-    await tester.tap(checkButtons.first);
+    // R7 动线：整卡进详情打卡。先只记锻炼 → 部分进展，不绽放。
+    await tester.tap(find.text('锻炼'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.todayRecordedNote(1, 2)), findsOneWidget);
     expect(find.text(Copy.celebrationTitle), findsNothing);
 
     // 补上阅读 → 上升沿，全屏成就时刻。
-    await tester.scrollUntilVisible(
-      checkButtons.last,
-      120,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.tap(find.text('阅读'));
     await tester.pumpAndSettle();
-    await tester.tap(checkButtons.last);
+    await tester.tap(find.text(Copy.todayCheckAction));
     await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.todayRecordedNote(2, 2)), findsOneWidget);
     expect(find.text(Copy.celebrationTitle), findsOneWidget);
 
     // 点按屏幕中央 → 退场（淡出后内容摘树）。
@@ -268,10 +279,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(Copy.celebrationTitle), findsNothing);
 
-    // 撤销阅读 → 离开全完成态（重臂）→ 再记 → 再次绽放。
+    // 撤销阅读（toast 在根 ScaffoldMessenger，跨路由存活）→ 离开全完成
+    // 态（重臂）→ 再进详情记一笔 → 再次绽放。
     await tester.tap(find.text(Copy.undoCheckIn));
     await tester.pumpAndSettle();
-    await tester.tap(checkButtons.last);
+    await tester.tap(find.text('阅读'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text(Copy.celebrationTitle), findsOneWidget);
     await db.close();
@@ -573,9 +589,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 长按目标行 → 弹出补签日历（过去两周）。
-    // .last：卡内图标中文标签（meal=好好吃饭）与目标名同名，标题在树序靠后。
-    await tester.longPress(find.text('好好吃饭').last);
+    // 长按目标卡 → 弹出补签日历（过去两周）。R7 统一卡不含图标中文名，
+    // 目标名在今日页唯一。
+    await tester.longPress(find.text('好好吃饭'));
     await tester.pumpAndSettle();
     expect(find.text(Copy.backfillCalendarTitle), findsOneWidget);
 

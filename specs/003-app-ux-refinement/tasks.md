@@ -205,7 +205,8 @@
 
 **Purpose**: 全量回归、入口收口、文档与交付
 
-- [ ] T040 V1–V8 全回归：001 quickstart 场景在新信息架构下全部走查（FR-017，允许入口等价调整不允许能力回退；打卡主路径 ≤2 交互）+ `flutter analyze && flutter test` 0 issue 全绿（69+ 存量 + 本特性新增）
+- [x] T040 V1–V8 全回归：001 quickstart 场景在新信息架构下全部走查（FR-017，允许入口等价调整不允许能力回退；打卡主路径 ≤2 交互）+ `flutter analyze && flutter test` 0 issue 全绿（69+ 存量 + 本特性新增）
+  - ✅ 2026-08-22：V1–V8 逐条映射归档 reviews.md——V1/V2/V5/V7/V8 直接既有用例覆盖（打卡主路径今日页 1 tap ≤2 交互）；V4 周回顾纯回看为 spec 裁决等价调整（决策控件随频率体系退役，呈现能力保留）；V6 忙碌模式同因随频率退役（数据保全 + 我的页只读行）；V3 小组件真机项归 T043、降级深链已代码层断言；analyze 0 + 128/128 绿
 - [ ] T041 深链与外部入口回归：`lib/app/router.dart` target:// 深链映射全走查（today/review/goal-{id} 不变、goal 无 id 兜底 /today）+ 通知 tap 落地页 + iOS 小组件 tap 入口在新路由下可达（spec 边界用例 7）
 - [ ] T042 [P] 文档收口：`design/reviews.md` 记录本特性全部送审/验收结论；`specs/003-app-ux-refinement/quickstart.md` 完成口径核对（SC-001~007 逐条）；spec.md Status 更新；memory 更新实现状态
 - [ ] T043 [P] 真机合并轮清单：整理用户侧动作清单（Codemagic 手动触发 `ios-unsigned` → iLoader 侧载）——核对点：新图标/启动屏（T028 资产首次真机亮相）、三 Tab 手感、通知到点语气、打卡动效帧率（quickstart 阶段 C；用户「顺带测试」合并轮）

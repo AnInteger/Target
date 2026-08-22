@@ -77,8 +77,8 @@ class GoalDetailPage extends ConsumerWidget {
           if (goal.isShortTerm) ...[
             const SizedBox(height: 12),
             _progressCard(context, goal, days, done, steps.length, color),
-            if (days < 0 && goal.status == GoalStatus.active)
-              _overdueCard(context, ref, goal),
+            if (days <= 0 && goal.status == GoalStatus.active)
+              _dueCard(context, ref, goal, days),
             const SizedBox(height: 16),
             _stepsSection(context, ref, steps),
             if (allDone && goal.status == GoalStatus.active) ...[
@@ -142,30 +142,41 @@ class GoalDetailPage extends ConsumerWidget {
     );
   }
 
-  /// 过期温和处理（FR-013：顺延或先放下，不指责）。
-  Widget _overdueCard(BuildContext context, WidgetRef ref, Goal goal) {
+  /// 到期/超期处理（003 D4：到点只提醒不判决——标记达成 / 续期
+  /// 双入口；不自动终结，超期持续提示且打卡条仍在）。
+  Widget _dueCard(BuildContext context, WidgetRef ref, Goal goal, int days) {
     return Card(
+      key: const ValueKey('goalDueCard'),
       color: Theme.of(context).colorScheme.tertiaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(Copy.milestoneOverdue,
+            Text(
+                days == 0
+                    ? Copy.shortTermDueAsk
+                    : Copy.milestoneOverdue, // 超期持续提示（温和）
                 style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 4),
             Row(children: [
               FilledButton.tonal(
-                onPressed: () => _postpone(context, ref, goal),
-                child: const Text(Copy.editorDeadline),
+                key: const ValueKey('goalMarkAchievedButton'),
+                onPressed: () async {
+                  await achieveGoal(ref, goal);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text(Copy.milestoneDone)));
+                    Navigator.of(context).pop(); // 与编辑器同款本地 pop
+                  }
+                },
+                child: const Text(Copy.goalMarkAchieved),
               ),
               const SizedBox(width: 8),
               TextButton(
-                onPressed: () async {
-                  await archiveGoal(ref, goal);
-                  if (context.mounted) context.pop();
-                },
-                child: const Text(Copy.milestoneCloseTitle),
+                key: const ValueKey('goalRenewButton'),
+                onPressed: () => _postpone(context, ref, goal),
+                child: const Text(Copy.goalRenewDeadline),
               ),
             ]),
           ],
@@ -241,15 +252,16 @@ class GoalDetailPage extends ConsumerWidget {
     );
   }
 
-  /// 温和顺延：新截止日自选，立即生效。
+  /// 温和续期（D4）：新截止日自选，立即生效；超期目标锚定今天起选。
   Future<void> _postpone(
       BuildContext context, WidgetRef ref, Goal goal) async {
+    final first = DateTime.now();
+    final base = goal.deadline?.atStartOfDay ?? first;
     final picked = await showDatePicker(
       context: context,
-      initialDate: goal.deadline?.atStartOfDay ??
-          DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      initialDate: base.isBefore(first) ? first : base,
+      firstDate: first,
+      lastDate: first.add(const Duration(days: 365 * 5)),
     );
     if (picked == null) return;
     await ref

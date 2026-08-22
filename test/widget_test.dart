@@ -757,6 +757,105 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T029 到期询问：到点不终结——双入口在场 + 标记达成写 achievedAt（D4）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(Goal(
+      name: '三个月内考过日语 N2',
+      goalType: GoalType.shortTerm,
+      iconKey: 'school',
+      colorKey: 'teal',
+      createdAt: today,
+      deadline: today, // 到日子了
+    ));
+    final navKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          navigatorKey: navKey,
+          home: const Scaffold(body: Text('root')),
+        ),
+      ),
+    );
+    navKey.currentState!.push(MaterialPageRoute(
+        builder: (_) => GoalDetailPage(goalId: goal.id)));
+    await tester.pumpAndSettle();
+
+    // 到期卡：只提醒不判决——「到日子了，怎么样？」+ 双入口；打卡条仍在。
+    expect(find.byKey(const ValueKey('goalDueCard')), findsOneWidget);
+    expect(find.text(Copy.shortTermDueAsk), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('goalMarkAchievedButton')), findsOneWidget);
+    expect(find.byKey(const ValueKey('goalRenewButton')), findsOneWidget);
+    expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
+
+    // 标记达成 → 写 achievedAt（通知列达成事件源）+ pop 回 root。
+    await tester.tap(find.byKey(const ValueKey('goalMarkAchievedButton')));
+    await tester.pumpAndSettle();
+    final saved = (await repo.getGoals()).single;
+    expect(saved.status, GoalStatus.achieved);
+    expect(saved.achievedAt, isNotNull);
+    expect(find.text('root'), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('T029 超期：持续提示 + 仍可打卡 + 续期改 deadline（FR-018/D4）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(Goal(
+      name: '读完一本书',
+      goalType: GoalType.shortTerm,
+      iconKey: 'menu_book',
+      colorKey: 'sky',
+      createdAt: today.addDays(-10),
+      deadline: today.addDays(-2), // 已过 2 天，不自动终结
+    ));
+    final navKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          navigatorKey: navKey,
+          home: const Scaffold(body: Text('root')),
+        ),
+      ),
+    );
+    navKey.currentState!.push(MaterialPageRoute(
+        builder: (_) => GoalDetailPage(goalId: goal.id)));
+    await tester.pumpAndSettle();
+
+    // 超期持续提示（温和）+ 打卡条可用。
+    expect(find.byKey(const ValueKey('goalDueCard')), findsOneWidget);
+    expect(find.text(Copy.milestoneOverdue), findsOneWidget);
+    expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
+
+    // 续期：日期选择器锚定今天 → 确认 → deadline 落库、卡仍在（温和询问）。
+    await tester.tap(find.byKey(const ValueKey('goalRenewButton')));
+    await tester.pumpAndSettle();
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect((await repo.getGoals()).single.deadline, today); // -2 → 今天
+    expect(find.text(Copy.milestonePostponed), findsOneWidget);
+    expect(find.text(Copy.shortTermDueAsk), findsOneWidget); // days=0 仍在
+
+    // 超期仍可打卡（FR-018：到点不自动终结、记录不受影响）。
+    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.pumpAndSettle();
+    expect((await CheckInRepository(db).all()).where((c) => c.isValid),
+        hasLength(1));
+    await db.close();
+  });
+
   test('T027 模板策展：三类型齐备 + iconKey 全 v3 值域 + 无颜色/频率载荷', () {
     // 三类型都有代表模板（003 三类型语言）。
     expect(kHabitTemplates, isNotEmpty);

@@ -43,9 +43,10 @@ Future<void> resumeGoal(BuildContext context, WidgetRef ref, Goal goal) async {
   }
 }
 
-/// 达成关闭（FR-010，仅里程碑）。
+/// 达成关闭（FR-010；003 D4：写 achievedAt——通知列表达成事件源）。
 Future<void> achieveGoal(WidgetRef ref, Goal goal) =>
-    ref.read(goalRepoProvider).update(goal.copyWith(status: GoalStatus.achieved));
+    ref.read(goalRepoProvider).update(goal.copyWith(
+        status: GoalStatus.achieved, achievedAt: DateTime.now()));
 
 /// 归档（FR-010）：终态但历史保留。
 Future<void> archiveGoal(WidgetRef ref, Goal goal) async {

@@ -141,6 +141,10 @@ abstract final class Copy {
   static const milestoneCloseTitle = '先放下';
   static const milestoneCloseAck = '这个目标先收进抽屉，不打分';
 
+  // 短期到期处理（003 D4：到点只提醒不判决——标记达成/续期双入口）。
+  static const goalMarkAchieved = '标记达成';
+  static const goalRenewDeadline = '续期';
+
   // ---- 提醒 / 通知（FR-006/007）----
 
   static const notifDeniedTitle = '通知未开启';

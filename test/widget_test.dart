@@ -983,9 +983,12 @@ void main() {
     expect(find.text(Copy.todayNav), findsOneWidget);
     expect(router.routerDelegate.currentConfiguration.uri.path, '/today');
 
-    // 深链：goal 无 id 兜底 /today；带 id 落详情（today 分支）。
+    // 深链：goal 无 id 兜底 /today；带 id 落详情（today 分支）；
+    // today/review 映射不变（003 T041 全量走查）。
     expect(mapDeepLink(Uri.parse('target://goal')), '/today');
     expect(mapDeepLink(Uri.parse('target://goal/g1')), '/goal/g1');
+    expect(mapDeepLink(Uri.parse('target://today')), '/today');
+    expect(mapDeepLink(Uri.parse('target://review')), '/review');
 
     await db.close();
   });
@@ -2053,6 +2056,56 @@ void main() {
         find.text('${Copy.typeBadgeShortTerm} · '
             '${Copy.milestoneCountdown(12)}'),
         findsOneWidget);
+    await db.close();
+  });
+
+  // 003 T041：通知 tap 落地页——sheet 条目 tap → /goal/{id} 详情，
+  // 落 today 分支（页签不退场）；小组件 widgetURL 同走 mapDeepLink
+  // （上用例已断言），真机行为归 T043 清单。
+  testWidgets('T041 通知落地：sheet 条目 tap → 目标详情，页签不退场',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goal = await GoalRepository(db).create(Goal(
+      name: '睡前拉伸',
+      goalType: GoalType.habit,
+      iconKey: 'self_improvement',
+      colorKey: 'teal',
+      createdAt: today,
+    ));
+    await ReminderRepository(db).upsert(Reminder(
+        id: 'r-stretch', goalId: goal.id, time: const LocalTime(9, 0)));
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider
+              .overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 今日头部铃铛 → sheet：行提醒条目在场（标题 = 目标名）。
+    await tester.tap(find.byTooltip(Copy.notificationTitle));
+    await tester.pumpAndSettle();
+    // 遮罩下今日卡同名：条目限定 sheet 内查找（今日/明日各一条行提醒）。
+    final sheetEntries = find.descendant(
+        of: find.byType(BottomSheet), matching: find.text('睡前拉伸'));
+    expect(sheetEntries, findsNWidgets(2));
+
+    // tap 条目 → 落地目标详情（打卡动线在场 = 详情页标识），页签不退场。
+    await tester.tap(sheetEntries.first);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
+    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.text(Copy.mineNav), findsOneWidget);
     await db.close();
   });
 }

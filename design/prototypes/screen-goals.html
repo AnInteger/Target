@@ -72,6 +72,8 @@
   .gl-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
                padding: var(--space-2) var(--space-6) var(--space-4);
                display: flex; flex-direction: column; gap: var(--space-3); }
+  /* 纵向 flex 子项一律不缩（同 screen-settings，T007 R1 反馈 2 同款封死） */
+  .gl-scroll > * { flex-shrink: 0; }
   .gl-scroll::-webkit-scrollbar { display: none; }
 
   /* 顶下小结（努力语言） */

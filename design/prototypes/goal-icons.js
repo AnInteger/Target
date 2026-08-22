@@ -3,7 +3,7 @@
    ------------------------------------------------------------
    字形源：Material Symbols Rounded 24px 默认实例（wght400/FILL0）
      —— 与 Flutter Icons.*_rounded 同源同形（Apache 2.0）
-   用法：<svg class="gi" viewBox="0 0 24 24" aria-hidden="true"><path d="..."/></svg>
+   用法：<svg class="gi" viewBox="0 -960 960 960" aria-hidden="true"><path d="..."/></svg>
      原型侧经 gi('directions_bike') 生成；key 即 iconKey 持久化值域
    消费者：design/prototypes/screen-today/editor/settings.html
    ============================================================ */
@@ -62,11 +62,13 @@ const GOAL_ICONS = {
   pets: { domain: "pets", d: "M180-475q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29Zm180-160q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29Zm240 0q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29Zm180 160q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29ZM266-75q-45 0-75.5-34.5T160-191q0-52 35.5-91t70.5-77q29-31 50-67.5t50-68.5q22-26 51-43t63-17q34 0 63 16t51 42q28 32 49.5 69t50.5 69q35 38 70.5 77t35.5 91q0 47-30.5 81.5T694-75q-54 0-107-9t-107-9q-54 0-107 9t-107 9Z" },
 };
 
-/* 渲染 helper：返回 <svg> 元素（fill=currentColor，随文本色） */
+/* 渲染 helper：返回 <svg> 元素（fill=currentColor，随文本色）。
+   viewBox 必须是 Material Symbols 原生 0..960 网格（y 轴 -960..0）——
+   曾误设 "0 0 24 24" 致全部图标画在视口外不可见（T007 R1 反馈 4）。 */
 function gi(name, size = 24) {
   const meta = GOAL_ICONS[name];
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("viewBox", "0 -960 960 960");
   svg.setAttribute("width", size); svg.setAttribute("height", size);
   svg.setAttribute("fill", "currentColor");
   svg.setAttribute("aria-hidden", "true");

@@ -7,14 +7,16 @@
 <link rel="stylesheet" href="../tokens.css?v=0822a">
 <style>
   /* ============================================================
-     今日屏原型（003 · T002 · R5 · 三 Tab 收敛版）
+     今日屏原型（003 · T002 · R5 · 三 Tab 收敛版，T007 R1 修订）
      - 取值 100% 来自 ../tokens.css（SC-004）
      - 003 结构：三页签（今日/回顾/我的，目标页退役）；
        头部同图层 44px 带（左账号区 | 中日期语 | 右铃铛角标+＋），
        三屏标题对齐基准 = 本带左缘 space-6 缩进 + 顶缘（FR-008）
      - 环语义 0→1「今天记录了吗」（D2，当日 ≥1 次打卡即满）；
-       类型微标落目标卡（习惯节律点 / 短期倒计时 chip / 长期 ∞）
-     - 画板：典型(可交互·含资料/通知双 sheet)/空态/全部已记录 + 深色×2
+       T007 R1 裁决 3：环卡收紧、环缩 96、环内无内容
+     - 目标卡：图标 + 标题 + 类型微标 + 最新进度行 + 单一「记录」按钮
+       （进目标详情打卡/补签——detail sheet 示意；无「今日 N 次」pill）
+     - 画板：典型(可交互·含资料/通知/详情三 sheet)/空态/全部已记录 + 深色×2
      ============================================================ */
 
   /* hidden 属性兜底：防止组件 display 覆盖 UA 的 [hidden] */
@@ -138,11 +140,12 @@
     box-shadow: 0 0 0 2px var(--surface);
   }
 
-  /* ---- 今日之环（0→1「今天记录了吗」，D2 口径）---- */
+  /* ---- 今日之环（0→1「今天记录了吗」，D2 口径；T007 R1 裁决 3：
+         卡片收紧、环缩至 96、环内不放内容——语义全由环色与右侧统计承载）---- */
   .st-hero {
     background: var(--accent); color: var(--accent-on);
-    border-radius: var(--radius-lg); padding: var(--space-5);
-    margin-top: var(--space-5); margin-bottom: var(--space-6);
+    border-radius: var(--radius-lg); padding: var(--space-4);
+    margin-top: var(--space-4); margin-bottom: var(--space-5);
     box-shadow: var(--shadow-mid);
   }
   [data-theme="dark"] .st-hero {
@@ -156,21 +159,13 @@
   }
   .st-hero-title { font: var(--font-body-m); color: var(--on-surface-variant);
                    margin-bottom: var(--space-3); }
-  .st-hero-body { display: flex; align-items: center; gap: var(--space-6); }
-  .st-ring { position: relative; width: 130px; height: 130px; flex: none; }
+  .st-hero-body { display: flex; align-items: center; gap: var(--space-5); }
+  .st-ring { position: relative; width: 96px; height: 96px; flex: none; }
   .st-ring svg { display: block; }
   .st-ring .track { stroke: var(--accent-on); opacity: .15; }
   [data-theme="dark"] .st-ring .track { stroke: var(--on-surface); opacity: .15; }
   .st-ring .bar { stroke: var(--positive-fill);
                   transition: stroke-dashoffset var(--motion-slow) var(--ease-standard); }
-  .st-ring .center { position: absolute; inset: 14px; display: flex; flex-direction: column;
-                     align-items: center; justify-content: center; text-align: center;
-                     padding: 0 var(--space-2); }
-  .st-ring .center b { display: block; font: var(--font-title-m); line-height: 1.25;
-                       color: var(--on-surface); }
-  .st-ring .center small { display: block; font: var(--font-label); line-height: 1.3;
-                           margin-top: var(--space-1);
-                           color: var(--on-surface-variant); }
   .st-stats { flex: 1; display: flex; flex-direction: column; gap: var(--space-3); }
   .st-stat { display: flex; align-items: center; gap: var(--space-2); }
   .st-stat svg { flex: none; width: 14px; height: 14px; color: var(--on-surface-variant); }
@@ -225,31 +220,27 @@
   }
   .st-kind.short.due-soon { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 40%, transparent); }
   .st-side { display: flex; flex-direction: column; align-items: flex-end;
-             gap: var(--space-2); flex: none; }
-  .st-count { font: var(--font-body-s); color: var(--on-surface-variant);
-              white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .st-count b { font-weight: 700; color: var(--on-surface); }
+             justify-content: center; gap: var(--space-2); flex: none; }
+  /* 最新进度行（T007 R1 裁决 3：卡片补「最近 · …」，替代计数 pill） */
+  .st-latest { font: var(--font-body-s); color: var(--on-surface-variant);
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .st-card.done .st-latest { color: var(--positive); }
 
-  /* 打卡钮：未记录 = 黑底白＋，已记录 = 青柠底白对勾（002 语言全保留） */
-  .st-check {
-    width: 32px; height: 32px; border-radius: var(--radius-full); border: none;
-    background: var(--accent); color: var(--accent-on); cursor: pointer;
-    display: grid; place-items: center; flex: none;
-    transition: background-color var(--motion-base) var(--ease-standard),
-                transform var(--motion-fast) var(--ease-standard);
+  /* 「记录」按钮（T007 R1 裁决 3：卡上唯一动作 = 进目标详情页，
+     打卡/补签在详情完成——原型以详情 sheet 示意目的地） */
+  .st-go {
+    display: inline-flex; align-items: center; gap: 4px;
+    border: none; cursor: pointer; flex: none;
+    background: var(--accent); color: var(--accent-on);
+    font: var(--font-body-s); font-weight: 700;
+    border-radius: var(--radius-full); padding: var(--space-2) var(--space-3);
+    transition: transform var(--motion-fast) var(--ease-standard),
+                background-color var(--motion-base) var(--ease-standard);
   }
-  .st-check:active { transform: scale(.86); }
-  .st-check:focus-visible { outline: 2px solid var(--accent-on); outline-offset: 2px; }
-  .st-check.done { background: var(--positive-fill); color: var(--positive-on); }
-  .st-check .plus { display: block; }
-  .st-check .tickmark { display: none; }
-  .st-check.done .plus { display: none; }
-  .st-check.done .tickmark { display: block; }
-  .st-check .tickmark path {
-    stroke-dasharray: 24; stroke-dashoffset: 24;
-    transition: stroke-dashoffset var(--motion-base) var(--ease-standard);
-  }
-  .st-check.done .tickmark path { stroke-dashoffset: 0; }
+  .st-go:active { transform: scale(.93); }
+  .st-go:focus-visible { outline: 2px solid var(--positive); outline-offset: 2px; }
+  .st-go svg { width: 12px; height: 12px; }
+  .st-card.done .st-go { background: var(--positive-fill); color: var(--positive-on); }
 
   /* ---- 空态邀请卡 ---- */
   .st-empty {
@@ -363,6 +354,18 @@
     padding: var(--space-3) 0;
   }
 
+  /* 目标详情 sheet（T007 R1 裁决 3 示意：记录的目的地——详情页） */
+  .dt-head { display: flex; align-items: center; gap: var(--space-3);
+             margin-bottom: var(--space-3); }
+  .dt-head .st-gicon { width: 48px; height: 48px; }
+  .dt-head .st-gicon svg { width: 26px; height: 26px; }
+  .dt-head h6 { font: var(--font-title-s); color: var(--on-surface); margin: 0;
+                line-height: 1.4; }
+  .dt-latest { font: var(--font-body-m); color: var(--on-surface-variant);
+               margin: 0 0 var(--space-4); }
+  .dt-hint { font: var(--font-body-s); color: var(--on-surface-variant);
+             text-align: center; margin: var(--space-3) 0 0; line-height: 1.6; }
+
   /* 通知列表 sheet：按天分组、时间倒序、类型图标 + 标题 + 相对时间 */
   .nt-day { font: var(--font-label); color: var(--on-surface-variant);
             margin: var(--space-3) 0 var(--space-1); }
@@ -442,7 +445,7 @@
 <h1 class="pt-title">今日屏 · R5 原型（三 Tab 收敛）</h1>
 <p class="pt-sub">「柔彩仪表盘」· 003 结构精修——目标页退役，职能并入今日页卡<br>
 头部同图层 44px 带（账号区 | 日期 | 铃铛角标＋新建）· 环语义 0→1「今天记录了吗」· 类型徽章（习惯节律点 / 短期倒计时 / 长期 ∞）<br>
-点目标卡打卡；点左上头像弹资料编辑、点铃铛弹通知列表（推导式四源混排）</p>
+点目标卡或「记录」按钮进目标详情（sheet 示意）打卡；点左上头像弹资料编辑、点铃铛弹通知列表（推导式四源混排）</p>
 
 <nav class="shellmap">
   <h2>导航壳层示意（三 Tab · FR-001）</h2>
@@ -485,16 +488,15 @@
       </span>
     </div>
 
-    <!-- 今日之环：0→1「今天记录了吗」 -->
+    <!-- 今日之环：0→1（环内无内容，T007 R1 裁决 3） -->
     <div class="st-hero">
       <div class="st-hero-title">今日之环</div>
       <div class="st-hero-body">
         <div class="st-ring">
-          <svg width="130" height="130" viewBox="0 0 130 130">
-            <circle class="track" cx="65" cy="65" r="52" fill="none" stroke-width="10"/>
-            <circle class="bar" data-ringbar cx="65" cy="65" r="52" fill="none" stroke-width="10" stroke-linecap="round"/>
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle class="track" cx="48" cy="48" r="38" fill="none" stroke-width="8"/>
+            <circle class="bar" data-ringbar cx="48" cy="48" r="38" fill="none" stroke-width="8" stroke-linecap="round"/>
           </svg>
-          <div class="center"><b data-ring-main>今天记录了吗</b><small data-ring-sub>任一目标记一次即点亮</small></div>
         </div>
         <div class="st-stats">
           <div class="st-stat">
@@ -565,6 +567,24 @@
     </div>
   </div>
 
+  <!-- 目标详情 sheet（T007 R1 裁决 3：卡片「记录」按钮的目的地示意——
+       真实形态为既有目标详情页：打卡 + 补签两周日历 + 历史记录） -->
+  <div class="st-sheet" data-sheet-detail hidden>
+    <div class="scrim" data-close></div>
+    <div class="panel">
+      <div class="grip"></div>
+      <h5>目标详情</h5>
+      <div class="dt-head">
+        <span class="st-gicon" data-dt-icon></span>
+        <h6 data-dt-title></h6>
+      </div>
+      <span data-dt-kind></span>
+      <p class="dt-latest" data-dt-latest></p>
+      <button class="pf-done" type="button" data-dt-check>记一次</button>
+      <p class="dt-hint">补签、历史与管理都在详情页——这里为原型示意</p>
+    </div>
+  </div>
+
   <!-- 通知列表 sheet（FR-005 · D6 推导式：提醒/成就/streak/到期询问四源混排） -->
   <div class="st-sheet" data-sheet-notif hidden>
     <div class="scrim" data-close></div>
@@ -584,24 +604,31 @@
 <script>
 /* ---------- 演示数据（003：三类型 × 一句话描述 × 图标库） ---------- */
 const GOALS = [
-  { icon: 'directions_bike', kind: 'longTerm',
+  { icon: 'directions_bike', kind: 'longTerm', lastDay: 1,
     title: '为了夏天能骑完环湖线，保持长距离训练' },
-  { icon: 'pool', kind: 'shortTerm', due: 2,
+  { icon: 'pool', kind: 'shortTerm', due: 2, lastDay: 2,
     title: '假期前拿下 OW 潜水证' },
-  { icon: 'self_improvement', kind: 'habit',
+  { icon: 'self_improvement', kind: 'habit', lastDay: 1,
     title: '睡前冥想十分钟' },
-  { icon: 'hiking', kind: 'shortTerm', due: 70,
+  { icon: 'hiking', kind: 'shortTerm', due: 70, lastDay: 3,
     title: '十一月冈仁波齐徒步成行' },
 ];
 const KIND_LABEL = { habit: '习惯', shortTerm: '短期', longTerm: '长期' };
 const STREAK = 12;          // 演示：连续记录天数
 const TODAY_BADGE = 3;      // 演示：今日新增推导条目数
-const RING_CIRC = 2 * Math.PI * 52;
+const RING_CIRC = 2 * Math.PI * 38;
+
+/* 最新进度文案（T014 copy 层同款）：今日有记录 → 今天；否则回退演示档 */
+function latestLabel(g, todayCount) {
+  if (todayCount > 0) return '最近 · 今天';
+  if (!g.lastDay && g.lastDay !== 0) return '还没有记录';
+  return g.lastDay === 1 ? '最近 · 昨天' : `最近 · ${g.lastDay} 天前`;
+}
 
 const BOARDS = [
   { id: 'typical', theme: 'light', state: 'typical', interactive: true,
     title: '① 典型态（可交互）',
-    desc: '点目标卡打卡：环 0→1 当日点亮（slow450 推进）、统计与徽章联动，全部目标有记录触发成就时刻。点左上头像弹「我的资料」sheet（昵称+8 预设头像），点铃铛弹通知列表（提醒/成就/streak/到期询问四源混排）。' },
+    desc: '点目标卡或「记录」按钮 → 目标详情 sheet，「记一次」后环 0→1 当日点亮（slow450 推进）、最新进度与统计徽章联动，全部目标有记录触发成就时刻。点左上头像弹「我的资料」sheet（昵称+8 预设头像），点铃铛弹通知列表（提醒/成就/streak/到期询问四源混排）。' },
   { id: 'empty', theme: 'light', state: 'empty',
     title: '② 空态',
     desc: '无目标：环区与节奏条隐去，列表位让给虚线邀请卡；铃铛角标无推导项时隐藏。' },
@@ -632,6 +659,8 @@ function kindBadge(g) {
   return `<span class="st-kind">∞ ${KIND_LABEL.longTerm}</span>`;
 }
 
+/* 目标卡（T007 R1 裁决 3）：图标 + 标题 + 类型徽章 + 最新进度 + 单一「记录」按钮。
+   卡上不再内嵌打卡与「今日 N 次」——打卡在目标详情页（原型以 detail sheet 示意）。 */
 function scaffoldCard(g, board, st) {
   const idx = GOALS.indexOf(g);
   const card = document.createElement('div');
@@ -644,32 +673,50 @@ function scaffoldCard(g, board, st) {
       <span class="st-main">
         <h3 class="st-title">${g.title}</h3>
         ${kindBadge(g)}
+        <span class="st-latest" data-latest></span>
       </span>
       <span class="st-side">
-        <span class="st-count"></span>
-        <button class="st-check" type="button" aria-label="记录一次">
-          <svg class="plus" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          <svg class="tickmark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 13l4 4 10-10"/></svg>
+        <button class="st-go" type="button" aria-label="打开目标详情去记录">
+          记录
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
         </button>
       </span>
     </div>`;
   const gicon = card.querySelector('[data-gicon]');
   gicon.appendChild(gi(g.icon, 22));
-  const doCheck = (e) => {
+  const openDetail = (e) => {
     e.stopPropagation();
-    if (!board.interactive) return;
-    st.today[idx]++;
-    render(board);
+    openDetailSheet(board, idx);
   };
-  card.querySelector('.st-check').addEventListener('click', doCheck);
-  card.addEventListener('click', (e) => {
-    if (e.target.closest('.st-check')) return;
-    doCheck(e);
-  });
+  card.querySelector('.st-go').addEventListener('click', openDetail);
+  card.addEventListener('click', openDetail);
   card.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doCheck(e); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(e); }
   });
   return card;
+}
+
+/* 详情 sheet（示意目的地）：记一次 = 详情页打卡，回卡后最新进度/环联动 */
+function openDetailSheet(board, idx) {
+  const phone = board.el;
+  const sheet = phone.querySelector('[data-sheet-detail]');
+  const g = GOALS[idx];
+  const ico = sheet.querySelector('[data-dt-icon]');
+  ico.innerHTML = ''; ico.appendChild(gi(g.icon, 26));
+  sheet.querySelector('[data-dt-title]').textContent = g.title;
+  sheet.querySelector('[data-dt-kind]').innerHTML = kindBadge(g);
+  sheet.querySelector('[data-dt-latest]').textContent =
+    latestLabel(g, board.st.today[idx]);
+  const btn = sheet.querySelector('[data-dt-check]');
+  const cloned = btn.cloneNode(true);          // 换新节点清旧监听（板间隔离）
+  btn.replaceWith(cloned);
+  cloned.addEventListener('click', () => {
+    if (!board.interactive) return;
+    board.st.today[idx]++;
+    closeSheet(sheet);
+    render(board);
+  });
+  openSheet(phone, '[data-sheet-detail]');
 }
 
 /* 周节奏微条：近 7 天滚动窗（历史 6 天 + 今天），今天高亮描边 */
@@ -780,9 +827,6 @@ function render(board) {
   const bar = q('[data-ringbar]');
   bar.style.strokeDasharray = RING_CIRC.toFixed(1);
   bar.style.strokeDashoffset = (RING_CIRC * (lit ? 0 : 1)).toFixed(1);
-  q('[data-ring-main]').textContent = n === 0 ? '—' : (lit ? '今天已记录' : '今天记录了吗');
-  q('[data-ring-sub]').textContent = n === 0 ? '暂无目标'
-    : (lit ? `${doneGoals}/${n} 个目标有记录` : '任一目标记一次即点亮');
   q('[data-actions]').textContent = actions;
   q('[data-streak]').textContent = n ? STREAK : 0;
   q('[data-goals]').textContent = n;
@@ -806,9 +850,7 @@ function render(board) {
     const cards = [...q('[data-cards]').children];
     st.today.forEach((t, i) => {
       const card = cards[i];
-      card.querySelector('.st-count').innerHTML = `今日 <b>${t}</b> 次`;
-      card.querySelector('.st-check').classList.toggle('done', t > 0);
-      card.querySelector('.st-check').setAttribute('aria-pressed', t > 0);
+      card.querySelector('[data-latest]').textContent = latestLabel(GOALS[i], t);
       card.classList.toggle('done', t > 0);
     });
     // 今日节奏格随打卡点亮
@@ -912,7 +954,7 @@ function rebuildCards(phone, board) {
     tag.style.top = (a.top - p.top + dy) + 'px';
   };
   place('↳ slow 450', phone.querySelector('[data-ringbar]'), -96, 52);
-  place('↳ fast 150 / base 250', phone.querySelector('.st-card .st-check'), -140, 44);
+  place('↳ fast 150 / base 250', phone.querySelector('.st-card .st-go'), -140, 44);
 })();
 </script>
 </body>

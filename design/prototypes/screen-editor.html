@@ -7,12 +7,13 @@
 <link rel="stylesheet" href="../tokens.css?v=0820f">
 <style>
   /* ============================================================
-     目标编辑器原型（003 · T003 · R2 · 三类型分组折叠）
+     目标编辑器原型（003 · T003 · R2 · 三类型分组，T007 R1 修订）
      - 取值 100% 来自 ../tokens.css（SC-004）；图标经 goal-icons.js
-     - FR-011 分组折叠：基础信息 / 目标类型 / 图标 三组卡片
+     - FR-011 图标区置顶平铺：每领域一行横向滑动即见即选，无折叠；
+       其下基础信息 / 目标类型 两组可折叠
      - FR-012 无频率问答：类型改 长期|短期|习惯 分段，切型联动显隐
      - FR-013 提醒开关化：习惯/长期共用开关区，三档频率 + 时间
-     - FR-015 图标库九宫格按领域分区，无颜色步
+     - FR-015 图标库按领域平铺分区，无颜色步
      - FR-010 编辑器在 today 分支：底部三页签导航全程可见
      - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
@@ -101,6 +102,9 @@
   .grp-h .chev { width: 16px; height: 16px; color: var(--on-surface-variant); flex: none;
                  transition: transform var(--motion-base) var(--ease-standard); }
   .ed-card[data-collapsed] .chev { transform: rotate(-90deg); }
+  /* 静态组头（图标组置顶平铺用——不折叠，T007 R1 裁决 1） */
+  .grp-static { display: flex; align-items: center; gap: var(--space-2);
+                padding: var(--space-4) var(--space-4) 0; }
   .grp-b { display: flex; flex-direction: column; gap: var(--space-3);
            padding: var(--space-3) var(--space-4) var(--space-4);
            animation: rise var(--motion-base) var(--ease-standard); }
@@ -180,14 +184,15 @@
                                  border-color: var(--positive-fill); }
   .switch[aria-checked="true"]::after { transform: translateX(18px); }
 
-  /* 图标九宫格（按领域分区） */
-  .dom { display: flex; flex-direction: column; gap: var(--space-2); }
-  .dom + .dom { margin-top: var(--space-3); }
-  .dom-name { font: var(--font-label); letter-spacing: .08em;
-              color: var(--on-surface-variant); }
-  .icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-               gap: var(--space-2); }
-  .ico { height: 48px; border-radius: var(--radius-md); cursor: pointer;
+  /* 图标平铺（T007 R1 裁决 1：置顶、每领域一行横向平铺滑动，无折叠/下拉） */
+  .dom-row { display: flex; align-items: center; gap: var(--space-3); }
+  .dom-row + .dom-row { margin-top: var(--space-2); }
+  .dom-name { font: var(--font-label); letter-spacing: .06em;
+              color: var(--on-surface-variant); width: 3em; flex: none; }
+  .icon-strip { display: flex; gap: var(--space-2); flex: 1; min-width: 0;
+                overflow-x: auto; scrollbar-width: none; }
+  .icon-strip::-webkit-scrollbar { display: none; }
+  .ico { width: 44px; height: 44px; flex: none; border-radius: var(--radius-md); cursor: pointer;
          border: 1px solid var(--divider); background: var(--surface);
          display: flex; align-items: center; justify-content: center;
          color: var(--on-surface-variant); padding: 0;
@@ -247,18 +252,18 @@
 
 <h1 class="pt-title">目标编辑器 · R2 三类型分组</h1>
 <p class="pt-sub">
-  003 编辑器重构：三分组折叠（基础信息一句话 / 类型分段 / 图标九宫格），
-  类型改 长期 · 短期 · 习惯——无频率问答、无为什么怎样算、无颜色步（FR-011~015）。
+  003 编辑器重构（T007 R1 修订）：图标置顶——每领域一行平铺滑动即见即选，无折叠下拉；
+  其下基础信息一句话 + 类型分段，类型改 长期 · 短期 · 习惯——无频率问答、无为什么怎样算、无颜色步（FR-011~015）。
   提醒开关化：一天 / 三天 / 一周一次 + 时间（FR-013）。编辑器挂在今日页签下，底部导航全程可见（FR-010）。
 </p>
 
 <nav class="shellmap" aria-label="编辑器结构">
-  <h2>表单结构（分组折叠）</h2>
+  <h2>表单结构（图标置顶平铺）</h2>
   <div class="flow">
+    <div class="node"><b>图标</b>每领域一行 平铺滑动</div><span class="arrow">→</span>
     <div class="node"><b>基础信息</b>一句话描述 40 字</div><span class="arrow">→</span>
     <div class="node"><b>目标类型</b>长期 | 短期 | 习惯 分段</div><span class="arrow">→</span>
     <div class="node"><b>类型联动</b>短期→截止必填 / 习惯·长期→提醒开关</div><span class="arrow">→</span>
-    <div class="node"><b>图标</b>领域分区九宫格</div><span class="arrow">→</span>
     <div class="node"><b>保存</b>常驻导航条上方</div>
   </div>
 </nav>
@@ -326,6 +331,14 @@
 
   <div class="ed-scroll form" data-type="short">
 
+    <!-- 分组〇（置顶）：图标——每领域一行平铺滑动，静态头无折叠（T007 R1 裁决 1） -->
+    <div class="ed-card">
+      <div class="grp-static">
+        <span class="ed-lab">图标<span class="hint">按领域挑一个，不选也行</span></span>
+      </div>
+      <div class="grp-b" data-icon-scroll></div>
+    </div>
+
     <!-- 分组一：基础信息（一句话描述） -->
     <div class="ed-card">
       <button class="grp-h" type="button" aria-expanded="true">
@@ -388,16 +401,7 @@
       </div>
     </div>
 
-    <!-- 分组三：图标（领域分区九宫格） -->
-    <div class="ed-card">
-      <button class="grp-h" type="button" aria-expanded="true">
-        <span class="ed-lab">图标<span class="hint">按领域挑一个，不选也行</span></span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <div class="grp-b" data-icon-scroll></div>
-    </div>
+    <!-- 分组三（已退役）：图标原为底部折叠九宫格——T007 R1 裁决 1 改置顶平铺，见分组〇 -->
   </div>
 
   <!-- 保存：常驻底部（导航条上方） -->
@@ -441,27 +445,27 @@ const BOARDS = [
     name: '三个月内考过日语 N2', switchOn: false, cadence: 'daily', time: '09:00' },
 ];
 
-/* ---------- 图标九宫格（按领域分区） ---------- */
+/* ---------- 图标平铺（T007 R1 裁决 1：每领域一行横向平铺滑动） ---------- */
 function buildIconGrid(box, selectedKey) {
   for (const [dom, domName] of Object.entries(GOAL_ICON_DOMAINS)) {
     const keys = Object.keys(GOAL_ICONS).filter(k => GOAL_ICONS[k].domain === dom);
     if (!keys.length) continue;
-    const sec = document.createElement('div');
-    sec.className = 'dom';
+    const row = document.createElement('div');
+    row.className = 'dom-row';
     const nm = document.createElement('span');
     nm.className = 'dom-name'; nm.textContent = domName;
-    const grid = document.createElement('div');
-    grid.className = 'icon-grid';
+    const strip = document.createElement('div');
+    strip.className = 'icon-strip';
     keys.forEach(k => {
       const b = document.createElement('button');
       b.className = 'ico'; b.type = 'button';
       b.setAttribute('aria-label', `图标 ${k}`);
       b.dataset.key = k;
       b.appendChild(gi(k, 22));
-      grid.appendChild(b);
+      strip.appendChild(b);
     });
-    sec.append(nm, grid);
-    box.appendChild(sec);
+    row.append(nm, strip);
+    box.appendChild(row);
   }
   if (selectedKey) {
     const hit = box.querySelector(`[data-key="${selectedKey}"]`);

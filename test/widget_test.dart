@@ -1,8 +1,9 @@
 // App Shell 冒烟测试（T014 + T022）：内存库启动 → 空库首启进引导页（SC-001）。
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show MigrationStrategy, Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,6 +72,53 @@ class FakeShareGateway implements ShareGateway {
   }) async {
     exported.add(fileName);
   }
+}
+
+/// 003 T038 终查：v2 存量库（goals 带 kind/envelope、关联表 v2 形态）。
+/// 与 migration_test 的 _V2Database 同构——文件库升级启动走真实 onUpgrade。
+class _LegacyV2Database extends AppDatabase {
+  _LegacyV2Database(super.e);
+
+  @override
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "goals" ("id" TEXT NOT NULL '
+              'PRIMARY KEY, "name" TEXT NOT NULL, "kind" TEXT NOT NULL, '
+              '"icon_key" TEXT NOT NULL, "color_key" TEXT NOT NULL, '
+              '"status" TEXT NOT NULL, "created_at" TEXT NOT NULL, '
+              '"deadline" TEXT NULL, "motivation" TEXT NULL, '
+              '"success_criterion" TEXT NULL, "cue_scene" TEXT NULL)');
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "reminders" ("id" TEXT NOT NULL '
+              'PRIMARY KEY, "goal_id" TEXT NULL, "time" TEXT NOT NULL, '
+              '"is_enabled" INTEGER NOT NULL)');
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "settings_rows" ("id" INTEGER NOT '
+              'NULL PRIMARY KEY, "daily_brief_time" TEXT NOT NULL, '
+              '"onboarding_completed" INTEGER NOT NULL, '
+              '"notification_denied_acknowledged" INTEGER NOT NULL)');
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "frequency_versions" ("id" TEXT NOT '
+              'NULL PRIMARY KEY, "goal_id" TEXT NOT NULL, '
+              '"effective_from_week" TEXT NOT NULL, "pattern" TEXT NOT NULL, '
+              '"source" TEXT NOT NULL)');
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "check_ins" ("id" TEXT NOT NULL '
+              'PRIMARY KEY, "goal_id" TEXT NOT NULL, "day" TEXT NOT NULL, '
+              '"created_at" TEXT NOT NULL, "is_backfill" INTEGER NOT NULL, '
+              '"status" TEXT NOT NULL)');
+          // 其余四表 v1..v4 形态未变——真实用户库九表齐全，App 启动即查，
+          // 直接用 Migrator 生成 DDL（缺表会让启动查询抛错挂死）。
+          await m.createTable(busyModeSessions);
+          await m.createTable(busyModeEntries);
+          await m.createTable(milestoneSteps);
+          await m.createTable(weeklyReviews);
+        },
+      );
 }
 
 /// 测试假文件选择：固定返回预置备份字节。
@@ -1454,6 +1502,9 @@ void main() {
     ));
     await repo.addStep(
         MilestoneStep(id: 's1', goalId: goal.id, title: '买跑鞋'));
+    // 003 T038：提醒行真源 = Reminders 行（cueScene 场景档退役不上屏）。
+    await ReminderRepository(db).upsert(Reminder(
+        id: 'r-t21', goalId: goal.id, time: const LocalTime(8, 30)));
     // 昨日一条无描述打卡 → 历史行兜底「完成打卡」。
     await CheckInRepository(db)
         .add(goal.id, today.addDays(-1), DateTime.now());
@@ -1473,7 +1524,10 @@ void main() {
         find.text(
             '${Copy.typeBadgeShortTerm} · ${Copy.milestoneCountdown(LocalDate(today.year, 12, 31).differenceInDays(today))}'),
         findsOneWidget);
-    expect(find.text(Copy.goalReminderLine('早起后')), findsOneWidget);
+    expect(
+        find.text(Copy.goalReminderLine(Copy.settingsGoalReminderLine(
+            Copy.cadenceDaily, '08:30'))),
+        findsOneWidget);
     expect(find.text('为了夏天的约定'), findsNothing);
     expect(find.text('完成一次 10km'), findsNothing);
     expect(find.text('买跑鞋'), findsOneWidget);
@@ -1822,6 +1876,114 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining(Copy.backupImportDone), findsOneWidget);
     expect(find.textContaining('目标 1'), findsOneWidget);
+    await db.close();
+  });
+
+  // 003 T038 终查（SC-006）：v2 存量文件库升级启动 → 三 Tab + 目标详情
+  // 全界面走查——旧字段（频率版本/颜色/为什么/怎样算/场景）零上屏；
+  // 数据本身仍逐项保全（对账见 migration_test T038 用例）。
+  testWidgets('T038 迁移终查：v2 存量升级启动，旧字段全界面零上屏（SC-006）',
+      (WidgetTester tester) async {
+    usePhoneSurface(tester);
+    // testWidgets 的 FakeAsync 区内真实文件 IO 永不完成——库搭建整体
+    // 走 runAsync（升级启动本身仍是真实 onUpgrade，见 migration_test）。
+    final file = (await tester.runAsync(() async {
+      final dir = await Directory.systemTemp.createTemp('t038_ui');
+      return File('${dir.path}/db.sqlite');
+    }))!;
+    addTearDown(() => tester.runAsync(() async {
+      final dir = file.parent;
+      if (await dir.exists()) await dir.delete(recursive: true);
+    }));
+    await tester.runAsync(() async {
+      final v2 = _LegacyV2Database(NativeDatabase(file));
+      // gd：habit + envelope 全填 + daily 频率版本 + 提醒；gw：weekly 频率版本。
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at,motivation,success_criterion,cue_scene) VALUES "
+          "('gd','好好吃饭','habit','meal','coral','active','2026-08-01',"
+          "'为了晚上不胃胀','晚饭吃八分饱','晚饭后')");
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at) VALUES ('gw','跑步锻炼','habit','fitness','sage',"
+          "'active','2026-08-01')");
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at,deadline,motivation) VALUES ('gs','冈仁波齐徒步',"
+          "'milestone','travel','indigo','active','2026-08-01',"
+          "'2026-10-01','想亲眼看到日出')");
+      await v2.customStatement(
+          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+          "pattern,source) VALUES ('fv-d','gd','2026-08-03',"
+          "'{\"type\":\"daily\",\"targetPerDay\":1}','initial')");
+      await v2.customStatement(
+          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+          "pattern,source) VALUES ('fv-w','gw','2026-08-03',"
+          "'{\"type\":\"weekly\",\"timesPerWeek\":3}','initial')");
+      await v2.customStatement(
+          "INSERT INTO reminders (id,goal_id,time,is_enabled) VALUES "
+          "('r-d','gd','08:30',1)");
+      await v2.customStatement(
+          "INSERT INTO check_ins (id,goal_id,day,created_at,is_backfill,"
+          "status) VALUES ('c3','gd','2026-08-19',"
+          "'2026-08-19T12:00:00.000Z',0,'valid')");
+      await v2.customStatement(
+          "INSERT INTO settings_rows (id,daily_brief_time,"
+          "onboarding_completed,notification_denied_acknowledged) VALUES "
+          "(1,'08:00',1,0)");
+      await v2.close();
+    });
+
+    // 升级启动：同文件 v4 打开 → onUpgrade 补列 + D3 映射。
+    final db = AppDatabase(NativeDatabase(file));
+    final gateway = FakeNotificationGateway();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 今日 Tab：目标名上屏（映射后的新形态），直进主界面。
+    expect(find.text('好好吃饭'), findsWidgets);
+    // 短期目标卡在折叠线下：先滚到构建，终查才覆盖得到它的卡面。
+    await scrollTo(tester, find.text('冈仁波齐徒步'));
+    expect(find.text('冈仁波齐徒步'), findsOneWidget);
+
+    // 旧字段零上屏：envelope（为什么/怎样算/场景）+ 频率版本（每周档）
+    // + 旧图标域键名（meal/fitness/travel 已换域，键名不得漏出）。
+    final leaked = find.textContaining(
+        RegExp('胃胀|八分饱|晚饭后|亲眼|每周|timesPerWeek|targetPerDay|'
+            'meal|fitness|travel|cue_scene|colorKey'));
+    expect(leaked, findsNothing, reason: '旧字段不得在任何已构建分支上屏');
+
+    // 回顾 Tab + 我的 Tab（含滚动到底）同口径终查。
+    await tester.tap(find.text(Copy.reviewNav));
+    await tester.pumpAndSettle();
+    expect(leaked, findsNothing);
+    await tester.tap(find.text(Copy.mineNav));
+    await tester.pumpAndSettle();
+    await scrollTo(tester, find.text(Copy.settingsGoalRemindersTitle));
+    expect(leaked, findsNothing);
+
+    // 目标详情：点开 gd 卡 → 详情页同口径（为什么/怎样算不得回潮）。
+    await tester.tap(find.text(Copy.todayNav));
+    await tester.pumpAndSettle();
+    await scrollTo(tester, find.text('好好吃饭').first);
+    await tester.tap(find.text('好好吃饭').first);
+    await tester.pumpAndSettle();
+    expect(find.text('好好吃饭'), findsWidgets); // 详情页标题
+    // 提醒行真源 = 迁移补档后的 Reminders 行（daily 08:30 原样续用）。
+    expect(
+        find.text(Copy.goalReminderLine(Copy.settingsGoalReminderLine(
+            Copy.cadenceDaily, '08:30'))),
+        findsOneWidget);
+    expect(leaked, findsNothing);
     await db.close();
   });
 }

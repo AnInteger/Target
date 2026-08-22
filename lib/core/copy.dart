@@ -113,8 +113,8 @@ abstract final class Copy {
   static const goalEdit = '编辑目标';
   static const goalMoreActions = '更多操作';
 
-  /// 详情头提醒行：「提醒 · 晚饭后」。
-  static String goalReminderLine(String scene) => '提醒 · $scene';
+  /// 详情头提醒行（003 T038 修正：真源 Reminders 行）：「提醒 · 一天一次 · 08:30」。
+  static String goalReminderLine(String detail) => '提醒 · $detail';
 
   /// 打卡动线选填描述（FR-019；40 字上限与编辑器描述一致）。
   static const checkInNoteHint = '选填一句话描述';

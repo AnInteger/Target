@@ -38,6 +38,10 @@ class GoalDetailPage extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+    final reminders =
+        ref.watch(remindersProvider).value ?? const <Reminder>[];
+    final reminderRow =
+        reminders.where((r) => r.goalId == goalId).firstOrNull;
     final steps =
         ref.watch(stepsProvider(goalId)).value ?? const <MilestoneStep>[];
     final checkIns =
@@ -73,7 +77,7 @@ class GoalDetailPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _HeaderBlock(goal: goal, today: today),
+          _HeaderBlock(goal: goal, today: today, reminderRow: reminderRow),
           if (goal.isShortTerm) ...[
             const SizedBox(height: 12),
             _progressCard(context, goal, days, done, steps.length, color),
@@ -276,17 +280,25 @@ class GoalDetailPage extends ConsumerWidget {
 
 /// 头部块：图标 + 一句话描述 + 类型徽章 + 提醒行 + 状态行。
 /// 极简目标（仅名称）也呈现完整骨架（spec 边界用例 3）。
+/// 提醒行真源 = Reminders 行（档+时刻，003 T038 终查修正）；
+/// 002 的 cueScene 场景档已退役——列留存于库但不再上屏。
 class _HeaderBlock extends StatelessWidget {
-  const _HeaderBlock({required this.goal, required this.today});
+  const _HeaderBlock({required this.goal, required this.today, this.reminderRow});
 
   final Goal goal;
   final LocalDate today;
+  final Reminder? reminderRow;
+
+  static String _cadenceLabel(Cadence c) => switch (c) {
+        Cadence.daily => Copy.cadenceDaily,
+        Cadence.threeDay => Copy.cadenceThreeDay,
+        Cadence.weekly => Copy.cadenceWeekly,
+      };
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
-    final hasCue = goal.cueScene != null && goal.cueScene != Copy.cueNone;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -322,10 +334,12 @@ class _HeaderBlock extends StatelessWidget {
                       .copyWith(color: palette.onSurfaceVariant),
                 ),
               ],
-              if (hasCue) ...[
+              if (reminderRow != null) ...[
                 const SizedBox(height: AppSpace.s1),
                 Text(
-                  Copy.goalReminderLine(goal.cueScene!),
+                  Copy.goalReminderLine(Copy.settingsGoalReminderLine(
+                      _cadenceLabel(reminderRow!.effectiveCadence),
+                      reminderRow!.time.isoString)),
                   style: theme.textTheme.bodyS
                       .copyWith(color: palette.onSurfaceVariant),
                 ),

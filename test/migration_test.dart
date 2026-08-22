@@ -11,6 +11,8 @@ import 'package:target/core/db/app_database.dart' show AppDatabase;
 import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
+import 'package:target/core/stats/stats_engine.dart';
+import 'package:target/features/settings/reminder_service.dart';
 
 /// v1 的 goals 建表语句（drift v1 生成形态：snake_case 列、无 envelope 列）。
 const _v1GoalsDdl = 'CREATE TABLE IF NOT EXISTS "goals" ('
@@ -403,5 +405,143 @@ void main() {
     expect(after.where((c) => c.note == '晚上十分钟'), hasLength(1));
     expect(after.where((c) => c.note == null), hasLength(2));
     await db.close();
+  });
+
+  // 003 T038：端到端对账——v2 存量四分支升级启动后，全部走仓库读路径
+  // 逐项一致；被映射目标的提醒按原节奏（Reminders 行 cadence）继续排程。
+  test('v2→v4 端到端（T038）：仓库对账 + 被映射目标按原节奏提醒', () async {
+    {
+      final v2 = _V2Database(NativeDatabase(file));
+      // 四分支：gs（milestone+截止+envelope）/ gd（habit+daily+提醒+envelope）
+      // / gw（habit+weekly 无提醒）/ gp（paused milestone 无截止）。
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at,deadline,motivation,success_criterion,cue_scene) "
+          "VALUES ('gs','冈仁波齐徒步','milestone','travel','indigo',"
+          "'active','2026-08-01','2026-10-01','想亲眼看到日出','走完全程',NULL)");
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at,motivation,success_criterion,cue_scene) VALUES "
+          "('gd','好好吃饭','habit','meal','coral','active','2026-08-01',"
+          "'为了晚上不胃胀','晚饭吃八分饱','晚饭后')");
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at) VALUES ('gw','跑步锻炼','habit','fitness','sage',"
+          "'active','2026-08-01')");
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at) VALUES ('gp','学钢琴','milestone','star','amber',"
+          "'paused','2026-07-01')");
+      await v2.customStatement(
+          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+          "pattern,source) VALUES ('fv-d','gd','2026-08-03',"
+          "'{\"type\":\"daily\",\"targetPerDay\":1}','initial')");
+      await v2.customStatement(
+          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+          "pattern,source) VALUES ('fv-w','gw','2026-08-03',"
+          "'{\"type\":\"weekly\",\"timesPerWeek\":3}','initial')");
+      await v2.customStatement(
+          "INSERT INTO reminders (id,goal_id,time,is_enabled) VALUES "
+          "('r-d','gd','08:30',1)");
+      await v2.customStatement(
+          "INSERT INTO reminders (id,goal_id,time,is_enabled) VALUES "
+          "('r-brief',NULL,'08:00',1)");
+      // 打卡：gs 2（valid+revoked 补签）/ gd 2（valid+valid 补签）。
+      await v2.customStatement(
+          "INSERT INTO check_ins (id,goal_id,day,created_at,is_backfill,"
+          "status) VALUES ('c1','gs','2026-08-19',"
+          "'2026-08-19T12:00:00.000Z',0,'valid'),('c2','gs','2026-08-10',"
+          "'2026-08-19T12:00:00.000Z',1,'revoked'),('c3','gd','2026-08-19',"
+          "'2026-08-19T12:00:00.000Z',0,'valid'),('c4','gd','2026-08-18',"
+          "'2026-08-19T12:00:00.000Z',1,'valid')");
+      await v2.customStatement(
+          "INSERT INTO settings_rows (id,daily_brief_time,"
+          "onboarding_completed,notification_denied_acknowledged) VALUES "
+          "(1,'08:00',1,0)");
+      await v2.close();
+    }
+
+    final db = AppDatabase(NativeDatabase(file));
+    addTearDown(db.close);
+    final goals = await GoalRepository(db).getGoals();
+    final checkIns = await CheckInRepository(db).all();
+    final reminderRepo = ReminderRepository(db);
+
+    // ---- 逐项对账（仓库读路径）----
+    expect(goals, hasLength(4));
+    final byId = {for (final g in goals) g.id: g};
+    expect(byId['gs']!.goalType, GoalType.shortTerm); // 决策树第一支
+    expect(byId['gs']!.deadline, LocalDate.parse('2026-10-01'));
+    expect(byId['gs']!.motivation, '想亲眼看到日出'); // envelope 保全
+    expect(byId['gd']!.goalType, GoalType.habit);
+    expect(byId['gd']!.motivation, '为了晚上不胃胀');
+    expect(byId['gd']!.successCriterion, '晚饭吃八分饱');
+    expect(byId['gw']!.goalType, GoalType.habit);
+    expect(byId['gp']!.goalType, GoalType.longTerm); // paused 无截止→长期
+    expect(byId['gp']!.status, GoalStatus.paused); // 状态机不动
+    for (final g in goals) {
+      expect(g.colorKey, '', reason: '${g.id} colorKey 应退役置空');
+    }
+    // 打卡逐项：计数/状态/补签归属原样（SC-003）。
+    expect(checkIns, hasLength(4));
+    expect(checkIns.where((c) => c.goalId == 'gs'), hasLength(2));
+    expect(
+        checkIns.where(
+            (c) => c.goalId == 'gs' && c.status == CheckInStatus.revoked),
+        hasLength(1));
+    expect(checkIns.where((c) => c.isBackfill), hasLength(2));
+    // 提醒行：daily 存量行照用；weekly 补默认行（09:00 关）。
+    final rows = await reminderRepo.all();
+    expect(rows, hasLength(3));
+    final gdRow = rows.firstWhere((r) => r.goalId == 'gd');
+    expect(gdRow.isEnabled, isTrue);
+    expect(gdRow.time, const LocalTime(8, 30));
+    expect(gdRow.effectiveCadence, Cadence.daily);
+    final gwRow = rows.firstWhere((r) => r.goalId == 'gw');
+    expect(gwRow.isEnabled, isFalse);
+    expect(gwRow.effectiveCadence, Cadence.weekly); // 原节奏保留在行上
+    expect(rows.any((r) => r.isDailyBrief), isTrue);
+
+    // ---- 按原节奏继续提醒（planReminders 纯函数）----
+    // 周四 8/20：gd daily 命中（08:30）；gw weekly 锚点=周六，不当日。
+    final statsThu = StatsEngine.evaluate(
+        goals: goals,
+        busySessions: const [],
+        checkIns: checkIns,
+        today: LocalDate.parse('2026-08-20'));
+    final thu = planReminders(
+        reminders: rows,
+        defaultBriefTime: const LocalTime(8, 0),
+        goals: goals,
+        stats: statsThu,
+        today: LocalDate.parse('2026-08-20'),
+        nowTime: const LocalTime(10, 0));
+    final thuGoalIds = thu.expand((p) => p.goalIds).toSet();
+    expect(thuGoalIds, contains('gd'));
+    expect(thuGoalIds, isNot(contains('gw')));
+    final gdPlan = thu.firstWhere((p) => p.goalIds.contains('gd'));
+    expect(gdPlan.time, const LocalTime(8, 30));
+    expect(gdPlan.body, contains('为了晚上不胃胀')); // FR-016：存量为什么保全进通知
+    expect(gdPlan.body, isNot(contains('八分饱'))); // 怎样算不进通知
+
+    // 周六 8/22：打开 gw 行 → weekly 同 weekday 命中（09:00 单次）。
+    await reminderRepo.upsert(gwRow.copyWith(isEnabled: true));
+    final enabledRows = await reminderRepo.all();
+    final statsSat = StatsEngine.evaluate(
+        goals: goals,
+        busySessions: const [],
+        checkIns: checkIns,
+        today: LocalDate.parse('2026-08-22'));
+    final sat = planReminders(
+        reminders: enabledRows,
+        defaultBriefTime: const LocalTime(8, 0),
+        goals: goals,
+        stats: statsSat,
+        today: LocalDate.parse('2026-08-22'),
+        nowTime: const LocalTime(7, 0));
+    final satGoalIds = sat.expand((p) => p.goalIds).toSet();
+    expect(satGoalIds, containsAll(<String>['gd', 'gw']));
+    final gwPlan = sat.firstWhere((p) => p.goalIds.contains('gw'));
+    expect(gwPlan.time, const LocalTime(9, 0));
   });
 }

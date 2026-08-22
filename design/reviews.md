@@ -14,6 +14,15 @@
 
 ## 实现审计
 
+### T038 迁移端到端对账（v2 存量升级 · 仓库对账 + 原节奏续排 + 旧字段零上屏终查 · SC-003/SC-006）· 通过 · 2026-08-22
+
+- **基线**：`flutter analyze` 0 issue；`flutter test` 125 全绿（123→125，含 T038 两用例）。
+- **仓库对账 ✓（SC-003）**：v2 文件库四分支（milestone+截止 / habit+daily+提醒 / habit+weekly 无提醒 / paused 无截止）→ 同文件 v4 升级启动 → 全走仓库读路径：goalType 按 D3 落位（shortTerm/habit/habit/longTerm）、deadline/envelope（为什么/怎样算）逐值保全、打卡计数/状态/补签/归属逐项一致、colorKey 退役置空、paused 状态机不动。
+- **原节奏续排 ✓**：gd daily 存量提醒行原样续用（08:30 enabled，通知正文附存量「为什么」——FR-016 保全语义，「怎样算」不进通知）；gw weekly 补默认行（09:00 关）后打开，planReminders 周四不排/周六同 weekday 命中——档位语义经真实迁移行验证。
+- **零上屏终查 ✓（SC-006）**：v2 存量文件库升级启动全 App 走查——今日（含折叠线下短期卡滚动后）/回顾/我的（滚动到底）/目标详情，旧字段（频率版本/颜色/为什么/怎样算/场景/旧图标域键名）零上屏正则扫查通过。
+- **终查发现并已修（真缺陷）**：goal_detail 头部提醒行原以 cueScene 场景档上屏（「提醒 · 晚饭后」）——002 场景档体系已退役且不参与调度，展示口径失真；修法 = 提醒行真源改 Reminders 行（档+时刻，「提醒 · 一天一次 · 08:30」），cueScene 列留存库中但不再上屏（T021 用例同步改真源断言）。
+- **测试基建注记**：testWidgets FakeAsync 区内真实文件 IO 永不完成——文件库搭建须包 `tester.runAsync`（本次踩坑定位：表象为 pumpWidget 前挂死无输出）。
+
 ### T036 US4 验收走查（设置行形态全标准 + 深浅两态 + V7 备份新入口 · widget 验收测试）· 通过 · 2026-08-22
 
 - **基线**：`flutter analyze` 0 issue；`flutter test` 121 全绿（120→121，含 T036 用例）。

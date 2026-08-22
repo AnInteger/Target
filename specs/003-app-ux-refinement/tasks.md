@@ -109,7 +109,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] 编辑器骨架：重构 `lib/features/goals/goal_editor.dart`——分组平铺容器无折叠（「分类」区置顶 / 基础信息 / 目标类型与提醒，R2 裁决 1）+ 保存常驻底部（导航条上方，按钮文案统一「保存」，R3 裁决 2）；编辑既有目标同构（类型可改，改型联动显隐）；表单内不出现任何行为说明句（R3 裁决 3）
+- [x] T023 [US2] 编辑器骨架：重构 `lib/features/goals/goal_editor.dart`——分组平铺容器无折叠（「分类」区置顶 / 基础信息 / 目标类型与提醒，R2 裁决 1）+ 保存常驻底部（导航条上方，按钮文案统一「保存」，R3 裁决 2）；编辑既有目标同构（类型可改，改型联动显隐）；表单内不出现任何行为说明句（R3 裁决 3）
+  - ✅ 改了什么：goal_editor 全量重写——`_GroupCard` 三张分组卡（分类置顶/基础信息/目标类型）平铺无折叠（glassCard+rLg 与今日卡同语言）；保存按钮移出 ListView 常驻底部（`goalSaveButton` key，统一「保存」）；`_typeSection` 三选分段（长期|短期|习惯，默认短期）+ 改型联动（短期→截止日行+必填小标 / 习惯·长期→提醒开关行，切型重置提醒默认：习惯开·其余关）；`_hydrate` 回填类型/图标/截止/提醒行 isEnabled；保存直构完整 Goal（copyWith 不支持改型/清 deadline）——编辑改型时 deadline 随型成对获值（today+39 兜底）/清空，退役字段（motivation/successCriterion/cueScene/colorKey）原值继承零写入（FR-016）。002 B 案全量退役：模板横滑行/为什么/怎样算/场景 chips/频率问答/一次性开关/颜色步/SMART 卡；基础信息一句话 40 字+完整短句 placeholder（T024 验收内容随骨架落地）；copy 增 editorSectionCategory/editorNameHint/editorDeadlineLabel/editorRequiredTag/editorReminderSwitch（editorSectionIcon 死键删）
+  - ✅ 验了什么：analyze 0 + 105/105 绿（104→105：SMART 用例与 B 案动线用例退役改写为「T023 骨架」（三组标题/默认短期/切习惯提醒开/切长期关/B 案字段与说明句 findsNothing/滚动后保存常驻）+「T023 创建动线」（默认短期直存落库 motivation null）+ 新增「编辑同构改型」（习惯→长期→短期保存改型+截止获值；再编辑→习惯 deadline 清空，未动字段继承）；V1 双路径用例改 003 动线（预填即保存））
 - [ ] T024 [US2] 基础信息组：一句话描述输入（goals.name 语义升级，~40 字上限，placeholder 示范完整短句「月底前能连续跑 3 公里」式，research D8）——无「为什么想做/怎样算做到」字段与写入路径（FR-014）
 - [ ] T025 [US2] 类型与提醒组：分段选择 长期|短期|习惯 + 联动——短期→截止日选择器（必填）+ 倒计时预告；习惯→提醒开关→（开）频率档 [一天一次|三天一次|一周一次] + 时间选择器（FR-012/013）；写 Reminders.isEnabled/cadence/time；长期默认无提醒（可开后同习惯档）
 - [ ] T026 [US2] 分类组：「分类」区 = 常用一行（固定策展约 6 枚）+「更多」按钮打开悬浮选择弹窗（GoalIconCatalog 全量、按领域分组），常用行与弹窗选中态同步、单选即存 iconKey（FR-011/015，R2 裁决 1）；无颜色步；表单不再出现 colorKey 写入

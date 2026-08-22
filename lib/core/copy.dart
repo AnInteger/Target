@@ -302,10 +302,20 @@ abstract final class Copy {
   /// 目标达成事件（achievedAt 落在近 7 天）。
   static String notifAchieved(String name) => '$name，达成了';
 
-  // 编辑器分组标题（ui-contract「编辑器分组折叠」）。
+  // 编辑器分组标题（ui-contract「编辑器分组」；T023 R2 裁决 1 平铺无折叠）。
+  static const editorSectionCategory = '分类';
   static const editorSectionBasics = '基础信息';
   static const editorSectionType = '目标类型';
-  static const editorSectionIcon = '图标';
+
+  /// 一句话描述示范（research D8：完整短句式 placeholder）。
+  static const editorNameHint = '例如：月底前能连续跑 3 公里';
+
+  /// 短期截止日行标签（原型 R3：「截止日」+ 必填小标）。
+  static const editorDeadlineLabel = '截止日';
+  static const editorRequiredTag = '必填';
+
+  /// 习惯/长期提醒开关行标签（频率档+时间 = T025）。
+  static const editorReminderSwitch = '提醒';
 
   // 类型徽章（D2 三类型域：长期/短期/习惯）。
   static const typeBadgeLongTerm = '长期';

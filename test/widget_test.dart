@@ -295,7 +295,7 @@ void main() {
   });
 
 
-  testWidgets('FR-001：输入模糊名当场出 SMART 建议，采用即替换（回归：输入需触发刷新）', (tester) async {
+  testWidgets('T023 骨架：分组平铺+保存常驻+改型联动显隐+零行为说明句（FR-011/014/021）', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
@@ -303,36 +303,54 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
-        child: const MaterialApp(home: GoalEditorPage()),
+        child: MaterialApp(theme: AppTheme.light(), home: const GoalEditorPage()),
       ),
     );
     await tester.pumpAndSettle();
 
-    // 输入"变健康"：不改任何其他控件，建议 chip 应立即可见。
-    final nameField = find.byKey(const ValueKey('goalNameField'));
-    await tester.enterText(nameField, '变健康');
-    await tester.pumpAndSettle();
-    expect(find.text(Copy.smartSuggest('每天散步 20 分钟')), findsOneWidget);
+    // 三组标题平铺在场（分类置顶，R2 裁决 1）+ 保存常驻（R3 裁决 2）。
+    expect(find.text(Copy.editorSectionCategory), findsOneWidget);
+    expect(find.text(Copy.editorSectionBasics), findsOneWidget);
+    expect(find.text(Copy.editorSectionType), findsOneWidget);
+    expect(find.text(Copy.editorSave), findsOneWidget);
 
-    // 一键采用 → 名称被替换为具体表述，chip 随之消失；
-    // 未手改过的「怎样算做到」随名称自动重拟（T014 B 案）。
-    await tester.tap(find.text(Copy.smartApply));
+    // 默认短期：截止日行在场、提醒开关不渲染。
+    expect(find.text(Copy.editorDeadlineLabel), findsOneWidget);
+    expect(find.byKey(const ValueKey('goalRemindSwitch')), findsNothing);
+
+    // 切习惯：截止让位提醒开关，习惯默认开（原型画板③）。
+    await tester.tap(find.text(Copy.typeBadgeHabit));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.editorDeadlineLabel), findsNothing);
+    expect(find.byKey(const ValueKey('goalRemindSwitch')), findsOneWidget);
+    expect(
+      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      isTrue,
+    );
+
+    // 切长期：提醒默认关。
+    await tester.tap(find.text(Copy.typeBadgeLongTerm));
     await tester.pumpAndSettle();
     expect(
-      (tester.widget(nameField) as TextField).controller!.text,
-      '每天散步 20 分钟',
+      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      isFalse,
     );
-    final criterionField = find.byKey(const ValueKey('goalCriterionField'));
-    await scrollTo(tester, criterionField);
-    expect(
-      (tester.widget(criterionField) as TextField).controller!.text,
-      '每天散步 20 分钟',
-    );
+
+    // B 案字段与行为说明句全退役（FR-014 / R3 裁决 3）。
+    expect(find.text(Copy.editorWhyLabel), findsNothing);
+    expect(find.text(Copy.editorCriterionLabel), findsNothing);
+    expect(find.text(Copy.editorCueLabel), findsNothing);
+    expect(find.text(Copy.editorIconColor), findsNothing);
     expect(find.text(Copy.smartSuggest('每天散步 20 分钟')), findsNothing);
+
+    // 内容滚出视口后保存按钮仍在场（常驻底部，ListView 外）。
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.editorSave), findsOneWidget);
     await db.close();
   });
 
-  testWidgets('T017 B 案创建动线：为什么必填拦截 → 场景/一次性 → 落库含新维度', (tester) async {
+  testWidgets('T023 创建动线：一句话 → 默认短期直接保存落库（B 案字段无写入路径）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final navKey = GlobalKey<NavigatorState>();
@@ -340,6 +358,7 @@ void main() {
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
         child: MaterialApp(
+          theme: AppTheme.light(),
           navigatorKey: navKey,
           home: const Scaffold(body: Text('root')),
         ),
@@ -350,43 +369,79 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.byKey(const ValueKey('goalNameField')), '变健康');
+        find.byKey(const ValueKey('goalNameField')), '三个月内考过日语 N2');
     await tester.pump();
 
-    // 一次性开关（表单序在频率之后、「为什么」之前）→ 频率让位截止日快选。
-    await scrollTo(tester, find.text(Copy.editorOnceLabel));
-    await tester.tap(find.text(Copy.editorOnceLabel));
-    await tester.pump();
-    expect(find.text(Copy.editorDdlThisYear), findsOneWidget);
-    expect(find.text('每天'), findsNothing); // 频率分段按钮已隐去
-
-    // 「为什么」为空直接保存 → 行内错误，不落库。
-    await scrollTo(tester, find.text(Copy.editorSaveCreate));
-    await tester.tap(find.text(Copy.editorSaveCreate));
-    await tester.pump();
-    expect(find.text(Copy.editorWhyRequired), findsOneWidget);
-    expect(await GoalRepository(db).getGoals(), isEmpty);
-
-    // 补一句为什么 + 选提醒场景（预览文案出现）。
-    final whyField = find.byKey(const ValueKey('goalWhyField'));
-    await scrollTo(tester, whyField);
-    await tester.enterText(whyField, '为了晚上不胃胀');
-    await scrollTo(tester, find.text('晚饭后'));
-    await tester.tap(find.text('晚饭后'));
-    await tester.pump();
-    expect(find.text(Copy.editorCuePreview('晚饭后')), findsOneWidget);
-
-    await scrollTo(tester, find.text(Copy.editorSaveCreate));
-    await tester.tap(find.text(Copy.editorSaveCreate));
+    // 默认短期：截止日带默认值（today+39），直接保存即落库。
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
     await tester.pumpAndSettle();
     expect(find.text('root'), findsOneWidget); // 保存后返回
 
     final g = (await GoalRepository(db).getGoals()).single;
     expect(g.goalType, GoalType.shortTerm);
-    expect(g.deadline, const LocalDate(2026, 12, 31));
-    expect(g.motivation, '为了晚上不胃胀');
-    expect(g.successCriterion, '每天散步 20 分钟'); // 未手改 → 按名称自动拟
-    expect(g.cueScene, '晚饭后');
+    expect(g.deadline, LocalDate.fromDateTime(DateTime.now()).addDays(39));
+    expect(g.motivation, isNull); // FR-014：为什么/怎样算无写入路径
+    expect(g.successCriterion, isNull);
+    expect(g.cueScene, isNull);
+    await db.close();
+  });
+
+  testWidgets('T023 编辑同构：类型可改，deadline 随型成对获值/清空（ui-contract）', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(Goal(
+      name: '规律运动',
+      goalType: GoalType.habit,
+      iconKey: 'directions_run',
+      colorKey: 'teal',
+      createdAt: today,
+    ));
+    final navKey = GlobalKey<NavigatorState>();
+    Future<void> openEditor() async {
+      navKey.currentState!.push(MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => GoalEditorPage(goalId: goal.id)));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          navigatorKey: navKey,
+          home: const Scaffold(body: Text('root')),
+        ),
+      ),
+    );
+
+    // 第一轮：习惯 → 长期（提醒区在场）→ 短期，保存 = 改型 + 截止成对获值。
+    await openEditor();
+    expect(find.byKey(const ValueKey('goalRemindSwitch')), findsOneWidget);
+    await tester.tap(find.text(Copy.typeBadgeLongTerm));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Copy.typeBadgeShortTerm));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+
+    var g = (await repo.getGoals()).single;
+    expect(g.goalType, GoalType.shortTerm);
+    expect(g.deadline, today.addDays(39));
+    expect(g.iconKey, 'directions_run'); // 未动字段原值继承
+
+    // 第二轮：短期 → 习惯，保存 = deadline 成对清空。
+    await openEditor();
+    await tester.tap(find.text(Copy.typeBadgeHabit));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+
+    g = (await repo.getGoals()).single;
+    expect(g.goalType, GoalType.habit);
+    expect(g.deadline, isNull);
     await db.close();
   });
 
@@ -598,19 +653,15 @@ void main() {
     final nameField = find.byKey(const ValueKey('goalNameField'));
     expect((tester.widget(nameField) as TextField).controller!.text, '好好吃饭');
 
-    // B 案：补一句为什么 → 立下这个心愿。
-    final whyField = find.byKey(const ValueKey('goalWhyField'));
-    await scrollTo(tester, whyField);
-    await tester.enterText(whyField, '为了晚上不胃胀');
-    await scrollTo(tester, find.text(Copy.editorSaveCreate));
-    await tester.tap(find.text(Copy.editorSaveCreate));
+    // 003 动线：预填即保存（模板带习惯型；B 案为什么字段已退役）。
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
     await tester.pumpAndSettle();
 
     // 引导视为完成 → 今日页出现该目标（V1：模板+确认即首个目标）。
     final goals = await GoalRepository(db).getGoals();
     expect(goals.single.name, '好好吃饭');
     expect(goals.single.goalType, GoalType.habit);
-    expect(goals.single.motivation, '为了晚上不胃胀');
+    expect(goals.single.motivation, isNull);
     expect((await SettingsRepository(db).get()).onboardingCompleted, true);
     expect(find.text(Copy.onboardingTitle), findsNothing);
     expect(find.text('好好吃饭'), findsWidgets);

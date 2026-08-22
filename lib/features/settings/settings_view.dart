@@ -1,11 +1,13 @@
-/// 设置页（003 R3 定稿 · T034 四分组重构：账号卡 + 通知/目标/数据/关于）。
+/// 我的页（004 v2 冻结稿 v2-settings.html · T012 换装）。
 ///
-/// 行形态全标准（图标 + 标题 + 行尾值|开关|箭头，FR-009）：账号卡复用
-/// 资料编辑 sheet；通知组（T035：总开关聚合 Reminders 行 isEnabled，切换
-/// 全开/全关——与排程器「Reminders 行 = 唯一真源」一致，零 schema 变更；
-/// 简报时间值行 + 按目标提醒二级展开逐行开关）；目标组活跃数 → 今日页 +
-/// 补签只读；数据组备份导出/导入；关于组版本。
-/// 权限被拒不反复弹窗（FR-007）：未开启只说明一次，「知道了」后不再打扰。
+/// 结构：push 顶栏（返回 + 我的）→ 资料卡（整卡进编辑 sheet）→
+/// 外观（主题三档单选，FR-002 即时生效持久保留）→ 通知（总开关 +
+/// 概要时间 + 按目标提醒二级展开）→ 目标（进行中数 + 补签说明）→
+/// 数据（导出/恢复，覆盖居中二次确认）→ 关于（版本）。
+/// 组卡 = surface 实卡圆角阴影（v2 tokens），行 = 30 图标格 + 标题 +
+/// 行尾值|开关|箭头|对勾，行高 ≥52。
+/// 003 存量能力保留：权限卡（FR-007 不反复弹窗）、Debug 时钟、
+/// Web 小组件说明；逐目标提醒行只列活跃目标（排程器同口径）。
 library;
 
 import 'dart:convert';
@@ -65,6 +67,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
     final activeCount =
         goals.where((g) => g.status == GoalStatus.active).length;
+    final themeMode = settings?.themeMode ?? AppThemeMode.system;
 
     final briefRow = reminders.where((r) => r.isDailyBrief).firstOrNull;
     final briefTime =
@@ -94,129 +97,171 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-              AppSpace.s6, 0, AppSpace.s6, AppSpace.s12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // FR-008 三屏标题带同构（今日屏基准）：左缘 24、顶垫 8、44px 带。
-            ConstrainedBox(
-              constraints:
-                  const BoxConstraints(minHeight: AppScreen.titleBand),
-              child: Padding(
-                padding: const EdgeInsets.only(top: AppScreen.titleTop),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(Copy.settingsTitle,
+            // v2 push 顶栏：38 圆返回键 + 我的（T024 落 push 路由后为真返回；
+            // 现处页签根，兜底回今日——与 v2「我的自今日进入」语义一致）。
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpace.s5, AppSpace.s3, AppSpace.s5, AppSpace.s2),
+              child: Row(
+                children: [
+                  _BackButton(onTap: () => context.canPop()
+                      ? context.pop()
+                      : context.go('/today')),
+                  const SizedBox(width: AppSpace.s3),
+                  Text(Copy.settingsTitle,
                       key: const ValueKey('screenTitle'),
-                      style: Theme.of(context).textTheme.displayS),
-                ),
+                      style: Theme.of(context).textTheme.titleM),
+                  const Spacer(),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpace.s2),
-            const _MeCard(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpace.s5, AppSpace.s2, AppSpace.s5, AppSpace.s8),
+                children: [
+                  const _MeCard(),
 
-            // ---- 分组·通知（T035：总开关 + 简报时间 + 按目标提醒二级）----
-            const _SectionLabel(Copy.settingsSectionNotif),
-            if (permCardVisible) _PermCard(onRequest: _requestPermission),
-            _GroupCard(children: [
-              _SettingsRow(
-                icon: Icons.notifications_outlined,
-                title: Copy.settingsNotifMasterTitle,
-                sub: Copy.settingsNotifMasterSub,
-                switchValue: masterOn,
-                onSwitch: _setMasterAll,
-              ),
-              _SettingsRow(
-                icon: Icons.access_time_outlined,
-                title: Copy.settingsBriefTitle,
-                sub: Copy.settingsBriefSub,
-                time: briefTime,
-                showChevron: true,
-                onTap: () => _pickBriefTime(context, briefTime),
-              ),
-              _SettingsRow(
-                icon: Icons.checklist_outlined,
-                title: Copy.settingsGoalRemindersTitle,
-                sub: goalRows.isEmpty
-                    ? Copy.settingsGoalRemindersNoneSub
-                    : Copy.settingsGoalRemindersSub(enabledCount),
-                showChevron: true,
-                expanded: _goalsExpanded,
-                onTap: () => setState(() => _goalsExpanded = !_goalsExpanded),
-              ),
-              if (_goalsExpanded)
-                Container(
-                  // 二级嵌套浅底（原型 s-nest）：整幅 surfaceAlt，行内容缩进。
-                  color: TargetPalette.of(context).surfaceAlt,
-                  padding: const EdgeInsets.only(left: AppSpace.s4),
-                  child: Column(children: [
-                    for (final r in goalRows)
-                      _SettingsRow(
-                        icon: GoalIconCatalog.byKey(
-                                activeById[r.goalId]!.iconKey)
-                            .icon,
-                        title: activeById[r.goalId]!.name,
-                        sub: Copy.settingsGoalReminderLine(
-                            _cadenceLabel(r.effectiveCadence),
-                            r.time.isoString),
-                        switchValue: r.isEnabled,
-                        onSwitch: (v) => _setGoalReminder(r, v),
+                  // ---- 分组·外观（主题三档，FR-002）----
+                  const _SectionLabel(Copy.settingsSectionAppearance),
+                  _GroupCard(children: [
+                    _SettingsRow(
+                      key: const ValueKey('themeSystem'),
+                      icon: Icons.brightness_auto,
+                      title: Copy.settingsThemeSystem,
+                      checkmarked: themeMode == AppThemeMode.system,
+                      onTap: () => _setTheme(AppThemeMode.system),
+                    ),
+                    _SettingsRow(
+                      key: const ValueKey('themeLight'),
+                      icon: Icons.light_mode,
+                      title: Copy.settingsThemeLight,
+                      checkmarked: themeMode == AppThemeMode.light,
+                      onTap: () => _setTheme(AppThemeMode.light),
+                    ),
+                    _SettingsRow(
+                      key: const ValueKey('themeDark'),
+                      icon: Icons.dark_mode,
+                      title: Copy.settingsThemeDark,
+                      checkmarked: themeMode == AppThemeMode.dark,
+                      onTap: () => _setTheme(AppThemeMode.dark),
+                    ),
+                  ]),
+
+                  // ---- 分组·通知（总开关 + 概要时间 + 按目标提醒二级）----
+                  const _SectionLabel(Copy.settingsSectionNotif),
+                  if (permCardVisible) _PermCard(onRequest: _requestPermission),
+                  _GroupCard(children: [
+                    _SettingsRow(
+                      key: const ValueKey('notifMasterRow'),
+                      icon: Icons.notifications_outlined,
+                      title: Copy.settingsNotifMasterTitle,
+                      sub: Copy.settingsNotifMasterSub,
+                      switchValue: masterOn,
+                      onSwitch: _setMasterAll,
+                    ),
+                    _SettingsRow(
+                      icon: Icons.access_time_outlined,
+                      title: Copy.settingsBriefTitle,
+                      sub: Copy.settingsBriefSub,
+                      time: briefTime,
+                      showChevron: true,
+                      onTap: () => _pickBriefTime(context, briefTime),
+                    ),
+                    _SettingsRow(
+                      icon: Icons.checklist_outlined,
+                      title: Copy.settingsGoalRemindersTitle,
+                      sub: goalRows.isEmpty
+                          ? Copy.settingsGoalRemindersNoneSub
+                          : Copy.settingsGoalRemindersSub(enabledCount),
+                      showChevron: true,
+                      expanded: _goalsExpanded,
+                      onTap: () => setState(() => _goalsExpanded = !_goalsExpanded),
+                    ),
+                    if (_goalsExpanded)
+                      Container(
+                        // 二级嵌套浅底（v2 s-nest）：整幅 surfaceAlt，行内容缩进。
+                        color: TargetPalette.of(context).surfaceAlt,
+                        padding: const EdgeInsets.only(left: AppSpace.s6),
+                        child: Column(children: [
+                          for (final r in goalRows)
+                            _SettingsRow(
+                              icon: GoalIconCatalog.byKey(
+                                      activeById[r.goalId]!.iconKey)
+                                  .icon,
+                              title: activeById[r.goalId]!.name,
+                              sub: Copy.settingsGoalReminderLine(
+                                  _cadenceLabel(r.effectiveCadence),
+                                  r.time.isoString),
+                              switchValue: r.isEnabled,
+                              onSwitch: (v) => _setGoalReminder(r, v),
+                            ),
+                        ]),
                       ),
                   ]),
-                ),
-            ]),
-            _Hints(hints: permCardVisible
-                ? const [Copy.notifOffHint]
-                : const [Copy.reminderMondayHint, Copy.reminderGoalHint]),
+                  _Hints(hints: permCardVisible
+                      ? const [Copy.notifOffHint]
+                      : _goalsExpanded
+                          ? const [Copy.settingsNestHint]
+                          : const [
+                              Copy.reminderGoalHint,
+                              Copy.reminderMondayHint
+                            ]),
 
-            // ---- 分组·目标：活跃数（→今日页）+ 补签只读说明 ----
-            const _SectionLabel(Copy.settingsSectionGoals),
-            _GroupCard(children: [
-              _SettingsRow(
-                icon: Icons.flag_outlined,
-                title: Copy.settingsGoalsActiveTitle,
-                sub: Copy.settingsGoalsActiveSub,
-                value: '$activeCount',
-                showChevron: true,
-                onTap: () => context.go('/today'),
-              ),
-              const _SettingsRow(
-                icon: Icons.event_outlined,
-                title: Copy.settingsBackfillTitle,
-                sub: Copy.settingsBackfillSub,
-              ),
-            ]),
+                  // ---- 分组·目标：进行中数（→今日页）+ 补签只读说明 ----
+                  const _SectionLabel(Copy.settingsSectionGoals),
+                  _GroupCard(children: [
+                    _SettingsRow(
+                      icon: Icons.flag_outlined,
+                      title: Copy.settingsGoalsActiveTitle,
+                      value: '$activeCount',
+                      showChevron: true,
+                      onTap: () => context.go('/today'),
+                    ),
+                    _SettingsRow(
+                      icon: Icons.event_outlined,
+                      title: Copy.settingsBackfillTitle,
+                      sub: Copy.settingsBackfillSub,
+                    ),
+                  ]),
 
-            // ---- 分组·数据 ----
-            const _SectionLabel(Copy.settingsSectionData),
-            const _BackupCard(),
+                  // ---- 分组·数据 ----
+                  const _SectionLabel(Copy.settingsSectionData),
+                  const _BackupCard(),
 
-            // ---- 分组·关于 ----
-            const _SectionLabel(Copy.settingsSectionAbout),
-            const _GroupCard(children: [
-              _SettingsRow(
-                icon: Icons.info_outline,
-                title: Copy.settingsVersionTitle,
-                value: Copy.settingsVersionValue,
+                  // ---- 分组·关于 ----
+                  const _SectionLabel(Copy.settingsSectionAbout),
+                  _GroupCard(children: [
+                    _SettingsRow(
+                      icon: Icons.info_outline,
+                      title: Copy.settingsVersionTitle,
+                      value: Copy.settingsVersionValue,
+                    ),
+                  ]),
+                  // 003 T045 语域清查：隐私脚注移除——本地存储说明不上屏（FR-021）。
+                  if (kDebugMode) ...[
+                    const SizedBox(height: AppSpace.s4),
+                    const _SectionLabel(Copy.debugClock),
+                    _GroupCard(children: const [DebugClockTile()]),
+                  ],
+                  if (kIsWeb) ...[
+                    const SizedBox(height: AppSpace.s4),
+                    Text(
+                      Copy.widgetIosOnly,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyS
+                          .copyWith(
+                              color: TargetPalette.of(context).onSurfaceVariant),
+                    ),
+                  ],
+                ],
               ),
-            ]),
-            // 003 T045 语域清查：隐私脚注移除——本地存储说明不上屏（FR-021）。
-            if (kDebugMode) ...[
-              const SizedBox(height: AppSpace.s4),
-              const _SectionLabel(Copy.debugClock),
-              _GroupCard(children: const [DebugClockTile()]),
-            ],
-            if (kIsWeb) ...[
-              const SizedBox(height: AppSpace.s4),
-              Text(
-                Copy.widgetIosOnly,
-                textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyS
-                    .copyWith(color: TargetPalette.of(context).onSurfaceVariant),
-              ),
-            ],
+            ),
           ],
         ),
       ),
@@ -225,6 +270,14 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
 
   Future<void> _requestPermission() async {
     _setGranted(await ref.read(notificationGatewayProvider).requestPermission());
+  }
+
+  /// 主题三档落库（FR-002）：settingsProvider 流回放 → themeModeProvider
+  /// 重建 → MaterialApp.themeMode 即时切换；值持久于 Settings.themeMode。
+  Future<void> _setTheme(AppThemeMode mode) async {
+    final repo = ref.read(settingsRepoProvider);
+    final s = await repo.get();
+    await repo.update(s.copyWith(themeMode: mode));
   }
 
   /// 总开关：全开/全关所有 Reminders 行。简报无行时排程器视为默认开
@@ -276,7 +329,40 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   }
 }
 
-/// 账号卡（003 R3）：真资料头像 + 昵称 + 「本地资料」+「编辑」→ sheet。
+/// push 顶栏返回键（v2 st-btn）：38 圆 surface 底 + 细边 + 低影。
+class _BackButton extends StatelessWidget {
+  const _BackButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Semantics(
+      button: true,
+      label: '返回',
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: palette.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: palette.divider),
+            boxShadow: palette.shadowLow,
+          ),
+          child: Icon(Icons.chevron_left,
+              size: 26, color: palette.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+/// 资料卡（v2 me）：56 头像 + 昵称 +「编辑资料」+ 箭头，整卡进编辑 sheet。
+/// [themeMode] 仅用于触发深浅切换时本卡重绘（palette 随 Theme 走）。
 class _MeCard extends ConsumerWidget {
   const _MeCard();
 
@@ -285,51 +371,52 @@ class _MeCard extends ConsumerWidget {
     final palette = TargetPalette.of(context);
     final profile = ref.watch(profileProvider).value;
     return Material(
-      color: palette.glassCard,
-      borderRadius: AppRadius.rLg,
+      key: const ValueKey('meCard'),
+      color: palette.surface,
+      borderRadius: AppRadius.rXl,
       clipBehavior: Clip.antiAlias,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpace.s4),
-        decoration: BoxDecoration(
-          borderRadius: AppRadius.rLg,
-          border: Border.all(color: palette.divider),
-          boxShadow: palette.shadowLow,
-        ),
-        child: Row(
-          children: [
-            ProfileAvatar(profile: profile, size: 44),
-            const SizedBox(width: AppSpace.s3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+      child: InkWell(
+        onTap: () => showProfileSheet(context),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpace.s4),
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.rXl,
+            boxShadow: palette.shadowLow,
+          ),
+          child: Row(
+            children: [
+              ProfileAvatar(profile: profile, size: 56),
+              const SizedBox(width: AppSpace.s4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       profile?.nickname ?? Copy.profileDefaultNickname,
                       key: const ValueKey('meNickname'),
-                      style: Theme.of(context).textTheme.titleS),
-                  const SizedBox(height: 2),
-                  Text(
-                    Copy.settingsMeSub,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyS
-                        .copyWith(color: palette.onSurfaceVariant),
-                  ),
-                ],
+                      style: Theme.of(context).textTheme.titleM),
+                    const SizedBox(height: 2),
+                    Text(
+                      Copy.settingsMeSub,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyS
+                          .copyWith(color: palette.onSurfaceVariant),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            TextButton(
-              onPressed: () => showProfileSheet(context),
-              child: const Text(Copy.settingsEdit),
-            ),
-          ],
+              Icon(Icons.chevron_right,
+                  size: 20, color: palette.onSurfaceVariant),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// 分组小标：labelS + 字距。
+/// 分组小标（v2 sec）：labelS + 字距，卡缘内缩。
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);
 
@@ -339,7 +426,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpace.s1, AppSpace.s3, AppSpace.s1, AppSpace.s1),
+          AppSpace.s4, AppSpace.s3, AppSpace.s4, AppSpace.s1),
       child: Text(
         text,
         style: Theme.of(context).textTheme.labelS.copyWith(
@@ -350,7 +437,7 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// 组卡：玻璃容器，行间细分隔。
+/// 组卡（v2 grp）：surface 实卡 + 圆角 + 低影，行间细分隔。
 class _GroupCard extends StatelessWidget {
   const _GroupCard({required this.children});
 
@@ -359,15 +446,13 @@ class _GroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
-    // Material 承色 + Container 描边投影（goals 卡同款习惯，墨迹可见）。
     return Material(
-      color: palette.glassCard,
+      color: palette.surface,
       borderRadius: AppRadius.rLg,
       clipBehavior: Clip.antiAlias,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: AppRadius.rLg,
-          border: Border.all(color: palette.divider),
           boxShadow: palette.shadowLow,
         ),
         child: Column(
@@ -384,9 +469,11 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-/// 通用设置行：32 图标格 + 标题/副文 + 行尾（值 | 时间 | 开关 | 箭头）。
+/// 通用设置行（v2 srow）：30 图标格 + 标题/副文 + 行尾（值 | 时间 | 开关 |
+/// 箭头 | 单选对勾），行高 ≥52。
 class _SettingsRow extends StatelessWidget {
   const _SettingsRow({
+    super.key,
     required this.icon,
     required this.title,
     this.sub,
@@ -394,6 +481,7 @@ class _SettingsRow extends StatelessWidget {
     this.time,
     this.switchValue,
     this.onSwitch,
+    this.checkmarked = false,
     this.showChevron = false,
     this.expanded = false,
     this.onTap,
@@ -407,6 +495,9 @@ class _SettingsRow extends StatelessWidget {
   final bool? switchValue;
   final ValueChanged<bool>? onSwitch;
 
+  /// 单选选中态（主题三档）：行尾 22 对勾，accent。
+  final bool checkmarked;
+
   /// 行尾箭头（值行/二级入口）；已展开时箭头转向下（原型 chev 旋转语义）。
   final bool showChevron;
   final bool expanded;
@@ -417,75 +508,81 @@ class _SettingsRow extends StatelessWidget {
     final palette = TargetPalette.of(context);
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.s4, vertical: AppSpace.s3),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: palette.surfaceAlt,
-                borderRadius: AppRadius.rMd,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 52),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.s4, vertical: AppSpace.s3),
+          child: Row(
+            children: [
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: palette.surfaceAlt,
+                  borderRadius: AppRadius.rSm,
+                ),
+                child:
+                    Icon(icon, size: 17, color: palette.onSurfaceVariant),
               ),
-              child: Icon(icon, size: 16, color: palette.onSurfaceVariant),
-            ),
-            const SizedBox(width: AppSpace.s3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.bodyL),
-                  if (sub case final s? when s.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      s,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyS
-                          .copyWith(color: palette.onSurfaceVariant),
-                    ),
+              const SizedBox(width: AppSpace.s3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.bodyL),
+                    if (sub case final s? when s.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        s,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            if (value case final v?) ...[
-              const SizedBox(width: AppSpace.s2),
-              Text(
-                v,
-                style: Theme.of(context).textTheme.bodyM.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()]),
-              ),
+              if (value case final v?) ...[
+                const SizedBox(width: AppSpace.s2),
+                _endText(context, v),
+              ],
+              if (time case LocalTime t) ...[
+                const SizedBox(width: AppSpace.s2),
+                _endText(context, t.isoString),
+              ],
+              if (switchValue case bool v) ...[
+                const SizedBox(width: AppSpace.s2),
+                Switch(
+                  value: v,
+                  onChanged: onSwitch,
+                  activeThumbColor: palette.positiveFill,
+                ),
+              ],
+              if (checkmarked) ...[
+                const SizedBox(width: AppSpace.s2),
+                Icon(Icons.check, size: 22, color: palette.accent),
+              ],
+              if (showChevron) ...[
+                const SizedBox(width: AppSpace.s1),
+                Icon(expanded ? Icons.expand_more : Icons.chevron_right,
+                    size: 20, color: palette.onSurfaceVariant),
+              ],
             ],
-            if (time case LocalTime t) ...[
-              const SizedBox(width: AppSpace.s2),
-              Text(
-                t.isoString,
-                style: Theme.of(context).textTheme.bodyM.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontFeatures: const [FontFeature.tabularFigures()]),
-              ),
-            ],
-            if (switchValue case bool v) ...[
-              const SizedBox(width: AppSpace.s2),
-              Switch(
-                value: v,
-                onChanged: onSwitch,
-                activeThumbColor: palette.positiveFill,
-              ),
-            ],
-            if (showChevron) ...[
-              const SizedBox(width: AppSpace.s1),
-              Icon(expanded ? Icons.expand_more : Icons.chevron_right,
-                  size: 20, color: palette.onSurfaceVariant),
-            ],
-          ],
+          ),
         ),
       ),
     );
   }
+
+  /// 行尾值（v2 end）：bodyM 常规重 + 变体色 + 表格数字。
+  Text _endText(BuildContext context, String v) => Text(
+        v,
+        style: Theme.of(context).textTheme.bodyM.copyWith(
+            color: TargetPalette.of(context).onSurfaceVariant,
+            fontFeatures: const [FontFeature.tabularFigures()]),
+      );
 }
 
 /// 提示行（场景指引）：卡外小字，bodyS。
@@ -499,7 +596,7 @@ class _Hints extends StatelessWidget {
     final palette = TargetPalette.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpace.s1, AppSpace.s2, AppSpace.s1, 0),
+          AppSpace.s4, AppSpace.s2, AppSpace.s4, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -532,14 +629,13 @@ class _PermCard extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpace.s2),
       child: Material(
-        color: palette.glassCard,
+        color: palette.surface,
         borderRadius: AppRadius.rLg,
         clipBehavior: Clip.antiAlias,
         child: Container(
           padding: const EdgeInsets.all(AppSpace.s4),
           decoration: BoxDecoration(
             borderRadius: AppRadius.rLg,
-            border: Border.all(color: palette.divider),
             boxShadow: palette.shadowLow,
           ),
           child: Column(
@@ -604,8 +700,8 @@ class _PermCard extends ConsumerWidget {
   }
 }
 
-/// 备份卡（FR-015）：导出（Web 下载 / iOS 分享面板）、导入（校验 →
-/// 冲突弹窗「覆盖本地/取消」→ 原子替换 → 摘要）。
+/// 备份卡（FR-015）：导出（Web 下载 / iOS 分享面板）、恢复（校验 →
+/// 覆盖居中确认（v2 dlg）→ 原子替换 → 摘要）。
 class _BackupCard extends ConsumerStatefulWidget {
   const _BackupCard();
 
@@ -631,12 +727,14 @@ class _BackupCardState extends ConsumerState<_BackupCard> {
         icon: Icons.file_upload_outlined,
         title: Copy.backupExport,
         sub: Copy.backupExportSub,
+        showChevron: true,
         onTap: _export,
       ),
       _SettingsRow(
         icon: Icons.file_download_outlined,
         title: Copy.backupImport,
         sub: Copy.backupImportSub,
+        showChevron: true,
         onTap: _import,
       ),
     ]);
@@ -673,21 +771,7 @@ class _BackupCardState extends ConsumerState<_BackupCard> {
     // 本地已有数据 → 必须显式选择覆盖，绝不静默合并（FR-015）。
     if (await importer.hasLocalData()) {
       if (!mounted) return;
-      final overwrite = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text(Copy.backupImportConflictTitle),
-          content: const Text(Copy.backupImportConflictBody),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text(Copy.backupImportCancel)),
-            FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text(Copy.backupImportOverwrite)),
-          ],
-        ),
-      );
+      final overwrite = await _confirmRestore();
       if (overwrite != true) return;
     }
 
@@ -700,5 +784,96 @@ class _BackupCardState extends ConsumerState<_BackupCard> {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('${Copy.backupImportDone}：$detail')));
   }
+
+  /// 覆盖确认（v2-settings 板 5 dlg）：居中卡 + 双胶囊按钮。
+  Future<bool?> _confirmRestore() => showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          final palette = TargetPalette.of(dialogContext);
+          return Dialog(
+            backgroundColor: palette.surface,
+            shape: RoundedRectangleBorder(borderRadius: AppRadius.rXl),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpace.s5),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(Copy.backupImportConflictTitle,
+                      key: const ValueKey('restoreConfirmTitle'),
+                      style:
+                          Theme.of(dialogContext).textTheme.titleS),
+                  const SizedBox(height: AppSpace.s4),
+                  Text(
+                    Copy.backupImportConflictBody,
+                    style: Theme.of(dialogContext)
+                        .textTheme
+                        .bodyM
+                        .copyWith(
+                            color: palette.onSurfaceVariant, height: 1.7),
+                  ),
+                  const SizedBox(height: AppSpace.s4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _DlgButton(
+                          label: Copy.backupImportCancel,
+                          background: palette.surfaceAlt,
+                          foreground: palette.onSurface,
+                          onTap: () => Navigator.of(dialogContext).pop(false),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpace.s3),
+                      Expanded(
+                        child: _DlgButton(
+                          label: Copy.backupImportOverwrite,
+                          background: palette.accent,
+                          foreground: palette.accentOn,
+                          onTap: () => Navigator.of(dialogContext).pop(true),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
 }
 
+/// 确认卡胶囊按钮（v2 dlg acts）：全宽圆角实底。
+class _DlgButton extends StatelessWidget {
+  const _DlgButton({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppRadius.rFull,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: AppRadius.rFull,
+        ),
+        child: Text(label,
+            style: Theme.of(context)
+                .textTheme
+                .bodyL
+                .copyWith(color: foreground)),
+      ),
+    );
+  }
+}

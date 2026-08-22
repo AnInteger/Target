@@ -127,52 +127,58 @@ abstract final class Copy {
   // ---- 备份（FR-015）----
 
   static const backupExport = '导出备份';
-  static const backupImport = '导入备份';
-  static const backupImportConflictTitle = '导入会覆盖当前全部数据';
-  static const backupImportConflictBody = '两份不会混合——继续将替换为备份内容。';
-  static const backupImportOverwrite = '覆盖本地';
+  static const backupImport = '恢复备份';
+  static const backupImportConflictTitle = '恢复备份';
+  static const backupImportConflictBody = '将用备份文件中的全部数据替换当前数据。此操作不可撤销。';
+  static const backupImportOverwrite = '恢复';
   static const backupImportCorrupt = '备份文件不完整，已取消导入';
   static const backupImportDone = '导入完成';
   static const backupImportCancel = '取消';
   static const backupExported = '备份已生成';
 
-  // ---- 设置 / 其他（T026 R2：聚焦 App 本身，无目标内容）----
+  // ---- 设置 / 其他（004 v2 冻结稿 v2-settings.html：账号卡 + 外观/通知/
+  // 目标/数据/关于分组，行 = 图标 + 标题 + 行尾值|开关|箭头|对勾）----
 
   static const settingsTitle = '我的';
 
-  // 我的页结构（003 R3 原型：账号卡 + 通知/目标/数据/关于四分组，
-  // 行 = 图标 + 标题 + 行尾值|开关|箭头）。
-  static const settingsMeSub = '本地资料';
-  static const settingsEdit = '编辑';
+  static const settingsMeSub = '编辑资料';
+  static const settingsSectionAppearance = '外观';
   static const settingsSectionNotif = '通知';
   static const settingsSectionGoals = '目标';
   static const settingsSectionData = '数据';
   static const settingsSectionAbout = '关于';
-  static const settingsGoalsActiveTitle = '活跃目标';
-  static const settingsGoalsActiveSub = '想坚持的事，都在今日页';
+
+  // 主题三档（FR-002：切换即时生效并持久保留）。
+  static const settingsThemeSystem = '跟随系统';
+  static const settingsThemeLight = '浅色';
+  static const settingsThemeDark = '深色';
+
+  static const settingsGoalsActiveTitle = '进行中目标';
   static const settingsBackfillTitle = '补签';
-  static const settingsBackfillSub = '长按今日页的目标卡，可为往日补一条记录';
+  static const settingsBackfillSub = '在目标详情页选择过去日期补记';
   static const settingsVersionTitle = '版本';
   static const settingsVersionValue = '1.0.0';
 
-  // 通知分组行（T035 · 原型 s-row 三行 + s-nest 二级）。
-  static const settingsNotifMasterTitle = '提醒';
-  static const settingsNotifMasterSub = '全部提醒的总开关';
-  static const settingsBriefTitle = '每日简报';
-  static const settingsBriefSub = '每天一份今日概要，不催促';
+  // 通知分组行（v2-settings：总开关 + 概要时间 + 按目标提醒二级）。
+  static const settingsNotifMasterTitle = '通知';
+  static const settingsNotifMasterSub = '提醒与每日概要';
+  static const settingsBriefTitle = '每日概要时间';
+  static const settingsBriefSub = '每天此时汇总当日待办';
   static const settingsGoalRemindersTitle = '按目标提醒';
 
-  /// 二级展开行副题：N=0「都关着」；无行时另用 [settingsGoalRemindersNoneSub]。
-  static String settingsGoalRemindersSub(int n) =>
-      n == 0 ? '都关着，安静中' : '$n 个目标已开 · 其余安静';
+  /// 二级展开行副题；无行时另用 [settingsGoalRemindersNoneSub]。
+  static String settingsGoalRemindersSub(int n) => '已开启 $n 个';
   static const settingsGoalRemindersNoneSub = '在编辑目标时开启提醒';
+
+  /// 二级展开后的说明（v2-settings 板 3 hint）。
+  static const settingsNestHint = '关闭单个目标的提醒后，每日概要不受影响';
 
   /// 二级逐行副题：「一天一次 · 09:00」。
   static String settingsGoalReminderLine(String cadenceLabel, String time) =>
       '$cadenceLabel · $time';
   static const notifOffHint = '开关会记住你的偏好，开通知后按这里的时间提醒。';
-  static const backupExportSub = '生成一份文件，带走全部记录';
-  static const backupImportSub = '整份替换，不与现有数据混合';
+  static const backupExportSub = '生成备份文件';
+  static const backupImportSub = '从备份文件导入';
   static const widgetIosOnly = '桌面小组件与提醒推送为 iPhone 专属功能';
   static const debugClock = 'Debug 时钟';
   static const appName = 'Target';

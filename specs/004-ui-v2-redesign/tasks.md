@@ -87,7 +87,9 @@ description: "Task list for 004 UI v2 重构"
 
 ### 实现（按冻结稿）
 
-- [ ] T012 [US1] 我的页换装：lib/features/settings/settings_view.dart 按冻结稿重做 + 主题三档单选行（消费 themeModeProvider，即时生效持久保留）
+- [x] T012 [US1] 我的页换装：lib/features/settings/settings_view.dart 按冻结稿重做 + 主题三档单选行（消费 themeModeProvider，即时生效持久保留）
+  - ✅ 换装完成：push 顶栏（38 圆钮返回 + 我的）/资料卡整卡入口→ProfileAvatar 56/外观组三档单选（跟随系统·浅色·深色，即时生效且落 Settings.themeMode 持久）/通知组总开关+概要时间+按目标提醒二级展开（surfaceAlt 左缩进 + nest hint）/目标·数据·关于组 v2 组卡行形态（30 图标盒 + 52 高 + 行尾值|开关|箭头|对勾，卡无描边）/恢复确认居中弹层（双胶囊按钮）；copy.dart 同步 v2 词汇（backupImport=恢复备份 等）；返回钮过渡式 canPop?pop:go('/today')（T024 迁 push 后自然语义）
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（+134，新增 T012 主题三档即时生效持久用例；T032–T036/V7 随 v2 形态与文案碰撞改 key 定位/scrollTo/双命中计数）
 - [ ] T013 [P] [US1] 编辑器换装：lib/features/goals/goal_editor.dart 按冻结稿重做（连带 lib/features/goals/goal_templates.dart 与 goal_type_badge.dart 控件形态；FR-016 底线零丢失）（depends T011）
 - [ ] T014 [P] [US1] 详情换装：lib/features/goals/goal_detail.dart 按冻结稿重做（打卡/补签/历史/标记达成/续期/编辑/暂停恢复/删除全可达）（depends T011）
 - [ ] T015 [P] [US1] 通知列表换装：lib/features/notifications/notification_list.dart 按冻结稿重做（倒序/类型图标/空态）（depends T011）

@@ -1148,7 +1148,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T032 三屏标题对齐：左缘与竖直基线逐屏一致（FR-008/SC-004）',
+  testWidgets('T032 标题带对齐：今日/回顾同带（我的页 004 v2 改 push 顶栏）',
       (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
@@ -1172,7 +1172,7 @@ void main() {
     ).read(routerProvider);
 
     // 今日屏基准：头部带（账号区）在带内左上——头像左缘 ≥ padX、
-    // 顶部与后续两屏标题同带相容（差 < 一行）。
+    // 顶部与回顾屏标题同带相容（差 < 一行）。
     final avatar = tester.getRect(find.byType(ProfileAvatar));
     expect(avatar.left, greaterThanOrEqualTo(24));
 
@@ -1181,18 +1181,16 @@ void main() {
     final reviewTitle =
         tester.getRect(find.byKey(const ValueKey('screenTitle')));
 
-    router.go('/settings');
-    await tester.pumpAndSettle();
-    final settingsTitle =
-        tester.getRect(find.byKey(const ValueKey('screenTitle')));
-
-    // 回顾/我的：displayS 标题左缘、顶部逐像素一致（同一令牌规格）。
-    expect(reviewTitle.left, settingsTitle.left,
-        reason: '左缘缩进应逐屏相同');
-    expect(reviewTitle.top, settingsTitle.top, reason: '竖直基线应逐屏相同');
-    // 三屏同带：今日屏头像与两屏标题都在「带顶 + 8..24」区间内。
+    // 回顾标题带左缘 ≥ padX；今日屏头像与其同带竖直相容。
+    expect(reviewTitle.left, greaterThanOrEqualTo(24));
     expect((avatar.top - reviewTitle.top).abs(), lessThan(16),
         reason: '今日屏头部带与标题带应竖直相容');
+
+    // 004 v2（T012）：我的页改 push 顶栏（返回键 + 我的），退出 003 三屏
+    // 标题带约束——在场性与形态断言（T036 深色态用例另有覆盖）。
+    router.go('/settings');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screenTitle')), findsOneWidget);
     await db.close();
   });
 
@@ -1231,10 +1229,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('reviewEmptyCta')), findsOneWidget);
 
-    // 我的：账号卡（默认昵称兜底，头像首字兜底同文故按 key）+ 备份组照常渲染。
+    // 我的：账号卡（默认昵称兜底，头像首字兜底同文故按 key）+ 备份组照常渲染
+    //（004 v2 外观组增高，数据组需滚动到缓存区内）。
     router.go('/settings');
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
+    await scrollTo(tester, find.text(Copy.backupExport));
     expect(find.text(Copy.backupExport), findsOneWidget);
     await db.close();
   });
@@ -1281,19 +1281,21 @@ void main() {
     router.go('/settings');
     await tester.pumpAndSettle();
 
-    // 四分组：通知/目标在首屏直接断言；数据/关于被通知组挤出首屏，
-    // 滚动后顶部控件会被 ListView 销毁，故全部滚动断言后置到用例尾。
-    expect(find.text(Copy.settingsSectionNotif), findsOneWidget);
+    // 四分组：外观/通知/目标在首屏直接断言（总开关标题「通知」与分组
+    // 标签同文 → 分组标签按 findsNWidgets(2) 容纳两处；数据/关于被挤出
+    // 首屏，滚动后顶部控件会被 ListView 销毁，滚动断言后置到用例尾）。
+    expect(find.text(Copy.settingsSectionNotif), findsNWidgets(2));
     expect(find.text(Copy.settingsSectionGoals), findsOneWidget);
 
-    // 账号卡：真资料（默认昵称兜底）+「编辑」→ 资料 sheet。
+    // 账号卡：真资料（默认昵称兜底）+ 整卡（v2：编辑资料 + 箭头）→ sheet。
     // 昵称文本按 key 断言——今日页头部与头像首字兜底同渲染「我」（IndexedStack 常驻）。
     expect(find.byKey(const ValueKey('meNickname')),
         findsOneWidget);
     expect(find.text(Copy.settingsMeSub), findsOneWidget);
-    await tester.tap(find.text(Copy.settingsEdit));
+    await tester.tap(find.byKey(const ValueKey('meCard')));
     await tester.pumpAndSettle();
-    expect(find.text(Copy.profileSheetTitle), findsOneWidget);
+    // sheet 标题与卡片副题同文「编辑资料」（v2 冻结稿），两处在场即开层成功。
+    expect(find.text(Copy.profileSheetTitle), findsNWidgets(2));
     await tester.tap(find.text(Copy.profileDone));
     await tester.pumpAndSettle();
 
@@ -1384,6 +1386,11 @@ void main() {
             matching: find.byType(InkWell)),
         matching: find.byType(Switch));
 
+    /// 总开关行：v2 标题「通知」与分组标签同文，按行 key 定位。
+    final masterSwitch = find.descendant(
+        of: find.byKey(const ValueKey('notifMasterRow')),
+        matching: find.byType(Switch));
+
     // 通知三行：总开关（聚合开——锻炼行在开）+ 简报默认时间值 + 计数副题。
     expect(find.text(Copy.settingsNotifMasterSub), findsOneWidget);
     expect(find.text(Copy.settingsBriefSub), findsOneWidget);
@@ -1408,7 +1415,7 @@ void main() {
 
     // 总开关关 → 简报行 + 逐目标行全落 false；简报无行时视为默认开，
     // 故必须显式落一条简报行承载关闭态（否则聚合视图被拉回 true）。
-    await tester.tap(rowSwitch(Copy.settingsNotifMasterTitle));
+    await tester.tap(masterSwitch);
     await tester.pumpAndSettle();
     final offRows = await reminderRepo.all();
     expect(offRows, isNotEmpty);
@@ -1417,7 +1424,7 @@ void main() {
     expect(find.text(Copy.settingsGoalRemindersSub(0)), findsOneWidget);
 
     // 总开关开 → 全部回 true（能力等价：一处恢复全部提醒）。
-    await tester.tap(rowSwitch(Copy.settingsNotifMasterTitle));
+    await tester.tap(masterSwitch);
     await tester.pumpAndSettle();
     expect((await reminderRepo.all()).every((r) => r.isEnabled), isTrue);
     expect(find.text(Copy.settingsGoalRemindersSub(2)), findsOneWidget);
@@ -1470,7 +1477,8 @@ void main() {
     expect(identical(palette, TargetPalette.dark), isTrue);
 
     // 通知组三行（开关/值/二级）+ 展开后二级行——深色下照常渲染。
-    expect(find.text(Copy.settingsNotifMasterTitle), findsOneWidget);
+    // 总开关标题「通知」与分组标签同文（v2 冻结稿），按行 key 断言。
+    expect(find.byKey(const ValueKey('notifMasterRow')), findsOneWidget);
     expect(find.text(Copy.settingsBriefTitle), findsOneWidget);
     expect(find.text(Copy.settingsGoalRemindersTitle), findsOneWidget);
     await tester.tap(find.text(Copy.settingsGoalRemindersTitle));
@@ -1483,6 +1491,61 @@ void main() {
     expect(find.text(Copy.backupImport), findsOneWidget);
     await scrollTo(tester, find.text(Copy.settingsVersionValue));
     expect(find.text(Copy.settingsVersionValue), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('T012 我的页换装：外观组主题三档单选即时生效并持久（FR-002）',
+      (tester) async {
+    usePhoneSurface(tester);
+    tester.binding.platformDispatcher.platformBrightnessTestValue =
+        Brightness.dark;
+    addTearDown(
+        tester.binding.platformDispatcher.clearPlatformBrightnessTestValue);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/settings');
+    await tester.pumpAndSettle();
+
+    TargetPalette palette() =>
+        TargetPalette.of(tester.element(find.byType(SettingsView)));
+
+    // 外观组三行在场；缺省跟随系统（platform dark → 深色令牌）。
+    expect(find.text(Copy.settingsSectionAppearance), findsOneWidget);
+    expect(find.text(Copy.settingsThemeSystem), findsOneWidget);
+    expect(find.text(Copy.settingsThemeLight), findsOneWidget);
+    expect(find.text(Copy.settingsThemeDark), findsOneWidget);
+    expect(identical(palette(), TargetPalette.dark), isTrue);
+
+    // 切浅色：MaterialApp.themeMode 即时翻转（palette 变浅）+ 落库持久。
+    await tester.tap(find.byKey(const ValueKey('themeLight')));
+    await tester.pumpAndSettle();
+    expect(identical(palette(), TargetPalette.light), isTrue);
+    final saved = await (db.select(db.settingsRows)).getSingle();
+    expect(saved.themeMode, 'light');
+
+    // 切回跟随系统：恢复深色（platform dark），落库回 system。
+    await tester.tap(find.byKey(const ValueKey('themeSystem')));
+    await tester.pumpAndSettle();
+    expect(identical(palette(), TargetPalette.dark), isTrue);
+    final saved2 = await (db.select(db.settingsRows)).getSingle();
+    expect(saved2.themeMode, 'system');
     await db.close();
   });
 
@@ -1852,9 +1915,10 @@ void main() {
     // 标题「我的」与底部 nav 标签同文，断言至少一处即可。
     expect(find.text(Copy.settingsTitle), findsWidgets);
     expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
-    expect(find.text(Copy.settingsEdit), findsOneWidget);
+    expect(find.byKey(const ValueKey('meCard')), findsOneWidget);
+    expect(find.text(Copy.settingsMeSub), findsOneWidget);
     expect(find.text(Copy.settingsBriefTitle), findsOneWidget);
-    expect(find.text(Copy.settingsNotifMasterTitle), findsOneWidget);
+    expect(find.byKey(const ValueKey('notifMasterRow')), findsOneWidget);
     expect(find.text(Copy.reminderGoalHint), findsOneWidget);
     // T045 语域清查：隐私脚注（本地存储说明）不上屏（FR-021）。
     expect(find.textContaining('这台设备'), findsNothing);
@@ -1874,7 +1938,8 @@ void main() {
     await scrollTo(tester, find.text(Copy.backupImport));
     await tester.tap(find.text(Copy.backupImport));
     await tester.pumpAndSettle();
-    expect(find.text(Copy.backupImportConflictTitle), findsOneWidget);
+    // v2 dlg：居中确认卡（标题与行同文「恢复备份」，按 key 断言）。
+    expect(find.byKey(const ValueKey('restoreConfirmTitle')), findsOneWidget);
     await tester.tap(find.text(Copy.backupImportOverwrite));
     await tester.pumpAndSettle();
     expect(find.textContaining(Copy.backupImportDone), findsOneWidget);

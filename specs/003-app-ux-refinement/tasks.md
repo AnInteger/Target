@@ -22,7 +22,8 @@
 
 **Purpose**: 三 Tab 新骨架先出 HTML 原型送用户浏览器裁决——结构类实现任务的门禁
 
-- [ ] T001 设计算法令牌检视：对照三屏新结构（通知列表/设置分组行/编辑器分组卡）审查 `design/prototypes/tokens.css`，缺的令牌（如 sheet 底、分组卡底、角标红点）先改 tokens.css 再镜像 `lib/app/design_tokens.dart`（三端真源惯例，本特性预计少量新增）
+- [x] T001 设计算法令牌检视：对照三屏新结构（通知列表/设置分组行/编辑器分组卡）审查 `design/prototypes/tokens.css`，缺的令牌（如 sheet 底、分组卡底、角标红点）先改 tokens.css 再镜像 `lib/app/design_tokens.dart`（三端真源惯例，本特性预计少量新增）
+  - ✅ 2026-08-22：新增 --scrim（弹层遮罩）/--badge/--badge-on（未读角标，目标色系退役后语义化独立）浅深成对；design_tokens.dart 构造/字段/浅深/copyWith/lerp 全同步，analyze 零问题 69 测试全绿；另建 design/prototypes/goal-icons.js 原型共享图标模块（research D1，40 枚 Material rounded path，供 T002–T005 消费）
 - [ ] T002 [P] 今日页原型 R5：重构 `design/prototypes/screen-today.html`——三页签胶囊导航（今日/回顾/我的）、头部同图层无分隔线（左账号区 头像环+昵称 | 中日期语 | 右铃铛+＋）、今日之环「今天记录了吗」0→1（类型微标：习惯节律点/短期倒计时 chip/长期 ∞）、目标卡列表（图标+一句话+类型徽章+打卡态）、底部周节奏微条；画板含 典型/空态/深色
 - [ ] T003 [P] 编辑器原型 R2：重构 `design/prototypes/screen-editor.html`——三分组折叠（基础信息一句话输入 / 类型分段选择+短期截止或习惯提醒开关 / 图标九宫格）、标准控件形态（文本框/分段/开关/时间选择器）、类型切换联动显隐、保存常驻底部、底部 Tab 可见；画板含 三类型各一 + 深色
 - [ ] T004 [P] 回顾页原型 R4：改 `design/prototypes/screen-review.html`——空态画板（竖直居中+引导文案+「新建目标」主按钮）、三屏标题对齐并排基准稿（今日/回顾/我的 左缘缩进与竖直基线一致）

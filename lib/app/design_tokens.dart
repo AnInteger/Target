@@ -91,6 +91,9 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     required this.positiveOn,
     required this.warning,
     required this.divider,
+    required this.scrim,
+    required this.badge,
+    required this.badgeOn,
     required this.bgGrad,
     required this.glassShell,
     required this.glassCard,
@@ -129,6 +132,13 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
   /// 发丝分隔线。
   final Color divider;
 
+  /// 弹层遮罩（003：通知列表/资料编辑等 bottom sheet 的底幕）。
+  final Color scrim;
+
+  /// 未读角标及其上文字（003：铃铛红点/计数，目标色退役后语义化独立）。
+  final Color badge;
+  final Color badgeOn;
+
   /// 四段粉紫底幕渐变（浅）／暗紫（深）。角度恒 135deg（左上→右下）。
   final List<Color> bgGrad;
 
@@ -160,6 +170,9 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     positiveOn: Color(0xFF24280F),
     warning: Color(0xFF9A6700),
     divider: Color(0xFFE8E3F0),
+    scrim: Color(0x591D1A24),
+    badge: Color(0xFFD9534F),
+    badgeOn: Color(0xFFFFFFFF),
     bgGrad: [
       Color(0xFFECD8E0),
       Color(0xFFE2D3E9),
@@ -195,6 +208,9 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     positiveOn: Color(0xFF24280F),
     warning: Color(0xFFE8B04B),
     divider: Color(0xFF322B44),
+    scrim: Color(0x80000000),
+    badge: Color(0xFFEF8A80),
+    badgeOn: Color(0xFF241014),
     bgGrad: [
       Color(0xFF2C2036),
       Color(0xFF221A30),
@@ -232,6 +248,9 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     Color? positiveOn,
     Color? warning,
     Color? divider,
+    Color? scrim,
+    Color? badge,
+    Color? badgeOn,
     List<Color>? bgGrad,
     Color? glassShell,
     Color? glassCard,
@@ -254,6 +273,9 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
         positiveOn: positiveOn ?? this.positiveOn,
         warning: warning ?? this.warning,
         divider: divider ?? this.divider,
+        scrim: scrim ?? this.scrim,
+        badge: badge ?? this.badge,
+        badgeOn: badgeOn ?? this.badgeOn,
         bgGrad: bgGrad ?? this.bgGrad,
         glassShell: glassShell ?? this.glassShell,
         glassCard: glassCard ?? this.glassCard,
@@ -281,6 +303,9 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
       positiveOn: Color.lerp(positiveOn, other.positiveOn, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       divider: Color.lerp(divider, other.divider, t)!,
+      scrim: Color.lerp(scrim, other.scrim, t)!,
+      badge: Color.lerp(badge, other.badge, t)!,
+      badgeOn: Color.lerp(badgeOn, other.badgeOn, t)!,
       bgGrad: [
         for (var i = 0; i < bgGrad.length; i++)
           Color.lerp(bgGrad[i], other.bgGrad[i], t)!,

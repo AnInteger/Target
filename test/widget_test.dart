@@ -16,6 +16,7 @@ import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/features/goals/goal_templates.dart';
 import 'package:target/features/profile/profile.dart';
+import 'package:target/features/settings/settings_view.dart';
 import 'package:target/core/backup/backup_exporter.dart';
 import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart'
@@ -1229,11 +1230,10 @@ void main() {
     router.go('/settings');
     await tester.pumpAndSettle();
 
-    // 四分组齐备（通知/目标/数据/关于）。
+    // 四分组：通知/目标在首屏直接断言；数据/关于被通知组挤出首屏，
+    // 滚动后顶部控件会被 ListView 销毁，故全部滚动断言后置到用例尾。
     expect(find.text(Copy.settingsSectionNotif), findsOneWidget);
     expect(find.text(Copy.settingsSectionGoals), findsOneWidget);
-    expect(find.text(Copy.settingsSectionData), findsOneWidget);
-    expect(find.text(Copy.settingsSectionAbout), findsOneWidget);
 
     // 账号卡：真资料（默认昵称兜底）+「编辑」→ 资料 sheet。
     // 昵称文本按 key 断言——今日页头部与头像首字兜底同渲染「我」（IndexedStack 常驻）。
@@ -1254,12 +1254,122 @@ void main() {
     expect(find.byKey(const ValueKey('reviewEmptyCta')), findsNothing);
     expect(find.text(Copy.todayNav), findsOneWidget);
 
-    // 补签只读 + 版本值行（回到我的页断言）。
+    // 补签只读行（回到我的页断言）。
     router.go('/settings');
     await tester.pumpAndSettle();
     expect(find.text(Copy.settingsBackfillTitle), findsOneWidget);
     expect(find.text(Copy.settingsBackfillSub), findsOneWidget);
+
+    // 屏底分组：数据/关于 + 版本行（滚动断言）。
+    await scrollTo(tester, find.text(Copy.settingsSectionData));
+    expect(find.text(Copy.settingsSectionData), findsOneWidget);
+    await scrollTo(tester, find.text(Copy.settingsSectionAbout));
+    expect(find.text(Copy.settingsSectionAbout), findsOneWidget);
+    await scrollTo(tester, find.text(Copy.settingsVersionValue));
     expect(find.text(Copy.settingsVersionValue), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('T035 通知迁入：总开关聚合全开全关 + 按目标提醒二级逐行开关（FR-006）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goalRepo = GoalRepository(db);
+    final reminderRepo = ReminderRepository(db);
+    final ride = await goalRepo.create(Goal(
+        name: '锻炼',
+        goalType: GoalType.habit,
+        iconKey: 'fitness_center',
+        colorKey: 'teal',
+        createdAt: today));
+    final read = await goalRepo.create(Goal(
+        name: '阅读',
+        goalType: GoalType.habit,
+        iconKey: 'menu_book',
+        colorKey: 'sage',
+        createdAt: today));
+    await reminderRepo.upsert(Reminder(
+        id: 'r-ride',
+        goalId: ride.id,
+        time: const LocalTime(9, 0),
+        isEnabled: true,
+        cadence: Cadence.daily));
+    await reminderRepo.upsert(Reminder(
+        id: 'r-read',
+        goalId: read.id,
+        time: const LocalTime(22, 30),
+        isEnabled: false,
+        cadence: Cadence.weekly));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider
+              .overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/settings');
+    await tester.pumpAndSettle();
+
+    /// 目标名与今日页卡片撞名（IndexedStack 常驻），行内查找限定 SettingsView。
+    Finder rowSwitch(String title) => find.descendant(
+        of: find.ancestor(
+            of: find.descendant(
+                of: find.byType(SettingsView),
+                matching: find.text(title)),
+            matching: find.byType(InkWell)),
+        matching: find.byType(Switch));
+
+    // 通知三行：总开关（聚合开——锻炼行在开）+ 简报默认时间值 + 计数副题。
+    expect(find.text(Copy.settingsNotifMasterSub), findsOneWidget);
+    expect(find.text(Copy.settingsBriefSub), findsOneWidget);
+    expect(find.text('08:00'), findsOneWidget);
+    expect(find.text(Copy.settingsGoalRemindersSub(1)), findsOneWidget);
+
+    // 展开二级 → 逐行「频率 · 时间」副题（今日页目标名不进断言，按行副题定位）。
+    await tester.tap(find.text(Copy.settingsGoalRemindersTitle));
+    await tester.pumpAndSettle();
+    expect(find.text('一天一次 · 09:00'), findsOneWidget);
+    expect(find.text('一周一次 · 22:30'), findsOneWidget);
+
+    // 逐行开关：打开阅读行 → 落库 true，计数副题 1 → 2。
+    await tester.tap(rowSwitch('阅读'));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.settingsGoalRemindersSub(2)), findsOneWidget);
+    expect(
+        (await reminderRepo.all())
+            .firstWhere((r) => r.id == 'r-read')
+            .isEnabled,
+        isTrue);
+
+    // 总开关关 → 简报行 + 逐目标行全落 false；简报无行时视为默认开，
+    // 故必须显式落一条简报行承载关闭态（否则聚合视图被拉回 true）。
+    await tester.tap(rowSwitch(Copy.settingsNotifMasterTitle));
+    await tester.pumpAndSettle();
+    final offRows = await reminderRepo.all();
+    expect(offRows, isNotEmpty);
+    expect(offRows.every((r) => !r.isEnabled), isTrue);
+    expect(offRows.any((r) => r.isDailyBrief), isTrue);
+    expect(find.text(Copy.settingsGoalRemindersSub(0)), findsOneWidget);
+
+    // 总开关开 → 全部回 true（能力等价：一处恢复全部提醒）。
+    await tester.tap(rowSwitch(Copy.settingsNotifMasterTitle));
+    await tester.pumpAndSettle();
+    expect((await reminderRepo.all()).every((r) => r.isEnabled), isTrue);
+    expect(find.text(Copy.settingsGoalRemindersSub(2)), findsOneWidget);
     await db.close();
   });
 
@@ -1624,8 +1734,10 @@ void main() {
     expect(find.text(Copy.settingsTitle), findsWidgets);
     expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
     expect(find.text(Copy.settingsEdit), findsOneWidget);
-    expect(find.text(Copy.dailyBriefSub), findsOneWidget);
+    expect(find.text(Copy.settingsBriefTitle), findsOneWidget);
+    expect(find.text(Copy.settingsNotifMasterTitle), findsOneWidget);
     expect(find.text(Copy.reminderGoalHint), findsOneWidget);
+    await scrollTo(tester, find.text(Copy.privacyFoot)); // 通知组变高，脚注挤出首屏
     expect(find.text(Copy.privacyFoot), findsOneWidget);
     // 聚焦 App 本身：目标内容不上设置屏（旧版逐目标提醒行已删）。
     expect(find.text('锻炼'), findsNothing);

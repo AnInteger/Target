@@ -1,8 +1,10 @@
 /// 设置页（003 R3 定稿 · T034 四分组重构：账号卡 + 通知/目标/数据/关于）。
 ///
 /// 行形态全标准（图标 + 标题 + 行尾值|开关|箭头，FR-009）：账号卡复用
-/// 资料编辑 sheet；通知组（T035 迁入总开关与按目标二级）；目标组活跃数
-/// → 今日页 + 补签只读；数据组备份导出/导入；关于组版本 + 隐私脚注。
+/// 资料编辑 sheet；通知组（T035：总开关聚合 Reminders 行 isEnabled，切换
+/// 全开/全关——与排程器「Reminders 行 = 唯一真源」一致，零 schema 变更；
+/// 简报时间值行 + 按目标提醒二级展开逐行开关）；目标组活跃数 → 今日页 +
+/// 补签只读；数据组备份导出/导入；关于组版本 + 隐私脚注。
 /// 权限被拒不反复弹窗（FR-007）：未开启只说明一次，「知道了」后不再打扰。
 library;
 
@@ -21,6 +23,7 @@ import '../../core/backup/backup_importer.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
+import '../../core/models/goal_icon_catalog.dart';
 import '../profile/profile.dart';
 import 'debug_clock.dart';
 
@@ -37,6 +40,9 @@ class SettingsView extends ConsumerStatefulWidget {
 class _SettingsViewState extends ConsumerState<SettingsView> {
   /// 通知权限态（null = 还没查到）；只在 iOS 实机上存在，Web 恒视为已授权。
   bool? _granted;
+
+  /// 「按目标提醒」二级列表展开态。
+  bool _goalsExpanded = false;
 
   @override
   void initState() {
@@ -65,6 +71,20 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final briefTime =
         briefRow?.time ?? settings?.dailyBriefTime ?? const LocalTime(8, 0);
     final briefEnabled = briefRow?.isEnabled ?? true;
+
+    // 按目标提醒二级列表：只列活跃目标的行（排程器同口径跳过暂停/孤儿行）。
+    final activeById = {
+      for (final g in goals)
+        if (g.status == GoalStatus.active) g.id: g,
+    };
+    final goalRows = [
+      for (final r in reminders)
+        if (!r.isDailyBrief && activeById.containsKey(r.goalId)) r,
+    ];
+    final enabledCount = goalRows.where((r) => r.isEnabled).length;
+
+    // 总开关 = 简报与逐目标行的聚合视图：任一在开即视为开（含无行默认开）。
+    final masterOn = briefEnabled || enabledCount > 0;
 
     // 权限卡可见 = 非 Web、已知未开启、未「知道了」；此时提示换成开关说明（画板②）。
     final permCardVisible = !kIsWeb &&
@@ -96,20 +116,55 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             const SizedBox(height: AppSpace.s2),
             const _MeCard(),
 
-            // ---- 分组·通知（T035 迁入总开关与按目标提醒二级）----
+            // ---- 分组·通知（T035：总开关 + 简报时间 + 按目标提醒二级）----
             const _SectionLabel(Copy.settingsSectionNotif),
             if (permCardVisible) _PermCard(onRequest: _requestPermission),
             _GroupCard(children: [
               _SettingsRow(
                 icon: Icons.notifications_outlined,
-                title: Copy.dailyBriefTitle,
-                sub: Copy.dailyBriefSub,
-                time: briefTime,
-                switchValue: briefEnabled,
-                onSwitch: (v) => _saveBrief(ref, briefTime, v),
-                onTap: () =>
-                    _pickBriefTime(context, briefTime, briefEnabled),
+                title: Copy.settingsNotifMasterTitle,
+                sub: Copy.settingsNotifMasterSub,
+                switchValue: masterOn,
+                onSwitch: _setMasterAll,
               ),
+              _SettingsRow(
+                icon: Icons.access_time_outlined,
+                title: Copy.settingsBriefTitle,
+                sub: Copy.settingsBriefSub,
+                time: briefTime,
+                showChevron: true,
+                onTap: () => _pickBriefTime(context, briefTime),
+              ),
+              _SettingsRow(
+                icon: Icons.checklist_outlined,
+                title: Copy.settingsGoalRemindersTitle,
+                sub: goalRows.isEmpty
+                    ? Copy.settingsGoalRemindersNoneSub
+                    : Copy.settingsGoalRemindersSub(enabledCount),
+                showChevron: true,
+                expanded: _goalsExpanded,
+                onTap: () => setState(() => _goalsExpanded = !_goalsExpanded),
+              ),
+              if (_goalsExpanded)
+                Container(
+                  // 二级嵌套浅底（原型 s-nest）：整幅 surfaceAlt，行内容缩进。
+                  color: TargetPalette.of(context).surfaceAlt,
+                  padding: const EdgeInsets.only(left: AppSpace.s4),
+                  child: Column(children: [
+                    for (final r in goalRows)
+                      _SettingsRow(
+                        icon: GoalIconCatalog.byKey(
+                                activeById[r.goalId]!.iconKey)
+                            .icon,
+                        title: activeById[r.goalId]!.name,
+                        sub: Copy.settingsGoalReminderLine(
+                            _cadenceLabel(r.effectiveCadence),
+                            r.time.isoString),
+                        switchValue: r.isEnabled,
+                        onSwitch: (v) => _setGoalReminder(r, v),
+                      ),
+                  ]),
+                ),
             ]),
             _Hints(hints: permCardVisible
                 ? const [Copy.notifOffHint]
@@ -174,24 +229,52 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     _setGranted(await ref.read(notificationGatewayProvider).requestPermission());
   }
 
-  Future<void> _pickBriefTime(
-      BuildContext context, LocalTime current, bool enabled) async {
+  /// 总开关：全开/全关所有 Reminders 行。简报无行时排程器视为默认开
+  /// （reminder_service 契约），故无论开/关都显式落一条简报行承载总开关
+  /// 态——否则关掉逐目标行后聚合视图仍被「默认开」的简报拉回 true。
+  Future<void> _setMasterAll(bool on) async {
+    final repo = ref.read(reminderRepoProvider);
+    final rows = await repo.all();
+    for (final r in rows) {
+      await repo.upsert(r.copyWith(isEnabled: on));
+    }
+    if (!rows.any((r) => r.isDailyBrief)) {
+      await repo.upsert(Reminder(
+          id: _briefRowId,
+          goalId: null,
+          time: ref.read(settingsProvider).value?.dailyBriefTime ??
+              const LocalTime(8, 0),
+          isEnabled: on));
+    }
+  }
+
+  Future<void> _setGoalReminder(Reminder r, bool on) async {
+    await ref.read(reminderRepoProvider).upsert(r.copyWith(isEnabled: on));
+  }
+
+  String _cadenceLabel(Cadence c) => switch (c) {
+        Cadence.daily => Copy.cadenceDaily,
+        Cadence.threeDay => Copy.cadenceThreeDay,
+        Cadence.weekly => Copy.cadenceWeekly,
+      };
+
+  Future<void> _pickBriefTime(BuildContext context, LocalTime current) async {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: current.hour, minute: current.minute),
     );
     if (picked == null) return;
-    await _saveBrief(ref, LocalTime(picked.hour, picked.minute), enabled);
-  }
-
-  Future<void> _saveBrief(WidgetRef ref, LocalTime time, bool enabled) async {
     final repo = ref.read(reminderRepoProvider);
+    final existing =
+        (await repo.all()).where((r) => r.isDailyBrief).firstOrNull;
     await repo.upsert(Reminder(
-        id: _briefRowId, goalId: null, time: time, isEnabled: enabled));
+        id: existing?.id ?? _briefRowId,
+        goalId: null,
+        time: LocalTime(picked.hour, picked.minute),
+        isEnabled: existing?.isEnabled ?? true));
     final s = await ref.read(settingsRepoProvider).get();
-    await ref
-        .read(settingsRepoProvider)
-        .update(s.copyWith(dailyBriefTime: time));
+    await ref.read(settingsRepoProvider)
+        .update(s.copyWith(dailyBriefTime: LocalTime(picked.hour, picked.minute)));
   }
 }
 
@@ -314,6 +397,7 @@ class _SettingsRow extends StatelessWidget {
     this.switchValue,
     this.onSwitch,
     this.showChevron = false,
+    this.expanded = false,
     this.onTap,
   });
 
@@ -325,8 +409,9 @@ class _SettingsRow extends StatelessWidget {
   final bool? switchValue;
   final ValueChanged<bool>? onSwitch;
 
-  /// 行尾箭头（值行/二级入口）。
+  /// 行尾箭头（值行/二级入口）；已展开时箭头转向下（原型 chev 旋转语义）。
   final bool showChevron;
+  final bool expanded;
   final VoidCallback? onTap;
 
   @override
@@ -395,7 +480,7 @@ class _SettingsRow extends StatelessWidget {
             ],
             if (showChevron) ...[
               const SizedBox(width: AppSpace.s1),
-              Icon(Icons.chevron_right,
+              Icon(expanded ? Icons.expand_more : Icons.chevron_right,
                   size: 20, color: palette.onSurfaceVariant),
             ],
           ],

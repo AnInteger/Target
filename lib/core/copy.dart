@@ -232,6 +232,22 @@ abstract final class Copy {
   static const settingsVersionTitle = '版本';
   static const settingsVersionValue = '1.0.0';
   static const dailyBriefSub = '每天一份，不催促';
+
+  // 通知分组行（T035 · 原型 s-row 三行 + s-nest 二级）。
+  static const settingsNotifMasterTitle = '提醒';
+  static const settingsNotifMasterSub = '全部提醒的总开关';
+  static const settingsBriefTitle = '每日简报';
+  static const settingsBriefSub = '每天一份今日概要，不催促';
+  static const settingsGoalRemindersTitle = '按目标提醒';
+
+  /// 二级展开行副题：N=0「都关着」；无行时另用 [settingsGoalRemindersNoneSub]。
+  static String settingsGoalRemindersSub(int n) =>
+      n == 0 ? '都关着，安静中' : '$n 个目标已开 · 其余安静';
+  static const settingsGoalRemindersNoneSub = '在编辑目标时开启提醒';
+
+  /// 二级逐行副题：「一天一次 · 09:00」。
+  static String settingsGoalReminderLine(String cadenceLabel, String time) =>
+      '$cadenceLabel · $time';
   static const notifOffHint = '开关会记住你的偏好，开通知后按这里的时间提醒。';
   static const backupExportSub = '生成一份文件，带走全部记录';
   static const backupImportSub = '整份替换，不与现有数据混合';

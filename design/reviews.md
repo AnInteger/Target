@@ -146,12 +146,13 @@
 
 ## 屏幕评审
 
-### 004 v2 原型 · v2-today.html · R3 部分通过（环定案·色系保留统一·dock 待裁）· 2026-08-23
+### 004 v2 原型 · v2-today.html · R3 落定（环定案·色系统一·dock D2 定稿）· 2026-08-23
 
 - **R3 送审物**：v2-today.html R3（单环三段弧 + 统一梯度 + dock 去色两案对比）
-- **用户意见原话**：「1.单环·三段弧 2.感觉都不好看，还是要原来的：http://127.0.0.1:8322/prototypes/v2-today.html?r2 这个吧，把颜色统一一下试试；导航条就不要颜色了，换个阴影或者黑色线条试试」
-- **裁决落定**：① **健康度环 = 案 C「单环·三段弧」定稿**（v2-alt-rings 六案对比产物）——一环三色各占 1/3 槽位、弧长=该类分数、中心=平均分；已回填 v2-today 四板与 v2-notifications 底幕两处。② **色系 = 四案全否，保留 R1 大类渐变卡语言**，但统一为同构梯度（135°·起点 L≈61/终点 L≈45·三色仅色相不同），卡内 CTA 胶囊文字改中性深灰、轮播页点去彩。③ **dock 去色**：默认 D1 阴影胶囊（当前页签白底浮起+纯黑图文+FAB 黑底白加号），板 5 并列 D2 黑色线条备选——**D1/D2 待用户裁决**。
-- **待办**：D1/D2 裁决后回填 v2-notifications/editor/detail/settings/goals-all 的 dock 与梯度；tokens 三端（design_tokens.dart / tokens.css / DesignTokens.swift）随后收敛。
+- **用户意见原话**：「1.单环·三段弧 2.感觉都不好看，还是要原来的：http://127.0.0.1:8322/prototypes/v2-today.html?r2 这个吧，把颜色统一一下试试；导航条就不要颜色了，换个阴影或者黑色线条试试」→ 追问 D1（阴影胶囊）/D2（黑色线条）二选一，回：「D2」
+- **裁决落定**：① **健康度环 = 案 C「单环·三段弧」定稿**（v2-alt-rings 六案对比产物）——一环三色各占 1/3 槽位、弧长=该类分数、中心=平均分；已回填 v2-today 四板与 v2-notifications 底幕两处。② **色系 = 四案全否，保留 R1 大类渐变卡语言**，但统一为同构梯度（135°·起点 L≈61/终点 L≈45·三色仅色相不同），卡内 CTA 胶囊文字改中性深灰、轮播页点去彩。③ **dock 去色 = D2「黑色线条」定稿**（D1 阴影胶囊落选弃用）——当前页签黑字加粗 + 16×3px 短横线（`::after`，深色模式经 `var(--on-surface)` 自动白线），FAB 中性化（on-surface 底 / surface 加号 / 4px 玻璃描边）。
+- **回填完成（本轮）**：D2 dock 落到全部三个带 dock 的屏（v2-today 四板 / v2-notifications 底幕 / v2-review 三板）；梯度对收敛 tokens 三端——`tokens.css` 新增 `--grad-{health|habit|goal}-{a|b}` 浅深 6+6 键、`design_tokens.dart` 新增 `MajorGradient`/`MajorGradients`（Widget 侧无此面，Swift 不加）、`token_contract_test.dart` 契约表 +6 键对账；全部原型 `tokens.css?v=0823a` → `?v=0823b` 规避浏览器缓存旧变量；Playwright 结构化校验三屏（渐变浅/深解析值、页签色/线宽、FAB 反色）全过，门禁 analyze 0 + 133 绿。
+- **T011 门禁状态**：R3 三项裁决全部落定并回填，但门禁仍**未放行**——editor/detail/settings/notifications/goals-all 五屏尚未经用户逐屏裁定冻结（FR-015：全部延展屏冻结前 T012+ 不得动工）。
 
 ### 004 v2 原型 · v2-alt-rings / v2-alt-colors 对比稿 · R2 修改后再审 · 2026-08-23
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>今日 · Target（v2 主架构 · R3）</title>
-<link rel="stylesheet" href="../tokens.css?v=0823a">
+<link rel="stylesheet" href="../tokens.css?v=0823b">
 <script src="goal-icons.js"></script>
 <style>
   /* ============================================================
@@ -15,12 +15,13 @@
        ① 健康度环 = 案 C「单环·三段弧」：一环三色各占 1/3 槽位，
           弧长=该类分数，中心=平均分（取代 R1 嵌套三环）
        ② 关注卡保留大类色渐变语言，但统一为同构梯度：
-          135°，起点 L≈61 / 终点 L≈45，三色仅色相不同；
+          135°，起点 L≈61 / 终点 L≈45，三色仅色相不同（已收敛为
+          tokens --grad-{health|habit|goal}-{a|b}，浅深自动切换）；
           卡内白胶囊 CTA 文字改中性深灰（原蓝字与卡色打架）
-       ③ dock 去色：当前页签不再用彩色，默认 D1「阴影胶囊」
-          （中性浮起），板 5 并列 D2「黑色线条」备选；
-          FAB 中性化（浅色黑底白加号 / 深色白底黑加号）；
-          轮播页点同步去彩
+       ③ dock 去色 = D2「黑色线条」定稿（2026-08-23 用户裁定）：
+          当前页签纯黑加粗图文 + 标签下 16×3px 黑短横线（深色
+          模式自动白线）；FAB 中性化（浅色黑底白加号/深色反白）；
+          轮播页点同步去彩。D1 阴影胶囊案落选弃用
      - 结构不变：头部 / 环+图例 / 关注卡轮播 / 空态 / 两页签 dock
      ============================================================ */
 
@@ -57,7 +58,6 @@
     box-shadow: var(--shadow-high); overflow: hidden;
     display: flex; flex-direction: column;
   }
-  .phone.short { height: 250px; }
   .island { position: absolute; top: var(--space-3); left: 50%;
             transform: translateX(-50%); width: 112px; height: 32px;
             background: #000; border-radius: var(--radius-full); z-index: 40; }
@@ -107,13 +107,11 @@
   .fcard { scroll-snap-align: center; flex: none; width: 310px;
            border-radius: var(--radius-lg); padding: var(--space-5);
            color: #fff; box-shadow: var(--shadow-mid); position: relative; }
-  /* R3 统一：三卡同构梯度 135°，起点 L≈61 / 终点 L≈45，仅色相不同 */
-  .fcard.g-h { background: linear-gradient(135deg, #34a853, #26803f); }
-  .fcard.g-g { background: linear-gradient(135deg, #2196f3, #1668ba); }
-  .fcard.g-t { background: linear-gradient(135deg, #f5923e, #c26e1b); }
-  [data-theme="dark"] .fcard.g-h { background: linear-gradient(135deg, #3fb96a, #1d6b35); }
-  [data-theme="dark"] .fcard.g-g { background: linear-gradient(135deg, #3fa4f0, #155fa0); }
-  [data-theme="dark"] .fcard.g-t { background: linear-gradient(135deg, #f59e4e, #b06018); }
+  /* R3 统一：三卡同构梯度 = tokens --grad-{health|habit|goal}-{a|b}
+     （135°·L61→L45，深色块自动切换，无需本页 dark 覆写） */
+  .fcard.g-h { background: linear-gradient(135deg, var(--grad-health-a), var(--grad-health-b)); }
+  .fcard.g-g { background: linear-gradient(135deg, var(--grad-goal-a), var(--grad-goal-b)); }
+  .fcard.g-t { background: linear-gradient(135deg, var(--grad-habit-a), var(--grad-habit-b)); }
   .fcard .tag { display: inline-flex; align-items: center; gap: 6px;
                 font: var(--font-label); letter-spacing: .04em;
                 background: rgba(255, 255, 255, .22); border-radius: var(--radius-full);
@@ -167,16 +165,12 @@
          gap: 3px; font: var(--font-label); color: var(--on-surface-variant);
          cursor: pointer; padding: 0; border: none; background: none; }
   .tab svg { width: 22px; height: 22px; }
-  /* D1 阴影胶囊（默认）：中性浮起，无彩色 */
-  .tab.on { color: var(--on-surface); font-weight: 700;
-            background: var(--surface); border-radius: var(--radius-full);
-            box-shadow: var(--shadow-low);
-            padding: var(--space-1) var(--space-2); margin-top: calc(-1 * var(--space-1)); }
-  /* D2 黑色线条（板 5 备选）：色块换成短横线 */
-  .dock.d2 .tab.on { background: none; box-shadow: none; padding: 0; margin-top: 0; }
-  .dock.d2 .tab.on::after { content: ''; width: 16px; height: 3px;
-                            border-radius: var(--radius-full);
-                            background: var(--on-surface); }
+  /* D2 黑色线条（R3 定稿）：当前页签纯黑加粗 + 标签下短横线，
+     深色模式 on-surface 自动反白；全条无彩色 */
+  .tab.on { color: var(--on-surface); font-weight: 700; }
+  .tab.on::after { content: ''; width: 16px; height: 3px;
+                   border-radius: var(--radius-full);
+                   background: var(--on-surface); }
   .fab { width: 56px; height: 56px; margin-top: -22px; border-radius: var(--radius-full);
          background: var(--on-surface); color: var(--surface); border: none;
          display: flex; align-items: center; justify-content: center;
@@ -188,7 +182,7 @@
 <body>
 
 <h1 class="pt-title">今日页 · v2 主架构稿 R3</h1>
-<p class="pt-sub">004 T011 门禁补充稿 R3（2026-08-23 裁决）：健康度环改「单环·三段弧」（一环三色，弧长=分数，中心=平均分）；关注卡保留大类渐变但统一为同构梯度（135°·L61→L45）；dock 去彩色——默认阴影胶囊页签 + 中性 FAB，板 5 并列「黑色线条」备选待裁决。</p>
+<p class="pt-sub">004 T011 门禁补充稿 R3（2026-08-23 裁决定稿）：健康度环 =「单环·三段弧」（一环三色，弧长=分数，中心=平均分）；关注卡大类渐变统一为同构梯度（tokens --grad-*-{a,b}）；dock 去色 = D2 黑色线条（当前页签黑色加粗+短横线，深色自动白线）+ FAB 中性化。D1 阴影胶囊案落选弃用。</p>
 
 <div class="row">
   <!-- ===================== 板 1：浅色 · 今日页完整 ===================== -->
@@ -264,7 +258,7 @@
       </div>
     </div>
     <h3>浅色 · 今日页完整</h3>
-    <p class="desc">头部（日期+中文大标题+头像→我的页）/ 单环三段弧（外圈一环切三段：健康/习惯/目标，弧长=分数，中心平均 97）/ 关注卡统一梯度渐变（绿卡示例），白胶囊「记录打卡」改中性深灰字；dock 阴影胶囊页签 + 中性 FAB。</p>
+    <p class="desc">头部（日期+中文大标题+头像→我的页）/ 单环三段弧（外圈一环切三段：健康/习惯/目标，弧长=分数，中心平均 97）/ 关注卡统一梯度渐变（绿卡示例），白胶囊「记录打卡」改中性深灰字；dock 黑色线条页签（D2）+ 中性 FAB。</p>
     <div class="chips"><span class="chip t">案 C 三段弧 97/100/94</span><span class="chip t">统一梯度</span><span class="chip t">dock 去色</span></div>
   </div>
 
@@ -341,7 +335,7 @@
       </div>
     </div>
     <h3>深色 · 今日页完整</h3>
-    <p class="desc">同构深色（基准图 01 主架构）：三段弧用深色档大类色；关注卡示例换目标类（蓝卡统一梯度）；FAB 白底黑加号，页签阴影胶囊在深色下同样成立。</p>
+    <p class="desc">同构深色（基准图 01 主架构）：三段弧用深色档大类色；关注卡示例换目标类（蓝卡统一梯度）；FAB 白底黑加号，页签黑线在深色下自动换白线。</p>
     <div class="chips"><span class="chip t">深色主架构</span><span class="chip t">中性 FAB</span><span class="chip">毛玻璃 dock</span></div>
   </div>
 
@@ -487,56 +481,6 @@
     <p class="desc">无目标时三段弧各自满槽（阶梯减分制无扣分项=100，中心 100），关注区让位空态说明 +「新建目标」CTA（同 FAB 动作）；「查看全部」隐藏。</p>
     <div class="chips"><span class="chip t">满槽 100</span><span class="chip t">空态 CTA</span></div>
   </div>
-
-  <!-- ===================== 板 5：dock 处理两案（D1/D2 待裁决） ===================== -->
-  <div class="board">
-    <div class="phone short" data-theme="light">
-      <div class="st"><span>9:41</span><span>100 ▮</span></div>
-      <div class="fill" style="flex:1;display:flex;align-items:center;justify-content:center;
-           font:var(--font-body-s);color:var(--on-surface-variant)">页面内容…</div>
-      <div class="dock">
-        <button class="tab on">
-          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
-          今日
-        </button>
-        <button class="fab" aria-label="新建目标">
-          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
-        </button>
-        <button class="tab">
-          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
-          回顾
-        </button>
-      </div>
-    </div>
-    <h3>D1 · 阴影胶囊（当前默认）</h3>
-    <p class="desc">当前页签白底浮起胶囊（阴影描形），文字图标纯黑；FAB 黑底白加号。全条无彩色，靠光影分层次。</p>
-    <div class="chips"><span class="chip t">iOS 质感</span><span class="chip t">深浅色同构</span></div>
-  </div>
-
-  <div class="board">
-    <div class="phone short" data-theme="light">
-      <div class="st"><span>9:41</span><span>100 ▮</span></div>
-      <div class="fill" style="flex:1;display:flex;align-items:center;justify-content:center;
-           font:var(--font-body-s);color:var(--on-surface-variant)">页面内容…</div>
-      <div class="dock d2">
-        <button class="tab on">
-          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
-          今日
-        </button>
-        <button class="fab" aria-label="新建目标">
-          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
-        </button>
-        <button class="tab">
-          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
-          回顾
-        </button>
-      </div>
-    </div>
-    <h3>D2 · 黑色线条（备选）</h3>
-    <p class="desc">当前页签文字图标黑色加粗，标签下压一根黑色短横线（深色模式自动换白线）；无胶囊底。比 D1 更轻，指示感靠线条。</p>
-    <div class="chips"><span class="chip t">更轻量</span><span class="chip w">深色下黑线变白线</span></div>
-  </div>
-</div>
 
 <script>
   document.querySelectorAll('[data-gi]').forEach(el => {

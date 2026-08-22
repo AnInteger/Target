@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>通知列表 · Target（v2 延展设计 · FR-015 门禁稿）</title>
-<link rel="stylesheet" href="../tokens.css?v=0823a">
+<link rel="stylesheet" href="../tokens.css?v=0823b">
 <script src="goal-icons.js"></script>
 <style>
   /* ============================================================
@@ -97,10 +97,14 @@
                gap: 3px; font: var(--font-label); color: var(--on-surface-variant);
                cursor: pointer; background: none; border: none; padding: 0; }
   .dock .tab svg { width: 22px; height: 22px; }
-  .dock .tab.on { color: var(--accent); font-weight: 700; }
+  /* R3 D2 定稿（2026-08-23）：dock 去色——黑色线条页签 + 中性 FAB */
+  .dock .tab.on { color: var(--on-surface); font-weight: 700; }
+  .dock .tab.on::after { content: ''; width: 16px; height: 3px;
+                         border-radius: var(--radius-full);
+                         background: var(--on-surface); }
   .fab { position: absolute; left: 50%; top: -18px; transform: translateX(-50%);
          width: 56px; height: 56px; border-radius: var(--radius-full);
-         background: var(--accent); color: var(--accent-on); border: none;
+         background: var(--on-surface); color: var(--surface); border: none;
          cursor: pointer; box-shadow: var(--shadow-mid);
          display: flex; align-items: center; justify-content: center; }
   .fab svg { width: 26px; height: 26px; }

@@ -81,6 +81,45 @@ abstract final class MajorColors {
       };
 }
 
+/// 大类渐变对（004 R3 统一梯度裁定 2026-08-23）：关注卡底
+/// `LinearGradient(begin: topLeft, end: bottomRight)` 消费 a→b；
+/// 构造冻结 = 135° · a 起点亮度≈61 / b 终点亮度≈45，三色仅色相
+/// 不同（对应 tokens.css `--grad-{health|habit|goal}-{a|b}`，
+/// Widget 侧无此面）。
+class MajorGradient {
+  const MajorGradient(this.a, this.b);
+
+  /// 渐变起点/终点（各自浅深成对）。
+  final MajorColor a;
+  final MajorColor b;
+}
+
+abstract final class MajorGradients {
+  /// 健康：绿。
+  static const MajorGradient health = MajorGradient(
+    MajorColor(Color(0xFF34A853), Color(0xFF3FB96A)),
+    MajorColor(Color(0xFF26803F), Color(0xFF1D6B35)),
+  );
+
+  /// 习惯：橙。
+  static const MajorGradient habit = MajorGradient(
+    MajorColor(Color(0xFFF5923E), Color(0xFFF59E4E)),
+    MajorColor(Color(0xFFC26E1B), Color(0xFFB06018)),
+  );
+
+  /// 目标：蓝。
+  static const MajorGradient goal = MajorGradient(
+    MajorColor(Color(0xFF2196F3), Color(0xFF3FA4F0)),
+    MajorColor(Color(0xFF1668BA), Color(0xFF155FA0)),
+  );
+
+  static MajorGradient byKey(String key) => switch (key) {
+        'health' => health,
+        'habit' => habit,
+        _ => goal,
+      };
+}
+
 /// 头像环 8 色（004 v2：8 预设头像的装饰环色，键即持久化 avatarKey
 /// 值域——profile 专属但色值必须出自本真源文件）。浅深成对，深色
 /// 提亮一档保持 8 色互可区分。

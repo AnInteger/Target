@@ -88,6 +88,13 @@ void main() {
       'major-health': (MajorColors.health.light, MajorColors.health.dark),
       'major-habit': (MajorColors.habit.light, MajorColors.habit.dark),
       'major-goal': (MajorColors.goal.light, MajorColors.goal.dark),
+      // 004 R3 统一梯度（关注卡渐变对；Widget 侧无此面，只对 CSS）。
+      'grad-health-a': (MajorGradients.health.a.light, MajorGradients.health.a.dark),
+      'grad-health-b': (MajorGradients.health.b.light, MajorGradients.health.b.dark),
+      'grad-habit-a': (MajorGradients.habit.a.light, MajorGradients.habit.a.dark),
+      'grad-habit-b': (MajorGradients.habit.b.light, MajorGradients.habit.b.dark),
+      'grad-goal-a': (MajorGradients.goal.a.light, MajorGradients.goal.a.dark),
+      'grad-goal-b': (MajorGradients.goal.b.light, MajorGradients.goal.b.dark),
     };
     for (final e in entries.entries) {
       expect(cssVar(cssLight, e.key), hex(e.value.$1),

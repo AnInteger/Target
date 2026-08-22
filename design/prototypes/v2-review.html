@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>回顾 · Target（v2 回顾页 · 基准图 04 落地走查稿）</title>
-<link rel="stylesheet" href="../tokens.css?v=0823a">
+<link rel="stylesheet" href="../tokens.css?v=0823b">
 <script src="goal-icons.js"></script>
 <style>
   /* ============================================================
@@ -157,12 +157,16 @@
          gap: 3px; font: var(--font-label); color: var(--on-surface-variant);
          cursor: pointer; padding: 0; border: none; background: none; }
   .tab svg { width: 22px; height: 22px; }
-  .tab.on { color: var(--accent); font-weight: 700; }
+  /* R3 D2 定稿（2026-08-23）：dock 去色——黑色线条页签 + 中性 FAB */
+  .tab.on { color: var(--on-surface); font-weight: 700; }
+  .tab.on::after { content: ''; width: 16px; height: 3px;
+                   border-radius: var(--radius-full);
+                   background: var(--on-surface); }
   .fab { width: 56px; height: 56px; margin-top: -22px; border-radius: var(--radius-full);
-         background: var(--accent); color: var(--accent-on); border: none;
+         background: var(--on-surface); color: var(--surface); border: none;
          display: flex; align-items: center; justify-content: center;
          box-shadow: var(--shadow-mid); cursor: pointer;
-         border: 4px solid var(--surface); }
+         border: 4px solid var(--glass-card); }
   .fab svg { width: 24px; height: 24px; }
 </style>
 </head>

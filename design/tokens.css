@@ -84,6 +84,16 @@
   --major-habit: #ff9800;
   --major-goal: #2196f3;
 
+  /* 三大类 · 关注卡渐变对（004 R3 统一梯度裁定 2026-08-23：
+     135° · a=起点 L≈61 / b=终点 L≈45，三色仅色相不同；
+     深色块整体提亮一档。原型/Flutter 消费，Widget 侧无此面） */
+  --grad-health-a: #34a853;
+  --grad-health-b: #26803f;
+  --grad-habit-a: #f5923e;
+  --grad-habit-b: #c26e1b;
+  --grad-goal-a: #2196f3;
+  --grad-goal-b: #1668ba;
+
   /* 头像 · 装饰渐变对（身份填充，非文字场景——取填充级明度，
      不与文字色共用；浅深同值，004 v2 = 品牌绿→蓝） */
   --grad-avatar-a: #34c759; /* 品牌绿→蓝（浅深同值） */
@@ -195,6 +205,14 @@
   --major-health: #4ade80;
   --major-habit: #ffa726;
   --major-goal: #00b0ff;
+
+  /* 三大类渐变对 · 深色（R3 统一梯度，见浅色块注释） */
+  --grad-health-a: #3fb96a;
+  --grad-health-b: #1d6b35;
+  --grad-habit-a: #f59e4e;
+  --grad-habit-b: #b06018;
+  --grad-goal-a: #3fa4f0;
+  --grad-goal-b: #155fa0;
 
   /* 头像 · 装饰渐变对（浅深同值，见浅色块注释） */
   --grad-avatar-a: #34c759;

@@ -65,7 +65,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   /// 一次性开关在编辑模式下冻结（001 约定 kind 创建后不可变更）。
   bool get _onceLocked => _isEdit;
 
-  GoalKind get _kind => _once ? GoalKind.milestone : GoalKind.habit;
+  /// 机械迁移（T011）：二元开关先映射 shortTerm/habit——
+  /// longTerm 编辑暂落 habit 分支，US2 编辑器重构改三段选择器。
+  GoalType get _type => _once ? GoalType.shortTerm : GoalType.habit;
 
   @override
   void initState() {
@@ -100,7 +102,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             const DailyFrequency(1);
     setState(() {
       _hydrated = true;
-      _once = goal.isMilestone;
+      _once = goal.isShortTerm;
       _name.text = goal.name;
       _motivation.text = goal.motivation ?? '';
       // 旧目标已有标准视为手改（不随名称重拟）。
@@ -127,7 +129,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   void _applyTemplate(GoalTemplate t) {
     setState(() {
       _selectedTemplate = t.name;
-      _once = t.kind == GoalKind.milestone;
+      _once = t.goalType == GoalType.shortTerm;
       _name.text = t.name;
       _iconKey = t.iconKey;
       _colorKey = t.colorKey;
@@ -191,7 +193,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       } else {
         final goal = await repo.create(Goal(
           name: name,
-          kind: _kind,
+          goalType: _type,
           iconKey: _iconKey,
           colorKey: _colorKey,
           createdAt: today,

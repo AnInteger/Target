@@ -82,16 +82,14 @@ class GoalRepository {
   static Goal _toGoal(db.Goal r) => Goal(
         id: r.id,
         name: r.name,
-        // 003 v3 桥接（T011 换 GoalType 域后拆除）：habit 原样，
-        // shortTerm/longTerm 暂归 milestone（deadline 语义在实体上保留）。
-        kind: r.goalType == GoalType.habit
-            ? GoalKind.habit
-            : GoalKind.milestone,
+        goalType: r.goalType,
         iconKey: r.iconKey,
+        // colorKey 003 退役：库 NULL ⇔ 实体 ''（只藏不删）。
         colorKey: r.colorKey ?? '',
         status: r.status,
         createdAt: r.createdAt,
         deadline: r.deadline,
+        achievedAt: r.achievedAt,
         motivation: r.motivation,
         successCriterion: r.successCriterion,
         cueScene: r.cueScene,
@@ -100,17 +98,13 @@ class GoalRepository {
   static db.GoalsCompanion _fromGoal(Goal g) => db.GoalsCompanion.insert(
         id: g.id,
         name: g.name,
-        // 003 v3 桥接（T011 拆）：写侧按 D3 决策树同构映射。
-        goalType: g.kind == GoalKind.habit
-            ? GoalType.habit
-            : (g.deadline != null
-                ? GoalType.shortTerm
-                : GoalType.longTerm),
+        goalType: g.goalType,
         iconKey: g.iconKey,
-        colorKey: Value(g.colorKey),
+        colorKey: Value(g.colorKey.isEmpty ? null : g.colorKey),
         status: g.status,
         createdAt: g.createdAt,
         deadline: Value(g.deadline),
+        achievedAt: Value(g.achievedAt),
         motivation: Value(g.motivation),
         successCriterion: Value(g.successCriterion),
         cueScene: Value(g.cueScene),
@@ -384,6 +378,7 @@ class ReminderRepository {
           goalId: Value(r.goalId),
           time: r.time,
           isEnabled: r.isEnabled,
+          cadence: Value(r.cadence),
         ),
         mode: InsertMode.insertOrReplace);
     return r;
@@ -400,6 +395,7 @@ class ReminderRepository {
         goalId: r.goalId,
         time: r.time,
         isEnabled: r.isEnabled,
+        cadence: r.cadence,
       );
 }
 
@@ -526,4 +522,19 @@ class SettingsRepository {
         onboardingCompleted: r.onboardingCompleted,
         notificationDeniedAcknowledged: r.notificationDeniedAcknowledged,
       );
+
+  /// 003 v3 账号资料（D7：单例行 nickname/avatar_key 两列）。
+  Future<Profile> getProfile() async {
+    final rows = await _db.select(_db.settingsRows).get();
+    return rows.isEmpty
+        ? Profile.empty
+        : Profile(nickname: rows.first.nickname, avatarKey: rows.first.avatarKey);
+  }
+
+  Future<void> updateProfile(Profile p) =>
+      (_db.update(_db.settingsRows)..where((t) => t.id.equals(1)))
+          .write(db.SettingsRowsCompanion(
+            nickname: Value(p.nickname),
+            avatarKey: Value(p.avatarKey),
+          ));
 }

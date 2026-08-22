@@ -161,7 +161,7 @@ void main() {
     final goal = await repo.create(
       Goal(
         name: '锻炼',
-        kind: GoalKind.habit,
+        goalType: GoalType.habit,
         iconKey: 'fitness',
         colorKey: 'sage',
         createdAt: today,
@@ -218,7 +218,7 @@ void main() {
     ]) {
       final g = await repo.create(Goal(
         name: name,
-        kind: GoalKind.habit,
+        goalType: GoalType.habit,
         iconKey: icon,
         colorKey: color,
         createdAt: today,
@@ -362,7 +362,7 @@ void main() {
     expect(find.text('root'), findsOneWidget); // 保存后返回
 
     final g = (await GoalRepository(db).getGoals()).single;
-    expect(g.kind, GoalKind.milestone);
+    expect(g.goalType, GoalType.shortTerm);
     expect(g.deadline, const LocalDate(2026, 12, 31));
     expect(g.motivation, '为了晚上不胃胀');
     expect(g.successCriterion, '每天散步 20 分钟'); // 未手改 → 按名称自动拟
@@ -378,7 +378,7 @@ void main() {
     final repo = GoalRepository(db);
     final eat = await repo.create(Goal(
       name: '好好吃饭',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'meal',
       colorKey: 'coral',
       createdAt: today,
@@ -389,7 +389,7 @@ void main() {
         eat.id, const DailyFrequency(1), WeekStart.containing(today));
     final sleep = await repo.create(Goal(
       name: '早睡',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'sleep',
       colorKey: 'indigo',
       createdAt: today,
@@ -398,7 +398,7 @@ void main() {
         sleep.id, const DailyFrequency(1), WeekStart.containing(today));
     final sport = await repo.create(Goal(
       name: '规律运动',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'fitness',
       colorKey: 'sage',
       createdAt: today,
@@ -446,7 +446,7 @@ void main() {
     final repo = GoalRepository(db);
     final goal = await repo.create(Goal(
       name: '年底前跑一次 10km',
-      kind: GoalKind.milestone,
+      goalType: GoalType.shortTerm,
       iconKey: 'fitness',
       colorKey: 'sage',
       createdAt: today,
@@ -525,7 +525,7 @@ void main() {
     // 引导视为完成 → 今日页出现该目标（V1：模板+确认即首个目标）。
     final goals = await GoalRepository(db).getGoals();
     expect(goals.single.name, '好好吃饭');
-    expect(goals.single.kind, GoalKind.habit);
+    expect(goals.single.goalType, GoalType.habit);
     expect(goals.single.motivation, '为了晚上不胃胀');
     expect((await SettingsRepository(db).get()).onboardingCompleted, true);
     expect(find.text(Copy.onboardingTitle), findsNothing);
@@ -542,7 +542,7 @@ void main() {
     final goal = await repo.create(
       Goal(
         name: '好好吃饭',
-        kind: GoalKind.habit,
+        goalType: GoalType.habit,
         iconKey: 'meal',
         colorKey: 'coral',
         createdAt: today,
@@ -616,7 +616,7 @@ void main() {
     final goal = await repo.create(
       Goal(
         name: '锻炼',
-        kind: GoalKind.habit,
+        goalType: GoalType.habit,
         iconKey: 'fitness',
         colorKey: 'sage',
         createdAt: createdAt,
@@ -634,7 +634,7 @@ void main() {
     final goal2 = await repo.create(
       Goal(
         name: '读书',
-        kind: GoalKind.habit,
+        goalType: GoalType.habit,
         iconKey: 'book',
         colorKey: 'teal',
         createdAt: createdAt,
@@ -700,7 +700,7 @@ void main() {
     final createdAt = today.addDays(-7);
     final goal = await repo.create(Goal(
       name: '锻炼',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'fitness',
       colorKey: 'sage',
       createdAt: createdAt,

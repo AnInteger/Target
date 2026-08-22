@@ -10,16 +10,18 @@ import '../../core/models/frequency_pattern.dart';
 class GoalTemplate {
   const GoalTemplate({
     required this.name,
-    required this.kind,
+    required this.goalType,
     required this.iconKey,
     required this.colorKey,
     this.frequency,
-  }) : assert(kind == GoalKind.habit || frequency == null,
-            '里程碑模板不带频率');
+  }) : assert(goalType == GoalType.habit || frequency == null,
+            '仅习惯模板带频率');
 
   /// 预填名称（进入编辑框后仍可修改，≤30 字由 Goal 断言把关）。
   final String name;
-  final GoalKind kind;
+
+  /// 003 v3 三类型（模板策展随 US2 编辑器重构再整理）。
+  final GoalType goalType;
 
   /// 设计令牌键（design_tokens.dart 枚举 .name）。
   final String iconKey;
@@ -33,58 +35,59 @@ class GoalTemplate {
 const List<GoalTemplate> kHabitTemplates = [
   GoalTemplate(
       name: '好好吃饭',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'meal',
       colorKey: 'coral',
       frequency: DailyFrequency(1)),
   GoalTemplate(
       name: '规律运动',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'fitness',
       colorKey: 'sage',
       frequency: WeeklyFrequency(3)),
   GoalTemplate(
       name: '早睡',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'sleep',
       colorKey: 'indigo',
       frequency: DailyFrequency(1)),
   GoalTemplate(
       name: '屏幕休息',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'screenRest',
       colorKey: 'sky',
       frequency: DailyFrequency(1)),
   GoalTemplate(
       name: '个人项目时间',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'project',
       colorKey: 'amber',
       frequency: WeeklyFrequency(2)),
   GoalTemplate(
       name: '每天喝够水',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'water',
       colorKey: 'teal',
       frequency: DailyFrequency(1)),
   GoalTemplate(
       name: '睡前阅读',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'read',
       colorKey: 'plum',
       frequency: DailyFrequency(1)),
 ];
 
-/// 里程碑模板（FR-013：截止日期 + 步骤清单，创建后再补步骤）。
+/// 冲刺/长线模板（FR-013：截止日期 + 步骤清单，创建后再补步骤；
+/// 003 v3：旅行=短期（有日子），项目 1.0=长期）。
 const List<GoalTemplate> kMilestoneTemplates = [
   GoalTemplate(
       name: '去一次旅行',
-      kind: GoalKind.milestone,
+      goalType: GoalType.shortTerm,
       iconKey: 'travel',
       colorKey: 'sky'),
   GoalTemplate(
       name: '完成个人项目 1.0',
-      kind: GoalKind.milestone,
+      goalType: GoalType.longTerm,
       iconKey: 'project',
       colorKey: 'teal'),
 ];

@@ -35,7 +35,7 @@ class EngineFixture {
     final g = Goal(
       id: id,
       name: '目标$id',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'star',
       colorKey: 'teal',
       status: status,
@@ -220,7 +220,7 @@ void main() {
     f.goals.add(Goal(
       id: 'm',
       name: '去旅行',
-      kind: GoalKind.milestone,
+      goalType: GoalType.shortTerm,
       iconKey: 'travel',
       colorKey: 'sky',
       createdAt: const LocalDate(2026, 8, 3),

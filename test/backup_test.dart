@@ -25,7 +25,7 @@ Future<db.AppDatabase> _seededDb() async {
   final habit = await goals.create(Goal(
     id: 'g-habit',
     name: '好好吃饭',
-    kind: GoalKind.habit,
+    goalType: GoalType.habit,
     iconKey: 'restaurant',
     colorKey: 'coral',
     createdAt: const LocalDate(2026, 8, 3),
@@ -39,7 +39,7 @@ Future<db.AppDatabase> _seededDb() async {
   final milestone = await goals.create(Goal(
     id: 'g-ms',
     name: '发布 v1',
-    kind: GoalKind.milestone,
+    goalType: GoalType.shortTerm,
     iconKey: 'flag',
     colorKey: 'teal',
     createdAt: const LocalDate(2026, 8, 5),
@@ -116,7 +116,7 @@ void main() {
     await GoalRepository(target).create(Goal(
         id: 'local',
         name: '本地目标',
-        kind: GoalKind.habit,
+        goalType: GoalType.habit,
         iconKey: 'star',
         colorKey: 'teal',
         createdAt: const LocalDate(2026, 8, 20)));

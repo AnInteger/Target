@@ -348,7 +348,7 @@ class _RatioTrailing extends ConsumerWidget {
 
     String big;
     String small;
-    if (goal.isMilestone) {
+    if (goal.isShortTerm) {
       final steps = ref.watch(stepsProvider(goal.id)).value;
       if (steps != null && steps.isNotEmpty) {
         big = '${steps.where((s) => s.isDone).length}/${steps.length}';

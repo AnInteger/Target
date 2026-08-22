@@ -60,7 +60,7 @@ class GoalDetailPage extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           _vowCard(context, goal, pattern),
-          if (goal.isMilestone) ...[
+          if (goal.isShortTerm) ...[
             const SizedBox(height: 12),
             _progressCard(context, goal, days, done, steps.length, color),
             if (days < 0 && goal.status == GoalStatus.active)
@@ -125,7 +125,7 @@ class GoalDetailPage extends ConsumerWidget {
               const SizedBox(height: 6),
               _vowRow(context, Copy.editorCueLabel, goal.cueScene!),
             ],
-            if (!goal.isMilestone) ...[
+            if (goal.isHabit) ...[
               const SizedBox(height: 6),
               _vowRow(context, Copy.editorFrequencyLabel, pattern?.toString() ?? ''),
             ],

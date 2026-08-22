@@ -32,9 +32,7 @@ class _EnumText<T extends Enum> extends TypeConverter<T, String> {
   String toSql(T value) => value.name;
 }
 
-const goalKindConverter = _EnumText<GoalKind>(GoalKind.values);
-
-/// 003 v3：三类型 + 提醒频率档（值域见 entities.dart；v2 列随 T011 退役）。
+/// 003 v3：三类型 + 提醒频率档（值域见 entities.dart）。
 const goalTypeConverter = _EnumText<GoalType>(GoalType.values);
 const cadenceConverter = _EnumText<Cadence>(Cadence.values);
 const goalStatusConverter = _EnumText<GoalStatus>(GoalStatus.values);

@@ -78,7 +78,7 @@ void main() {
     Future<String> seedGoal() async {
       final goal = await repo.create(Goal(
         name: '锻炼',
-        kind: GoalKind.habit,
+        goalType: GoalType.habit,
         iconKey: 'fitness',
         colorKey: 'sage',
         createdAt: const LocalDate(2026, 8, 10),
@@ -157,7 +157,7 @@ void main() {
       for (var i = 0; i < 5; i++) {
         await repo.create(Goal(
           name: '目标$i',
-          kind: GoalKind.habit,
+          goalType: GoalType.habit,
           iconKey: 'star',
           colorKey: 'teal',
           createdAt: const LocalDate(2026, 8, 18),
@@ -166,7 +166,7 @@ void main() {
       expect(
         () => repo.create(Goal(
           name: '第六个',
-          kind: GoalKind.habit,
+          goalType: GoalType.habit,
           iconKey: 'star',
           colorKey: 'teal',
           createdAt: const LocalDate(2026, 8, 18),
@@ -176,7 +176,7 @@ void main() {
       // paused 不占名额。
       await repo.create(Goal(
         name: '暂停的不算',
-        kind: GoalKind.habit,
+        goalType: GoalType.habit,
         iconKey: 'star',
         colorKey: 'teal',
         status: GoalStatus.paused,

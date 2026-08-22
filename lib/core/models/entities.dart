@@ -26,13 +26,11 @@ String newId() {
 // Goal（目标）
 // ---------------------------------------------------------------------------
 
-enum GoalKind { habit, milestone }
-
-/// 003 schema v3 三类型域（Goals.goalType 列值域，research D3）。
-/// T009 起表/迁移层使用；T011 将替换 [GoalKind] 成为 Goal 的类型字段。
+/// 003 v3 三类型域（research D2/D3；behavior 契约见
+/// specs/003-app-ux-refinement/contracts/goal-type-model.md）。
 enum GoalType { longTerm, shortTerm, habit }
 
-/// 003 schema v3 提醒频率档（Reminders.cadence 列值域；NULL 视为 daily）。
+/// 003 v3 提醒频率档（Reminders.cadence 列值域；NULL 视为 daily）。
 enum Cadence { daily, threeDay, weekly }
 
 enum GoalStatus { active, paused, archived, achieved }
@@ -44,7 +42,7 @@ class Goal {
   Goal({
     String? id,
     required this.name,
-    required this.kind,
+    required this.goalType,
     required this.iconKey,
     required this.colorKey,
     this.status = GoalStatus.active,
@@ -53,10 +51,13 @@ class Goal {
     this.motivation,
     this.successCriterion,
     this.cueScene,
+    this.achievedAt,
   })  : id = id ?? newId(),
         assert(name.trim().isNotEmpty && name.length <= 30, '目标名 1–30 字'),
-        assert(kind == GoalKind.milestone || deadline == null,
-            '仅 milestone 可有截止日期'),
+        assert(goalType == GoalType.shortTerm || deadline == null,
+            '仅短期目标可有截止日期'),
+        assert(goalType != GoalType.shortTerm || deadline != null,
+            '短期目标必填截止日期'),
         assert(
             motivation == null ||
                 (motivation.trim().isNotEmpty && motivation.length <= 60),
@@ -73,7 +74,9 @@ class Goal {
 
   final String id;
   final String name;
-  final GoalKind kind;
+
+  /// 003 v3 三类型；创建后不可变更（编辑器仅 deadline/提醒可续期调整）。
+  final GoalType goalType;
 
   /// 设计令牌表内置键（iconKey/colorKey 枚举集合见 lib/core/design/tokens.dart）。
   final String iconKey;
@@ -81,8 +84,13 @@ class Goal {
   final GoalStatus status;
   final LocalDate createdAt;
 
-  /// 仅 milestone 有值；倒计时 = deadline − 今天（FR-013）。
+  /// 仅 shortTerm 有值；倒计时 = deadline − 今天（FR-013）。
+  /// 改 deadline = 续期（D4：倒计时重置，不写 achievedAt）。
   final LocalDate? deadline;
+
+  /// 003 v3 手动达成时刻（D4；NULL=未达成）。shortTerm/longTerm 可手动
+  /// 标记达成；habit 持续型不完结。
+  final DateTime? achievedAt;
 
   /// US3 定义模型（002 B 案 envelope，schema v2 起可空列）：旧目标为 NULL
   /// → 今日卡/列表卡出现「补一句为什么」渐进补全入口（T014 定稿）。
@@ -95,17 +103,18 @@ class Goal {
   /// 提醒时刻（FR-012），空或「不打扰」→ 回落默认时段、同档合并。
   final String? cueScene;
 
-  bool get isHabit => kind == GoalKind.habit;
-  bool get isMilestone => kind == GoalKind.milestone;
+  bool get isHabit => goalType == GoalType.habit;
+  bool get isShortTerm => goalType == GoalType.shortTerm;
+  bool get isLongTerm => goalType == GoalType.longTerm;
 
-  /// 状态机（data-model）：active ⇄ paused；active → achieved（仅 milestone）；
-  /// active/paused → archived（终态）。创建后 kind 不可变更。
+  /// 状态机（003 D4）：active ⇄ paused；active → achieved（habit 持续型
+  /// 不可达成）；active/paused → archived（终态）。创建后类型不可变更。
   bool canTransitTo(GoalStatus to) {
     switch (status) {
       case GoalStatus.active:
         return to == GoalStatus.paused ||
             to == GoalStatus.archived ||
-            (to == GoalStatus.achieved && isMilestone);
+            (to == GoalStatus.achieved && !isHabit);
       case GoalStatus.paused:
         return to == GoalStatus.active || to == GoalStatus.archived;
       case GoalStatus.archived:
@@ -123,11 +132,12 @@ class Goal {
     String? motivation,
     String? successCriterion,
     String? cueScene,
+    DateTime? achievedAt,
   }) =>
       Goal(
         id: id,
         name: name ?? this.name,
-        kind: kind,
+        goalType: goalType,
         iconKey: iconKey ?? this.iconKey,
         colorKey: colorKey ?? this.colorKey,
         status: status ?? this.status,
@@ -136,6 +146,7 @@ class Goal {
         motivation: motivation ?? this.motivation,
         successCriterion: successCriterion ?? this.successCriterion,
         cueScene: cueScene ?? this.cueScene,
+        achievedAt: achievedAt ?? this.achievedAt,
       );
 
   @override
@@ -143,7 +154,7 @@ class Goal {
       other is Goal &&
       other.id == id &&
       other.name == name &&
-      other.kind == kind &&
+      other.goalType == goalType &&
       other.iconKey == iconKey &&
       other.colorKey == colorKey &&
       other.status == status &&
@@ -151,11 +162,13 @@ class Goal {
       other.deadline == deadline &&
       other.motivation == motivation &&
       other.successCriterion == successCriterion &&
-      other.cueScene == cueScene;
+      other.cueScene == cueScene &&
+      other.achievedAt == achievedAt;
 
   @override
-  int get hashCode => Object.hash(id, name, kind, iconKey, colorKey, status,
-      createdAt, deadline, motivation, successCriterion, cueScene);
+  int get hashCode => Object.hash(id, name, goalType, iconKey, colorKey,
+      status, createdAt, deadline, motivation, successCriterion, cueScene,
+      achievedAt);
 }
 
 // ---------------------------------------------------------------------------
@@ -371,6 +384,7 @@ class Reminder {
     this.goalId,
     required this.time,
     this.isEnabled = true,
+    this.cadence,
   }) : id = id ?? newId();
 
   final String id;
@@ -380,13 +394,20 @@ class Reminder {
   final LocalTime time;
   final bool isEnabled;
 
+  /// 003 v3 提醒频率档（FR-013 开关化提醒）；NULL 视为 daily。
+  final Cadence? cadence;
+
+  Cadence get effectiveCadence => cadence ?? Cadence.daily;
+
   bool get isDailyBrief => goalId == null;
 
-  Reminder copyWith({LocalTime? time, bool? isEnabled}) => Reminder(
+  Reminder copyWith({LocalTime? time, bool? isEnabled, Cadence? cadence}) =>
+      Reminder(
         id: id,
         goalId: goalId,
         time: time ?? this.time,
         isEnabled: isEnabled ?? this.isEnabled,
+        cadence: cadence ?? this.cadence,
       );
 
   @override
@@ -395,10 +416,11 @@ class Reminder {
       other.id == id &&
       other.goalId == goalId &&
       other.time == time &&
-      other.isEnabled == isEnabled;
+      other.isEnabled == isEnabled &&
+      other.cadence == cadence;
 
   @override
-  int get hashCode => Object.hash(id, goalId, time, isEnabled);
+  int get hashCode => Object.hash(id, goalId, time, isEnabled, cadence);
 }
 
 // ---------------------------------------------------------------------------
@@ -530,4 +552,28 @@ class Settings {
         notificationDeniedAcknowledged:
             notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
       );
+}
+
+// ---------------------------------------------------------------------------
+// Profile（账号资料 VO，003 research D7）
+// ---------------------------------------------------------------------------
+
+/// Settings 单例行的资料两列（nickname/avatar_key，均 NULL=未设置）。
+/// 展示层默认昵称等文案归 copy.dart（T014），VO 只承载原始值。
+class Profile {
+  const Profile({this.nickname, this.avatarKey});
+
+  final String? nickname;
+  final String? avatarKey;
+
+  static const Profile empty = Profile();
+
+  @override
+  bool operator ==(Object other) =>
+      other is Profile &&
+      other.nickname == nickname &&
+      other.avatarKey == avatarKey;
+
+  @override
+  int get hashCode => Object.hash(nickname, avatarKey);
 }

@@ -34,7 +34,7 @@ StatsEvaluation _evaluate(List<Goal> goals) => StatsEngine.evaluate(
 Goal _habit(String id) => Goal(
     id: id,
     name: '习惯$id',
-    kind: GoalKind.habit,
+    goalType: GoalType.habit,
     iconKey: 'star',
     colorKey: 'teal',
     createdAt: const LocalDate(2026, 8, 3));
@@ -42,7 +42,7 @@ Goal _habit(String id) => Goal(
 Goal _milestone(String id, {LocalDate? deadline}) => Goal(
     id: id,
     name: '里程碑$id',
-    kind: GoalKind.milestone,
+    goalType: GoalType.shortTerm,
     iconKey: 'flag',
     colorKey: 'coral',
     createdAt: const LocalDate(2026, 8, 3),

@@ -96,7 +96,7 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     final repo = ref.read(goalRepoProvider);
     final stepsByGoal = <String, List<MilestoneStep>>{};
     for (final g
-        in goals.where((g) => g.isMilestone && g.status == GoalStatus.active)) {
+        in goals.where((g) => g.isShortTerm && g.status == GoalStatus.active)) {
       stepsByGoal[g.id] = await repo.stepsOf(g.id);
     }
     if (!mounted) return;

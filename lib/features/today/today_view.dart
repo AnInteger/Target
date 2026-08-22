@@ -53,7 +53,7 @@ class TodayView extends ConsumerWidget {
     final habits = active
         .where((g) => g.isHabit && stats.dayStatusOf(g.id).applicable)
         .toList();
-    final milestones = active.where((g) => g.isMilestone).toList();
+    final milestones = active.where((g) => !g.isHabit).toList();
     final progressed = habits
         .where((g) => stats.dayStatusOf(g.id).doneCount > 0)
         .length;

@@ -34,7 +34,7 @@ class Fixture {
     final g = Goal(
       id: id,
       name: name ?? '目标$id',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'fitness',
       colorKey: 'sage',
       status: status,
@@ -57,7 +57,7 @@ class Fixture {
     final g = Goal(
       id: id,
       name: '目标$id',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'book',
       colorKey: 'indigo',
       createdAt: _today.addDays(-7),
@@ -142,7 +142,7 @@ void main() {
       final milestone = Goal(
         id: 'm1',
         name: '去旅行',
-        kind: GoalKind.milestone,
+        goalType: GoalType.longTerm,
         iconKey: 'travel',
         colorKey: 'sky',
         createdAt: _today.addDays(-7),

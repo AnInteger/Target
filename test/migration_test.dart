@@ -133,9 +133,9 @@ void main() {
 
     final meal = goals.firstWhere((g) => g.id == 'g1');
     expect(meal.name, '好好吃饭');
-    // v3 重映射（D3）：无截止无频率的 habit → longTerm（实体桥接为
-    // milestone）；iconKey meal→restaurant；colorKey 退役置 NULL（''）。
-    expect(meal.kind, GoalKind.milestone);
+    // v3 重映射（D3）：无截止无频率的 habit → longTerm；
+    // iconKey meal→restaurant；colorKey 退役置 NULL（实体 ''）。
+    expect(meal.goalType, GoalType.longTerm);
     expect(meal.colorKey, '');
     expect(meal.deadline, isNull);
     // 新列默认 NULL —— 即「补一句为什么」渐进补全入口的语义（T014）。
@@ -144,7 +144,8 @@ void main() {
     expect(meal.cueScene, isNull);
 
     final trek = goals.firstWhere((g) => g.id == 'g2');
-    expect(trek.kind, GoalKind.milestone);
+    // 里程碑+截止 → shortTerm（D3 决策树第一支）。
+    expect(trek.goalType, GoalType.shortTerm);
     expect(trek.deadline, LocalDate.parse('2026-10-01')); // 截止日不丢
 
     // 3) 旧目标渐进补全：补写三字段 → 回读持久化。
@@ -167,7 +168,7 @@ void main() {
 
     await repo.create(Goal(
       name: '每天散步 20 分钟',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'fitness',
       colorKey: 'sage',
       createdAt: today,
@@ -177,7 +178,7 @@ void main() {
     ));
     await repo.create(Goal(
       name: '好好吃饭',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'meal',
       colorKey: 'coral',
       createdAt: today,

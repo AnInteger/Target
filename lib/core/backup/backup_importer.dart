@@ -118,7 +118,9 @@ class BackupImporter {
       final g = lists['goals']![i];
       _str(g, 'id', 'goals[$i].id');
       _str(g, 'name', 'goals[$i].name');
-      _enum<GoalKind>(g, 'kind', GoalKind.values, 'goals[$i].kind');
+      // v2 备份 kind 两值（habit/milestone）；v3 goalType 三值由 US5 双向
+      // 格式收口，此处先按两值校验、构造时宽容映射（D3 决策树）。
+      _oneOf(g, 'kind', const ['habit', 'milestone'], 'goals[$i].kind');
       _str(g, 'iconKey', 'goals[$i].iconKey');
       _str(g, 'colorKey', 'goals[$i].colorKey');
       _enum<GoalStatus>(g, 'status', GoalStatus.values, 'goals[$i].status');
@@ -449,6 +451,12 @@ class BackupImporter {
   static void _instantOpt(Map<String, Object?> m, String key, String where) {
     if (m[key] == null) return;
     _instant(m, key, where);
+  }
+
+  static void _oneOf(
+      Map<String, Object?> m, String key, List<String> allowed, String where) {
+    final v = m[key];
+    if (v is! String || !allowed.contains(v)) _fail(where);
   }
 
   static void _enum<T extends Enum>(

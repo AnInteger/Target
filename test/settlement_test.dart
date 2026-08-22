@@ -32,7 +32,7 @@ class Env {
       GoalStatus status = GoalStatus.active}) async {
     final g = await goals.create(Goal(
       name: name,
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'fitness',
       colorKey: 'sage',
       status: status,
@@ -157,7 +157,7 @@ void main() {
     await env.habit('吃饭');
     await env.goals.create(Goal(
       name: '旅行',
-      kind: GoalKind.milestone,
+      goalType: GoalType.longTerm,
       iconKey: 'travel',
       colorKey: 'sky',
       createdAt: _lastWeek.monday,
@@ -165,7 +165,7 @@ void main() {
     // 创建于结算周之后的目标不入快照。
     final late = await env.goals.create(Goal(
       name: '新习惯',
-      kind: GoalKind.habit,
+      goalType: GoalType.habit,
       iconKey: 'book',
       colorKey: 'indigo',
       createdAt: _monday,

@@ -15,6 +15,8 @@ import 'package:target/core/stats/busy_mode_service.dart';
 import 'package:target/core/stats/settlement_service.dart';
 import 'package:target/core/stats/stats_engine.dart';
 
+import 'version_seed.dart';
+
 LocalDate _date(int y, int m, int d) => LocalDate(y, m, d);
 
 /// 2026-08-17 周一锚点：结算周 = 上周 08-10 ~ 08-16。
@@ -39,7 +41,9 @@ class Env {
       status: status,
       createdAt: _lastWeek.monday,
     ));
-    await goals.addInitial(g.id, pattern, _lastWeek);
+    // T013 停写：仓储不再建版本；夹具直插存量行（仿真旧库），
+    // 供「版本在库也不影响统计口径」断言。
+    await seedVersion(db, g.id, pattern, _lastWeek);
     return g;
   }
 
@@ -126,7 +130,7 @@ void main() {
     expect(after.metDays, 5, reason: '历史打卡留痕不受忙碌开关影响');
   });
 
-  test('decision=adjust → 生成下周 userEdit 版本，本周打卡口径不变', () async {
+  test('decision=adjust → 003 停写：不再生成 userEdit 版本', () async {
     final env = Env();
     addTearDown(env.close);
     final g = await env.habit('阅读');
@@ -137,14 +141,13 @@ void main() {
         AdjustDecision(const DailyFrequency(2)),
         today: _monday);
 
+    // 版本表停写：只剩夹具直插的 initial 存量行，无 userEdit。
     final versions = await env.goals.versionsOf(g.id);
-    final edit = versions
-        .where((v) => v.source == FrequencySource.userEdit)
-        .single;
-    expect(edit.effectiveFromWeek, WeekStart.containing(_monday).next);
-    expect(edit.pattern, const DailyFrequency(2));
+    expect(versions.where((v) => v.source == FrequencySource.userEdit),
+        isEmpty);
+    expect(versions, hasLength(1));
 
-    // 003 起引擎不消费版本：本周统计仍是纯打卡口径。
+    // 引擎不消费版本：本周统计仍是纯打卡口径。
     final stats = await env.evaluateLive(_monday);
     expect(stats.dayStatusOf(g.id, _monday).doneCount, 0);
   });
@@ -183,8 +186,6 @@ void main() {
       colorKey: 'indigo',
       createdAt: _monday,
     ));
-    await env.goals.addInitial(late.id, const DailyFrequency(1),
-        WeekStart.containing(_monday));
 
     final r = await env.settlement.settleLastWeekIfNeeded(
         today: _monday, now: DateTime(2026, 8, 17, 8));

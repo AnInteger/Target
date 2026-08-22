@@ -110,7 +110,11 @@ class GoalRepository {
         cueScene: Value(g.cueScene),
       );
 
-  // ---- FrequencyVersion ----
+  // ---- FrequencyVersion（003 T013 停写：整表只读保全）----
+  // 003 起频率概念退役为提醒 cadence，App 不再创建/修改/删除版本行；
+  // 存量行保留供编辑器回显（effectivePattern）与备份往返（importer
+  // 直插还原，不走本仓储）。写入 API（addInitial/addUserEdit/
+  // addBusyMode/removeBusyMode）已删除。
 
   Future<List<FrequencyVersion>> versionsOf(String goalId) =>
       (_db.select(_db.frequencyVersions)
@@ -119,84 +123,12 @@ class GoalRepository {
           .map(_toVersion)
           .get();
 
-  /// 全量版本流（统计引擎供货）。
+  /// 全量版本流（编辑器/详情回显供货）。
   Stream<List<FrequencyVersion>> watchAllVersions() =>
       (_db.select(_db.frequencyVersions)
             ..orderBy([(t) => OrderingTerm.asc(t.effectiveFromWeek)]))
           .map(_toVersion)
           .watch();
-
-  /// 创建目标时的初始版本（source=initial，生效周=创建周）。
-  Future<void> addInitial(String goalId, FrequencyPattern pattern,
-          WeekStart creationWeek) =>
-      _db.into(_db.frequencyVersions).insert(
-          db.FrequencyVersionsCompanion.insert(
-            id: newId(),
-            goalId: goalId,
-            effectiveFromWeek: creationWeek,
-            pattern: pattern,
-            source: FrequencySource.initial,
-          ));
-
-  /// 用户编辑频率：[effectiveFrom]（= 下周一，服务层按注入时钟算出）生效；
-  /// 同周已有待生效非 busyMode 版本则覆盖（FR-002：当前周仍按旧口径）。
-  Future<void> addUserEdit(
-      String goalId, FrequencyPattern pattern, WeekStart effectiveFrom) async {
-    final versions = await versionsOf(goalId);
-    final clash = versions
-        .where((v) =>
-            v.effectiveFromWeek == effectiveFrom &&
-            v.source != FrequencySource.busyMode)
-        .firstOrNull;
-    if (clash != null) {
-      await (_db.delete(_db.frequencyVersions)
-            ..where((t) => t.id.equals(clash.id)))
-          .go();
-    }
-    await _db
-        .into(_db.frequencyVersions)
-        .insert(db.FrequencyVersionsCompanion.insert(
-          id: newId(),
-          goalId: goalId,
-          effectiveFromWeek: effectiveFrom,
-          pattern: pattern,
-          source: FrequencySource.userEdit,
-        ));
-  }
-
-  /// busyMode：插入/更新本周版本（同一目标同一周至多一个 busyMode 版本）。
-  Future<void> addBusyMode(
-      String goalId, WeekStart week, FrequencyPattern downgraded) async {
-    final versions = await versionsOf(goalId);
-    final clash = versions
-        .where((v) =>
-            v.effectiveFromWeek == week && v.source == FrequencySource.busyMode)
-        .firstOrNull;
-    if (clash != null) {
-      await (_db.update(_db.frequencyVersions)
-            ..where((t) => t.id.equals(clash.id)))
-          .write(db.FrequencyVersionsCompanion(pattern: Value(downgraded)));
-      return;
-    }
-    await _db
-        .into(_db.frequencyVersions)
-        .insert(db.FrequencyVersionsCompanion.insert(
-          id: newId(),
-          goalId: goalId,
-          effectiveFromWeek: week,
-          pattern: downgraded,
-          source: FrequencySource.busyMode,
-        ));
-  }
-
-  /// 恢复忙碌模式 = 移除该目标该周的 busyMode 版本（FR-018）。
-  Future<void> removeBusyMode(String goalId, WeekStart week) =>
-      (_db.delete(_db.frequencyVersions)
-            ..where((t) =>
-                t.goalId.equals(goalId) &
-                t.effectiveFromWeek.equalsValue(week) &
-                t.source.equalsValue(FrequencySource.busyMode)))
-          .go();
 
   static FrequencyVersion _toVersion(db.FrequencyVersion r) =>
       FrequencyVersion(

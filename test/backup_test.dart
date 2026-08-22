@@ -12,6 +12,8 @@ import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/frequency_pattern.dart';
 import 'package:drift/native.dart';
 
+import 'version_seed.dart';
+
 /// 填充一个"什么都有"的库：goal×2 + 版本 + 步骤 + 打卡（含补签/撤销）
 /// + 提醒 + 周回顾 + 忙碌会话 + 设置。
 Future<db.AppDatabase> _seededDb() async {
@@ -33,7 +35,7 @@ Future<db.AppDatabase> _seededDb() async {
     successCriterion: '晚饭吃八分饱',
     cueScene: '晚饭后',
   ));
-  await goals.addInitial(
+  await seedVersion(database, 
       habit.id, const WeekdaysFrequency({Weekday.mon, Weekday.wed}, 1),
       WeekStart.containing(const LocalDate(2026, 8, 3)));
   final milestone = await goals.create(Goal(
@@ -76,7 +78,7 @@ Future<db.AppDatabase> _seededDb() async {
   ));
 
   final busyWeek = WeekStart.containing(const LocalDate(2026, 8, 17));
-  await goals.addBusyMode(habit.id, busyWeek, const WeeklyFrequency(1));
+  await seedVersion(database, habit.id, const WeeklyFrequency(1), busyWeek, FrequencySource.busyMode);
   await goals.openSession(busyWeek,
       [BusyModeEntry(goalId: habit.id, downgraded: const WeeklyFrequency(1))],
       DateTime(2026, 8, 17, 20));

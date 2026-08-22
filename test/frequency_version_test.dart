@@ -1,7 +1,9 @@
-/// T016：频率版本化规则（contracts/stats-engine.md R2、research D7）。
+/// 003 T013：FrequencyVersions 停写 + 存量保全。
 ///
-/// 覆盖：版本选择（≤ 目标周取最新）、同周 tie（busyMode 优先）；
-/// 仓储规则：用户编辑追加下周一、同周覆盖待生效、busyMode 并存与恢复移除。
+/// 版本选择纯函数保留（编辑器/详情回显消费 effectivePattern）；
+/// 仓储只读（versionsOf/watchAllVersions）；写入 API 已删除——
+/// 新目标不产生版本行，忙碌/决策/编辑路径均不再触表；
+/// 存量行（仿真 v2 旧库直插）照读、随备份往返。
 library;
 
 import 'package:drift/native.dart';
@@ -14,10 +16,12 @@ import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/frequency_pattern.dart';
 import 'package:target/core/stats/versioning.dart';
 
+import 'version_seed.dart';
+
 WeekStart _week(int y, int m, int d) => WeekStart.of(LocalDate(y, m, d));
 
 void main() {
-  group('R2 版本选择（纯函数）', () {
+  group('R2 版本选择（纯函数，回显供货）', () {
     final goalId = 'g1';
     final versions = [
       FrequencyVersion(
@@ -64,7 +68,7 @@ void main() {
     });
   });
 
-  group('仓储规则（内存库）', () {
+  group('停写 + 保全（内存库）', () {
     late AppDatabase db;
     late GoalRepository repo;
 
@@ -75,7 +79,18 @@ void main() {
 
     tearDown(() async => db.close());
 
-    Future<String> seedGoal() async {
+    test('新目标不产生版本行（创建路径零触表）', () async {
+      await repo.create(Goal(
+        name: '锻炼',
+        goalType: GoalType.habit,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: const LocalDate(2026, 8, 10),
+      ));
+      expect(await repo.watchAllVersions().first, isEmpty);
+    });
+
+    test('存量行只读保全：直插（仿真旧库）→ versionsOf/watch 照读', () async {
       final goal = await repo.create(Goal(
         name: '锻炼',
         goalType: GoalType.habit,
@@ -83,74 +98,21 @@ void main() {
         colorKey: 'sage',
         createdAt: const LocalDate(2026, 8, 10),
       ));
-      await repo.addInitial(goal.id, const DailyFrequency(1), _week(2026, 8, 10));
-      return goal.id;
-    }
+      await seedVersion(db, goal.id, const WeekdaysFrequency(
+          {Weekday.mon, Weekday.wed}, 1), _week(2026, 8, 10));
+      await seedVersion(db, goal.id, const WeeklyFrequency(1),
+          _week(2026, 8, 17), FrequencySource.busyMode);
 
-    test('用户编辑 → 追加下周一生效版本', () async {
-      final id = await seedGoal();
-      await repo.addUserEdit(
-          id, const WeeklyFrequency(3), _week(2026, 8, 24));
-
-      final versions = await repo.versionsOf(id);
+      final versions = await repo.versionsOf(goal.id);
       expect(versions, hasLength(2));
-      final pending = versions.last;
-      expect(pending.effectiveFromWeek, _week(2026, 8, 24));
-      expect(pending.source, FrequencySource.userEdit);
-    });
-
-    test('同一周重复编辑 → 覆盖待生效版本（不叠加）', () async {
-      final id = await seedGoal();
-      await repo.addUserEdit(
-          id, const WeeklyFrequency(3), _week(2026, 8, 24));
-      await repo.addUserEdit(
-          id, const WeeklyFrequency(5), _week(2026, 8, 24));
-
-      final versions = await repo.versionsOf(id);
-      expect(versions.where((v) => v.source == FrequencySource.userEdit),
-          hasLength(1));
-      expect(
-          versions
-              .where((v) => v.source == FrequencySource.userEdit)
-              .first
-              .pattern,
-          const WeeklyFrequency(5));
-    });
-
-    test('busyMode 与用户版本并存于不同周；恢复 = 移除该版本', () async {
-      final id = await seedGoal();
-      final busyWeek = _week(2026, 8, 17);
-      await repo.addBusyMode(id, busyWeek, const WeeklyFrequency(1));
-      await repo.addUserEdit(id, const WeeklyFrequency(3), _week(2026, 8, 24));
-
-      var versions = await repo.versionsOf(id);
       expect(versions.map((v) => v.source), containsAll([
         FrequencySource.initial,
         FrequencySource.busyMode,
-        FrequencySource.userEdit,
       ]));
-
-      await repo.removeBusyMode(id, busyWeek);
-      versions = await repo.versionsOf(id);
+      // 回显：目标当周取 busyMode 降档口径。
       expect(
-          versions.where((v) => v.source == FrequencySource.busyMode),
-          isEmpty);
-      // 用户版本不受恢复影响。
-      expect(
-          versions.where((v) => v.source == FrequencySource.userEdit),
-          isNotEmpty);
-    });
-
-    test('同一周重复开启 busyMode → 更新而非叠加', () async {
-      final id = await seedGoal();
-      final week = _week(2026, 8, 17);
-      await repo.addBusyMode(id, week, const WeeklyFrequency(1));
-      await repo.addBusyMode(id, week, const WeeklyFrequency(2));
-
-      final versions = await repo.versionsOf(id);
-      final busy = versions.where((v) => v.source == FrequencySource.busyMode);
-      expect(busy, hasLength(1));
-      expect(busy.first.pattern, const WeeklyFrequency(2));
+          effectivePattern(versions, LocalDate(2026, 8, 18)),
+          const WeeklyFrequency(1));
     });
 
     test('活跃上限 5：第 6 个 active 创建被拒', () async {

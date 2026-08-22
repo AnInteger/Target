@@ -3,7 +3,7 @@
 /// 周一晨（dailyBrief 前）结算上一周：用统计引擎生成各目标
 /// GoalWeekStat 快照存入 WeeklyReview（幂等：同周已存在则复用，
 /// 不覆盖 settledAt）。回顾页展示时实时重算，快照仅留痕。
-/// 决策落地：adjust → 下周 userEdit 版本；pause → 目标置 paused。
+/// 决策落地：pause → 目标置 paused（adjust 003 起停写版本）。
 library;
 
 import '../db/repositories.dart';
@@ -45,16 +45,16 @@ class WeeklySettlementService {
 
   /// 周回顾三选落地（单目标粒度，FR-008）。
   ///
-  /// - adjust：生成下周 userEdit 版本（本周仍按原口径，FR-002）；
+  /// - adjust：003 T013 起频率版本停写——不再生成 userEdit 版本
+  ///   （历史 adjust 决策随快照兼容读；频率编辑退役为提醒 cadence）；
   /// - pause：目标置 paused（FR-009）；
   /// - continue：无副作用。
   Future<void> applyDecision(
       String goalId, ReviewDecision decision, {required LocalDate today}) async {
     switch (decision) {
       case ContinueDecision():
+      case AdjustDecision():
         break;
-      case AdjustDecision(:final newPattern):
-        await _goals.addUserEdit(goalId, newPattern, today.weekStart.next);
       case PauseDecision():
         final goal = (await _goals.getGoals())
             .where((g) => g.id == goalId)

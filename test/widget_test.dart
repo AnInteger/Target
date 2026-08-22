@@ -22,6 +22,8 @@ import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/frequency_pattern.dart';
 import 'package:target/core/platform/gateways.dart';
 
+import 'version_seed.dart';
+
 /// 测试假通知网关：记录调度、零平台副作用。
 class FakeNotificationGateway implements NotificationGateway {
   final scheduled = <int>[];
@@ -167,7 +169,7 @@ void main() {
         createdAt: today,
       ),
     );
-    await repo.addInitial(
+    await seedVersion(db, 
       goal.id,
       const DailyFrequency(1),
       WeekStart.containing(today),
@@ -223,7 +225,7 @@ void main() {
         colorKey: color,
         createdAt: today,
       ));
-      await repo.addInitial(g.id, const DailyFrequency(1), WeekStart.containing(today));
+      await seedVersion(db, g.id, const DailyFrequency(1), WeekStart.containing(today));
     }
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
         const SettingsRowsCompanion(onboardingCompleted: Value(true)));
@@ -385,7 +387,7 @@ void main() {
       motivation: '为了晚上不胃胀',
       cueScene: '晚饭后',
     ));
-    await repo.addInitial(
+    await seedVersion(db, 
         eat.id, const DailyFrequency(1), WeekStart.containing(today));
     final sleep = await repo.create(Goal(
       name: '早睡',
@@ -394,7 +396,7 @@ void main() {
       colorKey: 'indigo',
       createdAt: today,
     ));
-    await repo.addInitial(
+    await seedVersion(db, 
         sleep.id, const DailyFrequency(1), WeekStart.containing(today));
     final sport = await repo.create(Goal(
       name: '规律运动',
@@ -404,7 +406,7 @@ void main() {
       createdAt: today,
       status: GoalStatus.paused,
     ));
-    await repo.addInitial(
+    await seedVersion(db, 
         sport.id, const WeeklyFrequency(3), WeekStart.containing(today));
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
@@ -548,7 +550,7 @@ void main() {
         createdAt: today,
       ),
     );
-    await repo.addInitial(
+    await seedVersion(db, 
       goal.id,
       const DailyFrequency(1),
       WeekStart.containing(today),
@@ -622,7 +624,7 @@ void main() {
         createdAt: createdAt,
       ),
     );
-    await repo.addInitial(
+    await seedVersion(db, 
       goal.id,
       const DailyFrequency(1),
       WeekStart.containing(createdAt),
@@ -640,7 +642,7 @@ void main() {
         createdAt: createdAt,
       ),
     );
-    await repo.addInitial(
+    await seedVersion(db, 
       goal2.id,
       const DailyFrequency(1),
       WeekStart.containing(createdAt),
@@ -705,7 +707,7 @@ void main() {
       colorKey: 'sage',
       createdAt: createdAt,
     ));
-    await repo.addInitial(
+    await seedVersion(db, 
         goal.id, const DailyFrequency(1), WeekStart.containing(createdAt));
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),

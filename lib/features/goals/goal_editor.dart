@@ -54,9 +54,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   var _iconKey = 'star';
   var _colorKey = 'teal';
   var _deadline = LocalDate(2026, 12, 31); // 一次性默认年底，可改
-
-  /// 编辑模式：进入时的有效频率（判断是否变化 → 下周一生效提示）。
-  FrequencyPattern? _originalPattern;
   bool _hydrated = false;
   String? _selectedTemplate;
 
@@ -110,7 +107,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       _criterionTouched = goal.successCriterion != null;
       _cueScene = goal.cueScene;
       _pattern = pattern;
-      _originalPattern = pattern;
       _iconKey = goal.iconKey;
       _colorKey = goal.colorKey;
       _deadline = goal.deadline ?? _deadline;
@@ -186,12 +182,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
           successCriterion: envelope.successCriterion,
           cueScene: envelope.cueScene,
         ));
-        // 频率变化 → 下周一版本（FR-002；本周仍按原口径）。
-        if (!_once && _pattern != _originalPattern) {
-          await repo.addUserEdit(goal.id, _pattern, today.weekStart.next);
-        }
       } else {
-        final goal = await repo.create(Goal(
+        // 003 T013：新目标不再创建频率版本（存量表只读保全）。
+        await repo.create(Goal(
           name: name,
           goalType: _type,
           iconKey: _iconKey,
@@ -202,9 +195,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
           successCriterion: envelope.successCriterion,
           cueScene: envelope.cueScene,
         ));
-        if (!_once) {
-          await repo.addInitial(goal.id, _pattern, today.weekStart);
-        }
       }
       if (mounted) Navigator.of(context).pop();
     } on ActiveGoalLimitException {
@@ -545,15 +535,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             max: 9,
             onChanged: (n) => _pattern = WeekdaysFrequency(
                 (_pattern as WeekdaysFrequency).days, n),
-          ),
-        if (_isEdit && _pattern != _originalPattern)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              Copy.editorNextWeekEffect,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.tertiary),
-            ),
           ),
       ],
     );

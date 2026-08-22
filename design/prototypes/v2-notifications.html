@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>通知列表 · Target（v2 延展设计 · FR-015 门禁稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=0823a">
+<script src="goal-icons.js"></script>
+<style>
+  /* ============================================================
+     v2-notifications · 应用内通知列表延展原型（004 · T009 · R1）
+     ------------------------------------------------------------
+     - 形态决策（评审项）：铃铛入口上滑 bottom sheet，落在今日页
+       之上（底部导航可见但被 scrim 压暗）；点外关闭
+     - FR-016 能力对账：时间倒序 · 五类类型图标（提醒/达成/全部
+       完成/连续/临近截止）· 未读点 · 空态 · 条目点击进对应目标
+     - 语言：v2 基准图延展；类型图标用语义色格（accent 蓝/青柠完
+       成/琥珀连续），图标+填色双通道辨识（FR-013 不单靠色相）
+     - 底幕为今日页简化预览（v2 语言占位，正式今日页 = T020）
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 720px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 242, 247, .7); }
+  .chip.t { color: var(--accent); }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+
+  /* ---- 今日页简化底幕（v2 语言占位） ---- */
+  .td-status { height: 52px; flex: none; display: flex; align-items: flex-end;
+               justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+               font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
+  .td-head { flex: none; padding: var(--space-2) var(--space-6) var(--space-3);
+             display: flex; align-items: flex-start; gap: var(--space-3); }
+  .td-head .col { flex: 1; }
+  .td-date { font: var(--font-body-m); color: var(--on-surface-variant); margin: 0; }
+  .td-title { font: var(--font-display-l); color: var(--on-surface); margin: 0;
+              letter-spacing: var(--ls-display-l); }
+  .td-av { width: 40px; height: 40px; border-radius: var(--radius-full); flex: none;
+           background: linear-gradient(135deg, var(--grad-avatar-a), var(--grad-avatar-b));
+           color: var(--accent-on); display: flex; align-items: center;
+           justify-content: center; font: var(--font-title-m); }
+  .rings { flex: none; display: flex; align-items: center; gap: var(--space-5);
+           padding: var(--space-2) var(--space-6) var(--space-4); }
+  .rings svg { flex: none; }
+  .rleg { display: flex; flex-direction: column; gap: var(--space-3); }
+  .rl { display: flex; align-items: center; gap: var(--space-2);
+        font: var(--font-body-m); color: var(--on-surface); }
+  .rl .d { width: 10px; height: 10px; border-radius: var(--radius-full); }
+  .rl b { font-variant-numeric: tabular-nums; margin-left: auto; padding-left: var(--space-4); }
+  .carousel { flex: none; display: flex; gap: var(--space-3);
+              padding: 0 var(--space-6) var(--space-4); }
+  .fcard { width: 250px; height: 120px; border-radius: var(--radius-xl);
+           background: var(--surface); box-shadow: var(--shadow-low); flex: none;
+           padding: var(--space-4); display: flex; flex-direction: column;
+           justify-content: space-between; }
+  .fcard .t { font: var(--font-title-m); color: var(--on-surface); margin: 0; }
+  .fcard .s { font: var(--font-body-s); color: var(--on-surface-variant); margin: 0; }
+  .fcard.next { width: 40px; padding: var(--space-3); align-items: center; }
+
+  /* 底部导航（两页签 + 中央凸起＋，D6） */
+  .dock { flex: none; position: relative; margin: auto var(--space-4) var(--space-4);
+          background: var(--surface); border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-mid); display: flex; align-items: center;
+          padding: var(--space-2) var(--space-5); height: 64px; }
+  .dock .tab { flex: 1; display: flex; flex-direction: column; align-items: center;
+               gap: 3px; font: var(--font-label); color: var(--on-surface-variant);
+               cursor: pointer; background: none; border: none; padding: 0; }
+  .dock .tab svg { width: 22px; height: 22px; }
+  .dock .tab.on { color: var(--accent); font-weight: 700; }
+  .fab { position: absolute; left: 50%; top: -18px; transform: translateX(-50%);
+         width: 56px; height: 56px; border-radius: var(--radius-full);
+         background: var(--accent); color: var(--accent-on); border: none;
+         cursor: pointer; box-shadow: var(--shadow-mid);
+         display: flex; align-items: center; justify-content: center; }
+  .fab svg { width: 26px; height: 26px; }
+
+  /* ---- 通知 sheet ---- */
+  .sheet-wrap { position: absolute; inset: 0; z-index: 30; display: flex;
+                flex-direction: column; justify-content: flex-end; }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .sheet { position: relative; background: var(--surface);
+           border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+           box-shadow: var(--shadow-high);
+           padding: var(--space-3) var(--space-5) var(--space-5);
+           max-height: 72%; overflow-y: auto; scrollbar-width: none; }
+  .sheet::-webkit-scrollbar { display: none; }
+  .grab { width: 40px; height: 4px; border-radius: var(--radius-full);
+          background: var(--divider); margin: 0 auto var(--space-3); }
+  .sh-row { display: flex; align-items: center; margin-bottom: var(--space-2); }
+  .sh-row h4 { font: var(--font-title-m); color: var(--on-surface); margin: 0; flex: 1; }
+  .sh-row .clr { border: none; background: none; cursor: pointer;
+                 font: var(--font-body-m); color: var(--on-surface-variant); padding: 0; }
+
+  .nrow { display: flex; gap: var(--space-3); padding: var(--space-3) 0;
+          align-items: flex-start; cursor: pointer; }
+  .nrow + .nrow { border-top: 1px solid var(--divider); }
+  .nrow .k { width: 38px; height: 38px; border-radius: var(--radius-md); flex: none;
+             display: flex; align-items: center; justify-content: center;
+             position: relative; }
+  .nrow .k svg { width: 19px; height: 19px; }
+  .nrow .k.blue { background: var(--surface-alt); color: var(--accent); }
+  .nrow .k.green { background: var(--surface-alt); color: var(--positive); }
+  .nrow .k.amber { background: var(--surface-alt); color: var(--warning); }
+  .nrow .k .unread { position: absolute; top: -3px; right: -3px; width: 10px;
+                     height: 10px; border-radius: var(--radius-full);
+                     background: var(--badge); border: 2px solid var(--surface); }
+  .nrow .bd { flex: 1; min-width: 0; }
+  .nrow .t1 { font: var(--font-body-l); color: var(--on-surface); margin: 0; }
+  .nrow .t1.dim, .nrow.read .t1 { color: var(--on-surface-variant); }
+  .nrow .t2 { font: var(--font-body-s); color: var(--on-surface-variant); margin: 2px 0 0;
+              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nrow .tm { font: var(--font-body-s); color: var(--on-surface-variant); flex: none;
+              font-variant-numeric: tabular-nums; padding-top: 2px; }
+  .sheet .sub { font: var(--font-body-s); color: var(--on-surface-variant); margin: 0;
+                text-align: center; padding: var(--space-8) 0; }
+
+  /* 空态 */
+  .empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+           padding: var(--space-12) 0 var(--space-8); }
+  .empty .ring { width: 88px; height: 88px; border-radius: var(--radius-full);
+                 background: var(--surface-alt); display: flex; align-items: center;
+                 justify-content: center; color: var(--on-surface-variant); }
+  .empty .ring svg { width: 38px; height: 38px; }
+  .empty .t1 { font: var(--font-title-m); color: var(--on-surface); margin: 0; }
+  .empty .t2 { font: var(--font-body-m); color: var(--on-surface-variant); margin: 0; }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">应用内通知列表 · v2 延展稿 R1</h1>
+<p class="pt-sub">004 T009（FR-015 门禁输入）。铃铛上滑 bottom sheet 落在今日页上（导航被 scrim 压暗）；五类类型图标语义色格 + 未读红点；
+时间倒序（刚刚 → 3 天前）；条目点击进对应目标详情；空态引导而非空白。</p>
+
+<div class="row">
+  <!-- ===================== 板 1：浅色 · 通知列表 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="td-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="td-head">
+        <div class="col">
+          <p class="td-date">星期日 · 8月23日</p>
+          <h1 class="td-title">今日</h1>
+        </div>
+        <span class="td-av">星</span>
+      </div>
+      <div class="rings">
+        <svg width="128" height="128" viewBox="0 0 128 128">
+          <circle cx="64" cy="64" r="56" fill="none" stroke="var(--surface-alt)" stroke-width="10"/>
+          <circle cx="64" cy="64" r="56" fill="none" stroke="var(--major-health)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="308 352" transform="rotate(-90 64 64)"/>
+          <circle cx="64" cy="64" r="42" fill="none" stroke="var(--surface-alt)" stroke-width="10"/>
+          <circle cx="64" cy="64" r="42" fill="none" stroke="var(--major-habit)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="176 264" transform="rotate(-90 64 64)"/>
+          <circle cx="64" cy="64" r="28" fill="none" stroke="var(--surface-alt)" stroke-width="10"/>
+          <circle cx="64" cy="64" r="28" fill="none" stroke="var(--major-goal)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="132 176" transform="rotate(-90 64 64)"/>
+        </svg>
+        <div class="rleg">
+          <span class="rl"><span class="d" style="background:var(--major-health)"></span>健康<b>97</b></span>
+          <span class="rl"><span class="d" style="background:var(--major-habit)"></span>习惯<b>100</b></span>
+          <span class="rl"><span class="d" style="background:var(--major-goal)"></span>目标<b>94</b></span>
+        </div>
+      </div>
+      <div class="carousel">
+        <div class="fcard">
+          <p class="t">骑行大 PRO 计划</p>
+          <p class="s">每天 · 已连续 12 天</p>
+        </div>
+        <div class="fcard next"></div>
+      </div>
+
+      <div class="dock">
+        <button class="tab on">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-280q83 0 141.5-58.5T680-480q0-83-58.5-141.5T480-680q-83 0-141.5 58.5T280-480q0 83 58.5 141.5T480-280Zm0 200q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/></svg>
+          今日
+        </button>
+        <button class="fab" aria-label="新建目标">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+        <button class="tab">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M280-280h400v-80H280v80Zm-40-160q-83 0-141.5-58.5T40-640q0-83 58.5-141.5T240-840q83 0 141.5 58.5T440-640q0 83-58.5 141.5T240-440Z"/></svg>
+          回顾
+        </button>
+      </div>
+
+      <div class="sheet-wrap">
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="sh-row">
+            <h4>通知</h4>
+            <button class="clr">全部已读</button>
+          </div>
+
+          <div class="nrow">
+            <span class="k blue"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Z"/></svg><span class="unread"></span></span>
+            <div class="bd">
+              <p class="t1">骑行大 PRO 计划</p>
+              <p class="t2">今天的骑行训练记得记录</p>
+            </div>
+            <span class="tm">5 分钟前</span>
+          </div>
+
+          <div class="nrow">
+            <span class="k green"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q134 0 227 93t93 227q0 134-93 227t-227 93Zm-32-187 211-211-54-54-157 157-76-76-54 54 130 130Z"/></svg><span class="unread"></span></span>
+            <div class="bd">
+              <p class="t1">全部完成</p>
+              <p class="t2">今天 3 个目标的记录都已完成</p>
+            </div>
+            <span class="tm">1 小时前</span>
+          </div>
+
+          <div class="nrow">
+            <span class="k green"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-80q-137 0-248.5-81T71-370l161-230v-240h496v240l161 230q-49 128-160.5 209T480-80Z"/></svg></span>
+            <div class="bd">
+              <p class="t1">目标达成</p>
+              <p class="t2">「三个月内考过日语 N2」已标记达成</p>
+            </div>
+            <span class="tm">昨天 21:04</span>
+          </div>
+
+          <div class="nrow">
+            <span class="k amber"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M240-320q70 0 136-20t124-60l-70-70q-44 30-91 43t-99 13v94Zm460-540 95 95-350 350-95-95 350-350ZM220-200q-83 0-141.5-58.5T20-400q0-83 58.5-141.5T220-600q52 0 99 13t91 43l-70 70q-58-40-124-60t-136-20v-94Z"/></svg></span>
+            <div class="bd">
+              <p class="t1">连续 12 天</p>
+              <p class="t2">「骑行大 PRO 计划」保持连续记录第 12 天</p>
+            </div>
+            <span class="tm">昨天 08:00</span>
+          </div>
+
+          <div class="nrow">
+            <span class="k amber"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M614-310q22-40 33-83t11-87q0-44-11-87t-33-83l-70 40q17 30 25.5 63t8.5 67q0 34-8.5 67T544-350l70 40Z"/></svg></span>
+            <div class="bd">
+              <p class="t1">临近截止</p>
+              <p class="t2">「考下潜水证 OW/AOW」距截止还有 7 天</p>
+            </div>
+            <span class="tm">3 天前</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <h3>浅色 · 通知列表</h3>
+    <p class="desc">五类类型图标语义色格（蓝=提醒、青柠=达成/全部完成、琥珀=连续/临近截止）+ 未读红点；时间倒序 + 相对时间；右上「全部已读」。</p>
+    <div class="chips"><span class="chip t">时间倒序</span><span class="chip t">五类类型图标</span><span class="chip t">未读点</span><span class="chip">sheet 形态</span></div>
+  </div>
+
+  <!-- ===================== 板 2：深色 · 通知列表 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="dark">
+      <div class="island"></div>
+      <div class="td-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="td-head">
+        <div class="col">
+          <p class="td-date">星期日 · 8月23日</p>
+          <h1 class="td-title">今日</h1>
+        </div>
+        <span class="td-av">星</span>
+      </div>
+      <div class="rings">
+        <svg width="128" height="128" viewBox="0 0 128 128">
+          <circle cx="64" cy="64" r="56" fill="none" stroke="var(--surface-alt)" stroke-width="10"/>
+          <circle cx="64" cy="64" r="56" fill="none" stroke="var(--major-health)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="308 352" transform="rotate(-90 64 64)"/>
+          <circle cx="64" cy="64" r="42" fill="none" stroke="var(--surface-alt)" stroke-width="10"/>
+          <circle cx="64" cy="64" r="42" fill="none" stroke="var(--major-habit)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="176 264" transform="rotate(-90 64 64)"/>
+          <circle cx="64" cy="64" r="28" fill="none" stroke="var(--surface-alt)" stroke-width="10"/>
+          <circle cx="64" cy="64" r="28" fill="none" stroke="var(--major-goal)" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="132 176" transform="rotate(-90 64 64)"/>
+        </svg>
+        <div class="rleg">
+          <span class="rl"><span class="d" style="background:var(--major-health)"></span>健康<b>97</b></span>
+          <span class="rl"><span class="d" style="background:var(--major-habit)"></span>习惯<b>100</b></span>
+          <span class="rl"><span class="d" style="background:var(--major-goal)"></span>目标<b>94</b></span>
+        </div>
+      </div>
+
+      <div class="sheet-wrap">
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="sh-row">
+            <h4>通知</h4>
+            <button class="clr">全部已读</button>
+          </div>
+
+          <div class="nrow">
+            <span class="k blue"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Z"/></svg><span class="unread"></span></span>
+            <div class="bd">
+              <p class="t1">骑行大 PRO 计划</p>
+              <p class="t2">今天的骑行训练记得记录</p>
+            </div>
+            <span class="tm">5 分钟前</span>
+          </div>
+
+          <div class="nrow">
+            <span class="k green"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q134 0 227 93t93 227q0 134-93 227t-227 93Zm-32-187 211-211-54-54-157 157-76-76-54 54 130 130Z"/></svg><span class="unread"></span></span>
+            <div class="bd">
+              <p class="t1">全部完成</p>
+              <p class="t2">今天 3 个目标的记录都已完成</p>
+            </div>
+            <span class="tm">1 小时前</span>
+          </div>
+
+          <div class="nrow read">
+            <span class="k green"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M480-80q-137 0-248.5-81T71-370l161-230v-240h496v240l161 230q-49 128-160.5 209T480-80Z"/></svg></span>
+            <div class="bd">
+              <p class="t1">目标达成</p>
+              <p class="t2">「三个月内考过日语 N2」已标记达成</p>
+            </div>
+            <span class="tm">昨天 21:04</span>
+          </div>
+
+          <div class="nrow read">
+            <span class="k amber"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M240-320q70 0 136-20t124-60l-70-70q-44 30-91 43t-99 13v94Zm460-540 95 95-350 350-95-95 350-350ZM220-200q-83 0-141.5-58.5T20-400q0-83 58.5-141.5T220-600q52 0 99 13t91 43l-70 70q-58-40-124-60t-136-20v-94Z"/></svg></span>
+            <div class="bd">
+              <p class="t1">连续 12 天</p>
+              <p class="t2">「骑行大 PRO 计划」保持连续记录第 12 天</p>
+            </div>
+            <span class="tm">昨天 08:00</span>
+          </div>
+
+          <div class="nrow read">
+            <span class="k amber"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M614-310q22-40 33-83t11-87q0-44-11-87t-33-83l-70 40q17 30 25.5 63t8.5 67q0 34-8.5 67T544-350l70 40Z"/></svg></span>
+            <div class="bd">
+              <p class="t1">临近截止</p>
+              <p class="t2">「考下潜水证 OW/AOW」距截止还有 7 天</p>
+            </div>
+            <span class="tm">3 天前</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <h3>深色 · 通知列表（已读态）</h3>
+    <p class="desc">深色同构：类型色格底 = surfaceAlt #252525，语义色提亮档（青柠 #4ADE80/亮蓝 #00B0FF）；已读行标题降为次级色、无红点。</p>
+    <div class="chips"><span class="chip t">深色同构</span><span class="chip t">已读/未读对比</span><span class="chip">FR-013 双通道</span></div>
+  </div>
+
+  <!-- ===================== 板 3：浅色 · 空态 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="td-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="td-head">
+        <div class="col">
+          <p class="td-date">星期日 · 8月23日</p>
+          <h1 class="td-title">今日</h1>
+        </div>
+        <span class="td-av">星</span>
+      </div>
+
+      <div class="sheet-wrap">
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="sh-row">
+            <h4>通知</h4>
+          </div>
+          <div class="empty">
+            <span class="ring">
+              <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M280-280h400v-80H280v80Zm-40-160q-83 0-141.5-58.5T40-640q0-83 58.5-141.5T240-840q83 0 141.5 58.5T440-640q0 83-58.5 141.5T240-440Z"/></svg>
+            </span>
+            <p class="t1">暂无通知</p>
+            <p class="t2">有新的提醒与达成记录时会显示在这里</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h3>浅色 · 空态</h3>
+    <p class="desc">无通知时呈引导空态（图形 + 一句说明），非空白页；sheet 保持可关闭。</p>
+    <div class="chips"><span class="chip t">空态</span><span class="chip">引导文案</span></div>
+  </div>
+</div>
+
+<script>
+  // 演示：点击未读行 → 标已读（红点消失、标题降级）
+  document.querySelectorAll('.nrow').forEach(r => r.addEventListener('click', () => {
+    r.querySelector('.unread')?.remove();
+    r.classList.add('read');
+  }));
+  document.querySelectorAll('.clr').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.nrow').forEach(r => {
+      r.querySelector('.unread')?.remove();
+      r.classList.add('read');
+    });
+  }));
+</script>
+
+</body>
+</html>

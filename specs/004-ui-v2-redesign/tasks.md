@@ -74,7 +74,8 @@ description: "Task list for 004 UI v2 重构"
   - ✅ 五板：浅色·习惯详情（大类色 hero+meta+今日记录卡+7 天点阵含补签+历史 3 条）/ 深色·短期详情（倒计时 hero+里程碑进度+标记达成/续期）/ 浅色·补签弹层（14 天日历，已记青柠描边、未来禁用）/ 深色·管理菜单+删除确认（⋯ 菜单+居中 dlg）/ 浅色·暂停态（琥珀横幅+恢复+hero 降不透明度）
 - [x] T008 [P] [US1] 我的页原型稿 design/prototypes/v2-settings.html（主题三档行/通知设置/备份导出恢复/资料编辑入口）
   - ✅ 五板：浅色·我的页全页（me 卡+外观组 3 行选中对勾+通知/目标/数据/关于组，inset-groups）/ 深色·我的页（深色选中态）/ 浅色·按目标提醒展开（二级缩进骑行/读书行）/ 深色·资料编辑弹层（昵称+8 头像环色，kAvatarRingByKey 镜像为例外声明）/ 浅色·恢复备份确认 dlg
-- [ ] T009 [P] [US1] 通知列表原型稿 design/prototypes/v2-notifications.html（时间倒序/类型图标/空态）
+- [x] T009 [P] [US1] 通知列表原型稿 design/prototypes/v2-notifications.html（时间倒序/类型图标/空态）
+  - ✅ 三板：浅色·通知列表（今日页底 sheet，5 条 nrow 类型色格 bell/task_alt/trophy/streak/due，未读红点+全部已读）/ 深色·已读态（标题降次级色）/ 浅色·空态（ring 图形+暂无通知）；底幕为简化今日页（三环+两页签 dock+FAB 可见）
 - [ ] T010 [P] [US1] 全部目标列表原型稿 design/prototypes/v2-goals-all.html（兼承 US3「查看全部」屏：分类筛选单选/进详情/管理动线）
 
 ### 评审门禁

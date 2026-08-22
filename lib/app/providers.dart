@@ -69,6 +69,11 @@ final settingsRepoProvider =
 final settingsProvider = StreamProvider<Settings>(
     (ref) => ref.watch(settingsRepoProvider).watch());
 
+/// 账号资料流（003 T018：nickname/avatarKey 两列，今日账号区与
+/// 我的页账号卡同源 watch）。
+final profileProvider = StreamProvider<Profile>(
+    (ref) => ref.watch(settingsRepoProvider).watchProfile());
+
 /// 提醒行流（设置页展示 + app 层 replan 触发）。
 final remindersProvider = StreamProvider<List<Reminder>>(
     (ref) => ref.watch(reminderRepoProvider).watchAll());

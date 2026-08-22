@@ -271,6 +271,10 @@ abstract final class Copy {
 
   // 账号资料（FR-004：未填写不强迫，默认头像 + 默认昵称）。
   static const profileDefaultNickname = '我';
+  static const profileSheetTitle = '编辑资料';
+  static const profileNicknameLabel = '昵称';
+  static const profileAvatarLabel = '选择头像';
+  static const profileDone = '完成';
 
   // 通知列表（sheet，推导式 D6：无已读态，空态一句话）。
   static const notificationEmptyHint = '这里会出现你的提醒和值得记下的时刻';

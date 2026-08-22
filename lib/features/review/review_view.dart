@@ -56,20 +56,21 @@ class _ReviewViewState extends ConsumerState<ReviewView> {
     // 上周已存在的习惯目标 + 有适用日的周统计。
     final cards = <_CardData>[];
     for (final g in goals) {
-      if (!g.isHabit || g.createdAt.isAfter(week.sunday)) continue;
+      if (g.createdAt.isAfter(week.sunday)) continue;
       final w = stats.weekStatOf(g.id, week);
-      if (w.applicableDays == 0) continue;
+      if (w.totalChecks == 0) continue; // 整周未动
       cards.add(_CardData(
         goal: g,
         stat: w,
         days: [for (var i = 0; i < 7; i++) stats.dayStatusOf(g.id, week.monday.addDays(i))],
+        // 003 口径：四周留痕趋势（周留痕天数）。
         rates: [
           for (var i = 3; i >= 0; i--)
-            stats.weekStatOf(g.id, week.addWeeks(-i)).completionRate ?? 0,
+            stats.weekStatOf(g.id, week.addWeeks(-i)).metDays / 7,
         ],
       ));
     }
-    final records = cards.fold<int>(0, (sum, c) => sum + c.stat.metDays);
+    final records = cards.fold<int>(0, (sum, c) => sum + c.stat.totalChecks);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -318,7 +319,7 @@ class _GoalReviewCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '${data.stat.metDays}/${data.stat.applicableDays}',
+              '${data.stat.metDays}/7',
               style: Theme.of(context).textTheme.titleM.copyWith(
                   height: 1,
                   fontFeatures: const [FontFeature.tabularFigures()]),
@@ -353,24 +354,22 @@ class _GoalReviewCard extends ConsumerWidget {
                   height: 26,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: st.met ? color : null,
-                    border: st.met || !st.applicable
+                    color: st.done ? color : null,
+                    border: st.done
                         ? null
                         : Border.all(color: palette.divider, width: 2),
                   ),
-                  child: st.met
+                  child: st.done
                       ? const Icon(Icons.check, size: 14, color: Colors.white)
-                      : !st.applicable
-                          ? Center(
-                              child: Container(
-                                width: 4,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: palette.divider),
-                              ),
-                            )
-                          : null,
+                      : Center(
+                          child: Container(
+                            width: 4,
+                            height: 4,
+                            decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: palette.divider),
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -425,11 +424,11 @@ class _GoalReviewCard extends ConsumerWidget {
   /// 观察语：三档，低档转警示色（只描述，不建议）。
   Widget _coach(BuildContext context) {
     final palette = TargetPalette.of(context);
-    final rate = data.stat.completionRate ?? 0;
+    // 003 口径：观察语按周留痕天数分档（0 = 无一周整满）。
     final String coach;
-    if (data.stat.metDays == data.stat.applicableDays) {
+    if (data.stat.metDays >= 6) {
       coach = Copy.reviewCoachAll;
-    } else if (rate >= 0.5) {
+    } else if (data.stat.metDays >= 3) {
       coach = Copy.reviewCoachOkay;
     } else {
       coach = Copy.reviewCoachLow;

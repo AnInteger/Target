@@ -185,8 +185,15 @@ class BackupImporter {
       for (var j = 0; j < snap.length; j++) {
         final row = _asMap(snap[j], 'weeklyReviews[$i].snapshot[$j]');
         _str(row, 'goalId', 'weeklyReviews[$i].snapshot[$j].goalId');
-        _int(row, 'applicableDays', 'weeklyReviews[$i].snapshot[$j]');
         _int(row, 'metDays', 'weeklyReviews[$i].snapshot[$j]');
+        // 002 及之前快照的旧键（applicableDays/completionRate）宽容放行；
+        // 003 新键 totalChecks 同样可选（旧快照解码默认 0，见 repositories）。
+        if (row['applicableDays'] != null && row['applicableDays'] is! int) {
+          _fail('weeklyReviews[$i].snapshot[$j].applicableDays 类型错误');
+        }
+        if (row['totalChecks'] != null && row['totalChecks'] is! int) {
+          _fail('weeklyReviews[$i].snapshot[$j].totalChecks 类型错误');
+        }
         if (row['completionRate'] != null &&
             row['completionRate'] is! num) {
           _fail('weeklyReviews[$i].snapshot[$j].completionRate 类型错误');

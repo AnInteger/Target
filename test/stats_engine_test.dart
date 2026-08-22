@@ -1,5 +1,7 @@
-/// T023：统计引擎口径规则测试（contracts/stats-engine.md R1–R9）。
+/// 统计引擎口径测试（003 收敛版，contracts/goal-type-model.md）。
 ///
+/// 只生产四输出：streak 连续留痕 / 周留痕天数 / 周记录数 / 全完成日；
+/// 今日环 = 当日 ≥1 次打卡（0→1 封顶）；适用日/达标判定已退役。
 /// 纯函数 + 注入 today（时间旅行）；引擎是所有数字的唯一事实来源。
 library;
 
@@ -15,62 +17,38 @@ final LocalDate _today = const LocalDate(2026, 8, 19);
 final WeekStart _thisWeek = WeekStart.containing(_today); // 周一 2026-08-17
 final WeekStart _lastWeek = _thisWeek.previous; // 周一 2026-08-10
 
-/// 测试脚手架：goal + 版本 + 打卡一把梭。
+/// 测试脚手架：goal + 打卡一把梭（003 起引擎不消费频率版本）。
 class EngineFixture {
   EngineFixture()
       : goals = <Goal>[],
-        versions = <FrequencyVersion>[],
-        checkIns = <CheckIn>[];
+        checkIns = <CheckIn>[],
+        busySessions = <BusyModeSession>[];
 
   final List<Goal> goals;
-  final List<FrequencyVersion> versions;
   final List<CheckIn> checkIns;
+  final List<BusyModeSession> busySessions;
 
-  Goal addHabit(
+  Goal addGoal(
     String id, {
-    FrequencyPattern pattern = const DailyFrequency(1),
+    GoalType type = GoalType.habit,
     GoalStatus status = GoalStatus.active,
     LocalDate createdAt = const LocalDate(2026, 8, 3),
+    LocalDate? deadline,
   }) {
     final g = Goal(
       id: id,
       name: '目标$id',
-      goalType: GoalType.habit,
+      goalType: type,
       iconKey: 'star',
       colorKey: 'teal',
       status: status,
       createdAt: createdAt,
+      deadline: type == GoalType.shortTerm
+          ? (deadline ?? const LocalDate(2026, 10, 1))
+          : null,
     );
     goals.add(g);
-    versions.add(FrequencyVersion(
-      id: 'v-$id',
-      goalId: id,
-      effectiveFromWeek: WeekStart.of(createdAt),
-      pattern: pattern,
-      source: FrequencySource.initial,
-    ));
     return g;
-  }
-
-  /// 进行中目标的用户编辑（下周一生效）。
-  void addUserEdit(String goalId, FrequencyPattern pattern, WeekStart week) {
-    versions.add(FrequencyVersion(
-      id: 've-$goalId-${versions.length}',
-      goalId: goalId,
-      effectiveFromWeek: week,
-      pattern: pattern,
-      source: FrequencySource.userEdit,
-    ));
-  }
-
-  void addBusyMode(String goalId, WeekStart week, FrequencyPattern downgraded) {
-    versions.add(FrequencyVersion(
-      id: 'vb-$goalId-${versions.length}',
-      goalId: goalId,
-      effectiveFromWeek: week,
-      pattern: downgraded,
-      source: FrequencySource.busyMode,
-    ));
   }
 
   /// 当日打卡（createdAt = 当天 09:00 本地 → 非补签）。
@@ -94,16 +72,15 @@ class EngineFixture {
 
   StatsEvaluation evaluate({LocalDate? today}) => StatsEngine.evaluate(
         goals: goals,
-        frequencyVersions: versions,
-        busySessions: const [],
+        busySessions: busySessions,
         checkIns: checkIns,
         today: today ?? _today,
       );
 }
 
 void main() {
-  test('R1：23:59 与 00:01 分属两日，补签标记随自然日切换', () {
-    final f = EngineFixture()..addHabit('g');
+  test('自然日归属：23:59 与 00:01 分属两日，补签标记随自然日切换', () {
+    final f = EngineFixture()..addGoal('g');
     // 08-18 当天 23:59 打卡 → 归属 18 日、非补签。
     f.checkIns.add(CheckIn(
       goalId: 'g',
@@ -124,33 +101,36 @@ void main() {
     expect(r.dayStatusOf('g').doneCount, 0); // 今天（19 日）无卡
   });
 
-  test('R2：频率版本切换——本周用新版本、上周仍按旧口径', () {
+  test('今日环 0→1 封顶：当日 ≥1 次即 done，超额如实计数', () {
+    final f = EngineFixture()..addGoal('g');
+    final r0 = f.evaluate();
+    expect(r0.dayStatusOf('g').done, isFalse);
+
+    f.checkIn('g', _today);
+    f.checkIn('g', _today);
+    final st = f.evaluate().dayStatusOf('g');
+    expect(st.doneCount, 2);
+    expect(st.done, isTrue);
+  });
+
+  test('三类型均打卡：longTerm/shortTerm 打卡同样计入留痕与电量', () {
     final f = EngineFixture()
-      ..addHabit('g', pattern: const DailyFrequency(2))
-      ..addUserEdit('g', const DailyFrequency(1), _thisWeek);
-    final r = f.evaluate();
-    expect(r.dayStatusOf('g').targetCount, 1); // 本周 daily(1)
-    expect(r.dayStatusOf('g', const LocalDate(2026, 8, 16)).targetCount, 2);
-  });
-
-  test('R3：当日完成度封顶；电量 = 活跃习惯均值', () {
-    final f = EngineFixture()..addHabit('a', pattern: const DailyFrequency(3));
-    for (var i = 0; i < 5; i++) {
-      f.checkIn('a', _today);
-    }
-    f.addHabit('b', pattern: const DailyFrequency(2));
-    f.checkIn('b', _today); // 1/2 = 50%
+      ..addGoal('h')
+      ..addGoal('l', type: GoalType.longTerm)
+      ..addGoal('s', type: GoalType.shortTerm);
+    f.checkIn('h', _today);
+    f.checkIn('s', _today);
 
     final r = f.evaluate();
-    final st = r.dayStatusOf('a');
-    expect(st.doneCount, 5); // 超额计入次数
-    expect(st.met, isTrue);
-    expect(r.battery.percent, 75); // (100 + 50) / 2
+    expect(r.dayStatusOf('h').done, isTrue);
+    expect(r.dayStatusOf('l').done, isFalse);
+    expect(r.dayStatusOf('s').done, isTrue);
+    expect(r.battery.percent, 67); // 2/3
   });
 
-  group('R5：连击', () {
-    test('今天未达标不 retro 扣（连击截至昨天）', () {
-      final f = EngineFixture()..addHabit('g');
+  group('streak 连续留痕', () {
+    test('今天未留痕不 retro 扣（自昨天起算）', () {
+      final f = EngineFixture()..addGoal('g');
       f.checkIn('g', const LocalDate(2026, 8, 17));
       f.checkIn('g', const LocalDate(2026, 8, 18));
       final r = f.evaluate();
@@ -159,37 +139,27 @@ void main() {
       expect(f.evaluate().streakOf('g'), 3);
     });
 
-    test('适用日缺卡断链', () {
-      final f = EngineFixture()..addHabit('g');
+    test('中间缺卡日断链', () {
+      final f = EngineFixture()..addGoal('g');
       f.checkIn('g', _today);
       f.checkIn('g', const LocalDate(2026, 8, 16)); // 昨天(18)无卡 → 断
       expect(f.evaluate().streakOf('g'), 1);
     });
 
-    test('非适用日跳过不断链（weekdays 周一三五）', () {
-      final f = EngineFixture()
-        ..addHabit('g',
-            pattern: WeekdaysFrequency(
-                {Weekday.mon, Weekday.wed, Weekday.fri}, 1));
-      f.checkIn('g', _today); // 周三
-      // 周二(18)非适用日跳过
-      f.checkIn('g', const LocalDate(2026, 8, 17)); // 周一
-      expect(f.evaluate().streakOf('g'), 2);
-    });
-
-    test('weekly：达标周内的休整日不断链', () {
-      // 今天 = 周六 08-22；本周一/二/三打卡满 weekly(3)，周四五休整。
-      final saturday = const LocalDate(2026, 8, 22);
-      final f = EngineFixture()..addHabit('g', pattern: const WeeklyFrequency(3));
-      f.checkIn('g', const LocalDate(2026, 8, 17));
-      f.checkIn('g', const LocalDate(2026, 8, 18));
-      f.checkIn('g', const LocalDate(2026, 8, 19));
-      expect(f.evaluate(today: saturday).streakOf('g'), 3);
+    test('总 streak：任一目标留痕即续链（跨目标互补）', () {
+      final f = EngineFixture()..addGoal('a')..addGoal('b');
+      f.checkIn('a', const LocalDate(2026, 8, 17));
+      f.checkIn('b', const LocalDate(2026, 8, 18));
+      f.checkIn('a', _today);
+      final r = f.evaluate();
+      expect(r.totalStreak, 3);
+      expect(r.streakOf('a'), 1); // 单目标各自断链口径不变
+      expect(r.streakOf('b'), 1);
     });
   });
 
-  test('R6：补签计入其归属日，断链接回', () {
-    final f = EngineFixture()..addHabit('g');
+  test('补签计入其归属日，断链接回', () {
+    final f = EngineFixture()..addGoal('g');
     f.checkIn('g', _today);
     f.backfill('g', const LocalDate(2026, 8, 18)); // 昨天补签
     final r = f.evaluate();
@@ -198,8 +168,8 @@ void main() {
     expect(r.weekStatOf('g', _thisWeek).backfillCount, 1);
   });
 
-  test('R7：撤销记录不计入任何统计，即时回退', () {
-    final f = EngineFixture()..addHabit('g');
+  test('撤销记录不计入任何统计，即时回退', () {
+    final f = EngineFixture()..addGoal('g');
     f.checkIn('g', _today);
     f.checkIn('g', const LocalDate(2026, 8, 18));
     var r = f.evaluate();
@@ -211,77 +181,79 @@ void main() {
     r = f.evaluate();
     expect(r.dayStatusOf('g', const LocalDate(2026, 8, 18)).doneCount, 0);
     expect(r.streakOf('g'), 1);
-    expect(r.battery.percent, 100); // 今天仍达标
+    expect(r.battery.percent, 100); // 今天仍留痕
   });
 
-  test('R9：无活跃 habit（里程碑/暂停）→ 电量空态', () {
-    final f = EngineFixture()
-      ..addHabit('paused', status: GoalStatus.paused);
-    f.goals.add(Goal(
-      id: 'm',
-      name: '去旅行',
-      goalType: GoalType.shortTerm,
-      iconKey: 'travel',
-      colorKey: 'sky',
-      createdAt: const LocalDate(2026, 8, 3),
-      deadline: const LocalDate(2026, 10, 1),
-    ));
-    f.checkIn('paused', _today); // 暂停目标打卡也不计入
+  test('无活跃目标（暂停/归档）→ 电量空态；暂停目标打卡不计入', () {
+    final f = EngineFixture()..addGoal('paused', status: GoalStatus.paused);
+    f.checkIn('paused', _today);
     expect(f.evaluate().battery.percent, isNull);
   });
 
-  group('R4/R8：周结算', () {
-    test('weekly(N)：适用 7 天、达标日数 ≥ N；过往周实时重算', () {
-      final f = EngineFixture()
-        ..addHabit('g', pattern: const WeeklyFrequency(3));
+  group('周统计：留痕天数 + 记录数', () {
+    test('metDays=留痕日数、totalChecks=总次数；同日多次只计 1 留痕日', () {
+      final f = EngineFixture()..addGoal('g');
       f.checkIn('g', const LocalDate(2026, 8, 17));
       f.checkIn('g', const LocalDate(2026, 8, 18));
-      f.checkIn('g', _today);
-      final r = f.evaluate();
-      final ws = r.weekStatOf('g', _thisWeek);
-      expect(ws.applicableDays, 3); // 已过的适用日（周一至周三）
-      expect(ws.metDays, 3);
-      expect(ws.completionRate, 1.0);
-
-      // 上周：2 次打卡 → metDays 2 / 7 天。
-      f.checkIn('g', const LocalDate(2026, 8, 10));
-      f.checkIn('g', const LocalDate(2026, 8, 12));
-      final last = f.evaluate().weekStatOf('g', _lastWeek);
-      expect(last.applicableDays, 7);
-      expect(last.metDays, 2);
-      expect(last.completionRate, closeTo(2 / 7, 1e-9));
-    });
-
-    test('本周完成率只算已过适用日（不因周末未到而稀释）', () {
-      final f = EngineFixture()..addHabit('g');
-      f.checkIn('g', const LocalDate(2026, 8, 17));
-      f.checkIn('g', const LocalDate(2026, 8, 18));
+      f.checkIn('g', const LocalDate(2026, 8, 18)); // 同日第二次
       final ws = f.evaluate().weekStatOf('g', _thisWeek);
-      expect(ws.applicableDays, 3);
       expect(ws.metDays, 2);
-      expect(ws.completionRate, closeTo(2 / 3, 1e-9));
+      expect(ws.totalChecks, 3);
     });
 
-    test('R8：busyMode 版本口径 + busyModeApplied 标注', () {
-      final f = EngineFixture()
-        ..addHabit('g', pattern: const DailyFrequency(2))
-        ..addBusyMode('g', _thisWeek, const WeeklyFrequency(1));
+    test('本周只算已过天数（不因周末未到稀释）', () {
+      final f = EngineFixture()..addGoal('g');
+      f.checkIn('g', const LocalDate(2026, 8, 10));
+      f.checkIn('g', const LocalDate(2026, 8, 11));
+      f.checkIn('g', const LocalDate(2026, 8, 17));
+      f.checkIn('g', const LocalDate(2026, 8, 18));
       final r = f.evaluate();
-      final st = r.dayStatusOf('g');
-      expect(st.busyMode, isTrue);
-      expect(st.targetCount, 1); // weekly 口径：当日 ≥1 次
-      expect(st.applicable, isTrue);
+      expect(r.weekStatOf('g', _thisWeek).metDays, 2);
+      final last = r.weekStatOf('g', _lastWeek);
+      expect(last.metDays, 2);
+      expect(last.totalChecks, 2);
+    });
+
+    test('总周统计：跨目标留痕日去重、记录数累加', () {
+      final f = EngineFixture()..addGoal('a')..addGoal('b');
+      f.checkIn('a', const LocalDate(2026, 8, 17));
+      f.checkIn('b', const LocalDate(2026, 8, 17)); // 同日两目标 → 1 留痕日
+      f.checkIn('b', const LocalDate(2026, 8, 18));
+      final w = f.evaluate().totalWeekStat(_thisWeek);
+      expect(w.metDays, 2);
+      expect(w.totalChecks, 3);
+    });
+
+    test('busyModeApplied：活跃忙碌会话标注该周（003 起仅留痕标注）', () {
+      final f = EngineFixture()..addGoal('g');
+      f.busySessions.add(BusyModeSession(
+        weekStart: _thisWeek,
+        entries: [BusyModeEntry(goalId: 'g', downgraded: const WeeklyFrequency(1))],
+        startedAt: DateTime(2026, 8, 17, 8),
+      ));
+      final r = f.evaluate();
       expect(r.weekStatOf('g', _thisWeek).busyModeApplied, isTrue);
-      // 上周不受影响。
       expect(r.weekStatOf('g', _lastWeek).busyModeApplied, isFalse);
     });
 
-    test('目标创建前的周 → 无适用日，完成率 null（非 0）', () {
-      final f = EngineFixture()
-        ..addHabit('g', createdAt: const LocalDate(2026, 8, 17));
+    test('目标创建前的周 → 零记录零留痕', () {
+      final f = EngineFixture()..addGoal('g', createdAt: const LocalDate(2026, 8, 17));
       final ws = f.evaluate().weekStatOf('g', _lastWeek);
-      expect(ws.applicableDays, 0);
-      expect(ws.completionRate, isNull);
+      expect(ws.metDays, 0);
+      expect(ws.totalChecks, 0);
     });
+  });
+
+  test('全完成日：全部活跃目标当日均留痕（无活跃 → false）', () {
+    final f = EngineFixture()..addGoal('a')..addGoal('b');
+    expect(f.evaluate().allCompleteToday, isFalse);
+    f.checkIn('a', _today);
+    expect(f.evaluate().allCompleteToday, isFalse);
+    f.checkIn('b', _today);
+    expect(f.evaluate().allCompleteToday, isTrue);
+
+    // 无活跃目标：不庆祝。
+    final empty = EngineFixture();
+    expect(empty.evaluate().allCompleteToday, isFalse);
   });
 }

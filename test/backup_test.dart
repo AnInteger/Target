@@ -66,9 +66,8 @@ Future<db.AppDatabase> _seededDb() async {
     snapshot: [
       const GoalWeekStat(
           goalId: 'g-habit',
-          applicableDays: 2,
           metDays: 1,
-          completionRate: 0.5,
+          totalChecks: 2,
           backfillCount: 1,
           busyModeApplied: true),
     ],

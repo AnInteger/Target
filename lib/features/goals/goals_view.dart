@@ -366,11 +366,11 @@ class _RatioTrailing extends ConsumerWidget {
     } else {
       final stats = ref.watch(statsProvider);
       final rate = stats?.weekStatOf(goal.id, today.weekStart);
-      if (rate == null || rate.applicableDays == 0) {
+      if (rate == null || rate.metDays == 0) {
         big = '—';
-        small = Copy.reviewNoApplicableDays;
+        small = Copy.goalsDaysRecorded;
       } else {
-        big = '${rate.metDays}/${rate.applicableDays}';
+        big = '${rate.metDays}';
         small = Copy.goalsDaysRecorded;
       }
     }

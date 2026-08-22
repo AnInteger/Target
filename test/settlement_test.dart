@@ -1,5 +1,6 @@
-/// US4 周结算与忙碌模式（T036，R4/R8 + research D11）：
-/// weekly 全周口径、结算幂等、忙碌降档结算与回落、决策三选落地。
+/// US4 周结算与忙碌模式（T036，R4/R8 + research D11）——003 口径收敛版：
+/// 周统计 = 留痕天数 + 记录数（不看频率版本）、结算幂等、忙碌周标注与
+/// 回落、决策三选落地。
 library;
 
 import 'package:drift/native.dart';
@@ -48,7 +49,6 @@ class Env {
   Future<StatsEvaluation> evaluateLive(LocalDate today) async =>
       StatsEngine.evaluate(
         goals: await goals.getGoals(),
-        frequencyVersions: await goals.watchAllVersions().first,
         busySessions: await goals.watchSessions().first,
         checkIns: await checkIns.all(),
         today: today,
@@ -58,20 +58,19 @@ class Env {
 }
 
 void main() {
-  test('R4：weekly(3) 全周适用（7 日），达标日=当日≥1 次', () async {
+  test('R4：周统计只看打卡留痕（频率版本不影响口径）', () async {
     final env = Env();
     addTearDown(env.close);
+    // weekly(3) 与 daily(1) 的版本差异不再改变周统计：留痕天数 + 记录数。
     final g = await env.habit('运动', pattern: const WeeklyFrequency(3));
-    // 周内 3 天各 1 次 → metDays=3、applicableDays=7。
     for (final d
         in [_lastWeek.monday, _lastWeek.monday.addDays(2), _lastWeek.sunday]) {
       await env.checkInOn(g.id, d);
     }
-    final stats = await env.evaluateLive(_monday);
-    final w = stats.weekStatOf(g.id, _lastWeek);
-    expect(w.applicableDays, 7);
+    await env.checkInOn(g.id, _lastWeek.sunday); // 同日第二次
+    final w = await env.evaluateLive(_monday).then((s) => s.weekStatOf(g.id, _lastWeek));
     expect(w.metDays, 3);
-    expect(w.completionRate, closeTo(3 / 7, 0.001));
+    expect(w.totalChecks, 4);
   });
 
   test('周一晨结算：快照入库且幂等防重', () async {
@@ -86,6 +85,7 @@ void main() {
     expect(r1.snapshot, hasLength(1));
     expect(r1.snapshot.single.goalId, g.id);
     expect(r1.snapshot.single.metDays, 1);
+    expect(r1.snapshot.single.totalChecks, 1);
 
     // 再次结算 → 复用同一行（幂等）。
     final r2 = await env.settlement.settleLastWeekIfNeeded(
@@ -96,27 +96,37 @@ void main() {
     expect(rows.single.settledAt, r1.settledAt);
   });
 
-  test('R8：忙碌周按降档口径结算 busyModeApplied；恢复后回落原频率', () async {
+  test('R8：忙碌周结算标 busyModeApplied；一键恢复后回落（标注消失）', () async {
     final env = Env();
     addTearDown(env.close);
     final g = await env.habit('锻炼', pattern: const DailyFrequency(3));
-    // 上周开启忙碌降档：每日 3 → 1。
-    await env.goals.addBusyMode(g.id, _lastWeek, const DailyFrequency(1));
+    // 上周开启忙碌模式（会话 + 降档版本一体）。
+    final service = BusyModeService(env.goals);
+    await service.activate(
+      week: _lastWeek,
+      downgradedByGoal: {g.id: const DailyFrequency(1)},
+      now: DateTime(2026, 8, 10, 20),
+    );
     for (var i = 0; i < 5; i++) {
       await env.checkInOn(g.id, _lastWeek.monday.addDays(i));
     }
-    final stats = await env.evaluateLive(_monday);
-    final w = stats.weekStatOf(g.id, _lastWeek);
+    final w = await env
+        .evaluateLive(_monday)
+        .then((s) => s.weekStatOf(g.id, _lastWeek));
     expect(w.busyModeApplied, true);
-    expect(w.metDays, 5); // 降档口径每日 1 次即达标
+    expect(w.metDays, 5); // 留痕口径：每日 1 次即留痕
 
-    // 恢复 = 移除开启那一周的 busyMode 版本 → 本周回落原频率 3。
-    await env.goals.removeBusyMode(g.id, _lastWeek);
-    final after = await env.evaluateLive(_monday);
-    expect(after.dayStatusOf(g.id, _monday).targetCount, 3);
+    // 恢复 = 会话结束 + 版本移除 → 该周标注随之消失。
+    final session = (await env.goals.watchSessions().first).single;
+    await service.deactivate(session, now: DateTime(2026, 8, 17, 9));
+    final after = await env
+        .evaluateLive(_monday)
+        .then((s) => s.weekStatOf(g.id, _lastWeek));
+    expect(after.busyModeApplied, false);
+    expect(after.metDays, 5, reason: '历史打卡留痕不受忙碌开关影响');
   });
 
-  test('decision=adjust → 生成下周 userEdit 版本，本周口径不变', () async {
+  test('decision=adjust → 生成下周 userEdit 版本，本周打卡口径不变', () async {
     final env = Env();
     addTearDown(env.close);
     final g = await env.habit('阅读');
@@ -134,9 +144,9 @@ void main() {
     expect(edit.effectiveFromWeek, WeekStart.containing(_monday).next);
     expect(edit.pattern, const DailyFrequency(2));
 
-    // 本周仍按 initial 口径（FR-002）。
+    // 003 起引擎不消费版本：本周统计仍是纯打卡口径。
     final stats = await env.evaluateLive(_monday);
-    expect(stats.dayStatusOf(g.id, _monday).targetCount, 1);
+    expect(stats.dayStatusOf(g.id, _monday).doneCount, 0);
   });
 
   test('decision=pause → 目标置 paused', () async {
@@ -151,7 +161,7 @@ void main() {
     expect(after.status, GoalStatus.paused);
   });
 
-  test('快照仅含该周有适用日的习惯目标（里程碑/未开始剔除）', () async {
+  test('快照仅含该周有打卡的目标（无留痕/创建于周后剔除）', () async {
     final env = Env();
     addTearDown(env.close);
     await env.habit('吃饭');
@@ -162,6 +172,9 @@ void main() {
       colorKey: 'sky',
       createdAt: _lastWeek.monday,
     ));
+    await env.checkInOn(
+        (await env.goals.getGoals()).firstWhere((x) => x.name == '吃饭').id,
+        _lastWeek.monday);
     // 创建于结算周之后的目标不入快照。
     final late = await env.goals.create(Goal(
       name: '新习惯',
@@ -203,12 +216,11 @@ void main() {
       );
       expect(session.isActive, isTrue);
       final during = await env.evaluateLive(_monday);
-      expect(during.dayStatusOf(g.id, _monday).targetCount, 1); // 当周即生效
-      expect(during.dayStatusOf(g.id, _monday).busyMode, true);
+      expect(during.weekStatOf(g.id, thisWeek).busyModeApplied, true); // 当周即生效
 
       await service.deactivate(session, now: DateTime(2026, 8, 18, 9));
       final after = await env.evaluateLive(_monday.addDays(1));
-      expect(after.dayStatusOf(g.id, _monday.addDays(1)).targetCount, 3);
+      expect(after.weekStatOf(g.id, thisWeek).busyModeApplied, false);
       final sessions = await env.goals.watchSessions().first;
       expect(sessions.single.isActive, isFalse);
     });

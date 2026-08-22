@@ -80,7 +80,6 @@ class Fixture {
 
   StatsEvaluation get stats => StatsEngine.evaluate(
         goals: goals,
-        frequencyVersions: versions,
         busySessions: const [],
         checkIns: checkIns,
         today: _today,
@@ -159,7 +158,7 @@ void main() {
       expect(plan.where((p) => p.id != kDailyBriefNotificationId), isEmpty);
     });
 
-    test('频率不覆盖今日（周三不在一二）不催促', () {
+    test('003：适用日判定退役——频率不覆盖今日（周三不在一二）仍按留痕催促', () {
       final f = Fixture()..weekdayGoal('wd', days: const [Weekday.mon, Weekday.tue]);
       final plan = planReminders(
         reminders: const [],
@@ -169,7 +168,19 @@ void main() {
         today: _today,
         nowTime: nowTime,
       );
-      expect(plan.where((p) => p.id != kDailyBriefNotificationId), isEmpty);
+      // 引擎不再消费频率版本：未留痕即催，留痕才静默（SC-005）。
+      final nudges = plan.where((p) => p.id != kDailyBriefNotificationId);
+      expect(nudges.single.title, '目标wd');
+      f.checkIn('wd');
+      final after = planReminders(
+        reminders: const [],
+        defaultBriefTime: const LocalTime(8, 0),
+        goals: f.goals,
+        stats: f.stats,
+        today: _today,
+        nowTime: nowTime,
+      );
+      expect(after.where((p) => p.id != kDailyBriefNotificationId), isEmpty);
     });
 
     test('FR-012 场景档：时刻归档 + 单目标标题/正文（带为什么）', () {
@@ -308,7 +319,6 @@ void main() {
         goals: fSun.goals,
         stats: StatsEngine.evaluate(
           goals: fSun.goals,
-          frequencyVersions: fSun.versions,
           busySessions: const [],
           checkIns: fSun.checkIns,
           today: sunday,

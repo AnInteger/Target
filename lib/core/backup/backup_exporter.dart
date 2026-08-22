@@ -137,9 +137,8 @@ class BackupExporter {
         'snapshot': ReviewRepository.decodeSnapshot(r.snapshotJson)
             .map((s) => {
                   'goalId': s.goalId,
-                  'applicableDays': s.applicableDays,
                   'metDays': s.metDays,
-                  'completionRate': s.completionRate,
+                  'totalChecks': s.totalChecks,
                   'backfillCount': s.backfillCount,
                   'busyModeApplied': s.busyModeApplied,
                 })

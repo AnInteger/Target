@@ -27,15 +27,14 @@ Map<String, Object?> buildTodaySnapshot({
   for (final g in active) {
     if (g.isHabit) {
       final st = stats.dayStatusOf(g.id);
-      if (st.met) metGoals++;
+      if (st.done) metGoals++;
       rows.add({
         'id': g.id,
         'name': g.name,
         'colorKey': g.colorKey,
         'iconKey': g.iconKey,
-        'targetCount': st.targetCount,
         'doneCount': st.doneCount,
-        'met': st.met,
+        'met': st.done,
       });
     } else {
       // 里程碑（T044）：medium 家族只读行 — 步骤进度 + 倒计时。

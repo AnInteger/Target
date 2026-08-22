@@ -121,19 +121,15 @@ final dayTickerProvider = Provider<void>((ref) {
 /// 统计评估（全部就绪前为 null，UI 呈现加载态）。
 final statsProvider = Provider<StatsEvaluation?>((ref) {
   final goals = ref.watch(goalsProvider).value;
-  final versions = ref.watch(versionsProvider).value;
   final checkIns = ref.watch(checkInsProvider).value;
   final sessions = ref.watch(busySessionsProvider).value;
   final today = ref.watch(todayProvider);
-  if (goals == null ||
-      versions == null ||
-      checkIns == null ||
-      sessions == null) {
+  if (goals == null || checkIns == null || sessions == null) {
     return null;
   }
+  // 003 口径收敛：引擎不再消费频率版本（versionsProvider 供编辑器回显）。
   return StatsEngine.evaluate(
     goals: goals,
-    frequencyVersions: versions,
     busySessions: sessions,
     checkIns: checkIns,
     today: today,

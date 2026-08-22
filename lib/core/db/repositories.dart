@@ -440,24 +440,24 @@ class ReviewRepository {
   static String encodeSnapshot(List<GoalWeekStat> stats) => jsonEncode(stats
       .map((s) => {
             'goalId': s.goalId,
-            'applicableDays': s.applicableDays,
             'metDays': s.metDays,
-            'completionRate': s.completionRate,
+            'totalChecks': s.totalChecks,
             'backfillCount': s.backfillCount,
             'busyModeApplied': s.busyModeApplied,
           })
       .toList());
 
+  /// 003 口径收敛后的键；旧快照（applicableDays/completionRate）宽容
+  /// 读取——未知键忽略、缺失键取默认（001 惯例，快照仅留痕）。
   static List<GoalWeekStat> decodeSnapshot(String json) =>
       (jsonDecode(json) as List).map((e) {
         final m = Map<String, dynamic>.from(e as Map);
         return GoalWeekStat(
           goalId: m['goalId'] as String,
-          applicableDays: m['applicableDays'] as int,
-          metDays: m['metDays'] as int,
-          completionRate: (m['completionRate'] as num?)?.toDouble(),
-          backfillCount: m['backfillCount'] as int,
-          busyModeApplied: m['busyModeApplied'] as bool,
+          metDays: m['metDays'] as int? ?? 0,
+          totalChecks: m['totalChecks'] as int? ?? 0,
+          backfillCount: m['backfillCount'] as int? ?? 0,
+          busyModeApplied: m['busyModeApplied'] as bool? ?? false,
         );
       }).toList();
 

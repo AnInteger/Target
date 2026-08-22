@@ -30,9 +30,8 @@ class WeeklySettlementService {
     final stats = await _evaluate(today);
     final snapshot = <GoalWeekStat>[];
     for (final g in await _goals.getGoals()) {
-      if (!g.isHabit) continue;
       final w = stats.weekStatOf(g.id, lastWeek);
-      if (w.applicableDays == 0) continue; // 里程碑/未开始/整周暂停
+      if (w.totalChecks == 0) continue; // 整周未动（含未开始/整周暂停）
       snapshot.add(w);
     }
     final review = WeeklyReview(
@@ -69,7 +68,6 @@ class WeeklySettlementService {
   Future<StatsEvaluation> _evaluate(LocalDate today) async {
     return StatsEngine.evaluate(
       goals: await _goals.getGoals(),
-      frequencyVersions: await _goals.watchAllVersions().first,
       busySessions: await _goals.watchSessions().first,
       checkIns: await _checkIns.all(),
       today: today,

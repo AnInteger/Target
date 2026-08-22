@@ -8,7 +8,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
-import 'package:target/core/models/frequency_pattern.dart';
 import 'package:target/core/platform/widgets/widget_snapshot.dart';
 import 'package:target/core/stats/stats_engine.dart';
 
@@ -16,16 +15,6 @@ final LocalDate _today = const LocalDate(2026, 8, 19);
 
 StatsEvaluation _evaluate(List<Goal> goals) => StatsEngine.evaluate(
       goals: goals,
-      frequencyVersions: [
-        for (final g in goals.where((g) => g.isHabit))
-          FrequencyVersion(
-            id: 'v-${g.id}',
-            goalId: g.id,
-            effectiveFromWeek: WeekStart.of(g.createdAt),
-            pattern: const DailyFrequency(1),
-            source: FrequencySource.initial,
-          ),
-      ],
       busySessions: const [],
       checkIns: const [],
       today: _today,
@@ -67,7 +56,9 @@ void main() {
 
     final habit = rows.firstWhere((r) => r['id'] == 'h');
     expect(habit.containsKey('kind'), isFalse, reason: '习惯行 schema 保持 T028 不变');
-    expect(habit['targetCount'], 1);
+    // 003 口径：targetCount 退役，习惯行只发 doneCount/met。
+    expect(habit['doneCount'], 0);
+    expect(habit['met'], isFalse);
 
     final ms = rows.firstWhere((r) => r['id'] == 'm');
     expect(ms['kind'], 'milestone');

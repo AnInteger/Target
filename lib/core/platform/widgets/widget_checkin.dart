@@ -37,23 +37,20 @@ Future<void> widgetCheckInCallback(Uri? uri) async {
     final today = LocalDate.fromDateTime(now);
 
     final goals = await goalRepo.getGoals();
-    final versions = await goalRepo.watchAllVersions().first;
     final sessions = await goalRepo.watchSessions().first;
 
     var checkIns = await checkInRepo.all();
 
     StatsEvaluation evaluate() => StatsEngine.evaluate(
         goals: goals,
-        frequencyVersions: versions,
         busySessions: sessions,
         checkIns: checkIns,
         today: today);
 
     final goal = goals.where((g) => g.id == goalId).firstOrNull;
     final eligible = goal != null &&
-        goal.isHabit &&
         goal.status == GoalStatus.active &&
-        !evaluate().dayStatusOf(goalId).met;
+        !evaluate().dayStatusOf(goalId).done;
     if (eligible) {
       await checkInRepo.add(goalId, today, now);
       checkIns = await checkInRepo.all();

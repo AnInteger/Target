@@ -427,41 +427,40 @@ class Reminder {
 // WeeklyReview（周回顾，FR-008 / research D11）
 // ---------------------------------------------------------------------------
 
-/// 结算快照行（data-model GoalWeekStat）。
+/// 结算快照行（003 口径收敛，contracts/goal-type-model.md）。
 class GoalWeekStat {
   const GoalWeekStat({
     required this.goalId,
-    required this.applicableDays,
     required this.metDays,
-    required this.completionRate,
+    required this.totalChecks,
     required this.backfillCount,
-    required this.busyModeApplied,
+    this.busyModeApplied = false,
   });
 
   final String goalId;
 
-  /// 该周适用日数（当周有效频率；weekly=7 自由分布口径，统计契约 R4）。
-  final int applicableDays;
+  /// 周留痕：周内 ≥1 次打卡的天数。
   final int metDays;
 
-  /// metDays / applicableDays；无适用日 → null（不呈现，非 0）。
-  final double? completionRate;
+  /// 周记录数：周内有效打卡总次数。
+  final int totalChecks;
   final int backfillCount;
+
+  /// 002 及之前的忙碌模式降档标记（003 起停算，历史快照照读）。
   final bool busyModeApplied;
 
   @override
   bool operator ==(Object other) =>
       other is GoalWeekStat &&
       other.goalId == goalId &&
-      other.applicableDays == applicableDays &&
       other.metDays == metDays &&
-      other.completionRate == completionRate &&
+      other.totalChecks == totalChecks &&
       other.backfillCount == backfillCount &&
       other.busyModeApplied == busyModeApplied;
 
   @override
-  int get hashCode => Object.hash(goalId, applicableDays, metDays,
-      completionRate, backfillCount, busyModeApplied);
+  int get hashCode =>
+      Object.hash(goalId, metDays, totalChecks, backfillCount, busyModeApplied);
 }
 
 /// 下周决定：继续 / 调整频率（生成 userEdit 版本）/ 暂停。

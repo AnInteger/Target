@@ -92,7 +92,7 @@ List<PlannedNotification> planReminders({
   for (final g in goals) {
     if (!g.isHabit || g.status != GoalStatus.active) continue;
     final day = stats.dayStatusOf(g.id);
-    if (!day.applicable || day.met) continue; // SC-005
+    if (day.done) continue; // 当日已留痕不打扰（SC-005 新口径）
     final scene = g.cueScene?.trim();
     if (scene == Copy.cueNone) continue; // 「不打扰」= 该目标不提醒
     final slot =
@@ -134,10 +134,8 @@ String _briefBody(
 }) {
   final unmet = goals
       .where((g) =>
-          g.isHabit &&
           g.status == GoalStatus.active &&
-          stats.dayStatusOf(g.id).applicable &&
-          !stats.dayStatusOf(g.id).met)
+          !stats.dayStatusOf(g.id).done)
       .length;
   final buffer = StringBuffer(
       unmet == 0 ? Copy.dailyBriefAllDone : Copy.dailyBriefSummary(unmet));

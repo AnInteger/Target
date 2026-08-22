@@ -50,9 +50,7 @@ class TodayView extends ConsumerWidget {
     final active = goalsAsync.value!
         .where((g) => g.status == GoalStatus.active)
         .toList();
-    final habits = active
-        .where((g) => g.isHabit && stats.dayStatusOf(g.id).applicable)
-        .toList();
+    final habits = active.where((g) => g.isHabit).toList();
     final milestones = active.where((g) => !g.isHabit).toList();
     final progressed = habits
         .where((g) => stats.dayStatusOf(g.id).doneCount > 0)
@@ -61,7 +59,7 @@ class TodayView extends ConsumerWidget {
       0,
       (sum, g) => sum + stats.dayStatusOf(g.id).doneCount,
     );
-    final streak = _recordStreak(checkIns, today);
+    final streak = stats.totalStreak;
     final allProgress = habits.isNotEmpty && progressed == habits.length;
     final isEmpty = active.isEmpty;
 
@@ -150,18 +148,6 @@ class TodayView extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  /// 连续记录天数：从今天（或昨天）往回，任何有效打卡都算不断。
-  int _recordStreak(List<CheckIn> checkIns, LocalDate today) {
-    final days = {for (final c in checkIns.where((c) => c.isValid)) c.day};
-    var day = days.contains(today) ? today : today.addDays(-1);
-    var n = 0;
-    while (days.contains(day)) {
-      n++;
-      day = day.addDays(-1);
-    }
-    return n;
   }
 
   /// 「最近 · 今天 / 昨天 / N 天前」：最后一次有效记录的归属日。

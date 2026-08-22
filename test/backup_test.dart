@@ -244,7 +244,7 @@ void main() {
     final map = await BackupExporter(source)
         .exportMap(now: DateTime(2026, 8, 22, 8, 30));
     expect(map['format'], 'target-backup');
-    expect(map['version'], 1);
+    expect(map['version'], 4); // 003 T037：v1 → v4（类型/资料/频率档/note）
     expect(map['exportedAt'], contains('2026-08-22'));
     expect(backupFileName(DateTime(2026, 8, 22)), 'Target-备份-20260822.targetbackup');
   });
@@ -292,5 +292,115 @@ void main() {
     expect(goal.motivation, isNull);
     expect(goal.successCriterion, isNull);
     expect(goal.cueScene, isNull);
+  });
+
+  test('v4 双向（新读旧）：v1 三分支 kind → D3 映射 + cadence/nickname 缺省（T037）',
+      () async {
+    // v1 形态：kind 两值、colorKey 存量字符串、无 goalType/cadence/资料键。
+    const v1Json = '''
+    {
+      "format": "target-backup",
+      "version": 1,
+      "exportedAt": "2026-08-20T00:00:00.000Z",
+      "data": {
+        "goals": [
+          {"id": "g-habit", "name": "睡前拉伸", "kind": "habit",
+           "iconKey": "self_improvement", "colorKey": "teal",
+           "status": "active", "createdAt": "2026-08-01"},
+          {"id": "g-short", "name": "年底跑 10km", "kind": "milestone",
+           "iconKey": "directions_run", "colorKey": "coral",
+           "status": "active", "createdAt": "2026-08-02",
+           "deadline": "2026-12-31"},
+          {"id": "g-long", "name": "学一门乐器", "kind": "milestone",
+           "iconKey": "music_note", "colorKey": "sage",
+           "status": "active", "createdAt": "2026-08-03"}
+        ],
+        "frequencyVersions": [], "busySessions": [], "checkIns": [],
+        "milestoneSteps": [],
+        "reminders": [
+          {"id": "r-1", "goalId": "g-habit", "time": "21:30",
+           "isEnabled": true}
+        ],
+        "weeklyReviews": [],
+        "settings": {"dailyBriefTime": "08:00",
+          "onboardingCompleted": true,
+          "notificationDeniedAcknowledged": false}
+      }
+    }''';
+    final importer = BackupImporter(target);
+    await importer.apply(importer.parse(v1Json), overwriteLocal: true);
+
+    // D3 映射：habit 直取；milestone+deadline → shortTerm；milestone → longTerm。
+    final goals = await GoalRepository(target).getGoals();
+    expect(
+        goals.firstWhere((g) => g.id == 'g-habit').goalType, GoalType.habit);
+    expect(
+        goals.firstWhere((g) => g.id == 'g-short').goalType,
+        GoalType.shortTerm);
+    expect(
+        goals.firstWhere((g) => g.id == 'g-long').goalType,
+        GoalType.longTerm);
+    // 存量 colorKey 照存（FR-016 保全，列退役只影响导出）。
+    expect(goals.firstWhere((g) => g.id == 'g-habit').colorKey, 'teal');
+    // cadence 缺键 → NULL，effectiveCadence 视为 daily。
+    final r = (await ReminderRepository(target).all()).single;
+    expect(r.cadence, isNull);
+    expect(r.effectiveCadence, Cadence.daily);
+    // 资料键缺失 → Profile.empty。
+    expect(await SettingsRepository(target).getProfile(), Profile.empty);
+  });
+
+  test('v4 双向（往返）：goalType/achievedAt/cadence/nickname/avatarKey/colorKey null（T037）',
+      () async {
+    final src = db.AppDatabase(NativeDatabase.memory());
+    addTearDown(src.close);
+    final goals = GoalRepository(src);
+    final reminders = ReminderRepository(src);
+    final settings = SettingsRepository(src);
+    await goals.create(Goal(
+        id: 'g-done',
+        name: '跑完 10km',
+        goalType: GoalType.shortTerm,
+        iconKey: 'directions_run',
+        colorKey: 'coral',
+        createdAt: const LocalDate(2026, 7, 1),
+        deadline: const LocalDate(2026, 8, 15),
+        achievedAt: DateTime.utc(2026, 8, 14, 7, 30)));
+    await reminders.upsert(Reminder(
+        id: 'r-weekly',
+        goalId: 'g-done',
+        time: const LocalTime(8, 0),
+        cadence: Cadence.weekly));
+    await settings
+        .updateProfile(const Profile(nickname: '星行', avatarKey: 'spark'));
+
+    final map =
+        await BackupExporter(src).exportMap(now: DateTime.utc(2026, 8, 22));
+    // 导出形态：goalType 三值、colorKey 恒 null、无 kind；新键齐备。
+    final g = (map['data'] as Map)['goals'] as List;
+    expect(g.single['goalType'], 'shortTerm');
+    expect(g.single['colorKey'], isNull);
+    expect(g.single, isNot(contains('kind')));
+    expect(g.single['achievedAt'], '2026-08-14T07:30:00.000Z');
+    final r = (map['data'] as Map)['reminders'] as List;
+    expect(r.single['cadence'], 'weekly');
+    final s = (map['data'] as Map)['settings'] as Map;
+    expect(s['nickname'], '星行');
+    expect(s['avatarKey'], 'spark');
+
+    // 导入还原：类型/达成时刻/频率档/资料逐字段一致。
+    final importer = BackupImporter(target);
+    await importer.apply(
+        importer.parse(BackupExporter(src).encode(map)),
+        overwriteLocal: true);
+    final restored = (await GoalRepository(target).getGoals()).single;
+    expect(restored.goalType, GoalType.shortTerm);
+    expect(restored.achievedAt, DateTime.utc(2026, 8, 14, 7, 30));
+    expect(restored.colorKey, ''); // 库 NULL ⇔ 实体 ''（导出 null 的回程）
+    final restoredR = (await ReminderRepository(target).all()).single;
+    expect(restoredR.cadence, Cadence.weekly);
+    expect(
+        await SettingsRepository(target).getProfile(),
+        const Profile(nickname: '星行', avatarKey: 'spark'));
   });
 }

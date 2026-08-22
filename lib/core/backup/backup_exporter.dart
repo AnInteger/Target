@@ -10,10 +10,14 @@ import 'dart:convert';
 import '../db/app_database.dart' as db;
 import '../db/repositories.dart' show ReviewRepository;
 import '../models/calendar_types.dart';
-import '../models/entities.dart' show GoalType;
 
 const String kBackupFormat = 'target-backup';
-const int kBackupVersion = 1;
+
+/// 备份格式版本（003 T037 · contracts/backup-format.md 定稿 v4）：
+/// v1 = 001/002 形态（kind 两值）；v4 = goals +goalType/+achievedAt、
+/// reminders +cadence、settings +nickname/avatarKey、checkIns +note、
+/// colorKey 导出 null（列退役）。v2/v3 未单独发版（R2 评审 note 并档直升 4）。
+const int kBackupVersion = 4;
 
 /// 文件名：`Target-备份-YYYYMMDD.targetbackup`。
 String backupFileName(DateTime now) =>
@@ -83,14 +87,18 @@ class BackupExporter {
   static Map<String, Object?> _goalJson(db.Goal g) => {
         'id': g.id,
         'name': g.name,
-        // 003 v3 桥接：列已改 goal_type，v2 备份格式冻结（kind 两值）——
-        // 升 v3 双向格式在 US5 迁移收口任务处理。
-        'kind': g.goalType == GoalType.habit ? 'habit' : 'milestone',
+        // v4：goalType 三值替代 v1 kind 两值（旧 App 读 v4 按 001 宽容
+        // 策略忽略未知字段；导入侧 v1 文件走 D3 映射，见 importer）。
+        'goalType': g.goalType.name,
         'iconKey': g.iconKey,
-        'colorKey': g.colorKey,
+        // colorKey 列退役（003 契约）：恒导 null；v1 文件里的存量值导入侧照存。
+        'colorKey': null,
         'status': g.status.name,
         'createdAt': g.createdAt.isoString,
         if (g.deadline != null) 'deadline': g.deadline!.isoString,
+        // 短期达成时刻（D4）：恒导键，null = 未达成。
+        'achievedAt':
+            g.achievedAt?.toUtc().toIso8601String(),
         // 002 B 案 envelope（T016）：可选键，NULL 不导出——001 备份缺键可导回。
         if (g.motivation != null) 'motivation': g.motivation,
         if (g.successCriterion != null) 'successCriterion': g.successCriterion,
@@ -130,6 +138,8 @@ class BackupExporter {
         'goalId': r.goalId,
         'time': r.time.isoString,
         'isEnabled': r.isEnabled,
+        // v4 提醒频率档（FR-013）：NULL = daily，不导键。
+        if (r.cadence != null) 'cadence': r.cadence!.name,
       };
 
   static Map<String, Object?> _reviewJson(db.WeeklyReview r) => {
@@ -163,5 +173,8 @@ class BackupExporter {
         'onboardingCompleted': r?.onboardingCompleted ?? false,
         'notificationDeniedAcknowledged':
             r?.notificationDeniedAcknowledged ?? false,
+        // v3 账号资料（D7）：可选键，NULL 不导出——旧文件缺键导回为 NULL。
+        if (r?.nickname != null) 'nickname': r!.nickname,
+        if (r?.avatarKey != null) 'avatarKey': r!.avatarKey,
       };
 }

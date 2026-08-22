@@ -84,9 +84,8 @@ class BackupImporter {
     if (version > kBackupVersion) {
       throw const BackupFormatException('备份来自更新版本的应用，请先升级 Target 再导入');
     }
-    if (version < kBackupVersion) {
-      throw BackupFormatException('备份版本过旧（v$version），当前应用不支持');
-    }
+    // v1..v4 全收（宽容解析双向）：v4 新键全部可选，v1 文件缺
+    // goalType/cadence/note/nickname → 构造时按默认/映射推导（契约）。
     final data = m['data'];
     if (data is! Map) _fail('缺少 data 段');
     final d = Map<String, Object?>.from(data);
@@ -118,14 +117,20 @@ class BackupImporter {
       final g = lists['goals']![i];
       _str(g, 'id', 'goals[$i].id');
       _str(g, 'name', 'goals[$i].name');
-      // v2 备份 kind 两值（habit/milestone）；v3 goalType 三值由 US5 双向
-      // 格式收口，此处先按两值校验、构造时宽容映射（D3 决策树）。
-      _oneOf(g, 'kind', const ['habit', 'milestone'], 'goals[$i].kind');
+      // goalType（v4）与 kind（v1）二选一：新键优先，旧键两值。
+      if (g['goalType'] != null) {
+        _oneOf(g, 'goalType',
+            const ['longTerm', 'shortTerm', 'habit'], 'goals[$i].goalType');
+      } else {
+        _oneOf(g, 'kind', const ['habit', 'milestone'], 'goals[$i].kind');
+      }
       _str(g, 'iconKey', 'goals[$i].iconKey');
-      _str(g, 'colorKey', 'goals[$i].colorKey');
+      // colorKey 列退役（v4 恒 null）；v1 文件可带存量字符串。
+      if (g['colorKey'] != null) _str(g, 'colorKey', 'goals[$i].colorKey');
       _enum<GoalStatus>(g, 'status', GoalStatus.values, 'goals[$i].status');
       _date(g, 'createdAt', 'goals[$i].createdAt');
       _dateOpt(g, 'deadline', 'goals[$i].deadline');
+      _instantOpt(g, 'achievedAt', 'goals[$i].achievedAt');
     }
     for (var i = 0; i < lists['frequencyVersions']!.length; i++) {
       final v = lists['frequencyVersions']![i];
@@ -174,6 +179,11 @@ class BackupImporter {
       if (r['goalId'] != null) _str(r, 'goalId', 'reminders[$i].goalId');
       _time(r, 'time', 'reminders[$i].time');
       _bool(r, 'isEnabled', 'reminders[$i].isEnabled');
+      // v4 频率档可选：缺失/NULL = daily（契约宽容规则）。
+      if (r['cadence'] != null) {
+        _oneOf(r, 'cadence',
+            const ['daily', 'threeDay', 'weekly'], 'reminders[$i].cadence');
+      }
     }
     for (var i = 0; i < lists['weeklyReviews']!.length; i++) {
       final r = lists['weeklyReviews']![i];
@@ -210,6 +220,13 @@ class BackupImporter {
     _bool(settings, 'onboardingCompleted', 'settings.onboardingCompleted');
     _bool(settings, 'notificationDeniedAcknowledged',
         'settings.notificationDeniedAcknowledged');
+    // v3 账号资料可选：旧文件缺键 → NULL。
+    if (settings['nickname'] != null) {
+      _str(settings, 'nickname', 'settings.nickname');
+    }
+    if (settings['avatarKey'] != null) {
+      _str(settings, 'avatarKey', 'settings.avatarKey');
+    }
 
     return BackupData(
       goals: lists['goals']!,
@@ -263,13 +280,9 @@ class BackupImporter {
         await _db.into(_db.goals).insert(db.GoalsCompanion.insert(
               id: g['id']! as String,
               name: g['name']! as String,
-              // 003 v3 桥接（T011/US5 换 v3 格式后拆除）：v2 备份 kind
-              // 两值 → goalType 三域，同 repositories._fromGoal 决策树。
-              goalType: (g['kind']! as String) == 'habit'
-                  ? GoalType.habit
-                  : (g['deadline'] == null
-                      ? GoalType.longTerm
-                      : GoalType.shortTerm),
+              // v4 文件直取 goalType；v1 文件 kind 两值 → D3 映射
+              // （habit→habit；milestone+deadline→shortTerm；余→longTerm）。
+              goalType: _goalTypeOf(g),
               iconKey: g['iconKey']! as String,
               colorKey: Value(g['colorKey'] as String?),
               status: GoalStatus.values.byName(g['status']! as String),
@@ -277,6 +290,10 @@ class BackupImporter {
               deadline: Value(g['deadline'] == null
                   ? null
                   : LocalDate.parse(g['deadline']! as String)),
+              // 短期达成时刻（D4）：可选键，缺键/NULL → NULL。
+              achievedAt: Value(g['achievedAt'] == null
+                  ? null
+                  : DateTime.parse(g['achievedAt']! as String)),
               // 002 B 案 envelope（T016）：可选键，缺键（001 备份）→ NULL。
               motivation: Value(g['motivation'] as String?),
               successCriterion: Value(g['successCriterion'] as String?),
@@ -356,6 +373,10 @@ class BackupImporter {
               goalId: Value(r['goalId'] as String?),
               time: LocalTime.parse(r['time']! as String),
               isEnabled: r['isEnabled']! as bool,
+              // v4 频率档可选：缺键 → NULL（effectiveCadence 视为 daily）。
+              cadence: Value(r['cadence'] == null
+                  ? null
+                  : Cadence.values.byName(r['cadence']! as String)),
             ));
       }
       counts['reminders'] = data.reminders.length;
@@ -385,12 +406,24 @@ class BackupImporter {
             onboardingCompleted: Value(s['onboardingCompleted']! as bool),
             notificationDeniedAcknowledged:
                 Value(s['notificationDeniedAcknowledged']! as bool),
+            // v3 账号资料（D7）：可选键，缺键 → NULL。
+            nickname: Value(s['nickname'] as String?),
+            avatarKey: Value(s['avatarKey'] as String?),
           ));
     });
     return ImportSummary(counts);
   }
 
   // ---- 校验辅助（报错带位置，帮助用户定位损坏点）----
+
+  /// goalType 推导：v4 文件直取；v1 文件 kind 两值走 D3 映射。
+  static GoalType _goalTypeOf(Map<String, Object?> g) {
+    final t = g['goalType'] as String?;
+    if (t != null) return GoalType.values.byName(t);
+    return (g['kind']! as String) == 'habit'
+        ? GoalType.habit
+        : (g['deadline'] == null ? GoalType.longTerm : GoalType.shortTerm);
+  }
 
   static Never _fail(String where) =>
       throw BackupFormatException('$where 无法读取（文件损坏）');

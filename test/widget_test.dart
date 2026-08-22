@@ -1144,6 +1144,49 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T033 US3 走查：空数据三屏全渲染无死角（今日空态/回顾空态 CTA/我的账号卡）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 今日：空态邀请卡在场（todayEmptyTitle），三页签齐。
+    expect(find.text(Copy.todayEmptyTitle), findsOneWidget);
+    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.text(Copy.reviewNav), findsOneWidget);
+    expect(find.text(Copy.mineNav), findsOneWidget);
+
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+
+    // 回顾：空态竖直居中块 + CTA（T031 已细化断言，此处走查在场性）。
+    router.go('/review');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('reviewEmptyCta')), findsOneWidget);
+
+    // 我的：账号卡 + 备份组照常渲染（无数据依赖）。
+    router.go('/settings');
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.settingsMeName), findsOneWidget);
+    expect(find.text(Copy.backupExport), findsOneWidget);
+    await db.close();
+  });
+
   testWidgets('T021 详情：头部块/管理入口 + 打卡描述落库 + 历史行兜底 + 短期倒计时步骤',
       (tester) async {
     usePhoneSurface(tester);

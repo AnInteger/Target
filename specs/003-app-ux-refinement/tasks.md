@@ -152,7 +152,9 @@
 - [x] T032 [US3] 三屏标题对齐：以今日页为基准出对齐规格（左缘缩进/竖直基线常量化入 `lib/app/design_tokens.dart`），`lib/features/review/review_view.dart` 与 `lib/features/settings/settings_view.dart` 大标题统一（FR-008）
   - ✅ 改了什么：新增屏级布局语义令牌（tokens.css --screen-* ↔ design_tokens.dart AppScreen 三端镜像基准里的两端——Swift 侧无 space 系不消费）：padX 24 / titleTop 8 / titleBand 44（原型 st-top·gl-top 定稿规格「左缘 space-6、顶垫 space-2、44px 带、三屏同构」）；今日页 ListView 顶垫 24→0（头部带自带 titleTop，向原型 st-scroll 对齐）+ _HeaderBand 包 ConstrainedBox(minHeight 44)；回顾/我的屏题统一 ConstrainedBox(44)+Align(centerLeft)+padX/titleTop 结构，屏题加 ValueKey('screenTitle')（「我的」与底部页签撞名，几何断言需唯一定位）；设置页标题去旧双重 Padding（原左缘 28/顶 16 → 24/8）
   - ✅ 验了什么：analyze 0 + 117/117 绿（116→117）——用例：完整 App 三屏取 rect，回顾/我的屏题左缘与顶部逐像素相等；今日屏头像（头部带首元素）左缘 ≥24 且与两屏标题竖直同带相容（差 <16px）
-- [ ] T033 [US3] 验收走查：空数据场景 + 三屏截图并排比对（SC-004）；`flutter analyze && flutter test` 全绿
+- [x] T033 [US3] 验收走查：空数据场景 + 三屏截图并排比对（SC-004）；`flutter analyze && flutter test` 全绿
+  - ✅ 改了什么：走查无新增缺陷（T031/T032 已收口实现面），补「空数据三屏全渲染」走查用例钉空数据场景完整性（今日空态邀请卡/回顾空态 CTA/我的账号卡+备份组，三页签恒定）
+  - ✅ 验了什么：analyze 0 + 118/118 绿（117→118）；三屏标题比对以几何断言承载（T032 用例：屏题左缘/顶部逐像素相等）——测试环境比并排截图更精确，真机截图归 T043 真机轮；结论记 design/reviews.md（US3 收口：FR-007/008 · SC-004）
 
 **Checkpoint**: 表层一致性完成，不动结构
 

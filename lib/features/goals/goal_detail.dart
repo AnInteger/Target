@@ -321,7 +321,7 @@ class _HeaderBlock extends StatelessWidget {
             children: [
               Text(goal.name, style: theme.textTheme.titleL),
               const SizedBox(height: AppSpace.s2),
-              GoalTypeBadge(goal: goal, today: today),
+              GoalTypeBadge(goal: goal),
               if (goal.status != GoalStatus.active) ...[
                 const SizedBox(height: AppSpace.s2),
                 Text(

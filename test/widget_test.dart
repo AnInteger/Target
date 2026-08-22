@@ -370,19 +370,23 @@ void main() {
     expect(find.text(Copy.editorDeadlineLabel), findsOneWidget);
     expect(find.byKey(const ValueKey('goalRemindSwitch')), findsNothing);
 
-    // 切习惯：截止让位提醒开关，习惯默认开（原型画板③）。
+    // 切习惯：截止让位提醒开关，习惯默认开（v2 冻结稿板 1）。
+    // 提醒卡在列表末尾（600px 测试视口之外），先滚到再断言。
     await tester.tap(find.text(Copy.typeBadgeHabit));
     await tester.pumpAndSettle();
     expect(find.text(Copy.editorDeadlineLabel), findsNothing);
+    await scrollTo(tester, find.byKey(const ValueKey('goalRemindSwitch')));
     expect(find.byKey(const ValueKey('goalRemindSwitch')), findsOneWidget);
     expect(
       tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
       isTrue,
     );
 
-    // 切长期：提醒默认关。
+    // 切长期：提醒默认关（类型卡滚出视口，先滚回）。
+    await scrollTo(tester, find.byKey(const ValueKey('goalTypeSeg')));
     await tester.tap(find.text(Copy.typeBadgeLongTerm));
     await tester.pumpAndSettle();
+    await scrollTo(tester, find.byKey(const ValueKey('goalRemindSwitch')));
     expect(
       tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
       isFalse,
@@ -395,7 +399,8 @@ void main() {
     expect(find.text(Copy.editorIconColor), findsNothing);
 
     // 内容滚出视口后保存按钮仍在场（常驻底部，ListView 外）。
-    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    // v2 编辑器含模板横滑条（也是 ListView），取纵列表 = 首个。
+    await tester.drag(find.byType(ListView).first, const Offset(0, -400));
     await tester.pumpAndSettle();
     expect(find.text(Copy.editorSave), findsOneWidget);
     await db.close();
@@ -437,7 +442,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T023 编辑同构：类型可改，deadline 随型成对获值/清空（ui-contract）', (tester) async {
+  testWidgets('T023 编辑同构：类型锁定（004 v2 冻结稿）+ 未动字段原值继承', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
@@ -468,31 +473,23 @@ void main() {
       ),
     );
 
-    // 第一轮：习惯 → 长期（提醒区在场）→ 短期，保存 = 改型 + 截止成对获值。
+    // 004 T013：类型编辑锁定（v2 冻结稿板 4——003「类型可改」随之退役）。
+    // 分段置灰不可点，保存后类型/截止/图标全部原值继承。
     await openEditor();
+    expect(find.text(Copy.editorTypeLockedTag), findsOneWidget);
+    await tester.tap(find.text(Copy.typeBadgeShortTerm),
+        warnIfMissed: false); // IgnorePointer：点击落空
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.editorDeadlineLabel), findsNothing); // 改型未生效
+    await scrollTo(tester, find.byKey(const ValueKey('goalRemindSwitch')));
     expect(find.byKey(const ValueKey('goalRemindSwitch')), findsOneWidget);
-    await tester.tap(find.text(Copy.typeBadgeLongTerm));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(Copy.typeBadgeShortTerm));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
     await tester.pumpAndSettle();
 
-    var g = (await repo.getGoals()).single;
-    expect(g.goalType, GoalType.shortTerm);
-    expect(g.deadline, today.addDays(39));
-    expect(g.iconKey, 'directions_run'); // 未动字段原值继承
-
-    // 第二轮：短期 → 习惯，保存 = deadline 成对清空。
-    await openEditor();
-    await tester.tap(find.text(Copy.typeBadgeHabit));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
-    await tester.pumpAndSettle();
-
-    g = (await repo.getGoals()).single;
-    expect(g.goalType, GoalType.habit);
-    expect(g.deadline, isNull);
+    final g = (await repo.getGoals()).single;
+    expect(g.goalType, GoalType.habit); // 锁定：编辑无改型路径
+    expect(g.deadline, isNull); // 习惯截止恒空
+    expect(g.iconKey, 'directions_run'); // 未动字段原值继承（FR-016）
     await db.close();
   });
 
@@ -547,7 +544,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    // 习惯型：开关默认开 → 频率档（默认一天一次）+ 时间行（默认 09:00）。
+    // 习惯型：开关默认开 → 频率档（默认每天）+ 时间行（默认 09:00）。
     await openEditor();
     await tester.enterText(
         find.byKey(const ValueKey('goalNameField')), '睡前读 5 页书');
@@ -562,13 +559,13 @@ void main() {
     expect(find.text('09:00'), findsOneWidget);
     expect(
       tester
-          .widget<SegmentedButton<Cadence>>(
+          .widget<SegmentedPill<Cadence>>(
               find.byKey(const ValueKey('goalCadenceSeg')))
           .selected,
-      {Cadence.daily},
+      Cadence.daily, // 004 v2：SegmentedPill 单值读态
     );
 
-    // 切「三天一次」→ 保存 → Reminders 行（enabled/threeDay/09:00/goalId）。
+    // 切「隔三天」→ 保存 → Reminders 行（enabled/threeDay/09:00/goalId）。
     await scrollTo(tester, find.text(Copy.cadenceThreeDay));
     await tester.tap(find.text(Copy.cadenceThreeDay));
     await tester.pumpAndSettle();
@@ -583,7 +580,7 @@ void main() {
     expect(rows.single.cadence, Cadence.threeDay);
     expect(rows.single.time, const LocalTime(9, 0));
 
-    // 长期型：默认关；手动开 → 默认一天一次档。
+    // 长期型：默认关；手动开 → 默认每天档。
     await openEditor();
     await tester.enterText(
         find.byKey(const ValueKey('goalNameField')), '把冈仁波齐走完');
@@ -619,7 +616,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T025 编辑回填提醒行 + 改型短期删行（goal-type-model 口径）', (tester) async {
+  testWidgets('T025 编辑回填提醒行 + 类型锁定后原行原样续写（goal-type-model 口径）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
@@ -656,7 +653,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    // 回填：开关开、时间 21:30、档=三天一次。
+    // 回填：开关开、时间 21:30、档=隔三天。
     await openEditor();
     expect(
       tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
@@ -665,10 +662,10 @@ void main() {
     expect(find.text('21:30'), findsOneWidget);
     expect(
       tester
-          .widget<SegmentedButton<Cadence>>(
+          .widget<SegmentedPill<Cadence>>(
               find.byKey(const ValueKey('goalCadenceSeg')))
           .selected,
-      {Cadence.threeDay},
+      Cadence.threeDay,
     );
 
     // 不动保存 → 原行续写（同 id，不重复建行）。
@@ -678,13 +675,14 @@ void main() {
     expect(rows, hasLength(1));
     expect(rows.single.id, reminderId);
 
-    // 改型短期 → cadence 恒不适用 → 行删除。
+    // 004 T013：类型锁定后改型删行路径退役——二轮编辑原行原样保留。
     await openEditor();
-    await tester.tap(find.text(Copy.typeBadgeShortTerm));
-    await tester.pumpAndSettle();
+    expect(find.text(Copy.editorTypeLockedTag), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
     await tester.pumpAndSettle();
-    expect(await ReminderRepository(db).all(), isEmpty);
+    final rows2 = await ReminderRepository(db).all();
+    expect(rows2, hasLength(1));
+    expect(rows2.single.id, reminderId);
     await db.close();
   });
 
@@ -744,10 +742,10 @@ void main() {
     // 无颜色步：表单不出现任何颜色选择（FR-015）。
     expect(find.text(Copy.editorIconColor), findsNothing);
 
-    // 常用行 6 枚策展（原型 COMMON_ICONS）+「更多」格在场。
+    // 常用行 6 枚策展（冻结稿 COMMON）+「更多」格在场。
     const commonKeys = [
       'fitness_center', 'menu_book', 'favorite',
-      'self_improvement', 'brush', 'savings',
+      'directions_bike', 'brush', 'savings',
     ];
     for (final k in commonKeys) {
       expect(find.byIcon(GoalIconCatalog.byKey(k).icon), findsOneWidget);
@@ -763,7 +761,7 @@ void main() {
     final created = (await GoalRepository(db).getGoals()).single;
     expect(created.iconKey, 'menu_book');
 
-    // 编辑 → 「更多」弹窗：标题 + 领域分组标签 + 全量 38 枚（含非常用 flight）。
+    // 编辑 → 「更多」上滑弹层：标题 + 域组头「域 · 大类」+ 全量 38 枚。
     final navKey = GlobalKey<NavigatorState>();
     await tester.pumpWidget(
       ProviderScope(
@@ -783,20 +781,41 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('goalIconMoreButton')));
     await tester.pumpAndSettle();
     expect(find.text(Copy.editorPickCategoryTitle), findsOneWidget);
-    expect(find.text(GoalIconDomain.travel.zhLabel), findsOneWidget);
-    for (final icon in GoalIconCatalog.values) {
-      expect(find.byIcon(icon.icon), findsWidgets);
-    }
+    expect(
+      find.text('${GoalIconDomain.travel.zhLabel} · '
+          '${GoalIconDomain.travel.major.zhLabel}'),
+      findsOneWidget,
+    );
 
-    // ✕ 关闭不选 → iconKey 不变。
-    await tester.tap(find.byKey(const ValueKey('goalIconPickerClose')));
+    // 弹层内容（10 域 ≈ 1000px）长于 78% 屏高：分段滚动收集，38 枚全量可及。
+    // 弹层打开时 Scrollable.last = 弹层内容（.first 仍是编辑器主列表）。
+    final sheet = find.byType(Scrollable).last;
+    final seen = <IconData>{};
+    for (var i = 0; i < 30; i++) {
+      for (final c in GoalIconCatalog.values) {
+        if (find.byIcon(c.icon).evaluate().isNotEmpty) seen.add(c.icon);
+      }
+      if (seen.length == GoalIconCatalog.values.length) break;
+      await tester.drag(sheet, const Offset(0, -300));
+      await tester.pump();
+    }
+    expect(seen.length, GoalIconCatalog.values.length, reason: '弹层应能滚到全量图标');
+
+    // scrim 点外关闭不选 → iconKey 不变（v2 弹层无 ✕ 键）。
+    await tester.tapAt(const Offset(20, 20));
     await tester.pumpAndSettle();
     expect((await GoalRepository(db).getGoals()).single.iconKey, 'menu_book');
 
-    // 弹窗选非常用图标 flight（旅行域）→ 点选即关 → 保存落库 flight。
+    // 弹层选非常用图标 flight（旅行域）→ 点选即关 → 保存落库 flight。
     await tester.tap(find.byKey(const ValueKey('goalIconMoreButton')));
     await tester.pumpAndSettle();
-    await scrollTo(tester, find.byIcon(Icons.flight_rounded));
+    for (var i = 0; i < 10; i++) {
+      if (find.byIcon(Icons.flight_rounded).hitTestable().evaluate().isNotEmpty) {
+        break;
+      }
+      await tester.drag(sheet, const Offset(0, -120));
+      await tester.pump();
+    }
     await tester.tap(find.byIcon(Icons.flight_rounded));
     await tester.pumpAndSettle();
     expect(find.text(Copy.editorPickCategoryTitle), findsNothing); // 点选即关
@@ -1400,8 +1419,8 @@ void main() {
     // 展开二级 → 逐行「频率 · 时间」副题（今日页目标名不进断言，按行副题定位）。
     await tester.tap(find.text(Copy.settingsGoalRemindersTitle));
     await tester.pumpAndSettle();
-    expect(find.text('一天一次 · 09:00'), findsOneWidget);
-    expect(find.text('一周一次 · 22:30'), findsOneWidget);
+    expect(find.text('每天 · 09:00'), findsOneWidget);
+    expect(find.text('每周 · 22:30'), findsOneWidget);
 
     // 逐行开关：打开阅读行 → 落库 true，计数副题 1 → 2。
     await tester.tap(rowSwitch('阅读'));
@@ -1483,7 +1502,7 @@ void main() {
     expect(find.text(Copy.settingsGoalRemindersTitle), findsOneWidget);
     await tester.tap(find.text(Copy.settingsGoalRemindersTitle));
     await tester.pumpAndSettle();
-    expect(find.text('一天一次 · 09:00'), findsOneWidget);
+    expect(find.text('每天 · 09:00'), findsOneWidget);
 
     // 屏下分组（目标/数据/关于）滚动走查：行全渲染不抛错。
     await scrollTo(tester, find.text(Copy.settingsSectionData));
@@ -1584,11 +1603,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 头部块：描述 + 类型徽章 + 提醒行；退役字段（为什么/怎样算）不上屏。
+    // 头部块：描述 + 类型徽章（004 v2「类型 · 域 · 大类」；倒计时移交
+    // 详情 meta 行）+ 提醒行；退役字段（为什么/怎样算）不上屏。
+    // iconKey 'fitness' 非 38 键值域 → byKey 兜底 explore → 旅行域。
     expect(find.text('年底前跑一次 10km'), findsWidgets);
     expect(
-        find.text(
-            '${Copy.typeBadgeShortTerm} · ${Copy.milestoneCountdown(LocalDate(today.year, 12, 31).differenceInDays(today))}'),
+        find.text('${Copy.typeBadgeShortTerm} · ${GoalIconDomain.travel.zhLabel}'
+            ' · ${GoalIconDomain.travel.major.zhLabel}'),
         findsOneWidget);
     expect(
         find.text(Copy.goalReminderLine(Copy.settingsGoalReminderLine(
@@ -1661,9 +1682,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 无提醒/无记录：头部仍呈现 图标 + 描述 + 「∞ 长期」徽章 + 打卡动线。
+    // 无提醒/无记录：头部仍呈现 图标 + 描述 + 类型徽章（004 v2 组合式，
+    // iconKey 'read' 旧键 → byKey 兜底 explore → 旅行域）+ 打卡动线。
     expect(find.text('把英语捡回来'), findsWidgets);
-    expect(find.text(Copy.typeBadgeLongTerm), findsOneWidget);
+    expect(
+        find.text('${Copy.typeBadgeLongTerm} · ${GoalIconDomain.travel.zhLabel}'
+            ' · ${GoalIconDomain.travel.major.zhLabel}'),
+        findsOneWidget);
     expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
     expect(find.byTooltip(Copy.goalEdit), findsOneWidget);
     expect(find.byTooltip(Copy.goalMoreActions), findsOneWidget);
@@ -2056,8 +2081,9 @@ void main() {
   });
 
   // 003 T039：US5 场景 2/3 UI 呈现——升级库启动，今日页徽章直接可见
-  // 「习惯」（每日 3 次档映射）与「短期 · 还剩 N 天」（截止倒计时）。
-  testWidgets('T039 迁移呈现：每日 3 次→习惯徽章；带截止→短期倒计时徽章',
+  // 「习惯」（每日 3 次档映射）与「短期」（004 v2 组合式徽章；旧键
+  // mic/star 均兜底 explore → 旅行域）。
+  testWidgets('T039 迁移呈现：每日 3 次→习惯徽章；带截止→短期徽章',
       (WidgetTester tester) async {
     usePhoneSurface(tester);
     final today = LocalDate.fromDateTime(DateTime.now());
@@ -2111,15 +2137,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 场景 2：每日 3 次频率档 → 习惯徽章（节律点 + 「习惯」）。
+    // 场景 2：每日 3 次频率档 → 习惯徽章（「习惯 · 旅行 · 目标」）。
     expect(find.text('练声'), findsWidgets);
-    expect(find.text(Copy.typeBadgeHabit), findsOneWidget);
-    // 场景 3：带截止 → 短期徽章带倒计时（deadline − today，徽章同源算式）。
+    expect(
+        find.text('${Copy.typeBadgeHabit} · ${GoalIconDomain.travel.zhLabel}'
+            ' · ${GoalIconDomain.travel.major.zhLabel}'),
+        findsOneWidget);
+    // 场景 3：带截止 → 短期徽章（v2 组合式，倒计时移交详情 meta 行）。
     await scrollTo(tester, find.text('考认证'));
     expect(find.text('考认证'), findsOneWidget);
     expect(
-        find.text('${Copy.typeBadgeShortTerm} · '
-            '${Copy.milestoneCountdown(12)}'),
+        find.text('${Copy.typeBadgeShortTerm} · ${GoalIconDomain.travel.zhLabel}'
+            ' · ${GoalIconDomain.travel.major.zhLabel}'),
         findsOneWidget);
     await db.close();
   });

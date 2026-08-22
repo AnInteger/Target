@@ -32,7 +32,7 @@ abstract final class Copy {
 
   // ---- 目标创建 / 编辑（FR-001/011/012）----
 
-  static const editorNewGoal = '新的目标';
+  static const editorNewGoal = '新建目标'; // 004 v2：标题随冻结稿（原「新的目标」退役）
   static const editorIconColor = '图标与颜色';
   static const editorSave = '保存';
   static const focusLimitTitle = '先照顾好这 5 个';
@@ -259,32 +259,45 @@ abstract final class Copy {
   /// 目标达成事件（achievedAt 落在近 7 天）。
   static String notifAchieved(String name) => '$name，达成了';
 
-  // 编辑器分组标题（ui-contract「编辑器分组」；T023 R2 裁决 1 平铺无折叠）。
+  // 编辑器分组标题（004 v2 冻结稿组序：类型→一句话描述→分类→提醒/里程碑）。
   static const editorSectionCategory = '分类';
-  static const editorSectionBasics = '基础信息';
-  static const editorSectionType = '目标类型';
+  static const editorSectionBasics = '一句话描述';
+  static const editorSectionType = '类型';
 
   // 分类图标（T026：常用行 + 「更多」弹窗全量，R2 裁决 1）。
   static const editorPickCategoryTitle = '选择分类';
   static const editorIconMoreLabel = '更多分类图标';
+  static const editorIconMoreShort = '更多';
   static const editorIconCloseLabel = '关闭';
+  static const editorSectionReminder = '提醒';
 
   /// 图标格语义名（原型 aria-label 同款口径：键名即名）。
   static String editorIconSemantics(String key) => '分类图标 $key';
 
-  /// 一句话描述示范（research D8：完整短句式 placeholder）。
-  static const editorNameHint = '例如：月底前能连续跑 3 公里';
+  /// 一句话描述示范（research D8 完整短句式；004 v2 冻结稿示例）。
+  static const editorNameHint = '例如：骑行台训练，均速突破 25km/h';
 
-  /// 短期截止日行标签（原型 R3：「截止日」+ 必填小标）。
-  static const editorDeadlineLabel = '截止日';
+  /// 短期截止日行标签（v2 冻结稿：「截止日期」+ 必填小标）。
+  static const editorDeadlineLabel = '截止日期';
   static const editorRequiredTag = '必填';
+  static const editorOptionalTag = '选填';
 
-  /// 习惯/长期提醒开关行标签与副题（原型 R3 attr 行）。
-  static const editorReminderSwitch = '提醒';
-  static const editorReminderSub = '按频率定时提醒';
+  /// 类型锁定小标（v2 冻结稿板 4：编辑态类型不可改——004 形态决策）。
+  static const editorTypeLockedTag = '创建后不可变更';
+
+  /// 习惯/长期提醒开关行标签（v2 冻结稿 attr 行）；关闭态副题随之切换。
+  static const editorReminderSwitch = '开启提醒';
+  static const editorReminderOffSub = '关闭时不发送该目标的提醒';
+
+  /// 频率区标题（提醒开关开后出现，v2 冻结稿卡内小标）。
+  static const editorCadenceLabel = '频率';
 
   /// 提醒时间行标签（开关开后出现，T025）。
   static const editorRemindTimeLabel = '提醒时间';
+
+  /// 短期里程碑提示卡（v2 冻结稿板 2：步骤在详情页逐步添加）。
+  static const editorMilestoneTitle = '里程碑';
+  static const editorMilestoneHint = '第一步在详情页逐步添加';
 
   /// 短期倒计时预告（原型 R3 count-pv；0/已过分支同款）。
   static String editorCountdownPreview(int days) => days > 0
@@ -301,8 +314,9 @@ abstract final class Copy {
   // 短期到期询问（D4：截止日只提醒不判决，到点推送 + 通知列表条目）。
   static const shortTermDueAsk = '到日子了，怎么样？';
 
-  // 习惯提醒频率档（FR-013 开关化 cadence）。
-  static const cadenceDaily = '一天一次';
-  static const cadenceThreeDay = '三天一次';
-  static const cadenceWeekly = '一周一次';
+  // 习惯提醒频率档（FR-013 开关化 cadence；004 v2 冻结稿短标签——
+  // 编辑器分段/我的页二级行/详情提醒行三处同源）。
+  static const cadenceDaily = '每天';
+  static const cadenceThreeDay = '隔三天';
+  static const cadenceWeekly = '每周';
 }

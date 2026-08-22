@@ -371,7 +371,7 @@ class _GoalCard extends ConsumerWidget {
                             ),
                       ),
                       const SizedBox(height: AppSpace.s1),
-                      GoalTypeBadge(goal: goal, today: today),
+                      GoalTypeBadge(goal: goal),
                       const SizedBox(height: AppSpace.s1),
                       Text(
                         latest,

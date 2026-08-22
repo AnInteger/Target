@@ -1,13 +1,13 @@
-/// GoalEditor（003 T023 重构，FR-011~015/021 · 原型 screen-editor R3 定稿）。
+/// GoalEditor（004 T013 换装，v2-goal-editor.html 冻结稿）。
 ///
-/// 分组平铺无折叠（R2 裁决 1）：分类（置顶，常用行+「更多」弹窗 = T026）
-/// / 基础信息（一句话描述，40 字，research D8）/ 目标类型与提醒
-/// （三选分段 + 改型联动显隐）。保存常驻底部、文案统一「保存」
-/// （R3 裁决 2）；表单零行为说明句（R3 裁决 3）。002 B 案动线
-/// （为什么/怎样算/场景 chips/频率问答/一次性开关/颜色步/SMART 卡）
-/// 全量退役，退役字段仅编辑时原值继承（FR-016 存量保全）。
-/// 编辑同构：类型可改（ui-contract），改型即切提醒语义——短期=截止、
-/// 习惯/长期=提醒开关；保存直构完整 Goal（deadline 随类型成对出现/清空）。
+/// 全屏 push：顶栏 38 圆返回键 + 标题（新建目标/编辑目标），保存落
+/// 底部固定主行动胶囊（必填未满足置灰 .4）。组序（冻结稿）：模板条
+/// （仅创建，点击回填名称/类型/图标）→ 类型 → 一句话描述 → 分类 →
+/// 提醒（短期无提醒区，另有里程碑提示卡）。
+/// 形态决策（冻结稿）：**类型编辑锁定**（003「类型可改」随之退役）；
+/// 分类 = 常用 6 + 「更多」上滑弹层全量按域分组（组头三大类色点），
+/// 选中格 accent 描边同色图标 + 域归属提示行。FR-016 底线：退役字段
+/// 仅编辑时原值继承（colorKey/motivation/successCriterion/cueScene）。
 library;
 
 import 'package:flutter/material.dart';
@@ -25,7 +25,7 @@ import 'goal_templates.dart';
 class GoalEditorPage extends ConsumerStatefulWidget {
   const GoalEditorPage({super.key, this.goalId, this.template});
 
-  /// null = 创建；非 null = 编辑（类型可改，改型联动显隐）。
+  /// null = 创建；非 null = 编辑（类型锁定，冻结稿板 4）。
   final String? goalId;
 
   /// 引导页/空态带入的模板预填（仅创建模式）。
@@ -38,18 +38,18 @@ class GoalEditorPage extends ConsumerStatefulWidget {
 class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   final _name = TextEditingController();
 
-  /// 类型默认短期（原型画板①：新目标默认落短期，截止必填）。
+  /// 类型默认短期（冻结稿板 2：新目标默认落短期，截止必填）。
   GoalType _type = GoalType.shortTerm;
   String _iconKey = GoalIconCatalog.explore.key;
 
-  /// 短期截止日：默认 today+39（原型同款），切离短期不写库。
+  /// 短期截止日：默认 today+39（冻结稿同款），切离短期不写库。
   LocalDate? _deadline;
 
   /// 提醒开关（习惯/长期共用区）：切型时重置——习惯默认开、长期默认关。
   bool _remindOn = false;
   Cadence _cadence = Cadence.daily;
 
-  /// 提醒时间默认 09:00（原型 R3 同款）。
+  /// 提醒时间默认 09:00（冻结稿板 1 为 08:00 示例，应用默认沿 09:00）。
   LocalTime _remindTime = const LocalTime(9, 0);
 
   /// 编辑模式下既有提醒行 id（保存时原行续写，避免重复建行）。
@@ -58,9 +58,16 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
 
   bool get _isEdit => widget.goalId != null;
 
+  /// 保存亮灯条件（冻结稿：必填未满足 → 底部主按钮置灰）。
+  bool get _canSave =>
+      _name.text.trim().isNotEmpty &&
+      (_type != GoalType.shortTerm || _deadline != null);
+
   @override
   void initState() {
     super.initState();
+    // 计数行与保存亮灯随输入即时刷新。
+    _name.addListener(() => setState(() {}));
     if (_isEdit) {
       // 目标流就绪后一次性回填表单（含提醒行）。
       ref.listenManual(goalsProvider, (prev, next) {
@@ -107,7 +114,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     });
   }
 
-  /// 切型：提醒语义随型重置（习惯默认开、其余默认关），截止日兜底。
+  /// 切型（仅创建态可达）：提醒语义随型重置，截止日兜底。
   void _setType(GoalType t) {
     _type = t;
     _remindOn = t == GoalType.habit;
@@ -156,8 +163,8 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       if (_isEdit) {
         final goal = (ref.read(goalsProvider).value ?? [])
             .firstWhere((g) => g.id == widget.goalId);
-        // 编辑同构：类型可改。直构完整 Goal（copyWith 不支持改型/清 deadline）；
-        // 退役字段原值继承（FR-016 存量保全，表单无写入路径）。
+        // 编辑同构（类型锁定）：直构完整 Goal（copyWith 不支持清
+        // deadline）；退役字段原值继承（FR-016 存量保全，表单无写入路径）。
         await repo.update(Goal(
           id: goal.id,
           name: name,
@@ -206,125 +213,124 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   @override
   Widget build(BuildContext context) {
     if (_isEdit && !_hydrated) {
-      return Scaffold(
-        appBar: AppBar(title: const Text(Copy.editorNewGoal)),
-        body: const Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? Copy.goalEdit : Copy.editorNewGoal)),
-      // 保存常驻底部（ListView 外，导航条上方——编辑器挂 today 分支，FR-010）。
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              children: [
-                _GroupCard(label: Copy.editorSectionCategory, child: _categoryPicker()),
-                const SizedBox(height: AppSpace.s4),
-                _GroupCard(label: Copy.editorSectionBasics, child: _nameField()),
-                const SizedBox(height: AppSpace.s4),
-                _GroupCard(
-                    label: Copy.editorSectionType, child: _typeSection()),
-                const SizedBox(height: AppSpace.s2),
-              ],
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // v2 push 顶栏：38 圆返回键 + 标题（新建目标/编辑目标）。
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpace.s5, AppSpace.s3, AppSpace.s5, AppSpace.s2),
+              child: Row(
+                children: [
+                  _BackButton(onTap: () => Navigator.of(context).maybePop()),
+                  const SizedBox(width: AppSpace.s3),
+                  Text(_isEdit ? Copy.goalEdit : Copy.editorNewGoal,
+                      style: Theme.of(context).textTheme.titleM),
+                  const Spacer(),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: FilledButton(
-              key: const ValueKey('goalSaveButton'),
-              onPressed: _save,
-              child: const Text(Copy.editorSave),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                    AppSpace.s5, AppSpace.s2, AppSpace.s5, AppSpace.s4),
+                children: [
+                  if (!_isEdit) ...[
+                    _TemplateStrip(onTap: _applyTemplate),
+                    const SizedBox(height: AppSpace.s4),
+                  ],
+                  _GroupCard(
+                    title: Copy.editorSectionType,
+                    badge: _isEdit
+                        ? const _Tag(Copy.editorTypeLockedTag, emphasized: false)
+                        : null,
+                    child: _typeSection(),
+                  ),
+                  const SizedBox(height: AppSpace.s4),
+                  _GroupCard(
+                    title: Copy.editorSectionBasics,
+                    badge: const _Tag(Copy.editorRequiredTag, emphasized: true),
+                    child: _nameField(),
+                  ),
+                  const SizedBox(height: AppSpace.s4),
+                  _GroupCard(
+                      title: Copy.editorSectionCategory, child: _categoryCard()),
+                  const SizedBox(height: AppSpace.s4),
+                  if (_type == GoalType.shortTerm)
+                    _GroupCard(
+                      title: Copy.editorMilestoneTitle,
+                      badge: const _Tag(Copy.editorOptionalTag, emphasized: false),
+                      child: Text(
+                        Copy.editorMilestoneHint,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyL
+                            .copyWith(
+                                color:
+                                    TargetPalette.of(context).onSurfaceVariant),
+                      ),
+                    )
+                  else
+                    _GroupCard(
+                        title: Copy.editorSectionReminder,
+                        child: _reminderCard()),
+                ],
+              ),
             ),
-          ),
-        ],
+            // 底部固定主行动（冻结稿 .btn-primary：胶囊 + accent 实心，
+            // 必填未满足置灰）。
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpace.s5, AppSpace.s3, AppSpace.s5, AppSpace.s5),
+              child: _SaveButton(enabled: _canSave, onPressed: _save),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /// 分类组（T026，原型 buildCommonRow/buildPicker）：常用一行 6 枚策展
-  /// + 「更多」虚线格 → 弹窗全量按领域分组；单选即存 iconKey，两处选中
-  /// 态同步（选中不在常用行时行内无高亮，原型同款）。无颜色步
-  /// （FR-015：表单零 colorKey 写入）。
-  static const _commonIcons = [
-    GoalIconCatalog.fitnessCenter,
-    GoalIconCatalog.menuBook,
-    GoalIconCatalog.favorite,
-    GoalIconCatalog.selfImprovement,
-    GoalIconCatalog.brush,
-    GoalIconCatalog.savings,
-  ];
-
-  Widget _categoryPicker() {
-    return Row(
-      children: [
-        for (final c in _commonIcons) ...[
-          _IconCell(
-            icon: c.icon,
-            size: 36,
-            iconSize: 18,
-            selected: _iconKey == c.key,
-            semanticLabel: Copy.editorIconSemantics(c.key),
-            onTap: () => setState(() => _iconKey = c.key),
-          ),
-          const SizedBox(width: AppSpace.s2),
-        ],
-        _MoreCell(onTap: _openPicker),
-      ],
-    );
-  }
-
-  Future<void> _openPicker() async {
-    final picked = await showDialog<String>(
-      context: context,
-      barrierDismissible: true, // scrim 点外关闭（原型同款）
-      builder: (_) => _IconPickerDialog(selectedKey: _iconKey),
-    );
-    if (picked != null) setState(() => _iconKey = picked);
-  }
-
-  /// 基础信息：一句话描述（name 语义升级，40 字上限，research D8）。
-  Widget _nameField() {
-    return TextField(
-      key: const ValueKey('goalNameField'),
-      controller: _name,
-      maxLength: 40,
-      decoration: const InputDecoration(hintText: Copy.editorNameHint),
-    );
-  }
-
-  /// 类型与提醒：三选分段 + 改型联动显隐
-  /// （短期 → 截止区；习惯/长期 → 提醒开关区；频率档+时间 = T025）。
+  /// 类型区：三段分段（编辑态锁定 .55）+ 短期截止行（含倒计时）。
   Widget _typeSection() {
-    final palette = TargetPalette.of(context);
+    final seg = SegmentedPill<GoalType>(
+      key: const ValueKey('goalTypeSeg'),
+      values: GoalType.values,
+      labelOf: (t) => switch (t) {
+        GoalType.longTerm => Copy.typeBadgeLongTerm,
+        GoalType.shortTerm => Copy.typeBadgeShortTerm,
+        GoalType.habit => Copy.typeBadgeHabit,
+      },
+      selected: _type,
+      onSelected: _isEdit
+          ? null
+          : (t) => setState(() => _setType(t)),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SegmentedButton<GoalType>(
-          key: const ValueKey('goalTypeSeg'),
-          segments: const [
-            ButtonSegment(value: GoalType.longTerm, label: Text(Copy.typeBadgeLongTerm)),
-            ButtonSegment(
-                value: GoalType.shortTerm, label: Text(Copy.typeBadgeShortTerm)),
-            ButtonSegment(value: GoalType.habit, label: Text(Copy.typeBadgeHabit)),
-          ],
-          selected: {_type},
-          onSelectionChanged: (s) => setState(() => _setType(s.first)),
+        // 冻结稿板 4：编辑态类型锁定（opacity .55 + 不可点）。
+        Opacity(
+          opacity: _isEdit ? .55 : 1,
+          child: IgnorePointer(ignoring: _isEdit, child: seg),
         ),
         if (_type == GoalType.shortTerm) ...[
           const SizedBox(height: AppSpace.s3),
-          _deadlineRow(palette),
-        ] else ...[
-          const SizedBox(height: AppSpace.s3),
-          _reminderRow(palette),
+          _deadlineRow(),
         ],
       ],
     );
   }
 
-  /// 短期子区：截止日（必填，tap 弹日期选择器）+ 倒计时预告。
-  Widget _deadlineRow(TargetPalette palette) {
+  /// 短期截止行：必填小标 + 日期值 + 倒计时预告（冻结稿板 2）。
+  Widget _deadlineRow() {
+    final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
     final today = ref.watch(todayProvider);
     final days = _deadline?.differenceInDays(today) ?? 0;
@@ -334,110 +340,189 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
         InkWell(
           key: const ValueKey('goalDeadlineField'),
           onTap: _pickDeadline,
-          borderRadius: AppRadius.rMd,
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpace.s4, vertical: AppSpace.s3),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: AppRadius.rMd,
-              border: Border.all(color: palette.divider),
-            ),
-            child: Row(
-              children: [
-                const Text(Copy.editorDeadlineLabel),
-                const SizedBox(width: AppSpace.s2),
-                const _RequiredTag(),
-                const Spacer(),
-                Text(_deadline?.isoString ?? '',
-                    style: theme.textTheme.bodyM),
-                Icon(Icons.expand_more,
-                    size: 20, color: palette.onSurfaceVariant),
-              ],
-            ),
+          child: Row(
+            children: [
+              Text(Copy.editorDeadlineLabel, style: theme.textTheme.bodyL),
+              const SizedBox(width: AppSpace.s2),
+              const _Tag(Copy.editorRequiredTag, emphasized: true),
+              const Spacer(),
+              Text(_deadline?.isoString ?? '', style: theme.textTheme.bodyL),
+              Icon(Icons.expand_more,
+                  size: 18, color: palette.onSurfaceVariant),
+            ],
           ),
         ),
         const SizedBox(height: AppSpace.s2),
         Text(Copy.editorCountdownPreview(days),
             key: const ValueKey('goalCountdownPreview'),
-            style: theme.textTheme.bodyS
-                .copyWith(color: palette.onSurfaceVariant)),
+            style:
+                theme.textTheme.bodyS.copyWith(color: palette.onSurfaceVariant)),
       ],
     );
   }
 
-  /// 习惯/长期子区：提醒开关 →（开）频率档 + 提醒时间（FR-013）。
-  Widget _reminderRow(TargetPalette palette) {
+  /// 一句话描述（40 字计数，冻结稿 .input/.cnt）。
+  Widget _nameField() {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    final border = BorderSide(color: palette.divider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          key: const ValueKey('goalNameField'),
+          controller: _name,
+          maxLength: 40,
+          style: theme.textTheme.bodyL,
+          decoration: InputDecoration(
+            hintText: Copy.editorNameHint,
+            counterText: '',
+            isDense: true,
+            filled: true,
+            fillColor: palette.surfaceAlt,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: AppSpace.s4, vertical: AppSpace.s3),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: AppRadius.rMd, borderSide: border),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: AppRadius.rMd,
+              borderSide: BorderSide(color: palette.accent),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpace.s1),
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '${_name.text.length}/40',
+            style: theme.textTheme.bodyS
+                .copyWith(color: palette.onSurfaceVariant),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 分类组（冻结稿）：常用一行策展 6 枚 + 「更多」上滑弹层全量；
+  /// 选中格 accent 描边 + 同色图标；行下域归属提示（大类色点）。
+  static const _commonIcons = [
+    GoalIconCatalog.fitnessCenter,
+    GoalIconCatalog.menuBook,
+    GoalIconCatalog.favorite,
+    GoalIconCatalog.directionsBike,
+    GoalIconCatalog.brush,
+    GoalIconCatalog.savings,
+  ];
+
+  Widget _categoryCard() {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    final icon = GoalIconCatalog.byKey(_iconKey);
+    final majorColor =
+        MajorColors.byKey(icon.domain.major.name).of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            for (final c in _commonIcons) ...[
+              _IconCell(
+                icon: c.icon,
+                selected: _iconKey == c.key,
+                semanticLabel: Copy.editorIconSemantics(c.key),
+                onTap: () => setState(() => _iconKey = c.key),
+              ),
+              const SizedBox(width: AppSpace.s2),
+            ],
+            _MoreCell(onTap: _openPicker),
+          ],
+        ),
+        const SizedBox(height: AppSpace.s3),
+        Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(color: majorColor, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: AppSpace.s2),
+            Text(
+              '${icon.domain.zhLabel} · ${icon.domain.major.zhLabel}',
+              style: theme.textTheme.bodyS
+                  .copyWith(color: palette.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openPicker() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _IconPickerSheet(selectedKey: _iconKey),
+    );
+    if (picked != null) setState(() => _iconKey = picked);
+  }
+
+  /// 提醒区（习惯/长期）：开关 →（开）频率三档 + 提醒时间行。
+  Widget _reminderCard() {
+    final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpace.s3),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: AppRadius.rMd,
-            border: Border.all(color: palette.divider),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(Copy.editorReminderSwitch,
-                        style: theme.textTheme.bodyM),
-                    Text(Copy.editorReminderSub,
-                        style: theme.textTheme.bodyS
-                            .copyWith(color: palette.onSurfaceVariant)),
-                  ],
-                ),
-              ),
-              Switch(
-                key: const ValueKey('goalRemindSwitch'),
-                value: _remindOn,
-                onChanged: (v) => setState(() => _remindOn = v),
-              ),
-            ],
-          ),
+        Row(
+          children: [
+            Text(Copy.editorReminderSwitch, style: theme.textTheme.bodyL),
+            const Spacer(),
+            Switch(
+              key: const ValueKey('goalRemindSwitch'),
+              value: _remindOn,
+              onChanged: (v) => setState(() => _remindOn = v),
+            ),
+          ],
         ),
-        if (_remindOn) ...[
+        if (!_remindOn)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpace.s1),
+            child: Text(
+              Copy.editorReminderOffSub,
+              style: theme.textTheme.bodyS
+                  .copyWith(color: palette.onSurfaceVariant),
+            ),
+          )
+        else ...[
           const SizedBox(height: AppSpace.s3),
-          SegmentedButton<Cadence>(
+          Text(Copy.editorCadenceLabel,
+              style: theme.textTheme.labelS.copyWith(
+                  color: palette.onSurfaceVariant, letterSpacing: .8)),
+          const SizedBox(height: AppSpace.s2),
+          SegmentedPill<Cadence>(
             key: const ValueKey('goalCadenceSeg'),
-            segments: const [
-              ButtonSegment(value: Cadence.daily, label: Text(Copy.cadenceDaily)),
-              ButtonSegment(
-                  value: Cadence.threeDay, label: Text(Copy.cadenceThreeDay)),
-              ButtonSegment(
-                  value: Cadence.weekly, label: Text(Copy.cadenceWeekly)),
-            ],
-            selected: {_cadence},
-            onSelectionChanged: (s) => setState(() => _cadence = s.first),
+            values: Cadence.values,
+            labelOf: (c) => switch (c) {
+              Cadence.daily => Copy.cadenceDaily,
+              Cadence.threeDay => Copy.cadenceThreeDay,
+              Cadence.weekly => Copy.cadenceWeekly,
+            },
+            selected: _cadence,
+            onSelected: (c) => setState(() => _cadence = c),
           ),
           const SizedBox(height: AppSpace.s3),
           InkWell(
             key: const ValueKey('goalRemindTimeField'),
             onTap: _pickTime,
-            borderRadius: AppRadius.rMd,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpace.s4, vertical: AppSpace.s3),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: AppRadius.rMd,
-                border: Border.all(color: palette.divider),
-              ),
-              child: Row(
-                children: [
-                  Text(Copy.editorRemindTimeLabel,
-                      style: theme.textTheme.bodyM),
-                  const Spacer(),
-                  Text(_remindTime.isoString, style: theme.textTheme.bodyM),
-                  Icon(Icons.expand_more,
-                      size: 20, color: palette.onSurfaceVariant),
-                ],
-              ),
+            child: Row(
+              children: [
+                Text(Copy.editorRemindTimeLabel, style: theme.textTheme.bodyL),
+                const Spacer(),
+                Text(_remindTime.isoString, style: theme.textTheme.bodyL),
+                Icon(Icons.expand_more,
+                    size: 18, color: palette.onSurfaceVariant),
+              ],
             ),
           ),
         ],
@@ -471,31 +556,124 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   }
 }
 
-/// 分组卡：平铺展开、无折叠（R2 裁决 1）；与今日卡同语言
-/// （glassCard + rLg + divider 边 + shadowLow）。
-class _GroupCard extends StatelessWidget {
-  const _GroupCard({required this.label, required this.child});
+/// push 顶栏返回键（v2 .ed-back）：38 圆 surface 底 + 细边 + 低影。
+class _BackButton extends StatelessWidget {
+  const _BackButton({required this.onTap});
 
-  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Semantics(
+      button: true,
+      label: '返回',
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: palette.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: palette.divider),
+            boxShadow: palette.shadowLow,
+          ),
+          child: Icon(Icons.chevron_left,
+              size: 26, color: palette.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+/// 模板快捷条（冻结稿板 1 .tpl-row）：横滑胶囊，点击回填名称/类型/图标。
+class _TemplateStrip extends StatelessWidget {
+  const _TemplateStrip({required this.onTap});
+
+  final ValueChanged<GoalTemplate> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        clipBehavior: Clip.none,
+        children: [
+          for (final t in kHabitTemplates)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpace.s2),
+              child: InkWell(
+                onTap: () => onTap(t),
+                borderRadius: AppRadius.rFull,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpace.s4, vertical: AppSpace.s2),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: AppRadius.rFull,
+                    border: Border.all(color: palette.divider),
+                  ),
+                  child: Row(
+                    children: [
+                      // 冻结稿 .tpl：药丸统一环徽（trip_origin 18px accent），
+                      // 不逐模板取形（与常用行图标解耦，避免同名双现）。
+                      Icon(Icons.trip_origin,
+                          size: 18, color: palette.accent),
+                      const SizedBox(width: AppSpace.s2),
+                      Text(t.name, style: theme.textTheme.bodyM),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 分组卡（冻结稿 .card）：surface 底 + rLg + shadowLow、无描边；
+/// 标题 = label 大写间距小字 + 可选角标（必填 accent / 选填 surfaceAlt）。
+class _GroupCard extends StatelessWidget {
+  const _GroupCard({required this.title, this.badge, required this.child});
+
+  final String title;
+  final Widget? badge;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
     return Material(
-      color: palette.glassCard,
+      color: palette.surface,
       borderRadius: AppRadius.rLg,
+      clipBehavior: Clip.antiAlias,
       child: Container(
         padding: const EdgeInsets.all(AppSpace.s4),
         decoration: BoxDecoration(
           borderRadius: AppRadius.rLg,
-          border: Border.all(color: palette.divider),
           boxShadow: palette.shadowLow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: Theme.of(context).textTheme.titleS),
+            Row(
+              children: [
+                Text(title,
+                    style: theme.textTheme.labelS.copyWith(
+                        color: palette.onSurfaceVariant, letterSpacing: .8)),
+                if (badge != null) ...[
+                  const SizedBox(width: AppSpace.s2),
+                  badge!,
+                ],
+              ],
+            ),
             const SizedBox(height: AppSpace.s3),
             child,
           ],
@@ -505,46 +683,152 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-/// 「必填」小标（短期截止日；positive 填充，原型 .tag.req 同语言）。
-class _RequiredTag extends StatelessWidget {
-  const _RequiredTag();
+/// 角标胶囊（冻结稿 .req/.opt）：必填 accent 实底 / 选填 surfaceAlt。
+class _Tag extends StatelessWidget {
+  const _Tag(this.text, {required this.emphasized});
+
+  final String text;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final on = emphasized ? palette.accent : palette.surfaceAlt;
+    final fg =
+        emphasized ? palette.accentOn : palette.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s2, vertical: 1),
+      decoration: BoxDecoration(color: on, borderRadius: AppRadius.rFull),
+      child: Text(
+        text,
+        style: Theme.of(context)
+            .textTheme
+            .labelS
+            .copyWith(color: fg, letterSpacing: 0),
+      ),
+    );
+  }
+}
+
+/// v2 分段控件（冻结稿 .seg）：surfaceAlt 轨道 + 选中段 surface 浮起
+/// 加粗。onSelected 为 null = 锁定（不响应点选）。
+class SegmentedPill<T> extends StatelessWidget {
+  const SegmentedPill({
+    super.key,
+    required this.values,
+    required this.labelOf,
+    required this.selected,
+    this.onSelected,
+  });
+
+  final List<T> values;
+  final String Function(T) labelOf;
+
+  /// 当前选中值（测试经 `widget<SegmentedPill<T>>().selected` 读态）。
+  final T selected;
+  final ValueChanged<T>? onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: palette.surfaceAlt,
+        borderRadius: AppRadius.rMd,
+      ),
+      child: Row(
+        children: [
+          for (final (i, v) in values.indexed) ...[
+            if (i > 0) const SizedBox(width: 3),
+            Expanded(
+              child: InkWell(
+                onTap: onSelected == null ? null : () => onSelected!(v),
+                borderRadius: AppRadius.rSm,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: AppSpace.s2),
+                  decoration: BoxDecoration(
+                    color: v == selected ? palette.surface : null,
+                    borderRadius: AppRadius.rSm,
+                    boxShadow:
+                        v == selected ? palette.shadowLow : null,
+                  ),
+                  child: Text(
+                    labelOf(v),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyM.copyWith(
+                      color: v == selected
+                          ? palette.onSurface
+                          : palette.onSurfaceVariant,
+                      fontWeight:
+                          v == selected ? FontWeight.w700 : null,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 保存主行动（冻结稿 .btn-primary）：全宽胶囊 accent 实心 + 中影；
+/// 置灰态 opacity .4 无影。
+class _SaveButton extends StatelessWidget {
+  const _SaveButton({required this.enabled, required this.onPressed});
+
+  final bool enabled;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       decoration: BoxDecoration(
-        color: palette.positiveFill,
         borderRadius: AppRadius.rFull,
+        boxShadow: enabled ? palette.shadowMid : null,
       ),
-      child: Text(Copy.editorRequiredTag,
-          style: Theme.of(context)
-              .textTheme
-              .labelS
-              .copyWith(color: palette.positiveOn)),
+      child: FilledButton(
+        key: const ValueKey('goalSaveButton'),
+        onPressed: enabled ? onPressed : null,
+        style: FilledButton.styleFrom(
+          backgroundColor: palette.accent,
+          disabledBackgroundColor: palette.accent.withValues(alpha: .4),
+          foregroundColor: palette.accentOn,
+          disabledForegroundColor: palette.accentOn,
+          textStyle: Theme.of(context).textTheme.titleS,
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.rFull),
+          padding: const EdgeInsets.symmetric(vertical: AppSpace.s4),
+          minimumSize: const Size(double.infinity, 0),
+        ),
+        child: const Text(Copy.editorSave),
+      ),
     );
   }
 }
 
-/// 图标格（原型 .ico）：surface 底 + divider 边 + rMd；选中 → accent
-/// 底/边 + accentOn 色（常用行 36px/弹窗 40px 两档尺寸）。
+/// 图标格（冻结稿 .icell）：surfaceAlt 底 rMd；选中 = accent 1.5 描边
+/// + accent 图标（003 accent 实底形态退役）。常用行 38px/图标 22。
 class _IconCell extends StatelessWidget {
   const _IconCell({
     required this.icon,
-    required this.size,
-    required this.iconSize,
     required this.selected,
     required this.semanticLabel,
     required this.onTap,
+    this.size = 38,
+    this.iconSize = 22,
   });
 
   final IconData icon;
-  final double size;
-  final double iconSize;
   final bool selected;
   final String semanticLabel;
   final VoidCallback onTap;
+  final double size;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -561,21 +845,23 @@ class _IconCell extends StatelessWidget {
           height: size,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? palette.accent : palette.surface,
+            color: palette.surfaceAlt,
             borderRadius: AppRadius.rMd,
             border: Border.all(
-                color: selected ? palette.accent : palette.divider),
+              color: selected ? palette.accent : Colors.transparent,
+              width: 1.5,
+            ),
           ),
           child: Icon(icon,
               size: iconSize,
-              color: selected ? palette.accentOn : palette.onSurfaceVariant),
+              color: selected ? palette.accent : palette.onSurface),
         ),
       ),
     );
   }
 }
 
-/// 「更多」虚线格（原型 .more-btn）：40px、divider 虚线边、九点标识。
+/// 「更多」格（冻结稿 .imore）：虚线描边 + 环形图标 + 「更多」小字。
 class _MoreCell extends StatelessWidget {
   const _MoreCell({required this.onTap});
 
@@ -592,13 +878,24 @@ class _MoreCell extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.rMd,
         child: CustomPaint(
-          foregroundPainter:
-              _DashedBorderPainter(color: palette.divider),
+          foregroundPainter: _DashedBorderPainter(color: palette.divider),
           child: Container(
-            width: 40,
-            height: 40,
+            width: 38,
+            height: 38,
             alignment: Alignment.center,
-            child: _DotsIcon(color: palette.onSurfaceVariant),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.trip_origin,
+                    size: 13, color: palette.onSurfaceVariant),
+                const SizedBox(height: 1),
+                Text(Copy.editorIconMoreShort,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelS
+                        .copyWith(color: palette.onSurfaceVariant)),
+              ],
+            ),
           ),
         ),
       ),
@@ -606,7 +903,7 @@ class _MoreCell extends StatelessWidget {
   }
 }
 
-/// 圆角矩形虚线描边（原型 border: dashed；Flutter 边框无 dash 选项，自绘）。
+/// 圆角矩形虚线描边（冻结稿 border: dashed；Flutter 边框无 dash 选项，自绘）。
 class _DashedBorderPainter extends CustomPainter {
   const _DashedBorderPainter({required this.color});
 
@@ -635,36 +932,10 @@ class _DashedBorderPainter extends CustomPainter {
       old.color != color;
 }
 
-/// 3×3 九点标识（原型 more-btn svg 同款）。
-class _DotsIcon extends StatelessWidget {
-  const _DotsIcon({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget dot() => Container(
-          width: 3.5,
-          height: 3.5,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        );
-    Widget row() => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [dot(), const SizedBox(width: 5), dot(),
-            const SizedBox(width: 5), dot()],
-        );
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [row(), const SizedBox(height: 5), row(),
-        const SizedBox(height: 5), row()],
-    );
-  }
-}
-
-/// 「选择分类」弹窗（原型 .picker）：全量 38 枚按领域分组、40px 格、
-/// 点选即关（pop key）；scrim 点外/Esc/✕ 关闭不选。
-class _IconPickerDialog extends StatelessWidget {
-  const _IconPickerDialog({required this.selectedKey});
+/// 分类全量上滑弹层（冻结稿板 3 .sheet）：38 枚按 10 域分组，组头
+/// 带三大类色点；6 列方格；点选即关（pop key）；scrim 点外关闭。
+class _IconPickerSheet extends StatelessWidget {
+  const _IconPickerSheet({required this.selectedKey});
 
   final String selectedKey;
 
@@ -672,96 +943,111 @@ class _IconPickerDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 326, maxHeight: 560),
-        child: Material(
-          color: palette.surface,
-          borderRadius: AppRadius.rLg,
-          child: Container(
+    final maxHeight = MediaQuery.of(context).size.height * .78;
+    return Container(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius:
+            BorderRadius.vertical(top: AppRadius.rXl.topLeft),
+        boxShadow: palette.shadowHigh,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 抓手条（冻结稿 .grab）。
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(top: AppSpace.s3, bottom: AppSpace.s3),
             decoration: BoxDecoration(
-              borderRadius: AppRadius.rLg,
-              border: Border.all(color: palette.divider),
-              boxShadow: palette.shadowHigh,
+              color: palette.divider,
+              borderRadius: AppRadius.rFull,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSpace.s4, AppSpace.s4, AppSpace.s3, AppSpace.s2),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(Copy.editorPickCategoryTitle,
-                            style: theme.textTheme.titleS),
-                      ),
-                      Semantics(
-                        label: Copy.editorIconCloseLabel,
-                        button: true,
-                        child: InkWell(
-                          key: const ValueKey('goalIconPickerClose'),
-                          onTap: () => Navigator.of(context).pop(),
-                          borderRadius: AppRadius.rFull,
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: palette.surfaceAlt,
-                              borderRadius: AppRadius.rFull,
-                            ),
-                            child: Icon(Icons.close_rounded,
-                                size: 16, color: palette.onSurfaceVariant),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding:
-                        const EdgeInsets.fromLTRB(AppSpace.s4, 0, AppSpace.s4,
-                            AppSpace.s4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final entry
-                            in GoalIconCatalog.byDomain.entries) ...[
-                          Text(entry.key.zhLabel,
-                              style: theme.textTheme.labelS.copyWith(
-                                  color: palette.onSurfaceVariant)),
-                          const SizedBox(height: AppSpace.s2),
-                          Wrap(
-                            spacing: AppSpace.s2,
-                            runSpacing: AppSpace.s2,
-                            children: [
-                              for (final c in entry.value)
-                                _IconCell(
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpace.s5, 0, AppSpace.s5, AppSpace.s3),
+            child: SizedBox(
+              width: double.infinity,
+              child: Text(Copy.editorPickCategoryTitle,
+                  style: theme.textTheme.titleS),
+            ),
+          ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpace.s5, 0, AppSpace.s5, AppSpace.s5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final entry in GoalIconCatalog.byDomain.entries) ...[
+                    _DomainHeader(domain: entry.key),
+                    const SizedBox(height: AppSpace.s2),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const gap = AppSpace.s2;
+                        final w = (constraints.maxWidth - 5 * gap) / 6;
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (final c in entry.value)
+                              SizedBox(
+                                width: w,
+                                height: w,
+                                child: _IconCell(
                                   icon: c.icon,
-                                  size: 40,
-                                  iconSize: 20,
+                                  size: w,
+                                  iconSize: 22,
                                   selected: c.key == selectedKey,
                                   semanticLabel:
                                       Copy.editorIconSemantics(c.key),
-                                  onTap: () =>
-                                      Navigator.of(context).pop(c.key),
+                                  onTap: () => Navigator.of(context).pop(c.key),
                                 ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpace.s3),
-                        ],
-                      ],
+                              ),
+                          ],
+                        );
+                      },
                     ),
-                  ),
-                ),
-              ],
+                    const SizedBox(height: AppSpace.s4),
+                  ],
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+}
+
+/// 弹层域组头（冻结稿 .dh）：大类色点 + 「域 · 大类」。
+class _DomainHeader extends StatelessWidget {
+  const _DomainHeader({required this.domain});
+
+  final GoalIconDomain domain;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final color = MajorColors.byKey(domain.major.name).of(context);
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: AppSpace.s2),
+        Text(
+          '${domain.zhLabel} · ${domain.major.zhLabel}',
+          style: Theme.of(context)
+              .textTheme
+              .labelS
+              .copyWith(color: palette.onSurfaceVariant),
+        ),
+      ],
     );
   }
 }

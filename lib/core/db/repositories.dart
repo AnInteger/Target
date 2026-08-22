@@ -452,12 +452,15 @@ class SettingsRepository {
             onboardingCompleted: Value(s.onboardingCompleted),
             notificationDeniedAcknowledged:
                 Value(s.notificationDeniedAcknowledged),
+            // 004 v5（D2）：NULL 与 'system' 等价，统一落 .name。
+            themeMode: Value(s.themeMode.name),
           ));
 
   static Settings _to(db.SettingsRow r) => Settings(
         dailyBriefTime: r.dailyBriefTime,
         onboardingCompleted: r.onboardingCompleted,
         notificationDeniedAcknowledged: r.notificationDeniedAcknowledged,
+        themeMode: AppThemeMode.parse(r.themeMode),
       );
 
   /// 003 v3 账号资料（D7：单例行 nickname/avatar_key 两列）。

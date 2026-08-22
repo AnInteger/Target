@@ -5,7 +5,8 @@
 /// 因此构造函数只收 QueryExecutor。schemaVersion 见下方 getter
 /// （v2：goals 增 B 案 envelope 三可空列；v3：003 三类型/提醒档/
 /// 资料列 + 存量重映射，见 _migrateV3；v4：check_ins 增 note 可空列，
-/// 纯 ADD COLUMN，FR-019）。
+/// 纯 ADD COLUMN，FR-019；v5：004 settings 增 themeMode 可空列，
+/// 纯 ADD COLUMN，research D2）。
 library;
 
 import 'package:drift/drift.dart';
@@ -34,7 +35,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -59,6 +60,11 @@ class AppDatabase extends _$AppDatabase {
           // v3 → v4（003 T044，FR-019）：打卡一句话描述，纯 ADD COLUMN。
           if (from < 4) {
             await m.addColumn(checkIns, checkIns.note);
+          }
+          // v4 → v5（004 T003，research D2）：主题偏好可空列，
+          // NULL = 跟随系统，纯 ADD COLUMN。
+          if (from < 5) {
+            await m.addColumn(settingsRows, settingsRows.themeMode);
           }
         },
       );

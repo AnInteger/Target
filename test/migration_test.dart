@@ -105,8 +105,8 @@ class _V2Database extends AppDatabase {
 }
 
 /// v3 旧库（schemaVersion=3）：check_ins 尚无 note 列——T044 的 v4 存量形态。
-/// v4 迁移只触碰 check_ins（纯 ADD COLUMN），goals 等表从简不建
-/// （FK 未开 pragma，插入不受影响）。
+/// v4/v5 迁移触碰 check_ins 与 settings_rows（均纯 ADD COLUMN），其余
+/// 表从简不建（FK 未开 pragma，插入不受影响）。
 class _V3Database extends AppDatabase {
   _V3Database(super.e);
 
@@ -121,6 +121,36 @@ class _V3Database extends AppDatabase {
               'PRIMARY KEY, "goal_id" TEXT NOT NULL, "day" TEXT NOT NULL, '
               '"created_at" TEXT NOT NULL, "is_backfill" INTEGER NOT NULL, '
               '"status" TEXT NOT NULL)');
+          // v5 迁移（004 T003）触碰 settings_rows——v3 形态
+          //（_migrateV3 已加 nickname/avatar_key 两可空列）。
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "settings_rows" ("id" INTEGER NOT '
+              'NULL PRIMARY KEY, "daily_brief_time" TEXT NOT NULL, '
+              '"nickname" TEXT NULL, "avatar_key" TEXT NULL, '
+              '"onboarding_completed" INTEGER NOT NULL, '
+              '"notification_denied_acknowledged" INTEGER NOT NULL)');
+        },
+      );
+}
+
+/// v4 旧库（schemaVersion=4）：settings_rows 尚无 theme_mode 列——
+/// 004 T003 的 v5 存量形态。v5 迁移只触碰 settings（纯 ADD COLUMN），
+/// 他表从简不建（沿 _V3Database 先例）。
+class _V4Database extends AppDatabase {
+  _V4Database(super.e);
+
+  @override
+  int get schemaVersion => 4;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) async {
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "settings_rows" ("id" INTEGER NOT '
+              'NULL PRIMARY KEY, "daily_brief_time" TEXT NOT NULL, '
+              '"nickname" TEXT NULL, "avatar_key" TEXT NULL, '
+              '"onboarding_completed" INTEGER NOT NULL, '
+              '"notification_denied_acknowledged" INTEGER NOT NULL)');
         },
       );
 }
@@ -404,6 +434,35 @@ void main() {
     final after = await repo.all();
     expect(after.where((c) => c.note == '晚上十分钟'), hasLength(1));
     expect(after.where((c) => c.note == null), hasLength(2));
+    await db.close();
+  });
+
+  test('v4→v5（004 T003·D2）：settings 增 themeMode 列，存量行照读、三档可写', () async {
+    // 1) v4 建库 + 带资料的单例行（无 theme_mode 列）。
+    {
+      final v4 = _V4Database(NativeDatabase(file));
+      await v4.customStatement(
+          "INSERT INTO settings_rows (id, daily_brief_time, nickname, "
+          "onboarding_completed, notification_denied_acknowledged) VALUES "
+          "(1, '08:00', '星行', 1, 0)");
+      await v4.close();
+    }
+
+    // 2) 同库 v5 开启 → 纯 ADD COLUMN：存量资料照读，themeMode → system。
+    final db = AppDatabase(NativeDatabase(file));
+    final settings = SettingsRepository(db);
+    final migrated = await settings.get();
+    expect(migrated.themeMode, AppThemeMode.system);
+    expect(migrated.onboardingCompleted, true);
+    expect((await settings.getProfile()).nickname, '星行');
+
+    // 3) 三档写入往返（dark → light → system 显式）。
+    await settings.update(migrated.copyWith(themeMode: AppThemeMode.dark));
+    expect((await settings.get()).themeMode, AppThemeMode.dark);
+    await settings.update(migrated.copyWith(themeMode: AppThemeMode.light));
+    expect((await settings.get()).themeMode, AppThemeMode.light);
+    await settings.update(migrated.copyWith(themeMode: AppThemeMode.system));
+    expect((await settings.get()).themeMode, AppThemeMode.system);
     await db.close();
   });
 

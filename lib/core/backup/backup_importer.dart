@@ -224,6 +224,11 @@ class BackupImporter {
     if (settings['nickname'] != null) {
       _str(settings, 'nickname', 'settings.nickname');
     }
+    // 004 v5（D2）：themeMode 可选键，缺键/非串不报错——归一在写入侧
+    //（未知值宽容 → NULL = system）。
+    if (settings['themeMode'] != null) {
+      _str(settings, 'themeMode', 'settings.themeMode');
+    }
     if (settings['avatarKey'] != null) {
       _str(settings, 'avatarKey', 'settings.avatarKey');
     }
@@ -409,6 +414,8 @@ class BackupImporter {
             // v3 账号资料（D7）：可选键，缺键 → NULL。
             nickname: Value(s['nickname'] as String?),
             avatarKey: Value(s['avatarKey'] as String?),
+            // 004 v5（D2）：可选键，缺键/未知值 → NULL（= system）。
+            themeMode: Value(_normThemeMode(s['themeMode'])),
           ));
     });
     return ImportSummary(counts);
@@ -530,4 +537,9 @@ class BackupImporter {
 
   static FrequencyPattern _patternOf(Map<String, Object?> m, String key) =>
       FrequencyPattern.fromJson(Map<String, dynamic>.from(m[key]! as Map));
+
+  /// 004 v5（D2）：themeMode 值域冻结 system|light|dark；缺键/未知值
+  /// 宽容归一 NULL（= system，沿 data-model.md 值域冻结口径）。
+  static String? _normThemeMode(Object? v) =>
+      (v == 'system' || v == 'light' || v == 'dark') ? v as String? : null;
 }

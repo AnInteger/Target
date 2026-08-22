@@ -176,5 +176,8 @@ class BackupExporter {
         // v3 账号资料（D7）：可选键，NULL 不导出——旧文件缺键导回为 NULL。
         if (r?.nickname != null) 'nickname': r!.nickname,
         if (r?.avatarKey != null) 'avatarKey': r!.avatarKey,
+        // 004 v5（D2）：主题偏好可选键，NULL（=system）不导出——
+        // 旧文件缺键导回 NULL，双向宽容沿 T044 note 先例。
+        if (r?.themeMode != null) 'themeMode': r!.themeMode,
       };
 }

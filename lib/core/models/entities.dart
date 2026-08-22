@@ -535,27 +535,45 @@ class WeeklyReview {
 // Settings（单例）
 // ---------------------------------------------------------------------------
 
+/// 主题偏好三档（004 v2 · research D2）：settings.theme_mode TEXT 枚举，
+/// 值域即 .name 并已冻结；NULL/未知值 → system（跟随系统 = 003 完结态
+/// 行为，存量用户零感知）。
+enum AppThemeMode {
+  system,
+  light,
+  dark;
+
+  static AppThemeMode parse(String? raw) => values
+      .firstWhere((m) => m.name == raw, orElse: () => AppThemeMode.system);
+}
+
 class Settings {
   const Settings({
     this.dailyBriefTime = const LocalTime(8, 0),
     this.onboardingCompleted = false,
     this.notificationDeniedAcknowledged = false,
+    this.themeMode = AppThemeMode.system,
   });
 
   final LocalTime dailyBriefTime;
   final bool onboardingCompleted;
   final bool notificationDeniedAcknowledged;
 
+  /// 主题偏好（004 v5）：DB NULL 与 'system' 等价，实体侧统一非空枚举。
+  final AppThemeMode themeMode;
+
   Settings copyWith({
     LocalTime? dailyBriefTime,
     bool? onboardingCompleted,
     bool? notificationDeniedAcknowledged,
+    AppThemeMode? themeMode,
   }) =>
       Settings(
         dailyBriefTime: dailyBriefTime ?? this.dailyBriefTime,
         onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
         notificationDeniedAcknowledged:
             notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
+        themeMode: themeMode ?? this.themeMode,
       );
 }
 

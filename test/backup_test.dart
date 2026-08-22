@@ -93,6 +93,7 @@ Future<db.AppDatabase> _seededDb() async {
     dailyBriefTime: LocalTime(9, 30),
     onboardingCompleted: true,
     notificationDeniedAcknowledged: true,
+    themeMode: AppThemeMode.dark,
   ));
   return database;
 }
@@ -195,11 +196,61 @@ void main() {
     final settings = await SettingsRepository(target).get();
     expect(settings.dailyBriefTime, const LocalTime(9, 30));
     expect(settings.onboardingCompleted, true);
+    // 004 v5（D2）：主题偏好随备份往返。
+    expect(settings.themeMode, AppThemeMode.dark);
 
     // 摘要：各实体记录数。
     expect(summary.counts['goals'], 2);
     expect(summary.counts['checkIns'], checkIns.length);
     expect(summary.counts['weeklyReviews'], 1);
+  });
+
+  test('themeMode 双向宽容（004 T003·D2）：可选项往返 + 缺键/未知值 → system', () async {
+    final exporter = BackupExporter(source);
+    final map =
+        await exporter.exportMap(now: DateTime.utc(2026, 8, 22));
+
+    // 种子库 dark → 导出键在、值对。
+    final s = (map['data'] as Map)['settings'] as Map;
+    expect(s['themeMode'], 'dark');
+
+    // 缺键（v4 及更早备份形态）→ 导回跟随系统。
+    final mapNoKey = await exporter.exportMap(now: DateTime.utc(2026, 8, 22));
+    ((mapNoKey['data'] as Map)['settings'] as Map).remove('themeMode');
+    final targetA = db.AppDatabase(NativeDatabase.memory());
+    addTearDown(targetA.close);
+    await BackupImporter(targetA).apply(
+        BackupImporter(targetA)
+            .parse(BackupExporter(source).encode(mapNoKey)),
+        overwriteLocal: true);
+    expect((await SettingsRepository(targetA).get()).themeMode,
+        AppThemeMode.system);
+
+    // 未知值 → 宽容归一 system（值域冻结，不报错）。
+    final mapBad = await exporter.exportMap(now: DateTime.utc(2026, 8, 22));
+    ((mapBad['data'] as Map)['settings'] as Map)['themeMode'] = 'neon';
+    final targetB = db.AppDatabase(NativeDatabase.memory());
+    addTearDown(targetB.close);
+    await BackupImporter(targetB).apply(
+        BackupImporter(targetB)
+            .parse(BackupExporter(source).encode(mapBad)),
+        overwriteLocal: true);
+    expect((await SettingsRepository(targetB).get()).themeMode,
+        AppThemeMode.system);
+
+    // 三档显式写入往返（light）。
+    final targetC = db.AppDatabase(NativeDatabase.memory());
+    addTearDown(targetC.close);
+    await BackupImporter(targetC).apply(
+        BackupImporter(targetC).parse(BackupExporter(source).encode(map)),
+        overwriteLocal: true);
+    await SettingsRepository(targetC)
+        .update((await SettingsRepository(targetC).get())
+            .copyWith(themeMode: AppThemeMode.light));
+    final reExport =
+        await BackupExporter(targetC).exportMap(now: DateTime.utc(2026, 8, 22));
+    expect(((reExport['data'] as Map)['settings'] as Map)['themeMode'],
+        'light');
   });
 
   test('损坏文件：缺 data 键 / 缺实体键 / 字段类型错 → 明确报错不导入', () async {

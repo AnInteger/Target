@@ -3417,6 +3417,17 @@ class $SettingsRowsTable extends SettingsRows
         ),
         defaultValue: const Constant(false),
       );
+  static const VerificationMeta _themeModeMeta = const VerificationMeta(
+    'themeMode',
+  );
+  @override
+  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
+    'theme_mode',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3425,6 +3436,7 @@ class $SettingsRowsTable extends SettingsRows
     avatarKey,
     onboardingCompleted,
     notificationDeniedAcknowledged,
+    themeMode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3471,6 +3483,12 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('theme_mode')) {
+      context.handle(
+        _themeModeMeta,
+        themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
+      );
+    }
     return context;
   }
 
@@ -3506,6 +3524,10 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.bool,
         data['${effectivePrefix}notification_denied_acknowledged'],
       )!,
+      themeMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}theme_mode'],
+      ),
     );
   }
 
@@ -3525,6 +3547,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final String? avatarKey;
   final bool onboardingCompleted;
   final bool notificationDeniedAcknowledged;
+  final String? themeMode;
   const SettingsRow({
     required this.id,
     required this.dailyBriefTime,
@@ -3532,6 +3555,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     this.avatarKey,
     required this.onboardingCompleted,
     required this.notificationDeniedAcknowledged,
+    this.themeMode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3552,6 +3576,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     map['notification_denied_acknowledged'] = Variable<bool>(
       notificationDeniedAcknowledged,
     );
+    if (!nullToAbsent || themeMode != null) {
+      map['theme_mode'] = Variable<String>(themeMode);
+    }
     return map;
   }
 
@@ -3567,6 +3594,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           : Value(avatarKey),
       onboardingCompleted: Value(onboardingCompleted),
       notificationDeniedAcknowledged: Value(notificationDeniedAcknowledged),
+      themeMode: themeMode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(themeMode),
     );
   }
 
@@ -3586,6 +3616,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       notificationDeniedAcknowledged: serializer.fromJson<bool>(
         json['notificationDeniedAcknowledged'],
       ),
+      themeMode: serializer.fromJson<String?>(json['themeMode']),
     );
   }
   @override
@@ -3600,6 +3631,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'notificationDeniedAcknowledged': serializer.toJson<bool>(
         notificationDeniedAcknowledged,
       ),
+      'themeMode': serializer.toJson<String?>(themeMode),
     };
   }
 
@@ -3610,6 +3642,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     Value<String?> avatarKey = const Value.absent(),
     bool? onboardingCompleted,
     bool? notificationDeniedAcknowledged,
+    Value<String?> themeMode = const Value.absent(),
   }) => SettingsRow(
     id: id ?? this.id,
     dailyBriefTime: dailyBriefTime ?? this.dailyBriefTime,
@@ -3618,6 +3651,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     notificationDeniedAcknowledged:
         notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
+    themeMode: themeMode.present ? themeMode.value : this.themeMode,
   );
   SettingsRow copyWithCompanion(SettingsRowsCompanion data) {
     return SettingsRow(
@@ -3634,6 +3668,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           data.notificationDeniedAcknowledged.present
           ? data.notificationDeniedAcknowledged.value
           : this.notificationDeniedAcknowledged,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
     );
   }
 
@@ -3646,8 +3681,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('avatarKey: $avatarKey, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
           ..write(
-            'notificationDeniedAcknowledged: $notificationDeniedAcknowledged',
+            'notificationDeniedAcknowledged: $notificationDeniedAcknowledged, ',
           )
+          ..write('themeMode: $themeMode')
           ..write(')'))
         .toString();
   }
@@ -3660,6 +3696,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     avatarKey,
     onboardingCompleted,
     notificationDeniedAcknowledged,
+    themeMode,
   );
   @override
   bool operator ==(Object other) =>
@@ -3671,7 +3708,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.avatarKey == this.avatarKey &&
           other.onboardingCompleted == this.onboardingCompleted &&
           other.notificationDeniedAcknowledged ==
-              this.notificationDeniedAcknowledged);
+              this.notificationDeniedAcknowledged &&
+          other.themeMode == this.themeMode);
 }
 
 class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
@@ -3681,6 +3719,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String?> avatarKey;
   final Value<bool> onboardingCompleted;
   final Value<bool> notificationDeniedAcknowledged;
+  final Value<String?> themeMode;
   const SettingsRowsCompanion({
     this.id = const Value.absent(),
     this.dailyBriefTime = const Value.absent(),
@@ -3688,6 +3727,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.avatarKey = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
     this.notificationDeniedAcknowledged = const Value.absent(),
+    this.themeMode = const Value.absent(),
   });
   SettingsRowsCompanion.insert({
     this.id = const Value.absent(),
@@ -3696,6 +3736,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.avatarKey = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
     this.notificationDeniedAcknowledged = const Value.absent(),
+    this.themeMode = const Value.absent(),
   }) : dailyBriefTime = Value(dailyBriefTime);
   static Insertable<SettingsRow> custom({
     Expression<int>? id,
@@ -3704,6 +3745,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<String>? avatarKey,
     Expression<bool>? onboardingCompleted,
     Expression<bool>? notificationDeniedAcknowledged,
+    Expression<String>? themeMode,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3714,6 +3756,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'onboarding_completed': onboardingCompleted,
       if (notificationDeniedAcknowledged != null)
         'notification_denied_acknowledged': notificationDeniedAcknowledged,
+      if (themeMode != null) 'theme_mode': themeMode,
     });
   }
 
@@ -3724,6 +3767,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String?>? avatarKey,
     Value<bool>? onboardingCompleted,
     Value<bool>? notificationDeniedAcknowledged,
+    Value<String?>? themeMode,
   }) {
     return SettingsRowsCompanion(
       id: id ?? this.id,
@@ -3733,6 +3777,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       notificationDeniedAcknowledged:
           notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
+      themeMode: themeMode ?? this.themeMode,
     );
   }
 
@@ -3761,6 +3806,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         notificationDeniedAcknowledged.value,
       );
     }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(themeMode.value);
+    }
     return map;
   }
 
@@ -3773,8 +3821,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('avatarKey: $avatarKey, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
           ..write(
-            'notificationDeniedAcknowledged: $notificationDeniedAcknowledged',
+            'notificationDeniedAcknowledged: $notificationDeniedAcknowledged, ',
           )
+          ..write('themeMode: $themeMode')
           ..write(')'))
         .toString();
   }
@@ -6708,6 +6757,7 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String?> avatarKey,
       Value<bool> onboardingCompleted,
       Value<bool> notificationDeniedAcknowledged,
+      Value<String?> themeMode,
     });
 typedef $$SettingsRowsTableUpdateCompanionBuilder =
     SettingsRowsCompanion Function({
@@ -6717,6 +6767,7 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String?> avatarKey,
       Value<bool> onboardingCompleted,
       Value<bool> notificationDeniedAcknowledged,
+      Value<String?> themeMode,
     });
 
 class $$SettingsRowsTableFilterComposer
@@ -6756,6 +6807,11 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<bool> get notificationDeniedAcknowledged => $composableBuilder(
     column: $table.notificationDeniedAcknowledged,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6799,6 +6855,11 @@ class $$SettingsRowsTableOrderingComposer
         column: $table.notificationDeniedAcknowledged,
         builder: (column) => ColumnOrderings(column),
       );
+
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsRowsTableAnnotationComposer
@@ -6835,6 +6896,9 @@ class $$SettingsRowsTableAnnotationComposer
         column: $table.notificationDeniedAcknowledged,
         builder: (column) => column,
       );
+
+  GeneratedColumn<String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
 }
 
 class $$SettingsRowsTableTableManager
@@ -6875,6 +6939,7 @@ class $$SettingsRowsTableTableManager
                 Value<bool> onboardingCompleted = const Value.absent(),
                 Value<bool> notificationDeniedAcknowledged =
                     const Value.absent(),
+                Value<String?> themeMode = const Value.absent(),
               }) => SettingsRowsCompanion(
                 id: id,
                 dailyBriefTime: dailyBriefTime,
@@ -6882,6 +6947,7 @@ class $$SettingsRowsTableTableManager
                 avatarKey: avatarKey,
                 onboardingCompleted: onboardingCompleted,
                 notificationDeniedAcknowledged: notificationDeniedAcknowledged,
+                themeMode: themeMode,
               ),
           createCompanionCallback:
               ({
@@ -6892,6 +6958,7 @@ class $$SettingsRowsTableTableManager
                 Value<bool> onboardingCompleted = const Value.absent(),
                 Value<bool> notificationDeniedAcknowledged =
                     const Value.absent(),
+                Value<String?> themeMode = const Value.absent(),
               }) => SettingsRowsCompanion.insert(
                 id: id,
                 dailyBriefTime: dailyBriefTime,
@@ -6899,6 +6966,7 @@ class $$SettingsRowsTableTableManager
                 avatarKey: avatarKey,
                 onboardingCompleted: onboardingCompleted,
                 notificationDeniedAcknowledged: notificationDeniedAcknowledged,
+                themeMode: themeMode,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

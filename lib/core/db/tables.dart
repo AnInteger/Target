@@ -219,6 +219,9 @@ class SettingsRows extends Table {
       boolean().withDefault(const Constant(false))();
   BoolColumn get notificationDeniedAcknowledged =>
       boolean().withDefault(const Constant(false))();
+  // 004 v5 新增（research D2）：主题偏好 TEXT 枚举
+  // （system|light|dark），NULL = 跟随系统（003 完结态行为）。
+  TextColumn get themeMode => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

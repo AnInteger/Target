@@ -73,7 +73,7 @@
 
 - [ ] T015 [US1] 路由三分支：`lib/app/router.dart`——StatefulShellRoute 四分支→三分支（today/review/settings→「我的」），`/goal-editor` 与 `/goal/:id` 从根路由移入 today 分支子路由（FR-010 根因修复，research D5），`/goals` 路由退役 + 深链兜底改落 `/today`；`test/widget_test.dart` 增路由结构断言（页签恰 3、编辑器内导航可见、/goals 兜底）
 - [ ] T016 [US1] goals_view 退役：删除 `lib/features/goals/goals_view.dart`，浏览/管理职能落点确认（今日页卡列表承载浏览，详情承载管理）；清除全部残留引用
-- [ ] T017 [US1] 今日头部重组：`lib/features/today/today_view.dart`——头部与内容同连续图层（背景贯通、无分隔线，FR-003）：左 = 账号区（头像环+昵称，tap→资料 sheet）；中 = 日期语；右 = 铃铛（角标=今日新增推导条目数）+ ＋（→/goal-editor）；目标卡列表改 GoalIconCatalog 图标+一句话+类型徽章+最新记录行（「相对时间-描述」，未填兜底「完成打卡」，FR-019），整卡可点直达详情、卡上无按钮，今日之环卡移除（FR-020，R2 裁决 2）（依赖 T015/T018/T019/T008/T044）
+- [ ] T017 [US1] 今日头部重组：`lib/features/today/today_view.dart`——头部与内容同连续图层（背景贯通、无分隔线，FR-003）：左 = 账号区（头像环+昵称，tap→资料 sheet）；中 = 日期语；右 = 铃铛（角标=今日新增推导条目数）+ ＋（→/goal-editor）；目标卡列表改 GoalIconCatalog 图标+一句话+类型徽章+最新记录行（「相对时间-描述」，未填兜底「完成打卡」，FR-019），整卡可点直达详情、卡上无按钮，今日之环卡与周节奏微条均移除（FR-020，R2 裁决 2 + R3 裁决 1）；空态文案正式 App 语域（R3 裁决 3）（依赖 T015/T018/T019/T008/T044）
 - [ ] T018 [P] [US1] 本地资料编辑：新建 `lib/features/profile/profile.dart`——资料编辑 bottom sheet（昵称输入 + 8 枚预设头像选择，图标+令牌环），读写 SettingsRows.nickname/avatarKey（经 repositories），保存即时生效、重启保留、未填显示默认头像+「我」；配套单测（默认兜底/往返持久化）
 - [ ] T019 [P] [US1] 通知列表推导：新建 `lib/features/notifications/notification_list.dart` + 推导逻辑——四源合成（①Reminders 排程+cadence 的今日/明日提醒时刻 ②近 7 天成就与全完成日 ③streak 里程碑 ④deadline≤今天且未 achieved 的到期询问，research D6），时间倒序、按天分组、行=类型图标+标题+相对时间、空态友好语；tap 行→/goal/:id；配套推导单测（四源各自+混排排序）
 - [ ] T020 [US1] 铃铛接入：`lib/features/today/today_view.dart`——铃铛 tap 打开通知列表 sheet（不遮底部导航）、角标数=今日新增推导条目；今日页旧通知设置入口拆除（迁往 US4 T035 落位）
@@ -93,7 +93,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] 编辑器骨架：重构 `lib/features/goals/goal_editor.dart`——分组平铺容器无折叠（「分类」区置顶 / 基础信息 / 目标类型与提醒，R2 裁决 1）+ 保存常驻底部（导航条上方）；编辑既有目标同构（类型可改，改型联动显隐）
+- [ ] T023 [US2] 编辑器骨架：重构 `lib/features/goals/goal_editor.dart`——分组平铺容器无折叠（「分类」区置顶 / 基础信息 / 目标类型与提醒，R2 裁决 1）+ 保存常驻底部（导航条上方，按钮文案统一「保存」，R3 裁决 2）；编辑既有目标同构（类型可改，改型联动显隐）；表单内不出现任何行为说明句（R3 裁决 3）
 - [ ] T024 [US2] 基础信息组：一句话描述输入（goals.name 语义升级，~40 字上限，placeholder 示范完整短句「月底前能连续跑 3 公里」式，research D8）——无「为什么想做/怎样算做到」字段与写入路径（FR-014）
 - [ ] T025 [US2] 类型与提醒组：分段选择 长期|短期|习惯 + 联动——短期→截止日选择器（必填）+ 倒计时预告；习惯→提醒开关→（开）频率档 [一天一次|三天一次|一周一次] + 时间选择器（FR-012/013）；写 Reminders.isEnabled/cadence/time；长期默认无提醒（可开后同习惯档）
 - [ ] T026 [US2] 分类组：「分类」区 = 常用一行（固定策展约 6 枚）+「更多」按钮打开悬浮选择弹窗（GoalIconCatalog 全量、按领域分组），常用行与弹窗选中态同步、单选即存 iconKey（FR-011/015，R2 裁决 1）；无颜色步；表单不再出现 colorKey 写入
@@ -162,6 +162,7 @@
 - [ ] T041 深链与外部入口回归：`lib/app/router.dart` target:// 深链映射全走查（today/review/goal-{id} 不变、goal 无 id 兜底 /today）+ 通知 tap 落地页 + iOS 小组件 tap 入口在新路由下可达（spec 边界用例 7）
 - [ ] T042 [P] 文档收口：`design/reviews.md` 记录本特性全部送审/验收结论；`specs/003-app-ux-refinement/quickstart.md` 完成口径核对（SC-001~007 逐条）；spec.md Status 更新；memory 更新实现状态
 - [ ] T043 [P] 真机合并轮清单：整理用户侧动作清单（Codemagic 手动触发 `ios-unsigned` → iLoader 侧载）——核对点：新图标/启动屏（T028 资产首次真机亮相）、三 Tab 手感、通知到点语气、打卡动效帧率（quickstart 阶段 C；用户「顺带测试」合并轮）
+- [ ] T045 [P] 文案语域清查（FR-021，R3 裁决 3）：`lib/core/copy.dart` 违禁常量处置——onboardingDataNote/privacyFoot（本地存储说明）删除并同步消费方、reminderNudge「做一次就算数」等口语化提示正式化或删除（shortTermDueAsk「到日子了，怎么样？」为用户裁定通知文案，保留）；全屏走查无寒暄/比喻式提示残留；`flutter analyze && flutter test` 全绿
 
 **Checkpoint**: 全特性收官——SC-001~007 逐条过、tasks.md 全勾、reviews.md 结论齐
 

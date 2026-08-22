@@ -7,12 +7,14 @@
 <link rel="stylesheet" href="../tokens.css?v=0820f">
 <style>
   /* ============================================================
-     目标编辑器原型（003 · T003 · R2 · 三类型分组，T007 R2 修订）
+     目标编辑器原型（003 · T003 · R3 · 三类型分组，T007 R3 修订）
      - 取值 100% 来自 ../tokens.css（SC-004）；图标经 goal-icons.js
      - FR-011「分类」区置顶：常用一行（固定策展）+「更多」悬浮弹窗
        选全量（按领域分组）；其余组一律平铺展开、无折叠设计
      - FR-012 无频率问答：类型改 长期|短期|习惯 分段，切型联动显隐
      - FR-013 提醒开关化：习惯/长期共用开关区，三档频率 + 时间
+     - FR-021 正式 App 语域：无行为说明句/本地存储说明；
+       保存按钮统一「保存」（R3 裁决 2/3）
      - FR-015 图标库按领域分组（弹窗内），无颜色步
      - FR-010 编辑器在 today 分支：底部三页签导航全程可见
      - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
@@ -105,7 +107,7 @@
   .ed-lab { font: var(--font-label); letter-spacing: .08em;
             color: var(--on-surface-variant); display: flex; align-items: center;
             gap: var(--space-2); }
-  .ed-lab .hint { font: var(--font-body-s); letter-spacing: 0; opacity: .8; }
+  .ed-lab .hint { font: var(--font-body-s); letter-spacing: 0; opacity: .8; } /* R3 裁决 3 后无消费方，留样式备用 */
   .tag { font: var(--font-label); padding: 1px var(--space-2);
          border-radius: var(--radius-full); white-space: nowrap; }
   .tag.req { background: var(--positive-fill); color: var(--positive-on); }
@@ -133,12 +135,9 @@
 
   /* 类型联动子区（截止 / 提醒开关） */
   .subsec { animation: rise var(--motion-base) var(--ease-standard); }
-  .form[data-type="short"] .when-long,
   .form[data-type="short"] .when-rhythm,
   .form[data-type="long"]  .when-short,
-  .form[data-type="long"]  .only-habit-hint,
-  .form[data-type="habit"] .when-short,
-  .form[data-type="habit"] .when-long { display: none; }
+  .form[data-type="habit"] .when-short { display: none; }
 
   .ed-field { display: flex; align-items: center; justify-content: space-between;
               gap: var(--space-3); background: var(--surface);
@@ -151,8 +150,6 @@
   .count-pv { display: flex; align-items: center; gap: var(--space-2);
               font: var(--font-body-s); color: var(--on-surface-variant); margin: 0; }
   .count-pv b { color: var(--on-surface); font-variant-numeric: tabular-nums; }
-  .type-hint { font: var(--font-body-s); color: var(--on-surface-variant);
-               margin: 0; line-height: 1.7; }
 
   /* 提醒开关行（习惯/长期共用） */
   .attr { display: flex; align-items: center; gap: var(--space-3);
@@ -192,6 +189,12 @@
               transition: all var(--motion-fast) var(--ease-standard); }
   .more-btn:active { transform: scale(.9); }
   .more-btn svg { width: 22px; height: 22px; }
+  /* 常用行收纳（T007 R3 裁决 2 修复溢出）：6 枚 + 更多 必须整行放进内容区
+     （36×6 + 40 + 8×6 = 304 ≤ 308）——弹窗内图标保持 40px 不变 */
+  .common-row .ico { width: 36px; height: 36px; }
+  .common-row .ico svg { width: 18px; height: 18px; }
+  .common-row .more-btn { width: 40px; height: 40px; }
+  .common-row .more-btn svg { width: 20px; height: 20px; }
 
   /* 「更多」悬浮选择弹窗（浮于编辑器之上，scrim 点外关闭） */
   .picker-scrim { position: absolute; inset: 0; z-index: 50; background: var(--scrim);
@@ -230,8 +233,6 @@
     padding: var(--space-4) 0; box-shadow: var(--shadow-mid);
     transition: transform var(--motion-fast) var(--ease-standard); }
   .save:active { transform: scale(.97); }
-  .save-sub { font: var(--font-body-s); color: var(--on-surface-variant);
-              text-align: center; margin: 0; }
 
   /* 底部导航（三 Tab，今日选中——编辑器是 today 分支子路由，FR-010） */
   .st-navwrap { flex: none; padding: var(--space-2) var(--space-6) var(--space-4); }
@@ -270,9 +271,10 @@
 
 <h1 class="pt-title">目标编辑器 · 分类置顶 + 更多弹窗</h1>
 <p class="pt-sub">
-  003 编辑器重构（T007 R2 修订）：「分类」区置顶——常用图标一行（固定策展）+「更多」打开悬浮弹窗选全量（按领域分组）；
+  003 编辑器重构（T007 R3 修订）：「分类」区置顶——常用图标一行（固定策展）+「更多」打开悬浮弹窗选全量（按领域分组）；
   其余组一律平铺展开、无折叠。基础信息一句话 + 类型分段，类型改 长期 · 短期 · 习惯——无频率问答、无为什么怎样算、无颜色步（FR-011~015）。
-  提醒开关化：一天 / 三天 / 一周一次 + 时间（FR-013）。编辑器挂在今日页签下，底部导航全程可见（FR-010）。
+  提醒开关化：一天 / 三天 / 一周一次 + 时间（FR-013）。保存按钮统一「保存」，表单内无行为说明句（FR-021，R3 裁决 2/3）。
+  编辑器挂在今日页签下，底部导航全程可见（FR-010）。
 </p>
 
 <nav class="shellmap" aria-label="编辑器结构">
@@ -312,7 +314,7 @@
   <section class="board" data-board="habit">
     <h3>③ 习惯型 · 提醒开</h3>
     <p class="desc">习惯的提醒默认开：频率档（一天 / 三天 / 一周一次）+ 时间选择器。
-      三档是提醒节奏，不是达标判定——错过的日子不追账。</p>
+      表单内无行为说明句（R3 裁决 3——类型语义由控件与到点通知承载）。</p>
     <div class="chips"><span class="chip t">FR-013 三档</span><span class="chip">时间选择器</span></div>
   </section>
 
@@ -352,7 +354,7 @@
     <!-- 分组〇（置顶）：分类——常用一行 + 「更多」悬浮弹窗（T007 R2 裁决 1） -->
     <div class="ed-card">
       <div class="grp-static">
-        <span class="ed-lab">分类<span class="hint">常用在这儿选，不选也行</span></span>
+        <span class="ed-lab">分类</span>
       </div>
       <div class="grp-b">
         <div class="common-row" data-common></div>
@@ -366,7 +368,7 @@
       </div>
       <div class="grp-b">
         <input class="ed-input" data-name type="text" maxlength="40" autocomplete="off"
-               placeholder="一句话说清它，比如：月底前能连续跑 3 公里">
+               placeholder="例如：月底前能连续跑 3 公里">
       </div>
     </div>
 
@@ -389,13 +391,12 @@
             <input data-ddl id="ddl-x" type="date">
           </div>
           <p class="count-pv">距截止还有 <b data-days>–</b> 天</p>
-          <p class="type-hint">到了日子会提醒你问一声「怎么样了」，不会自动结束。</p>
         </div>
 
         <!-- 习惯 / 长期：提醒开关 →（开）频率档 + 时间 -->
         <div class="subsec when-rhythm" data-when="rhythm">
           <div class="attr" data-attr role="button" tabindex="0">
-            <div class="txt"><b>提醒我</b><span data-attr-sub>按节奏轻轻叫一声</span></div>
+            <div class="txt"><b>提醒</b><span data-attr-sub>按频率定时提醒</span></div>
             <span class="switch" role="switch" aria-checked="false" aria-hidden="true"></span>
           </div>
           <div class="rem-fields" data-rem hidden>
@@ -409,8 +410,6 @@
               <input data-time id="time-x" type="time" value="09:00">
             </div>
           </div>
-          <p class="type-hint only-habit-hint">提醒是节奏不是任务——错过的日子不追账。</p>
-          <p class="type-hint when-long">长期没有截止，随时记录都算数；想要固定提醒可以打开。</p>
         </div>
       </div>
     </div>
@@ -435,8 +434,7 @@
 
   <!-- 保存：常驻底部（导航条上方） -->
   <div class="ed-savebar">
-    <button class="save" type="button">建好这个目标</button>
-    <p class="save-sub">数据只存在这台设备上</p>
+    <button class="save" type="button">保存</button>
   </div>
 
   <!-- 底部导航：三页签，今日保持选中（today 分支子路由，FR-010） -->

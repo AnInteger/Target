@@ -3,16 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>今日屏 · Target（003 · R6 · 三 Tab 骨架）</title>
+<title>今日屏 · Target（003 · R7 · 三 Tab 骨架）</title>
 <link rel="stylesheet" href="../tokens.css?v=0822a">
 <style>
   /* ============================================================
-     今日屏原型（003 · T002 · R6 · 三 Tab 收敛版，T007 R2 修订）
+     今日屏原型（003 · T002 · R7 · 三 Tab 收敛版，T007 R3 修订）
      - 取值 100% 来自 ../tokens.css（SC-004）
      - 003 结构：三页签（今日/回顾/我的，目标页退役）；
        头部同图层 44px 带（左账号区 | 中日期语 | 右铃铛角标+＋），
        三屏标题对齐基准 = 本带左缘 space-6 缩进 + 顶缘（FR-008）
-     - 今日之环卡移除（T007 R2 裁决 2：聚合展示形态待后续设计）
+     - 今日之环卡与周节奏微条均移除（T007 R2 裁决 2 + R3 裁决 1：
+       今日页不承载聚合/节奏统计，= 头部带 + 目标卡列表 + 空态）
+     - 界面文案正式 App 语域（T007 R3 裁决 3：无口语化解释句）
      - 目标卡：图标 + 标题 + 类型微标 + 最新记录行「相对时间 - 描述」
        （无描述兜底「完成打卡」）；卡上无按钮，整卡可点进目标详情
        打卡/补签/写描述（detail sheet 示意；无「今日 N 次」pill）
@@ -206,34 +208,6 @@
   .st-empty p { font: var(--font-body-s); color: var(--on-surface-variant); margin: 0;
                 line-height: 1.7; }
 
-  /* ---- 周节奏微条（吸收目标页职能：本周每日留痕透明度阶梯）---- */
-  .st-week {
-    background: var(--glass-card); border: 1px solid var(--divider);
-    border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
-    display: flex; align-items: stretch; gap: var(--space-2);
-    margin-bottom: var(--space-4);
-  }
-  .st-week .day { flex: 1; display: flex; flex-direction: column; align-items: center;
-                  gap: var(--space-1); min-width: 0; }
-  .st-week .day em { font: var(--font-label); font-style: normal;
-                     color: var(--on-surface-variant); line-height: 1; }
-  .st-week .day.today em { color: var(--on-surface); font-weight: 700; }
-  .st-week .cell {
-    width: 100%; height: 22px; border-radius: var(--radius-sm);
-    background: var(--surface); border: 1px solid var(--divider);
-    position: relative; overflow: hidden;
-  }
-  .st-week .cell i { position: absolute; inset: 0; background: var(--positive-fill); }
-  .st-week .cell[data-lv="1"] i { opacity: .45; }
-  .st-week .cell[data-lv="2"] i { opacity: .75; }
-  .st-week .cell[data-lv="3"] i { opacity: 1; }
-  .st-week .day.today .cell { border-color: var(--positive);
-                              box-shadow: 0 0 0 1px var(--positive); }
-  .st-week .day.today .cell::after {
-    content: ""; position: absolute; inset: 0; border-radius: var(--radius-sm);
-    border: 1.5px solid var(--on-surface); mix-blend-mode: difference; opacity: 0;
-  }
-
   /* ---- 底部导航（三 Tab，今日屏 R5 定稿几何）---- */
   .st-navwrap { flex: none; padding: var(--space-2) var(--space-6) var(--space-4); }
   .st-nav {
@@ -313,8 +287,6 @@
                 line-height: 1.4; }
   .dt-latest { font: var(--font-body-m); color: var(--on-surface-variant);
                margin: 0 0 var(--space-4); }
-  .dt-hint { font: var(--font-body-s); color: var(--on-surface-variant);
-             text-align: center; margin: var(--space-3) 0 0; line-height: 1.6; }
 
   /* 通知列表 sheet：按天分组、时间倒序、类型图标 + 标题 + 相对时间 */
   .nt-day { font: var(--font-label); color: var(--on-surface-variant);
@@ -392,18 +364,17 @@
 </head>
 <body>
 
-<h1 class="pt-title">今日屏 · R6 原型（三 Tab 收敛）</h1>
+<h1 class="pt-title">今日屏 · R7 原型（三 Tab 收敛）</h1>
 <p class="pt-sub">「柔彩仪表盘」· 003 结构精修——目标页退役，职能并入今日页卡<br>
 头部同图层 44px 带（账号区 | 日期 | 铃铛角标＋新建）· 目标卡最新记录行「相对时间 - 描述」（无描述兜底「完成打卡」）· 类型徽章（习惯节律点 / 短期倒计时 / 长期 ∞）<br>
-点目标卡（整卡可点，卡上无按钮）进目标详情（sheet 示意）打卡，可附一句这次做了什么；点左上头像弹资料编辑、点铃铛弹通知列表（推导式四源混排）</p>
+点目标卡（整卡可点，卡上无按钮）进目标详情（sheet 示意）打卡，可附一句选填描述；点左上头像弹资料编辑、点铃铛弹通知列表（推导式四源混排）</p>
 
 <nav class="shellmap">
   <h2>导航壳层示意（三 Tab · FR-001）</h2>
   <div class="flow">
     <div class="node"><b>壳层</b>底部导航三页签<br>今日 / 回顾 / 我的</div><span class="arrow">→</span>
     <div class="node"><b>头部带</b>账号区 | 日期语 | 铃铛＋＋<br>三屏标题对齐基准（FR-008）</div><span class="arrow">→</span>
-    <div class="node"><b>目标卡</b>图标+一句话+类型徽章<br>+最新记录行 · 整卡可点（吸收目标页职能）</div><span class="arrow">→</span>
-    <div class="node"><b>周节奏微条</b>本周每日留痕</div>
+    <div class="node"><b>目标卡</b>图标+一句话+类型徽章<br>+最新记录行 · 整卡可点（吸收目标页职能）</div>
   </div>
 </nav>
 
@@ -445,11 +416,8 @@
       <div class="plus">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
       </div>
-      <b>开始第一个目标</b>
-      <p>用一句话写下想做的事，<br>为它留下今天的第一次记录。</p>
-    </div>
-    <div class="st-week" data-week hidden>
-      <!-- 近 7 天格由脚本生成（历史 6 天 + 今天高亮） -->
+      <b>还没有目标</b>
+      <p>点击右上角 ＋ 创建第一个目标</p>
     </div>
   </div>
   <div class="st-navwrap">
@@ -503,12 +471,11 @@
       <span data-dt-kind></span>
       <p class="dt-latest" data-dt-latest></p>
       <div class="pf-field">
-        <label for="dt-note">这次做了什么？（选填）</label>
+        <label for="dt-note">描述（选填）</label>
         <input id="dt-note" data-dt-note type="text" maxlength="40"
-               placeholder="不填就记「完成打卡」">
+               placeholder="未填时显示「完成打卡」">
       </div>
       <button class="pf-done" type="button" data-dt-check>记一次</button>
-      <p class="dt-hint">补签、历史与管理都在详情页——这里为原型示意</p>
     </div>
   </div>
 
@@ -557,10 +524,10 @@ function latestLabel(g, todayCount, desc) {
 const BOARDS = [
   { id: 'typical', theme: 'light', state: 'typical', interactive: true,
     title: '① 典型态（可交互）',
-    desc: '点目标卡（整卡可点，卡上无按钮）→ 目标详情 sheet，可写一句「这次做了什么」（选填，不填记「完成打卡」）→「记一次」后卡片最新记录行变「今天 - …」、周节奏今日格点亮，全部目标有记录触发成就时刻。点左上头像弹「我的资料」sheet（昵称+8 预设头像），点铃铛弹通知列表（提醒/成就/streak/到期询问四源混排）。' },
+    desc: '点目标卡（整卡可点，卡上无按钮）→ 目标详情 sheet，可写一句选填描述（未填记「完成打卡」）→「记一次」后卡片最新记录行变「今天 - …」，全部目标有记录触发成就时刻。点左上头像弹「我的资料」sheet（昵称+8 预设头像），点铃铛弹通知列表（提醒/成就/streak/到期询问四源混排）。' },
   { id: 'empty', theme: 'light', state: 'empty',
     title: '② 空态',
-    desc: '无目标：卡片区与节奏条隐去，列表位让给虚线邀请卡；铃铛角标无推导项时隐藏。' },
+    desc: '无目标：卡片区隐去，列表位让给邀请卡（正式语域）；铃铛角标无推导项时隐藏。' },
   { id: 'allgo', theme: 'light', state: 'allgo',
     title: '③ 全部已记录态',
     desc: '当日每个目标都有记录：最新记录行全为「今天 - …」、成就覆盖层常驻展示（点击体会 dismiss）。' },
@@ -640,21 +607,6 @@ function openDetailSheet(board, idx) {
     render(board);
   });
   openSheet(phone, '[data-sheet-detail]');
-}
-
-/* 周节奏微条：近 7 天滚动窗（历史 6 天 + 今天），今天高亮描边 */
-const WEEK_PAST = [3, 1, 2, 0, 2, 1]; // 历史六天演示档位
-function scaffoldWeek(root) {
-  for (let k = 6; k >= 0; k--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - k);
-    const isToday = k === 0;
-    const day = document.createElement('span');
-    day.className = 'day' + (isToday ? ' today' : '');
-    day.innerHTML = `<em>${isToday ? '今' : '周' + '日一二三四五六'[d.getDay()]}</em>
-      <span class="cell" data-lv="${isToday ? 0 : WEEK_PAST[6 - k]}"><i></i></span>`;
-    root.appendChild(day);
-  }
 }
 
 /* 通知列表（D6 推导式演示：今日新增 3 条 = 角标数） */
@@ -745,19 +697,16 @@ function render(board) {
   const n = st.today.length;
   const actions = st.today.reduce((a, b) => a + b, 0);
   const doneGoals = st.today.filter((t) => t > 0).length;
-  const lit = doneGoals > 0; // 当日任一记录即「有痕」
 
   if (n === 0) {
     q('[data-empty]').hidden = false;
     q('[data-cards]').hidden = true;
     q('.st-sect').hidden = true;
-    q('[data-week]').hidden = true;
     q('[data-badge]').hidden = true;      // 无推导项 = 无角标
   } else {
     q('[data-empty]').hidden = true;
     q('[data-cards]').hidden = false;
     q('.st-sect').hidden = false;
-    q('[data-week]').hidden = false;
     q('[data-badge]').hidden = false;
     q('[data-badge]').textContent = TODAY_BADGE;
     q('[data-sect-note]').textContent = `已记录 ${doneGoals}/${n}`;
@@ -767,9 +716,6 @@ function render(board) {
       card.querySelector('[data-latest]').textContent = latestLabel(GOALS[i], t, st.descs[i]);
       card.classList.toggle('done', t > 0);
     });
-    // 今日节奏格随打卡点亮
-    const todayCell = q('[data-week] .day.today .cell');
-    if (todayCell) todayCell.dataset.lv = lit ? (actions >= 4 ? 3 : actions >= 2 ? 2 : 1) : 0;
     q('[data-cele-note]').textContent = `今日 ${actions} 次记录`;
   }
 
@@ -831,7 +777,6 @@ for (const cfg of BOARDS) {
   board.el = phone;
 
   rebuildCards(phone, board);
-  scaffoldWeek(phone.querySelector('[data-week]'));
   // 空态板的通知 sheet 展示空态语言（FR-005 验收点），其余板四源混排
   scaffoldNotifs(phone.querySelector('[data-notif-list]'),
     cfg.state === 'empty' ? [] : NOTIFS);

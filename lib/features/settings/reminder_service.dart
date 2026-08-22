@@ -48,12 +48,17 @@ class PlannedNotification {
     required this.time,
     required this.title,
     required this.body,
+    this.goalIds = const [],
   });
 
   final int id;
   final LocalTime time;
   final String title;
   final String body;
+
+  /// 关联目标（T019 通知列表 tap 跳转）：dailyBrief 空；cue 档 =
+  /// 该档全部目标（单目标可直达，多目标合并档不跳）。
+  final List<String> goalIds;
 }
 
 /// 计算应调度的通知集合（纯函数，注入时刻便于测试）。
@@ -115,7 +120,11 @@ List<PlannedNotification> planReminders({
       body = Copy.reminderNames([for (final g in list) g.name]);
     }
     plan.add(PlannedNotification(
-        id: cueSlotNotificationId(slot), time: time, title: title, body: body));
+        id: cueSlotNotificationId(slot),
+        time: time,
+        title: title,
+        body: body,
+        goalIds: [for (final g in list) g.id]));
   });
   return plan;
 }

@@ -278,6 +278,35 @@ abstract final class Copy {
 
   // 通知列表（sheet，推导式 D6：无已读态，空态一句话）。
   static const notificationEmptyHint = '这里会出现你的提醒和值得记下的时刻';
+  static const notificationTitle = '通知';
+
+  // 分组头（今天/昨天/明天；更早按日期）。
+  static const notifDayToday = '今天';
+  static const notifDayTomorrow = '明天';
+  static const notifDayYesterday = '昨天';
+  static String notifDayDate(int month, int day) => '$month月$day日';
+
+  // 四源条目文案（行 = 图标 + 标题 + 副题 + 时刻）。
+  static const notifSubGoalReminder = '目标提醒';
+  static const notifSubBrief = '每天一份，不催促';
+  static const notifSubDue = '短期目标';
+  static const notifSubMilestone = '里程碑';
+  static const notifSubAchievement = '成就时刻';
+
+  /// 短期到期询问（D4：只提醒不判决；tap → 目标详情）。
+  static String notifDueTitle(String name) => '$name到日子了，怎么样？';
+  static String notifDueSub(int daysOver) => daysOver <= 0
+      ? '短期目标 · 今天'
+      : '短期目标 · $daysOver 天前';
+
+  /// streak 里程碑（当前总连击命中的档位）。
+  static String notifStreak(int n) => '连续记录 $n 天，节奏稳住了';
+
+  /// 全完成日（当日全部活跃目标均有记录）。
+  static const notifAllDoneDay = '每个目标都有记录的一天';
+
+  /// 目标达成事件（achievedAt 落在近 7 天）。
+  static String notifAchieved(String name) => '$name，达成了';
 
   // 编辑器分组标题（ui-contract「编辑器分组折叠」）。
   static const editorSectionBasics = '基础信息';

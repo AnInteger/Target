@@ -1986,4 +1986,73 @@ void main() {
     expect(leaked, findsNothing);
     await db.close();
   });
+
+  // 003 T039：US5 场景 2/3 UI 呈现——升级库启动，今日页徽章直接可见
+  // 「习惯」（每日 3 次档映射）与「短期 · 还剩 N 天」（截止倒计时）。
+  testWidgets('T039 迁移呈现：每日 3 次→习惯徽章；带截止→短期倒计时徽章',
+      (WidgetTester tester) async {
+    usePhoneSurface(tester);
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final file = (await tester.runAsync(() async {
+      final dir = await Directory.systemTemp.createTemp('t039_ui');
+      return File('${dir.path}/db.sqlite');
+    }))!;
+    addTearDown(() => tester.runAsync(() async {
+      final dir = file.parent;
+      if (await dir.exists()) await dir.delete(recursive: true);
+    }));
+    await tester.runAsync(() async {
+      final v2 = _LegacyV2Database(NativeDatabase(file));
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at) VALUES ('g3','练声','habit','mic','coral','active',"
+          "'${today.addDays(-10).isoString}')");
+      await v2.customStatement(
+          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+          "pattern,source) VALUES ('fv-3','g3',"
+          "'${WeekStart.containing(today).isoString}',"
+          "'{\"type\":\"daily\",\"targetPerDay\":3}','initial')");
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at,deadline) VALUES ('gdl','考认证','milestone',"
+          "'star','amber','active','${today.addDays(-10).isoString}',"
+          "'${today.addDays(12).isoString}')");
+      // 昨日一条记录：今日卡「最近」行有内容。
+      await v2.customStatement(
+          "INSERT INTO check_ins (id,goal_id,day,created_at,is_backfill,"
+          "status) VALUES ('c1','g3','${today.addDays(-1).isoString}',"
+          "'2026-08-22T02:00:00.000Z',0,'valid')");
+      await v2.customStatement(
+          "INSERT INTO settings_rows (id,daily_brief_time,"
+          "onboarding_completed,notification_denied_acknowledged) VALUES "
+          "(1,'08:00',1,0)");
+      await v2.close();
+    });
+
+    final db = AppDatabase(NativeDatabase(file));
+    final gateway = FakeNotificationGateway();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 场景 2：每日 3 次频率档 → 习惯徽章（节律点 + 「习惯」）。
+    expect(find.text('练声'), findsWidgets);
+    expect(find.text(Copy.typeBadgeHabit), findsOneWidget);
+    // 场景 3：带截止 → 短期徽章带倒计时（deadline − today，徽章同源算式）。
+    await scrollTo(tester, find.text('考认证'));
+    expect(find.text('考认证'), findsOneWidget);
+    expect(
+        find.text('${Copy.typeBadgeShortTerm} · '
+            '${Copy.milestoneCountdown(12)}'),
+        findsOneWidget);
+    await db.close();
+  });
 }

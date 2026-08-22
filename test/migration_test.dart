@@ -544,4 +544,60 @@ void main() {
     final gwPlan = sat.firstWhere((p) => p.goalIds.contains('gw'));
     expect(gwPlan.time, const LocalTime(9, 0));
   });
+
+  // 003 T039：US5 验收场景 2/3——「每日 3 次」频率 → 习惯且打卡计数
+  // 连续不中断；带截止 → 短期，倒计时 = deadline − today。
+  test('US5 场景 2/3（T039）：每日 3 次→习惯计数连续；带截止→短期倒计时',
+      () async {
+    const todayStr = '2026-08-22';
+    final today = LocalDate.parse(todayStr);
+    {
+      final v2 = _V2Database(NativeDatabase(file));
+      // 每日 3 次频率档（高频节律）+ 截止目标。
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at) VALUES ('g3','练声','habit','mic','coral','active',"
+          "'2026-08-01')");
+      await v2.customStatement(
+          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+          "pattern,source) VALUES ('fv-3','g3','2026-08-03',"
+          "'{\"type\":\"daily\",\"targetPerDay\":3}','initial')");
+      await v2.customStatement(
+          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+          "created_at,deadline) VALUES ('gdl','考认证','milestone',"
+          "'star','amber','active','2026-08-01','2026-10-01')");
+      // 迁移前连续留痕 6 天（8/16–8/21，今日 8/22 未打）。
+      for (var i = 1; i <= 6; i++) {
+        final d = today.addDays(-i).isoString;
+        await v2.customStatement(
+            "INSERT INTO check_ins (id,goal_id,day,created_at,is_backfill,"
+            "status) VALUES ('c-$i','g3','$d',"
+            "'2026-08-22T02:00:00.000Z',0,'valid')");
+      }
+      await v2.close();
+    }
+
+    final db = AppDatabase(NativeDatabase(file));
+    addTearDown(db.close);
+    final goals = await GoalRepository(db).getGoals();
+    final checkInRepo = CheckInRepository(db);
+
+    // 场景 2：高频节律（每日 3 次）→ habit；既有计数连续不中断。
+    final g3 = goals.firstWhere((g) => g.id == 'g3');
+    expect(g3.goalType, GoalType.habit);
+    StatsEvaluation statsOf(List<CheckIn> checkIns) => StatsEngine.evaluate(
+        goals: goals, busySessions: const [], checkIns: checkIns, today: today);
+    var stats = statsOf(await checkInRepo.all());
+    expect(stats.streakOf('g3'), 6, reason: '迁移不得重置连续计数');
+    // 迁移后继续打卡：计数延续（6 → 7），无断层。
+    await checkInRepo.add('g3', today, DateTime.utc(2026, 8, 22, 8));
+    stats = statsOf(await checkInRepo.all());
+    expect(stats.streakOf('g3'), 7);
+    expect((await checkInRepo.all()).where((c) => c.goalId == 'g3').length, 7);
+
+    // 场景 3：带截止 → shortTerm；倒计时 = deadline − today（徽章同源算式）。
+    final gdl = goals.firstWhere((g) => g.id == 'gdl');
+    expect(gdl.goalType, GoalType.shortTerm);
+    expect(gdl.deadline!.differenceInDays(today), 40); // 8/22 → 10/1
+  });
 }

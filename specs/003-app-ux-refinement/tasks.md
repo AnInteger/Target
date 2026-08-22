@@ -194,7 +194,8 @@
   - ✅ 2026-08-22：kBackupVersion=4（任务书 v3 系 R2 前旧文，契约 backup-format.md + data-model.md R2 定稿 v4，按契约落 4；v2/v3 未发版直升）；导出 goalType 三值/colorKey 恒 null/achievedAt 恒导键/cadence·nickname·avatarKey 可选键；导入版本门仅拒 >4（v1..v4 全收）、v1 无 goalType 走 _goalTypeOf 静态推导（habit 直取 / milestone+deadline→shortTerm / 无→longTerm）、cadence/资料键缺省 NULL；用例 +2（v1 三分支映射+缺省 / v4 往返新字段逐还原+colorKey null 回程 ''）；'导出文件头' 期望 1→4；analyze 0 + 123/123 绿
 - [x] T038 [US5] 迁移端到端对账：web 双跑——构造 v2 存量库（四分支各一）→ 升级启动 → 目标/打卡/记录/补签逐项对账 + 被映射目标按原节奏继续提醒 + 全界面旧字段（频率/颜色/为什么/怎样算）零上屏终查（SC-003/SC-006）
   - ✅ 2026-08-22：migration_test 端到端用例（v2 文件库四分支→v4 升级→仓库读路径逐项对账；planReminders 周四/周六两时刻验证 daily 原样续用+weekly 同 weekday 命中，通知正文附存量为什么/不含怎样算）；widget 终查用例（升级库启动全 App 三 Tab+详情旧字段零上屏正则扫查）；终查发现真缺陷——goal_detail 提醒行误用已退役 cueScene 上屏，修法 = 真源改 Reminders 行（档+时刻），T021 断言同步改；踩坑注记 testWidgets 文件 IO 须 runAsync；analyze 0 + 125/125 绿
-- [ ] T039 [US5] 验收核对：spec US5 四条 acceptance 场景逐条核对（含「每日 3 次频率→习惯且计数连续」「带截止→短期倒计时正确」）；结论记 `design/reviews.md`
+- [x] T039 [US5] 验收核对：spec US5 四条 acceptance 场景逐条核对（含「每日 3 次频率→习惯且计数连续」「带截止→短期倒计时正确」）；结论记 `design/reviews.md`
+  - ✅ 2026-08-22：四条全过——场景 1/4 引 T038 对账+零上屏终查；场景 2/3 新增双层用例（migration：targetPerDay=3→habit + streakOf 6→7 连续 + 倒计时 40 天；widget：迁移库启动今日卡「习惯」/「短期 · 还剩 12 天」徽章）；结论归档 reviews.md（含 WeekStart 周一约束种子注记）；analyze 0 + 127/127 绿
 
 **Checkpoint**: 零丢失承诺兑现，数据面收官
 

@@ -14,6 +14,15 @@
 
 ## 实现审计
 
+### T039 US5 验收核对（spec 四条 acceptance 逐条 · 数据级 + UI 双层）· 通过 · 2026-08-22
+
+- **基线**：`flutter analyze` 0 issue；`flutter test` 127 全绿（125→127，含 T039 两用例）。
+- **场景 1（存量 100% 保留，计数逐项一致）✓**：T038 端到端用例——v2 四分支升级启动后目标/打卡/记录/补签走仓库读路径逐项对账（计数/状态/补签/归属原样，SC-003）。
+- **场景 2（每日 3 次 → 习惯且计数连续）✓**：targetPerDay=3 频率档经 D3 映射 habit；迁移前连续留痕 6 天 → streakOf=6 不重置，迁移后继续打卡 → 7 无断层（migration_test T039）；UI 层今日卡直接呈现「习惯」徽章（节律点 + 文案，widget T039）。
+- **场景 3（带截止 → 短期，倒计时正确）✓**：milestone+deadline → shortTerm；倒计时 = deadline − today 数据级断言 40 天（8/22→10/1），UI 层今日卡徽章「短期 · 还剩 12 天」与徽章同源算式一致（deadline 动态设 today+12 规避测试日期漂移）。
+- **场景 4（退役字段零残留）✓**：T038 全界面正则终查（频率版本/颜色/为什么/怎样算/场景/旧图标键名，三 Tab + 详情含折叠线下卡面）；另修得真缺陷一例（详情提醒行 cueScene 回潮，见 T038 条目）。
+- **注记**：frequency_versions.effective_from_week 类型化为 WeekStart（必须周一）——测试种子须 `WeekStart.containing(today)`，直写当天日期会 ArgumentError 挂构建。
+
 ### T038 迁移端到端对账（v2 存量升级 · 仓库对账 + 原节奏续排 + 旧字段零上屏终查 · SC-003/SC-006）· 通过 · 2026-08-22
 
 - **基线**：`flutter analyze` 0 issue；`flutter test` 125 全绿（123→125，含 T038 两用例）。

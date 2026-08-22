@@ -14,6 +14,13 @@
 
 ## 实现审计
 
+### T042 文档收口（quickstart SC 逐条 + spec Status + 全特性终检）· 通过 · 2026-08-22
+
+- **SC-001…007 逐条核对**：落 quickstart「完成口径」表——七条全过，各带用例锚点（T022/T030/T038/T032/T033/T036/T045/T040）；SC-003 真机面与 T043 首启核对互补。
+- **spec.md Status**：Draft → Complete 2026-08-22（全链收口摘要 + 两处裁决等价调整记录 + 真机轮待执行）。
+- **终检**：本特性送审/验收结论全录本文件「实现审计」（T017–T045 连续条目，含 R3/R4 返工与 T038 真缺陷修复记录）；tasks.md T001–T043（无 T044）全勾；基线 `flutter analyze` 0 + `flutter test` 128 全绿。
+- **memory 同步**：`target-implement-state.md` 更新至 003 收口态（004 新会话入口）。
+
 ### T043 真机合并轮清单（用户侧动作整理 · quickstart 阶段 C-3）· 清单就绪 · 2026-08-22
 
 - **动作链七步**（quickstart.md 阶段 C-3）：Codemagic 手动 `ios-unsigned` → iLoader 自签覆盖装机（不清数据）→ 装后首启核对 → 视觉 → 手感 → 通知 → 结论回写本文件。

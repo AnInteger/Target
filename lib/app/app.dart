@@ -145,6 +145,9 @@ class _TargetAppState extends ConsumerState<TargetApp> {
       scaffoldMessengerKey: rootScaffoldMessengerKey,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      // 004 T004（D2）：主题三档（system|light|dark），持久化于
+      // Settings.themeMode，缺省跟随系统。
+      themeMode: ref.watch(themeModeProvider),
       routerConfig: ref.watch(routerProvider),
     );
   }

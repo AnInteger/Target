@@ -49,7 +49,9 @@ description: "Task list for 004 UI v2 重构"
 - [x] T003 [P] schema v5 主题偏好列（D2）：lib/core/db/tables.dart SettingsRows 新增 themeMode TEXT 枚举（system|light|dark，NULL=system）+ lib/core/db/app_database.dart 纯 ADD COLUMN 迁移 v4→v5 + lib/core/db/repositories.dart 读写 + lib/core/backup/backup_exporter.dart 与 backup_importer.dart 可选键双向宽容（缺失→NULL，沿 T044 note 先例）；test/migration_test.dart 与 test/backup_test.dart 增补（v4→v5 对账 + themeMode 往返）
   - ✅ schema v5 落地：SettingsRows.themeMode TEXT 可空列 + AppDatabase v4→v5 纯 ADD COLUMN + build_runner 再生成；entities 增 AppThemeMode 三档枚举（parse 未知→system）与 Settings.themeMode 字段；仓库 update 写 .name / _to 归一；备份导出可选键（NULL 不导出）、导入 _normThemeMode 缺键/未知值→NULL（=system）；_V3Database 补 settings_rows 表（v5 迁移链旧库 helper 踩空修复）
   - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（+131：新增 v4→v5 迁移对账【存量照读/资料保全/三档往返】+ themeMode 双向宽容【dark 往返/缺键→system/未知值 neon→system/light 重导出】）
-- [ ] T004 themeModeProvider 与注入：lib/app/providers.dart 新增 themeModeProvider（读 Settings，缺省 system）+ lib/app/app.dart MaterialApp 接 themeMode:（与 003 行为等价，存量用户零感知）（depends T003）
+- [x] T004 themeModeProvider 与注入：lib/app/providers.dart 新增 themeModeProvider（读 Settings，缺省 system）+ lib/app/app.dart MaterialApp 接 themeMode:（与 003 行为等价，存量用户零感知）（depends T003）
+  - ✅ themeModeProvider 落地：watch settingsProvider 映射 AppThemeMode→ThemeMode（未加载/NULL→system），MaterialApp.router 接 themeMode:；Settings 流变化即时生效，存量库 NULL 列 = 003 行为零感知
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（131 全绿零回归；三档写读与持久化往返已由 T003 迁移/备份用例覆盖）
 - [ ] T005 [P] MajorCategory 与十领域映射（D4）：lib/core/models/goal_icon_catalog.dart GoalIconDomain 新增 major 属性（MajorCategory{health 健康, habit 习惯, goal 目标}；social/pets→health，2026-08-23 用户裁定）+ lib/core/models/entities.dart Goal.majorOf 派生（iconKey→domain→major，未匹配兜底 explore→goal）；test/goal_icon_catalog_test.dart 增十领域归属对账
 
 **Checkpoint**: 地基就绪——令牌/主题持久化/大类映射可用，用户故事可开工

@@ -6,6 +6,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/db/app_database.dart' show AppDatabase;
@@ -68,6 +69,18 @@ final settingsRepoProvider =
 /// Settings 单例行流（今日占位/各页共用）。
 final settingsProvider = StreamProvider<Settings>(
     (ref) => ref.watch(settingsRepoProvider).watch());
+
+/// 004 T004（research D2）：主题偏好三档注入 MaterialApp.themeMode。
+/// 未加载/NULL → system（= 003 完结态行为，存量用户零感知）；
+/// Settings 流变化即时生效（「我的」页单选行写入 → 此处重算）。
+final themeModeProvider = Provider<ThemeMode>((ref) {
+  final mode = ref.watch(settingsProvider).valueOrNull?.themeMode;
+  return switch (mode) {
+    AppThemeMode.light => ThemeMode.light,
+    AppThemeMode.dark => ThemeMode.dark,
+    _ => ThemeMode.system,
+  };
+});
 
 /// 账号资料流（003 T018：nickname/avatarKey 两列，今日账号区与
 /// 我的页账号卡同源 watch）。

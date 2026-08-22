@@ -31,7 +31,9 @@ description: "Task list for 004 UI v2 重构"
 
 **Purpose**: 基线核验与执行口径落档
 
-- [ ] T001 核验实现基线：`flutter analyze` 0 issue + `flutter test` 128/128 绿，在 specs/004-ui-v2-redesign/tasks.md 顶部记录执行口径（commit 格式与 ✅ 双子行约定生效）
+- [x] T001 核验实现基线：`flutter analyze` 0 issue + `flutter test` 128/128 绿，在 specs/004-ui-v2-redesign/tasks.md 顶部记录执行口径（commit 格式与 ✅ 双子行约定生效）
+  - ✅ 基线核对通过：003 完结态复验 0 issue + 128/128 绿；分支 004-ui-v2-redesign 已立，五件套文档先行入库（65f2414）
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（+128）
 
 ---
 

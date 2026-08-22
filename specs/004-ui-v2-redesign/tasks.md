@@ -68,7 +68,8 @@ description: "Task list for 004 UI v2 重构"
 
 ### 原型稿（FR-015 门禁输入，均消费 T002 后的 design/tokens.css）
 
-- [ ] T006 [P] [US1] 编辑器原型稿 design/prototypes/v2-goal-editor.html（三类型/分类图标/提醒频率+时间/一句话描述/保存，新语言延展设计）
+- [x] T006 [P] [US1] 编辑器原型稿 design/prototypes/v2-goal-editor.html（三类型/分类图标/提醒频率+时间/一句话描述/保存，新语言延展设计）
+  - ✅ 四板：浅色·习惯创建（模板条+类型三段+一句话描述 0/40+分类 6 常用+更多弹层+提醒开关每天 08:00）/ 深色·短期创建（截止必填 2026-11-30+倒计时 100 天+保存点亮）/ 浅色·分类全量弹层（10 域分组大类色点）/ 深色·长期编辑（类型锁定+提醒关态）；形态决策（全屏 push 无底签、底部固定保存 CTA、类型编辑锁定）与 FR-016 对账入文件头
 - [ ] T007 [P] [US1] 详情原型稿 design/prototypes/v2-goal-detail.html（打卡+选填描述/补签/历史/达成续期/编辑/暂停恢复/删除）
 - [ ] T008 [P] [US1] 我的页原型稿 design/prototypes/v2-settings.html（主题三档行/通知设置/备份导出恢复/资料编辑入口）
 - [ ] T009 [P] [US1] 通知列表原型稿 design/prototypes/v2-notifications.html（时间倒序/类型图标/空态）

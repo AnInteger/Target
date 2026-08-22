@@ -496,7 +496,7 @@
 
 <script>
   document.querySelectorAll('[data-gi]').forEach(el => {
-    el.innerHTML = gi(el.dataset.gi, el.classList.contains('ic') ? 22 : 20);
+    el.replaceChildren(gi(el.dataset.gi, el.classList.contains('ic') ? 22 : 20));
   });
   // 筛选 chips 单选演示（板 1 可点切换，仅样式演示）
   document.querySelectorAll('#f1 .fchip').forEach(c => c.addEventListener('click', () => {

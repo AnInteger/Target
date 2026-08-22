@@ -546,7 +546,7 @@
 
 <script>
   document.querySelectorAll('[data-gi]').forEach(el => {
-    el.innerHTML = gi(el.dataset.gi, el.classList.contains('h-ic') ? 28 : 16);
+    el.replaceChildren(gi(el.dataset.gi, el.classList.contains('h-ic') ? 28 : 16));
   });
   document.querySelectorAll('.ms .cb').forEach(cb => cb.addEventListener('click', () => {
     cb.parentElement.classList.toggle('done');

@@ -457,7 +457,7 @@
     goal:'var(--major-goal)' };
 
   document.querySelectorAll('.icell[data-gi]').forEach(el => {
-    el.innerHTML = gi(el.dataset.gi, 22);
+    el.replaceChildren(gi(el.dataset.gi, 22));
   });
 
   // 弹层：按领域全量渲染（选中态示例——travel 域 flight 选中）
@@ -468,7 +468,7 @@
       if (meta.domain !== domain) continue;
       const b = document.createElement('button');
       b.className = 'icell' + (SELECTED[domain] === key ? ' on' : '');
-      b.innerHTML = gi(key, 22);
+      b.replaceChildren(gi(key, 22));
       b.setAttribute('aria-label', key);
       grid.appendChild(b);
     }

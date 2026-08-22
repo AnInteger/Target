@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>回顾 · Target（v2 回顾页 · 基准图 04 落地走查稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=0823a">
+<script src="goal-icons.js"></script>
+<style>
+  /* ============================================================
+     v2-review · 回顾页原型（004 · T011 门禁补充稿 · R1）
+     ------------------------------------------------------------
+     - 定位：基准图 04（回顾页）落地走查稿，FR-015 只强制延展五屏，
+       本页为用户裁定的门禁补充（2026-08-23）
+     - 三区块（US5，实时派生不读快照）：本周概览（周平均完成率 +
+       环比）/ 每日活动（周一→周日 7 日点阵）/ 本周目标（逐目标
+       完成卡）
+     - dock 回顾位高亮；无数据的周呈空态说明
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 760px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 242, 247, .7); }
+  .chip.t { color: var(--accent); }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+  .st { height: 52px; flex: none; display: flex; align-items: flex-end;
+        justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+        font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
+
+  /* ---- 顶栏 ---- */
+  .top { flex: none; display: flex; align-items: center; gap: var(--space-3);
+         padding: var(--space-4) var(--space-6) 0; }
+  .top h1 { font: var(--font-display-l); color: var(--on-surface); margin: 0; flex: 1; }
+  .calbtn { width: 38px; height: 38px; border-radius: var(--radius-full); flex: none;
+            background: var(--surface); color: var(--on-surface); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--divider); box-shadow: var(--shadow-low); }
+  .calbtn svg { width: 18px; height: 18px; }
+  .wknav { flex: none; display: flex; align-items: center; gap: var(--space-2);
+           padding: var(--space-3) var(--space-6) var(--space-1); }
+  .wk { flex: 1; font: var(--font-body-m); color: var(--on-surface);
+        text-align: center; font-variant-numeric: tabular-nums; }
+  .wbtn { width: 30px; height: 30px; border-radius: var(--radius-full); flex: none;
+          background: var(--surface); color: var(--on-surface); border: none;
+          cursor: pointer; font-size: 15px; box-shadow: var(--shadow-low); }
+
+  .scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
+            padding: var(--space-3) var(--space-5) var(--space-6);
+            display: flex; flex-direction: column; gap: var(--space-4); }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  .sec-t { font: var(--font-title-s); color: var(--on-surface); margin: var(--space-1) 0 0; }
+
+  /* ---- 区块 1：本周概览 ---- */
+  .ov { background: var(--surface); border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-low); padding: var(--space-5);
+        display: flex; align-items: center; gap: var(--space-5); }
+  .ov .num { flex: 1; }
+  .ov .num b { font: var(--font-display-l); color: var(--on-surface);
+               font-variant-numeric: tabular-nums; }
+  .ov .num i { font: var(--font-label); font-style: normal;
+               color: var(--on-surface-variant); display: block; margin-top: 2px; }
+  .ov .delta { display: inline-flex; align-items: center; gap: 4px;
+               font: var(--font-body-s); color: var(--positive);
+               background: var(--positive-fill); border-radius: var(--radius-full);
+               padding: 2px var(--space-2); margin-left: var(--space-2);
+               font-variant-numeric: tabular-nums; }
+  .ov .wk { width: 72px; height: 72px; position: relative; flex: none; }
+  .ov .wk .ctr { position: absolute; inset: 0; display: flex; flex-direction: column;
+                 align-items: center; justify-content: center; }
+  .ov .wk .ctr b { font: var(--font-title-s); color: var(--on-surface); }
+  .ov .wk .ctr i { font: var(--font-label); font-style: normal;
+                   color: var(--on-surface-variant); }
+
+  /* ---- 区块 2：每日活动 ---- */
+  .days { background: var(--surface); border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-low); padding: var(--space-5);
+          display: flex; justify-content: space-between; }
+  .day { display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+         width: 36px; }
+  .day .lbl { font: var(--font-label); color: var(--on-surface-variant); }
+  .day .dot { width: 36px; height: 36px; border-radius: var(--radius-full);
+              background: var(--surface-alt); display: flex; align-items: center;
+              justify-content: center; color: var(--on-surface-variant); }
+  .day.hit .dot { background: var(--positive-fill); color: var(--positive-on); }
+  .day.hit .dot svg { width: 16px; height: 16px; }
+  .day.part .dot { box-shadow: inset 0 0 0 3px var(--positive-fill); }
+  .day.today .lbl { color: var(--accent); font-weight: 700; }
+  .day .n { font: var(--font-label); color: var(--on-surface-variant);
+            font-variant-numeric: tabular-nums; }
+
+  /* ---- 区块 3：本周目标 ---- */
+  .gcard { background: var(--surface); border-radius: var(--radius-lg);
+           box-shadow: var(--shadow-low); padding: var(--space-4);
+           display: flex; align-items: center; gap: var(--space-3); cursor: pointer; }
+  .gcard .ic { width: 42px; height: 42px; border-radius: var(--radius-md); flex: none;
+               background: var(--surface-alt); display: flex; align-items: center;
+               justify-content: center; }
+  .gcard .bd { flex: 1; min-width: 0; }
+  .gcard .nm { font: var(--font-body-l); color: var(--on-surface); margin: 0; }
+  .gcard .prog { height: 6px; border-radius: var(--radius-full);
+                 background: var(--surface-alt); overflow: hidden; margin-top: var(--space-2); }
+  .gcard .prog i { display: block; height: 100%; border-radius: var(--radius-full);
+                   background: var(--gc, var(--accent)); }
+  .gcard .pc { font: var(--font-body-s); color: var(--on-surface-variant);
+               flex: none; font-variant-numeric: tabular-nums; }
+  .gcard .chev { color: var(--on-surface-variant); flex: none; }
+
+  /* ---- 空态周 ---- */
+  .empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+           padding: var(--space-12) var(--space-6); text-align: center; }
+  .empty .art { width: 96px; height: 96px; border-radius: var(--radius-full);
+                background: var(--surface-alt); display: flex; align-items: center;
+                justify-content: center; color: var(--on-surface-variant); }
+  .empty .art svg { width: 40px; height: 40px; }
+  .empty .t1 { font: var(--font-title-m); color: var(--on-surface); margin: 0; }
+  .empty .t2 { font: var(--font-body-m); color: var(--on-surface-variant);
+               margin: 0; line-height: 1.7; }
+
+  /* ---- dock ---- */
+  .dock { flex: none; height: 84px; display: flex; align-items: flex-start;
+          justify-content: space-around; padding-top: var(--space-2);
+          background: var(--glass-card); backdrop-filter: blur(18px);
+          border-top: 1px solid var(--divider); }
+  .tab { width: 88px; display: flex; flex-direction: column; align-items: center;
+         gap: 3px; font: var(--font-label); color: var(--on-surface-variant);
+         cursor: pointer; padding: 0; border: none; background: none; }
+  .tab svg { width: 22px; height: 22px; }
+  .tab.on { color: var(--accent); font-weight: 700; }
+  .fab { width: 56px; height: 56px; margin-top: -22px; border-radius: var(--radius-full);
+         background: var(--accent); color: var(--accent-on); border: none;
+         display: flex; align-items: center; justify-content: center;
+         box-shadow: var(--shadow-mid); cursor: pointer;
+         border: 4px solid var(--surface); }
+  .fab svg { width: 24px; height: 24px; }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">回顾页 · v2 稿 R1</h1>
+<p class="pt-sub">004 T011 门禁补充稿（2026-08-23 用户裁定补入）。基准图 04 落地 + US5 三区块：本周概览（周平均+环比）/ 每日活动（7 日点阵）/ 本周目标（逐目标完成卡）；数据实时派生不读快照。</p>
+
+<div class="row">
+  <!-- ===================== 板 1：深色 · 回顾页完整 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="dark">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="top">
+        <h1>回顾</h1>
+        <button class="calbtn" aria-label="选择周期" title="跳转某一周（后续版本）">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Z"/></svg>
+        </button>
+      </div>
+      <div class="wknav">
+        <button class="wbtn" aria-label="上一周">‹</button>
+        <span class="wk">8 月 17 日 – 8 月 23 日</span>
+        <button class="wbtn" aria-label="下一周">›</button>
+      </div>
+
+      <div class="scroll">
+        <span class="sec-t">本周概览</span>
+        <div class="ov">
+          <div class="num">
+            <b>84%<span class="delta">↑ 12%</span></b>
+            <i>周平均完成率 · 上周 72%</i>
+          </div>
+          <div class="wk">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--divider)" stroke-width="7"/>
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--positive)" stroke-width="7"
+                      stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="30.2"/>
+            </svg>
+            <div class="ctr"><b>84</b><i>均分</i></div>
+          </div>
+        </div>
+
+        <span class="sec-t">每日活动</span>
+        <div class="days">
+          <div class="day hit">
+            <span class="lbl">一</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">3</span>
+          </div>
+          <div class="day hit">
+            <span class="lbl">二</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">2</span>
+          </div>
+          <div class="day part">
+            <span class="lbl">三</span><span class="dot"></span><span class="n">1</span>
+          </div>
+          <div class="day hit">
+            <span class="lbl">四</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">4</span>
+          </div>
+          <div class="day hit">
+            <span class="lbl">五</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">3</span>
+          </div>
+          <div class="day hit">
+            <span class="lbl">六</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">2</span>
+          </div>
+          <div class="day today part">
+            <span class="lbl">日</span><span class="dot"></span><span class="n">1</span>
+          </div>
+        </div>
+
+        <span class="sec-t">本周目标</span>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="directions_bike" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <p class="nm">骑行大 PRO 计划</p>
+            <div class="prog"><i style="width:86%"></i></div>
+          </div>
+          <span class="pc">6/7</span>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-goal)">
+          <span class="ic" data-gi="menu_book" style="color:var(--major-goal)"></span>
+          <div class="bd">
+            <p class="nm">读完《设计中的设计》</p>
+            <div class="prog"><i style="width:71%"></i></div>
+          </div>
+          <span class="pc">5/7</span>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-habit)">
+          <span class="ic" data-gi="cleaning_services" style="color:var(--major-habit)"></span>
+          <div class="bd">
+            <p class="nm">每周大扫除</p>
+            <div class="prog"><i style="width:100%"></i></div>
+          </div>
+          <span class="pc">1/1</span>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="tab">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
+          今日
+        </button>
+        <button class="fab" aria-label="新建目标">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+        <button class="tab on">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
+          回顾
+        </button>
+      </div>
+    </div>
+    <h3>深色 · 回顾页完整</h3>
+    <p class="desc">三区块：本周概览（周平均 84% + 环比 ↑12% + 均分环）/ 每日活动（周一→周日点阵，完成=青柠实底对勾、部分=描边圈、今日高亮，下标打卡数）/ 本周目标（大类色图标+周完成进度 x/y →进详情）；顶栏周期切换 ‹ 周 › + 日历钮占位。</p>
+    <div class="chips"><span class="chip t">三区块</span><span class="chip t">7 日点阵</span><span class="chip t">周期切换</span></div>
+  </div>
+
+  <!-- ===================== 板 2：浅色 · 回顾页完整 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="top">
+        <h1>回顾</h1>
+        <button class="calbtn" aria-label="选择周期">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Z"/></svg>
+        </button>
+      </div>
+      <div class="wknav">
+        <button class="wbtn" aria-label="上一周">‹</button>
+        <span class="wk">8 月 17 日 – 8 月 23 日</span>
+        <button class="wbtn" aria-label="下一周">›</button>
+      </div>
+
+      <div class="scroll">
+        <span class="sec-t">本周概览</span>
+        <div class="ov">
+          <div class="num">
+            <b>84%<span class="delta">↑ 12%</span></b>
+            <i>周平均完成率 · 上周 72%</i>
+          </div>
+          <div class="wk">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--divider)" stroke-width="7"/>
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--positive)" stroke-width="7"
+                      stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="30.2"/>
+            </svg>
+            <div class="ctr"><b>84</b><i>均分</i></div>
+          </div>
+        </div>
+
+        <span class="sec-t">每日活动</span>
+        <div class="days">
+          <div class="day hit">
+            <span class="lbl">一</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">3</span>
+          </div>
+          <div class="day hit">
+            <span class="lbl">二</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">2</span>
+          </div>
+          <div class="day part">
+            <span class="lbl">三</span><span class="dot"></span><span class="n">1</span>
+          </div>
+          <div class="day hit">
+            <span class="lbl">四</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">4</span>
+          </div>
+          <div class="day hit">
+            <span class="lbl">五</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">3</span>
+          </div>
+          <div class="day hit">
+            <span class="lbl">六</span>
+            <span class="dot"><svg viewBox="0 -960 960 960" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg></span>
+            <span class="n">2</span>
+          </div>
+          <div class="day today part">
+            <span class="lbl">日</span><span class="dot"></span><span class="n">1</span>
+          </div>
+        </div>
+
+        <span class="sec-t">本周目标</span>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="directions_bike" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <p class="nm">骑行大 PRO 计划</p>
+            <div class="prog"><i style="width:86%"></i></div>
+          </div>
+          <span class="pc">6/7</span>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-goal)">
+          <span class="ic" data-gi="menu_book" style="color:var(--major-goal)"></span>
+          <div class="bd">
+            <p class="nm">读完《设计中的设计》</p>
+            <div class="prog"><i style="width:71%"></i></div>
+          </div>
+          <span class="pc">5/7</span>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-habit)">
+          <span class="ic" data-gi="cleaning_services" style="color:var(--major-habit)"></span>
+          <div class="bd">
+            <p class="nm">每周大扫除</p>
+            <div class="prog"><i style="width:100%"></i></div>
+          </div>
+          <span class="pc">1/1</span>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="tab">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
+          今日
+        </button>
+        <button class="fab" aria-label="新建目标">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+        <button class="tab on">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
+          回顾
+        </button>
+      </div>
+    </div>
+    <h3>浅色 · 回顾页完整</h3>
+    <p class="desc">同构浅色：概览卡白底、点阵完成=青柠实底、本周目标卡进度条走大类色；语义色不靠色相单通道（对勾/描边双编码，FR-013）。</p>
+    <div class="chips"><span class="chip t">浅色同构</span><span class="chip t">双编码辨色</span></div>
+  </div>
+
+  <!-- ===================== 板 3：浅色 · 无数据周 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="top">
+        <h1>回顾</h1>
+        <button class="calbtn" aria-label="选择周期">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M200-80q-33 0-56.5-23.5T120-160v-560q0-33 23.5-56.5T200-800h40v-80h80v80h320v-80h80v80h40q33 0 56.5 23.5T840-720v560q0 33-23.5 56.5T760-80H200Zm0-80h560v-400H200v400Zm0-480h560v-80H200v80Zm0 0v-80 80Z"/></svg>
+        </button>
+      </div>
+      <div class="wknav">
+        <button class="wbtn" aria-label="上一周">‹</button>
+        <span class="wk">8 月 3 日 – 8 月 9 日</span>
+        <button class="wbtn" aria-label="下一周">›</button>
+      </div>
+
+      <div class="scroll">
+        <span class="sec-t">本周概览</span>
+        <div class="ov">
+          <div class="num">
+            <b style="color:var(--on-surface-variant)">—</b>
+            <i>该周暂无记录</i>
+          </div>
+          <div class="wk">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--divider)" stroke-width="7"/>
+            </svg>
+            <div class="ctr"><b style="color:var(--on-surface-variant)">—</b><i>均分</i></div>
+          </div>
+        </div>
+
+        <span class="sec-t">每日活动</span>
+        <div class="days">
+          <div class="day"><span class="lbl">一</span><span class="dot"></span><span class="n">·</span></div>
+          <div class="day"><span class="lbl">二</span><span class="dot"></span><span class="n">·</span></div>
+          <div class="day"><span class="lbl">三</span><span class="dot"></span><span class="n">·</span></div>
+          <div class="day"><span class="lbl">四</span><span class="dot"></span><span class="n">·</span></div>
+          <div class="day"><span class="lbl">五</span><span class="dot"></span><span class="n">·</span></div>
+          <div class="day"><span class="lbl">六</span><span class="dot"></span><span class="n">·</span></div>
+          <div class="day"><span class="lbl">日</span><span class="dot"></span><span class="n">·</span></div>
+        </div>
+
+        <div class="empty">
+          <span class="art">
+            <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-44 0-74-30.5T129-185q0-11 2-21t7-20L200-400q13-30 40.5-48t61.5-18q26 0 49 11t40 31l24 29q6 8 15.5 12.5T442-378h83v-97h-90q-26 0-49-11.5T346-524l-16-19-58 138q-8 19-24.5 30.5T212-360h-14q0 39-27.5 66.5T104-266Z"/></svg>
+          </span>
+          <p class="t1">这一周还没有记录</p>
+          <p class="t2">切到有打卡记录的周即可查看统计，<br>或回到「今日」继续记录。</p>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="tab">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
+          今日
+        </button>
+        <button class="fab" aria-label="新建目标">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+        <button class="tab on">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
+          回顾
+        </button>
+      </div>
+    </div>
+    <h3>浅色 · 无数据周</h3>
+    <p class="desc">切到无记录的周：概览示「—·该周暂无记录」、点阵全灰无下标、本周目标区块让位空态说明（去「今日」引导），不留空白骨架。</p>
+    <div class="chips"><span class="chip t">空周说明</span><span class="chip">周期切换兜底</span></div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('[data-gi]').forEach(el => {
+    el.replaceChildren(gi(el.dataset.gi, 20));
+  });
+</script>
+
+</body>
+</html>

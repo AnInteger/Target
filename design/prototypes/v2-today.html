@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>今日 · Target（v2 主架构 · 基准图 01/02 落地走查稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=0823a">
+<script src="goal-icons.js"></script>
+<style>
+  /* ============================================================
+     v2-today · 今日页主架构原型（004 · T011 门禁补充稿 · R1）
+     ------------------------------------------------------------
+     - 定位：基准图 01（深色主架构）+ 02（浅色关注卡）的落地走查稿，
+       FR-015 只强制延展五屏，本页为用户裁定的门禁补充（2026-08-23）
+     - 结构按 ui-contract today 分支：头部 / 三环 / 关注卡轮播 / 空态
+     - 已落裁决：中文大标题；三环嵌套（健康/习惯/目标）阶梯减分；
+       关注卡=左右轮播+「查看全部」；两页签 dock + 中央 FAB；
+       头像 → 我的页（T012 换装对象）
+     - 关注卡视觉语言承基准图 02：大类色渐变实底卡 + 白字 + 白色
+       胶囊 CTA；卡片色彩 = 目标所属大类（健康绿/习惯橙/目标蓝）
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 760px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 242, 247, .7); }
+  .chip.t { color: var(--accent); }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+  .st { height: 52px; flex: none; display: flex; align-items: flex-end;
+        justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+        font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
+
+  /* ---- 头部：日期 + 大标题 + 头像 ---- */
+  .head { flex: none; display: flex; align-items: center; gap: var(--space-3);
+          padding: var(--space-4) var(--space-6) 0; }
+  .head .lhs { flex: 1; min-width: 0; }
+  .head .date { font: var(--font-label); color: var(--on-surface-variant);
+                letter-spacing: .06em; }
+  .head h1 { font: var(--font-display-l); color: var(--on-surface);
+             margin: var(--space-1) 0 0; }
+  .avatar { width: 44px; height: 44px; border-radius: var(--radius-full); flex: none;
+            background: linear-gradient(135deg, var(--grad-avatar-a), var(--grad-avatar-b));
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font: var(--font-title-s); box-shadow: var(--shadow-low);
+            border: 2px solid var(--surface); cursor: pointer; }
+
+  /* ---- 三环健康度 ---- */
+  .ring-zone { flex: none; display: flex; align-items: center; gap: var(--space-5);
+               padding: var(--space-5) var(--space-6) var(--space-2); }
+  .rings { position: relative; width: 128px; height: 128px; flex: none; }
+  .rings svg { transform: rotate(-90deg); }
+  .rings .ctr { position: absolute; inset: 0; display: flex; flex-direction: column;
+                align-items: center; justify-content: center; }
+  .rings .ctr b { font: var(--font-title-m); color: var(--on-surface);
+                  font-variant-numeric: tabular-nums; }
+  .rings .ctr i { font: var(--font-label); font-style: normal;
+                  color: var(--on-surface-variant); }
+  .lg { display: flex; flex-direction: column; gap: var(--space-3); }
+  .lg .li { display: flex; align-items: center; gap: var(--space-2);
+            font: var(--font-body-m); color: var(--on-surface); }
+  .lg .li .d { width: 10px; height: 10px; border-radius: var(--radius-full); flex: none; }
+  .lg .li b { font-variant-numeric: tabular-nums; }
+  .lg .li span { color: var(--on-surface-variant); }
+
+  /* ---- 轮播区 ---- */
+  .caro { flex: none; padding: var(--space-3) 0 0; }
+  .caro .cap { display: flex; align-items: baseline; justify-content: space-between;
+               padding: 0 var(--space-6) var(--space-3); }
+  .caro .cap .t { font: var(--font-title-m); color: var(--on-surface); }
+  .caro .cap .see { font: var(--font-body-m); color: var(--accent); cursor: pointer; }
+  .track { display: flex; gap: var(--space-3); padding: 0 var(--space-6);
+           overflow: hidden; scroll-snap-type: x mandatory; }
+  .fcard { scroll-snap-align: center; flex: none; width: 310px;
+           border-radius: var(--radius-lg); padding: var(--space-5);
+           color: #fff; box-shadow: var(--shadow-mid); position: relative; }
+  .fcard.g-h { background: linear-gradient(135deg, #34a853, #1e7e40); }
+  .fcard.g-g { background: linear-gradient(135deg, #2196f3, #1565c0); }
+  .fcard.g-t { background: linear-gradient(135deg, #ff9800, #ef6c00); }
+  [data-theme="dark"] .fcard.g-h { background: linear-gradient(135deg, #2e9e63, #176036); }
+  [data-theme="dark"] .fcard.g-g { background: linear-gradient(135deg, #1093e6, #0d55a8); }
+  [data-theme="dark"] .fcard.g-t { background: linear-gradient(135deg, #ef8c00, #c05f00); }
+  .fcard .tag { display: inline-flex; align-items: center; gap: 6px;
+                font: var(--font-label); letter-spacing: .04em;
+                background: rgba(255, 255, 255, .22); border-radius: var(--radius-full);
+                padding: 3px var(--space-2); }
+  .fcard .nm { font: var(--font-title-m); margin: var(--space-3) 0 var(--space-1); }
+  .fcard .ds { font: var(--font-body-s); color: rgba(255, 255, 255, .85);
+               margin: 0 0 var(--space-4); line-height: 1.6; }
+  .fcard .row2 { display: flex; align-items: center; gap: var(--space-3); }
+  .fcard .go { border: none; cursor: pointer; background: #fff;
+               color: var(--accent); font: var(--font-body-m); font-weight: 700;
+               border-radius: var(--radius-full); padding: var(--space-2) var(--space-5);
+               box-shadow: var(--shadow-low); }
+  .fcard .meta { font: var(--font-body-s); color: rgba(255, 255, 255, .85);
+                 font-variant-numeric: tabular-nums; }
+  .fcard .mini { position: absolute; top: var(--space-4); right: var(--space-4);
+                 width: 40px; height: 40px; border-radius: var(--radius-md);
+                 background: rgba(255, 255, 255, .18); display: flex;
+                 align-items: center; justify-content: center; }
+  .fcard .mini svg { color: #fff; }
+  .peek { flex: none; width: 26px; border-radius: var(--radius-lg);
+          background: var(--surface); box-shadow: var(--shadow-low);
+          align-self: stretch; }
+  .dots { display: flex; gap: 6px; justify-content: center; padding: var(--space-4) 0 0; }
+  .dots i { width: 6px; height: 6px; border-radius: var(--radius-full);
+            background: var(--divider); }
+  .dots i.on { width: 18px; background: var(--accent); }
+
+  /* ---- 空态 ---- */
+  .scroll { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+  .empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+           padding: var(--space-12) var(--space-6); text-align: center; }
+  .empty .art { width: 96px; height: 96px; border-radius: var(--radius-full);
+                background: var(--surface-alt); display: flex; align-items: center;
+                justify-content: center; color: var(--on-surface-variant); }
+  .empty .art svg { width: 40px; height: 40px; }
+  .empty .t1 { font: var(--font-title-m); color: var(--on-surface); margin: 0; }
+  .empty .t2 { font: var(--font-body-m); color: var(--on-surface-variant);
+               margin: 0; line-height: 1.7; }
+  .empty .cta { margin-top: var(--space-2); border: none; cursor: pointer;
+                background: var(--accent); color: var(--accent-on);
+                font: var(--font-body-l); border-radius: var(--radius-full);
+                padding: var(--space-3) var(--space-6); box-shadow: var(--shadow-mid); }
+
+  /* ---- dock：两页签 + 中央 FAB ---- */
+  .dock { flex: none; height: 84px; display: flex; align-items: flex-start;
+          justify-content: space-around; padding-top: var(--space-2);
+          background: var(--glass-card); backdrop-filter: blur(18px);
+          border-top: 1px solid var(--divider); }
+  .tab { width: 88px; display: flex; flex-direction: column; align-items: center;
+         gap: 3px; font: var(--font-label); color: var(--on-surface-variant);
+         cursor: pointer; padding: 0; border: none; background: none; }
+  .tab svg { width: 22px; height: 22px; }
+  .tab.on { color: var(--accent); font-weight: 700; }
+  .fab { width: 56px; height: 56px; margin-top: -22px; border-radius: var(--radius-full);
+         background: var(--accent); color: var(--accent-on); border: none;
+         display: flex; align-items: center; justify-content: center;
+         box-shadow: var(--shadow-mid); cursor: pointer;
+         border: 4px solid var(--surface); }
+  .fab svg { width: 24px; height: 24px; }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">今日页 · v2 主架构稿 R1</h1>
+<p class="pt-sub">004 T011 门禁补充稿（2026-08-23 用户裁定补入）。基准图 01/02 视觉语言 + 已落裁决结构：中文大标题 / 三环嵌套阶梯减分 / 关注卡大类色轮播 +「查看全部」/ 两页签 dock + 中央 FAB；头像进「我的」页。</p>
+
+<div class="row">
+  <!-- ===================== 板 1：浅色 · 今日页完整 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div class="lhs">
+          <div class="date">星期日 · 8 月 23 日</div>
+          <h1>今日</h1>
+        </div>
+        <div class="avatar" title="进我的页">星</div>
+      </div>
+
+      <div class="ring-zone">
+        <div class="rings">
+          <svg width="128" height="128" viewBox="0 0 128 128">
+            <circle cx="64" cy="64" r="56" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="56" fill="none" stroke="var(--major-health)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="351.9" stroke-dashoffset="10.6"/>
+            <circle cx="64" cy="64" r="42" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="42" fill="none" stroke="var(--major-habit)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="0"/>
+            <circle cx="64" cy="64" r="28" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="28" fill="none" stroke="var(--major-goal)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="10.6"/>
+          </svg>
+          <div class="ctr"><b>97</b><i>健康度</i></div>
+        </div>
+        <div class="lg">
+          <div class="li"><span class="d" style="background:var(--major-health)"></span>健康 <b>97</b><span>/ 100</span></div>
+          <div class="li"><span class="d" style="background:var(--major-habit)"></span>习惯 <b>100</b><span>/ 100</span></div>
+          <div class="li"><span class="d" style="background:var(--major-goal)"></span>目标 <b>94</b><span>/ 100</span></div>
+        </div>
+      </div>
+
+      <div class="caro">
+        <div class="cap">
+          <span class="t">关注</span>
+          <span class="see">查看全部 ›</span>
+        </div>
+        <div class="track">
+          <div class="fcard g-h">
+            <span class="mini" data-gi="directions_bike"></span>
+            <span class="tag">● 进行中</span>
+            <p class="nm">骑行大 PRO 计划</p>
+            <p class="ds">下班后沿江骑 20 公里，保持配速。</p>
+            <div class="row2">
+              <button class="go">记录打卡</button>
+              <span class="meta">连续 12 天</span>
+            </div>
+          </div>
+          <div class="peek"></div>
+        </div>
+        <div class="dots"><i class="on"></i><i></i><i></i></div>
+      </div>
+
+      <div class="scroll"></div>
+
+      <div class="dock">
+        <button class="tab on">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
+          今日
+        </button>
+        <button class="fab" aria-label="新建目标">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+        <button class="tab">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
+          回顾
+        </button>
+      </div>
+    </div>
+    <h3>浅色 · 今日页完整</h3>
+    <p class="desc">头部（日期+中文大标题+头像→我的页）/ 三环嵌套（外健康·中习惯·内目标，中心总分 97）/ 关注卡（大类色渐变+白胶囊「记录打卡」+连续天数），右侧露邻卡边+页点；「查看全部 ›」进全部目标列表。</p>
+    <div class="chips"><span class="chip t">三环 97/100/94</span><span class="chip t">轮播+邻卡露出</span><span class="chip t">查看全部</span></div>
+  </div>
+
+  <!-- ===================== 板 2：深色 · 今日页完整 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="dark">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div class="lhs">
+          <div class="date">星期日 · 8 月 23 日</div>
+          <h1>今日</h1>
+        </div>
+        <div class="avatar" title="进我的页">星</div>
+      </div>
+
+      <div class="ring-zone">
+        <div class="rings">
+          <svg width="128" height="128" viewBox="0 0 128 128">
+            <circle cx="64" cy="64" r="56" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="56" fill="none" stroke="var(--major-health)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="351.9" stroke-dashoffset="21.1"/>
+            <circle cx="64" cy="64" r="42" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="42" fill="none" stroke="var(--major-habit)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="26.4"/>
+            <circle cx="64" cy="64" r="28" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="28" fill="none" stroke="var(--major-goal)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="14.1"/>
+          </svg>
+          <div class="ctr"><b>93</b><i>健康度</i></div>
+        </div>
+        <div class="lg">
+          <div class="li"><span class="d" style="background:var(--major-health)"></span>健康 <b>94</b><span>/ 100</span></div>
+          <div class="li"><span class="d" style="background:var(--major-habit)"></span>习惯 <b>90</b><span>/ 100</span></div>
+          <div class="li"><span class="d" style="background:var(--major-goal)"></span>目标 <b>92</b><span>/ 100</span></div>
+        </div>
+      </div>
+
+      <div class="caro">
+        <div class="cap">
+          <span class="t">关注</span>
+          <span class="see">查看全部 ›</span>
+        </div>
+        <div class="track">
+          <div class="fcard g-g">
+            <span class="mini" data-gi="menu_book"></span>
+            <span class="tag">● 进行中</span>
+            <p class="nm">读完《设计中的设计》</p>
+            <p class="ds">距截止 12 天，还剩约 40 页。</p>
+            <div class="row2">
+              <button class="go">记录打卡</button>
+              <span class="meta">85% · 距截止 12 天</span>
+            </div>
+          </div>
+          <div class="peek"></div>
+        </div>
+        <div class="dots"><i></i><i class="on"></i><i></i></div>
+      </div>
+
+      <div class="scroll"></div>
+
+      <div class="dock">
+        <button class="tab on">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
+          今日
+        </button>
+        <button class="fab" aria-label="新建目标">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+        <button class="tab">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
+          回顾
+        </button>
+      </div>
+    </div>
+    <h3>深色 · 今日页完整</h3>
+    <p class="desc">同构深色（基准图 01 主架构）：三环提亮档大类色；关注卡示例换目标类（蓝色渐变，倒计时+进度 meta）；dock 毛玻璃 + 中央 56px FAB。</p>
+    <div class="chips"><span class="chip t">深色主架构</span><span class="chip t">FAB 56px</span><span class="chip">毛玻璃 dock</span></div>
+  </div>
+
+  <!-- ===================== 板 3：浅色 · 轮播多位 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div class="lhs">
+          <div class="date">星期日 · 8 月 23 日</div>
+          <h1>今日</h1>
+        </div>
+        <div class="avatar">星</div>
+      </div>
+
+      <div class="ring-zone">
+        <div class="rings">
+          <svg width="128" height="128" viewBox="0 0 128 128">
+            <circle cx="64" cy="64" r="56" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="56" fill="none" stroke="var(--major-health)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="351.9" stroke-dashoffset="10.6"/>
+            <circle cx="64" cy="64" r="42" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="42" fill="none" stroke="var(--major-habit)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="0"/>
+            <circle cx="64" cy="64" r="28" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="28" fill="none" stroke="var(--major-goal)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="10.6"/>
+          </svg>
+          <div class="ctr"><b>97</b><i>健康度</i></div>
+        </div>
+        <div class="lg">
+          <div class="li"><span class="d" style="background:var(--major-health)"></span>健康 <b>97</b></div>
+          <div class="li"><span class="d" style="background:var(--major-habit)"></span>习惯 <b>100</b></div>
+          <div class="li"><span class="d" style="background:var(--major-goal)"></span>目标 <b>94</b></div>
+        </div>
+      </div>
+
+      <div class="caro">
+        <div class="cap">
+          <span class="t">关注 <span style="font:var(--font-body-s);color:var(--on-surface-variant)">· 3 个</span></span>
+          <span class="see">查看全部 ›</span>
+        </div>
+        <div class="track">
+          <div class="peek" style="opacity:.5"></div>
+          <div class="fcard g-t">
+            <span class="mini" data-gi="cleaning_services"></span>
+            <span class="tag">● 待办</span>
+            <p class="nm">每周大扫除</p>
+            <p class="ds">本周六 10:00，客厅与阳台。</p>
+            <div class="row2">
+              <button class="go">记录打卡</button>
+              <span class="meta">每周 · 周六 10:00</span>
+            </div>
+          </div>
+          <div class="peek"></div>
+        </div>
+        <div class="dots"><i></i><i></i><i class="on"></i></div>
+      </div>
+
+      <div class="scroll"></div>
+
+      <div class="dock">
+        <button class="tab on">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
+          今日
+        </button>
+        <button class="fab" aria-label="新建目标">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+        <button class="tab">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
+          回顾
+        </button>
+      </div>
+    </div>
+    <h3>浅色 · 轮播多位（第 3 位）</h3>
+    <p class="desc">轮播中位示例：左右邻卡各露一边（左半透明），页点指示第 3 位；卡色随大类（习惯橙）；标题行带「· 3 个」计数，「查看全部 ›」恒在。</p>
+    <div class="chips"><span class="chip t">邻卡双边露出</span><span class="chip t">页点定位</span><span class="chip t">大类三色齐</span></div>
+  </div>
+
+  <!-- ===================== 板 4：浅色 · 空态 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="st"><span>9:41</span><span>100 ▮</span></div>
+      <div class="head">
+        <div class="lhs">
+          <div class="date">星期日 · 8 月 23 日</div>
+          <h1>今日</h1>
+        </div>
+        <div class="avatar">星</div>
+      </div>
+
+      <div class="ring-zone">
+        <div class="rings">
+          <svg width="128" height="128" viewBox="0 0 128 128">
+            <circle cx="64" cy="64" r="56" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="56" fill="none" stroke="var(--major-health)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="351.9" stroke-dashoffset="0"/>
+            <circle cx="64" cy="64" r="42" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="42" fill="none" stroke="var(--major-habit)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="0"/>
+            <circle cx="64" cy="64" r="28" fill="none" stroke="var(--divider)" stroke-width="10"/>
+            <circle cx="64" cy="64" r="28" fill="none" stroke="var(--major-goal)" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="0"/>
+          </svg>
+          <div class="ctr"><b>100</b><i>健康度</i></div>
+        </div>
+        <div class="lg">
+          <div class="li"><span class="d" style="background:var(--major-health)"></span>健康 <b>100</b></div>
+          <div class="li"><span class="d" style="background:var(--major-habit)"></span>习惯 <b>100</b></div>
+          <div class="li"><span class="d" style="background:var(--major-goal)"></span>目标 <b>100</b></div>
+        </div>
+      </div>
+
+      <div class="scroll">
+        <div class="empty">
+          <span class="art">
+            <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M234-80q-44 0-74-30.5T130-186q0-11 2-21t7-20L200-400q13-30 40.5-48t61.5-18q26 0 49 11t40 31l24 29q6 8 15.5 12.5T441-377h84V-280h-90q-26 0-49-11.5T346-324l-16-19-58 138q-8 19-24.5 30.5T212-140h-14q0 39-27.5 66.5T104-46Z"/></svg>
+          </span>
+          <p class="t1">还没有目标</p>
+          <p class="t2">创建第一个目标，开始记录每一天的坚持。<br>健康度将随打卡记录逐步累积。</p>
+          <button class="cta">新建目标</button>
+        </div>
+      </div>
+
+      <div class="dock">
+        <button class="tab on">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M233-80q-30 0-51.5-21.5T160-153q0-30 21.5-51.5T233-226q30 0 51.5 21.5T306-153q0 30-21.5 51.5T233-80Zm497 0q-30 0-51.5-21.5T657-153q0-30 21.5-51.5T730-226q30 0 51.5 21.5T803-153q0 30-21.5 51.5T730-80ZM233-407q-30 0-51.5-21.5T160-480q0-30 21.5-51.5T233-553q30 0 51.5 21.5T306-480q0 30-21.5 51.5T233-407Zm497 0q-30 0-51.5-21.5T657-480q0-30 21.5-51.5T730-553q30 0 51.5 21.5T803-480q0 30-21.5 51.5T730-407ZM233-734q-30 0-51.5-21.5T160-807q0-30 21.5-51.5T233-880q30 0 51.5 21.5T306-807q0 30-21.5 51.5T233-734Zm497 0q-30 0-51.5-21.5T657-807q0-30 21.5-51.5T730-880q30 0 51.5 21.5T803-807q0 30-21.5 51.5T730-734ZM480-573q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Zm0-161q-19 0-33-14t-14-33q0-19 14-33t33-14q19 0 33 14t14 33q0 19-14 33t-33 14Z"/></svg>
+          今日
+        </button>
+        <button class="fab" aria-label="新建目标">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+        </button>
+        <button class="tab">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M300-280q-21 0-35.5-14.5T250-330q0-21 14.5-35.5T300-380q21 0 35.5 14.5T350-330q0 21-14.5 35.5T300-280Zm360 0q-21 0-35.5-14.5T610-330q0-21 14.5-35.5T660-380q21 0 35.5 14.5T710-330q0 21-14.5 35.5T660-280ZM300-140q-21 0-35.5-14.5T250-190q0-21 14.5-35.5T300-240q21 0 35.5 14.5T350-190q0 21-14.5 35.5T300-140Zm180 0q-21 0-35.5-14.5T430-190q0-21 14.5-35.5T480-240q21 0 35.5 14.5T530-190q0 21-14.5 35.5T480-140Zm180 0q-21 0-35.5-14.5T610-190q0-21 14.5-35.5T660-240q21 0 35.5 14.5T710-190q0 21-14.5 35.5T660-140ZM300-420q-75 0-127.5-52.5T120-600q0-69 46.5-119T288-776q27-41 67.5-62.5T443-860q72 0 124 46t67 116q66 6 106 52.5T780-548q0 75-52.5 127.5T600-368q-3 0-3 .5t-3 .5H300Z"/></svg>
+          回顾
+        </button>
+      </div>
+    </div>
+    <h3>浅色 · 空态（无目标）</h3>
+    <p class="desc">无目标时三环满环（阶梯减分制无扣分项=100），关注区让位空态说明 +「新建目标」CTA（同 FAB 动作）；「查看全部」隐藏。</p>
+    <div class="chips"><span class="chip t">三环满 100</span><span class="chip t">空态 CTA</span></div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('[data-gi]').forEach(el => {
+    el.replaceChildren(gi(el.dataset.gi, el.classList.contains('mini') ? 22 : 20));
+  });
+</script>
+
+</body>
+</html>

@@ -104,13 +104,15 @@ class AppDatabase extends _$AppDatabase {
       return 'longTerm'; // 无截止里程碑 / 无频率习惯 / 暂停中（data-model）
     }
 
-    final habitGoals = <String, bool>{}; // goalId → 是否 weekly 档
+    // 仅 habit 目标入表（goalId → 是否 weekly 档）——第 4 步只对 habit
+    // 补提醒；shortTerm/longTerm 即便无提醒行也不补（D3）。
+    final habitGoals = <String, bool>{};
     for (final g in rawGoals) {
       final id = g.read<String>('id');
       final deadline = g.readNullable<String>('deadline');
       final types = freqTypes[id] ?? const <String>{};
       final goalType = goalTypeOf(g.read<String>('goal_type'), deadline, types);
-      habitGoals[id] = goalType == 'habit' && types.contains('weekly');
+      if (goalType == 'habit') habitGoals[id] = types.contains('weekly');
       await customUpdate(
         'UPDATE goals SET goal_type = ? WHERE id = ?',
         variables: [Variable(goalType), Variable(id)],

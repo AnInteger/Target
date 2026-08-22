@@ -32,7 +32,8 @@
   - ✅ 2026-08-22：四画板（典型周/空态/深色/对齐基准稿）；空态竖直居中（内容盒偏差 0）+七格空圈（末格虚线=将开始的那天）+CTA 直达 screen-editor（FR-007 ≤1 交互）；三页签收敛（目标 tab 退役）；导轨 56/86 与三列实测严丝合缝——三屏对齐实测：带顶 56/带高 52/左缘 24/行中心 30 全一致（今日侧配套修 st-scroll 顶垫 24→0 见 T002 commit；我的侧 gl-top 补 min-height 44 见 T005 commit）；另补 tokens.css --font-display-s（700 22px/1.3，此前 review:67/settings:64 引用中静默回退，Dart displayS 已存在仅 CSS 缺口；字阶九档→十档，index.html 画廊同步）
 - [x] T005 [P] 我的页原型 R3：重构 `design/prototypes/screen-settings.html`——账号卡（头像+昵称+编辑）+ 分组列表（通知/目标/数据/关于），行 = 图标+标题+行尾（值|开关|箭头）；画板含 深色
   - ✅ 2026-08-22：fork 产出、自带无头截图验证——「我的」头部（--font-display-s，T004 补令牌后 22px/700 生效）+ 账号卡 + 分组 通知/目标/数据/关于（行=图标+标题+行尾值|开关|箭头）+ 按目标提醒二级展开（003 频率档副题）+ 资料 sheet（浮于导航上、8 预设头像 22% 环色底）；3 画板（典型/sheet 弹起/深色）；gi() 仅用于目标内容行首沿用线性语言；T004 轮并入对齐微调：gl-top 补 min-height 44 + 底垫归 0（带顶 56/左缘 24/行中心 30 与今日/回顾实测一致）
-- [ ] T006 归档声明：`design/prototypes/screen-goals.html` 顶部加横幅——「003 三 Tab 收敛：目标页退役，职能并入今日页卡与详情动线」，文件不再维护
+- [x] T006 归档声明：`design/prototypes/screen-goals.html` 顶部加横幅——「003 三 Tab 收敛：目标页退役，职能并入今日页卡与详情动线」，文件不再维护
+  - ✅ 2026-08-22：归档横幅（goal-amber 边+12% 底内联令牌取值，链接指 screen-today.html）+ title 改「目标列表（已归档）· Target」
 - [ ] T007 评审门禁：四屏原型起本地服务（`cd design && python3 -m http.server 8390`）送用户浏览器裁决，结论原话记 `design/reviews.md`；未通过则返工对应 T002–T005，通过后方可动 T015 起 Flutter 结构任务
 
 ---
@@ -43,7 +44,8 @@
 
 **⚠️ CRITICAL**: US1–US5 的实现任务全部依赖本相位完成（可与 Phase 1 送审并行推进）
 
-- [ ] T008 GoalIconCatalog 常量：新建 `lib/core/models/goal_icon_catalog.dart`——≥9 领域约 40 枚 Material rounded `IconData`（`Icons.*_rounded`，research D1 清单）+ 稳定 key（即持久化 iconKey 值域）+ 旧 iconKey→新 key 迁移映射表 + 领域中文名；配套单测（key 唯一性/领域覆盖 ≥9/映射完备）入 `test/widget_test.dart` 或新 `test/goal_icon_catalog_test.dart`
+- [x] T008 GoalIconCatalog 常量：新建 `lib/core/models/goal_icon_catalog.dart`——≥9 领域约 40 枚 Material rounded `IconData`（`Icons.*_rounded`，research D1 清单）+ 稳定 key（即持久化 iconKey 值域）+ 旧 iconKey→新 key 迁移映射表 + 领域中文名；配套单测（key 唯一性/领域覆盖 ≥9/映射完备）入 `test/widget_test.dart` 或新 `test/goal_icon_catalog_test.dart`
+  - ✅ 2026-08-22：38 枚 / 10 领域（中文 zhLabel）+ byKey（未知兜底 explore）+ byDomain + legacyIconKeyMap 旧 12 键一次性换域 + migrateIconKey；新 test/goal_icon_catalog_test.dart 7 测试（含 JS 键名对账防两侧漂移）——analyze 0 issues、76 tests 全绿；camping 键 SDK 无此图标事件 → 换 cabin（curl 官方 symbols path 三文件同步：dart 枚举/js 模块/对账清单）
 - [ ] T009 schema v3 迁移：`lib/core/db/tables.dart`——Goals: kind→goalType（TEXT 枚举 longTerm/shortTerm/habit）+ 新列 achievedAt（TEXT Instant NULL）+ colorKey 退役置 NULL（可空化）；Reminders: +cadence（TEXT 枚举 daily/threeDay/weekly，NULL=daily）；SettingsRows: +nickname/avatarKey（TEXT NULL）。`lib/core/db/app_database.dart`：schemaVersion 2→3 + onUpgrade 按 research D3 映射（deadline 非空→shortTerm；daily/weekdays 频率版本→habit+cadence=daily；weekly→habit+cadence=weekly；余→longTerm）+ iconKey 按 T008 映射换域 + cadence 补档 + colorKey 置 NULL；`dart run build_runner build` 重新生成
 - [ ] T010 迁移对账测试：`test/migration_test.dart` 增四分支存量用例（milestone+截止 / habit+daily / habit+weekly / 暂停 milestone）——升级后目标/打卡/记录/补签计数逐项一致、goalType 符合映射、colorKey=NULL、FrequencyVersions 原样保全
 - [ ] T011 entities 演进：`lib/core/models/entities.dart`——GoalType{longTerm,shortTerm,habit} 替换 GoalKind、Goal.+achievedAt、Reminder.+cadence、新 Profile VO（nickname/avatarKey）；全库引用点（repositories/goal_editor/goal_detail/stats 等）机械迁移至编译绿

@@ -22,6 +22,7 @@ import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/frequency_pattern.dart';
+import 'package:target/core/models/goal_icon_catalog.dart';
 import 'package:target/core/platform/gateways.dart';
 
 import 'version_seed.dart';
@@ -673,6 +674,86 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(find.text('09:00'), findsOneWidget); // 取消不改值
+    await db.close();
+  });
+
+  testWidgets('T026 分类组：常用行 6 枚 + 「更多」弹窗全量按域分组，单选即存 iconKey（FR-011/015）', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const GoalEditorPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 无颜色步：表单不出现任何颜色选择（FR-015）。
+    expect(find.text(Copy.editorIconColor), findsNothing);
+
+    // 常用行 6 枚策展（原型 COMMON_ICONS）+「更多」格在场。
+    const commonKeys = [
+      'fitness_center', 'menu_book', 'favorite',
+      'self_improvement', 'brush', 'savings',
+    ];
+    for (final k in commonKeys) {
+      expect(find.byIcon(GoalIconCatalog.byKey(k).icon), findsOneWidget);
+    }
+    expect(find.byKey(const ValueKey('goalIconMoreButton')), findsOneWidget);
+
+    // 点常用格 → 保存落库该 iconKey。
+    await tester.enterText(find.byKey(const ValueKey('goalNameField')), '读点书');
+    await tester.tap(find.byIcon(Icons.menu_book_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+    final created = (await GoalRepository(db).getGoals()).single;
+    expect(created.iconKey, 'menu_book');
+
+    // 编辑 → 「更多」弹窗：标题 + 领域分组标签 + 全量 38 枚（含非常用 flight）。
+    final navKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          navigatorKey: navKey,
+          home: const Scaffold(body: Text('root')),
+        ),
+      ),
+    );
+    navKey.currentState!.push(MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => GoalEditorPage(goalId: created.id)));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('goalIconMoreButton')));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.editorPickCategoryTitle), findsOneWidget);
+    expect(find.text(GoalIconDomain.travel.zhLabel), findsOneWidget);
+    for (final icon in GoalIconCatalog.values) {
+      expect(find.byIcon(icon.icon), findsWidgets);
+    }
+
+    // ✕ 关闭不选 → iconKey 不变。
+    await tester.tap(find.byKey(const ValueKey('goalIconPickerClose')));
+    await tester.pumpAndSettle();
+    expect((await GoalRepository(db).getGoals()).single.iconKey, 'menu_book');
+
+    // 弹窗选非常用图标 flight（旅行域）→ 点选即关 → 保存落库 flight。
+    await tester.tap(find.byKey(const ValueKey('goalIconMoreButton')));
+    await tester.pumpAndSettle();
+    await scrollTo(tester, find.byIcon(Icons.flight_rounded));
+    await tester.tap(find.byIcon(Icons.flight_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.editorPickCategoryTitle), findsNothing); // 点选即关
+    await scrollTo(tester, find.byKey(const ValueKey('goalSaveButton')));
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+    expect((await GoalRepository(db).getGoals()).single.iconKey, 'flight');
     await db.close();
   });
 

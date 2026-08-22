@@ -307,6 +307,14 @@ abstract final class Copy {
   static const editorSectionBasics = '基础信息';
   static const editorSectionType = '目标类型';
 
+  // 分类图标（T026：常用行 + 「更多」弹窗全量，R2 裁决 1）。
+  static const editorPickCategoryTitle = '选择分类';
+  static const editorIconMoreLabel = '更多分类图标';
+  static const editorIconCloseLabel = '关闭';
+
+  /// 图标格语义名（原型 aria-label 同款口径：键名即名）。
+  static String editorIconSemantics(String key) => '分类图标 $key';
+
   /// 一句话描述示范（research D8：完整短句式 placeholder）。
   static const editorNameHint = '例如：月底前能连续跑 3 公里';
 

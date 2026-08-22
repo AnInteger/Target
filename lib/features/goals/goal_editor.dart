@@ -243,25 +243,45 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     );
   }
 
-  /// 分类组（T023 占位：当前选中图标；T026 = 常用行 + 「更多」弹窗）。
+  /// 分类组（T026，原型 buildCommonRow/buildPicker）：常用一行 6 枚策展
+  /// + 「更多」虚线格 → 弹窗全量按领域分组；单选即存 iconKey，两处选中
+  /// 态同步（选中不在常用行时行内无高亮，原型同款）。无颜色步
+  /// （FR-015：表单零 colorKey 写入）。
+  static const _commonIcons = [
+    GoalIconCatalog.fitnessCenter,
+    GoalIconCatalog.menuBook,
+    GoalIconCatalog.favorite,
+    GoalIconCatalog.selfImprovement,
+    GoalIconCatalog.brush,
+    GoalIconCatalog.savings,
+  ];
+
   Widget _categoryPicker() {
-    final palette = TargetPalette.of(context);
-    final selected = GoalIconCatalog.byKey(_iconKey);
     return Row(
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: AppRadius.rMd,
-            border: Border.all(color: palette.divider),
+        for (final c in _commonIcons) ...[
+          _IconCell(
+            icon: c.icon,
+            size: 36,
+            iconSize: 18,
+            selected: _iconKey == c.key,
+            semanticLabel: Copy.editorIconSemantics(c.key),
+            onTap: () => setState(() => _iconKey = c.key),
           ),
-          child: Icon(selected.icon, size: 22, color: palette.onSurface),
-        ),
+          const SizedBox(width: AppSpace.s2),
+        ],
+        _MoreCell(onTap: _openPicker),
       ],
     );
+  }
+
+  Future<void> _openPicker() async {
+    final picked = await showDialog<String>(
+      context: context,
+      barrierDismissible: true, // scrim 点外关闭（原型同款）
+      builder: (_) => _IconPickerDialog(selectedKey: _iconKey),
+    );
+    if (picked != null) setState(() => _iconKey = picked);
   }
 
   /// 基础信息：一句话描述（name 语义升级，40 字上限，research D8）。
@@ -503,6 +523,245 @@ class _RequiredTag extends StatelessWidget {
               .textTheme
               .labelS
               .copyWith(color: palette.positiveOn)),
+    );
+  }
+}
+
+/// 图标格（原型 .ico）：surface 底 + divider 边 + rMd；选中 → accent
+/// 底/边 + accentOn 色（常用行 36px/弹窗 40px 两档尺寸）。
+class _IconCell extends StatelessWidget {
+  const _IconCell({
+    required this.icon,
+    required this.size,
+    required this.iconSize,
+    required this.selected,
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final double size;
+  final double iconSize;
+  final bool selected;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      selected: selected,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: AppRadius.rMd,
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? palette.accent : palette.surface,
+            borderRadius: AppRadius.rMd,
+            border: Border.all(
+                color: selected ? palette.accent : palette.divider),
+          ),
+          child: Icon(icon,
+              size: iconSize,
+              color: selected ? palette.accentOn : palette.onSurfaceVariant),
+        ),
+      ),
+    );
+  }
+}
+
+/// 「更多」虚线格（原型 .more-btn）：40px、divider 虚线边、九点标识。
+class _MoreCell extends StatelessWidget {
+  const _MoreCell({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Semantics(
+      label: Copy.editorIconMoreLabel,
+      button: true,
+      child: InkWell(
+        key: const ValueKey('goalIconMoreButton'),
+        onTap: onTap,
+        borderRadius: AppRadius.rMd,
+        child: CustomPaint(
+          foregroundPainter:
+              _DashedBorderPainter(color: palette.divider),
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            child: _DotsIcon(color: palette.onSurfaceVariant),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 圆角矩形虚线描边（原型 border: dashed；Flutter 边框无 dash 选项，自绘）。
+class _DashedBorderPainter extends CustomPainter {
+  const _DashedBorderPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = color;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Offset.zero & size, AppRadius.rMd.topLeft));
+    for (final metric in path.computeMetrics()) {
+      var start = 0.0;
+      while (start < metric.length) {
+        canvas.drawPath(metric.extractPath(start, start + 4), paint);
+        start += 8;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter old) =>
+      old.color != color;
+}
+
+/// 3×3 九点标识（原型 more-btn svg 同款）。
+class _DotsIcon extends StatelessWidget {
+  const _DotsIcon({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget dot() => Container(
+          width: 3.5,
+          height: 3.5,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        );
+    Widget row() => Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [dot(), const SizedBox(width: 5), dot(),
+            const SizedBox(width: 5), dot()],
+        );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [row(), const SizedBox(height: 5), row(),
+        const SizedBox(height: 5), row()],
+    );
+  }
+}
+
+/// 「选择分类」弹窗（原型 .picker）：全量 38 枚按领域分组、40px 格、
+/// 点选即关（pop key）；scrim 点外/Esc/✕ 关闭不选。
+class _IconPickerDialog extends StatelessWidget {
+  const _IconPickerDialog({required this.selectedKey});
+
+  final String selectedKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 326, maxHeight: 560),
+        child: Material(
+          color: palette.surface,
+          borderRadius: AppRadius.rLg,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.rLg,
+              border: Border.all(color: palette.divider),
+              boxShadow: palette.shadowHigh,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpace.s4, AppSpace.s4, AppSpace.s3, AppSpace.s2),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(Copy.editorPickCategoryTitle,
+                            style: theme.textTheme.titleS),
+                      ),
+                      Semantics(
+                        label: Copy.editorIconCloseLabel,
+                        button: true,
+                        child: InkWell(
+                          key: const ValueKey('goalIconPickerClose'),
+                          onTap: () => Navigator.of(context).pop(),
+                          borderRadius: AppRadius.rFull,
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: palette.surfaceAlt,
+                              borderRadius: AppRadius.rFull,
+                            ),
+                            child: Icon(Icons.close_rounded,
+                                size: 16, color: palette.onSurfaceVariant),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding:
+                        const EdgeInsets.fromLTRB(AppSpace.s4, 0, AppSpace.s4,
+                            AppSpace.s4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final entry
+                            in GoalIconCatalog.byDomain.entries) ...[
+                          Text(entry.key.zhLabel,
+                              style: theme.textTheme.labelS.copyWith(
+                                  color: palette.onSurfaceVariant)),
+                          const SizedBox(height: AppSpace.s2),
+                          Wrap(
+                            spacing: AppSpace.s2,
+                            runSpacing: AppSpace.s2,
+                            children: [
+                              for (final c in entry.value)
+                                _IconCell(
+                                  icon: c.icon,
+                                  size: 40,
+                                  iconSize: 20,
+                                  selected: c.key == selectedKey,
+                                  semanticLabel:
+                                      Copy.editorIconSemantics(c.key),
+                                  onTap: () =>
+                                      Navigator.of(context).pop(c.key),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpace.s3),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

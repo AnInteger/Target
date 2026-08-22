@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target/app/app.dart';
+import 'package:target/app/design_tokens.dart';
 import 'package:target/app/providers.dart';
 import 'package:target/app/router.dart';
 import 'package:target/features/goals/goal_detail.dart';
@@ -459,7 +460,8 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T018 统一详情：这一诺呈现 + 一次性倒计时 + 步骤增改勾', (tester) async {
+  testWidgets('T021 详情：头部块/管理入口 + 打卡描述落库 + 历史行兜底 + 短期倒计时步骤',
+      (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
@@ -477,25 +479,56 @@ void main() {
     ));
     await repo.addStep(
         MilestoneStep(id: 's1', goalId: goal.id, title: '买跑鞋'));
+    // 昨日一条无描述打卡 → 历史行兜底「完成打卡」。
+    await CheckInRepository(db)
+        .add(goal.id, today.addDays(-1), DateTime.now());
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
-        child: MaterialApp(home: GoalDetailPage(goalId: goal.id)),
+        child: MaterialApp(
+            theme: AppTheme.light(), home: GoalDetailPage(goalId: goal.id)),
       ),
     );
     await tester.pumpAndSettle();
 
-    // 这一诺：动机/成功标准/提醒场景 + 倒计时 + 已有步骤。
-    expect(find.text(Copy.goalVowLabel), findsOneWidget);
-    expect(find.text('为了夏天的约定'), findsOneWidget);
-    expect(find.text('完成一次 10km'), findsOneWidget);
-    expect(find.text('早起后'), findsOneWidget);
+    // 头部块：描述 + 类型徽章 + 提醒行；退役字段（为什么/怎样算）不上屏。
+    expect(find.text('年底前跑一次 10km'), findsWidgets);
     expect(
-        find.text(Copy.milestoneCountdown(
-            LocalDate(today.year, 12, 31).differenceInDays(today))),
+        find.text(
+            '${Copy.typeBadgeShortTerm} · ${Copy.milestoneCountdown(LocalDate(today.year, 12, 31).differenceInDays(today))}'),
         findsOneWidget);
+    expect(find.text(Copy.goalReminderLine('早起后')), findsOneWidget);
+    expect(find.text('为了夏天的约定'), findsNothing);
+    expect(find.text('完成一次 10km'), findsNothing);
     expect(find.text('买跑鞋'), findsOneWidget);
+    // 昨日记录：无描述 → 兜底文案。
+    expect(
+        find.text('${Copy.notifDayYesterday} - ${Copy.checkInDefaultNote}'),
+        findsOneWidget);
+
+    // 打卡动线：填描述 → 落库 note + 历史行「今天 - 描述」。
+    await tester.enterText(
+        find.byKey(const ValueKey('checkInNoteField')), '报名了首场比赛');
+    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.checkInDone), findsOneWidget);
+    final saved = await CheckInRepository(db).all();
+    expect(saved.where((c) => c.day == today).single.note, '报名了首场比赛');
+    expect(find.text('${Copy.notifDayToday} - 报名了首场比赛'), findsOneWidget);
+
+    // ⋯ 动作面板：暂停 → 状态行出现 + 打卡动线隐藏；恢复回 active。
+    await tester.tap(find.byTooltip(Copy.goalMoreActions));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('暂停'));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.goalsPausedNote), findsOneWidget);
+    expect(find.byKey(const ValueKey('checkInNoteField')), findsNothing);
+    await tester.tap(find.byTooltip(Copy.goalMoreActions));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('恢复'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
 
     // 加一步：输入回车入库（加一步输入框以 hint 定位）。
     await tester.enterText(
@@ -508,6 +541,37 @@ void main() {
     await tester.tap(find.byType(Checkbox).first);
     await tester.pumpAndSettle();
     expect(find.textContaining('1/2'), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('T021 极简详情不空：仅名称的长期目标仍有完整头部骨架', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(Goal(
+      name: '把英语捡回来',
+      goalType: GoalType.longTerm,
+      iconKey: 'read',
+      colorKey: 'sky',
+      createdAt: today,
+    ));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+            theme: AppTheme.light(), home: GoalDetailPage(goalId: goal.id)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 无提醒/无记录：头部仍呈现 图标 + 描述 + 「∞ 长期」徽章 + 打卡动线。
+    expect(find.text('把英语捡回来'), findsWidgets);
+    expect(find.text(Copy.typeBadgeLongTerm), findsOneWidget);
+    expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
+    expect(find.byTooltip(Copy.goalEdit), findsOneWidget);
+    expect(find.byTooltip(Copy.goalMoreActions), findsOneWidget);
     await db.close();
   });
 

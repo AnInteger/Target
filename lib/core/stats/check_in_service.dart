@@ -15,9 +15,10 @@ class CheckInService {
   final CheckInRepository _repo;
   final DateProvider _clock;
 
-  /// 今日打卡 +1（目标未达标时由 UI/小组件侧把关）。
-  Future<CheckIn> checkInToday(String goalId) =>
-      _repo.add(goalId, _clock.today, _clock.now());
+  /// 今日打卡 +1（目标未达标时由 UI/小组件侧把关）；note = 选填
+  /// 一句话描述（FR-019）。
+  Future<CheckIn> checkInToday(String goalId, {String? note}) =>
+      _repo.add(goalId, _clock.today, _clock.now(), note: note);
 
   /// 补签任意过去日期（day < 今天；isBackfill 自动标记）。
   Future<CheckIn> backfill(String goalId, LocalDate day) {

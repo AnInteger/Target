@@ -1,9 +1,11 @@
-/// 目标详情页（002 T018：里程碑专属视图并入统一呈现，FR-011/013）。
+/// 目标详情页（003 T021：管理动线补全）。
 ///
-/// 单一「目标」详情：这一诺卡（为什么/怎样算做到/提醒场景——空维度
-/// 渐进补全入口）；一次性目标 = 倒计时 + 进度 + 步骤（增删改/勾选回退）
-/// + 过期温和处理（顺延/先放下）+ 一键达成；习惯目标显示当前频率。
-/// 编辑统一走 GoalEditor（步骤管理原 milestone_editor 并入本页）。
+/// goals_view 退役后本页承接全部管理职能（FR-002）：编辑（AppBar）与
+/// ⋯ 动作面板（暂停/恢复/达成/归档——物理删除不存在，归档即收起且
+/// 历史保留）。头部块 = 图标 + 一句话描述 + 类型徽章 + 提醒行（极简
+/// 目标不空，spec 边界用例 3；「为什么/怎样算做到」退役字段不再上
+/// 屏）；打卡动线带选填一句话描述（FR-019）；历史记录行呈现描述
+/// （未填兜底「完成打卡」）。短期目标保留倒计时/进度/步骤/过期处理。
 library;
 
 import 'package:flutter/material.dart';
@@ -15,10 +17,11 @@ import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
-import '../../core/models/frequency_pattern.dart';
-import '../../core/stats/versioning.dart';
+import '../../core/models/goal_icon_catalog.dart';
+import '../notifications/notification_list.dart';
 import '../today/undo_toast.dart';
 import 'goal_lifecycle.dart';
+import 'goal_type_badge.dart';
 
 class GoalDetailPage extends ConsumerWidget {
   const GoalDetailPage({super.key, required this.goalId});
@@ -37,10 +40,15 @@ class GoalDetailPage extends ConsumerWidget {
     }
     final steps =
         ref.watch(stepsProvider(goalId)).value ?? const <MilestoneStep>[];
-    final versions = ref.watch(versionsProvider).value ?? const [];
+    final checkIns =
+        ref.watch(checkInsProvider).value ?? const <CheckIn>[];
     final today = ref.watch(todayProvider);
-    final pattern = effectivePattern(
-        versions.where((v) => v.goalId == goal.id).toList(), today);
+    final mine = checkIns
+        .where((c) => c.goalId == goal.id && c.isValid)
+        .toList()
+      ..sort((a, b) => a.day != b.day
+          ? b.day.compareTo(a.day)
+          : b.createdAt.compareTo(a.createdAt));
     final days = goal.deadline?.differenceInDays(today) ?? 0;
     final done = steps.where((s) => s.isDone).length;
     final allDone = steps.isNotEmpty && done == steps.length;
@@ -55,12 +63,17 @@ class GoalDetailPage extends ConsumerWidget {
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => context.push('/goal-editor?id=$goalId'),
           ),
+          IconButton(
+            tooltip: Copy.goalMoreActions,
+            icon: const Icon(Icons.more_vert),
+            onPressed: () => showGoalActions(context, ref, goal),
+          ),
         ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _vowCard(context, goal, pattern),
+          _HeaderBlock(goal: goal, today: today),
           if (goal.isShortTerm) ...[
             const SizedBox(height: 12),
             _progressCard(context, goal, days, done, steps.length, color),
@@ -83,85 +96,18 @@ class GoalDetailPage extends ConsumerWidget {
               ),
             ],
           ],
-          // T017 保障段：今日页卡上打卡按钮退役后，详情页承接打卡
-          // 入口（T021 再扩为带一句话描述的完整动线）。
           if (goal.status == GoalStatus.active) ...[
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () async {
-                final ci = await ref
-                    .read(checkInServiceProvider)
-                    .checkInToday(goalId);
-                if (context.mounted) showCheckInToast(context, ref, ci);
-              },
-              child: const Text(Copy.todayCheckAction),
-            ),
+            _CheckInBar(goalId: goal.id),
+          ],
+          if (mine.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _HistorySection(items: mine, today: today),
           ],
         ],
       ),
     );
   }
-
-  /// 这一诺卡（T014 B 案 envelope 的统一呈现；空维度 → 渐进补全入口）。
-  Widget _vowCard(
-      BuildContext context, Goal goal, FrequencyPattern? pattern) {
-    final theme = Theme.of(context);
-    final hasWhy = goal.motivation != null && goal.motivation!.isNotEmpty;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(Copy.goalVowLabel,
-                style: theme.textTheme.labelLarge
-                    ?.copyWith(color: theme.colorScheme.primary)),
-            const SizedBox(height: 8),
-            if (hasWhy)
-              Text(goal.motivation!, style: theme.textTheme.titleMedium)
-            else
-              // 点卡片即渐进补全：与列表第二行的邀请同语言。
-              InkWell(
-                onTap: () => context.push('/goal-editor?id=${goal.id}'),
-                child: Text(
-                  Copy.goalsInviteWhy,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      decoration: TextDecoration.underline,
-                      decorationStyle: TextDecorationStyle.dotted),
-                ),
-              ),
-            if (goal.successCriterion != null) ...[
-              const SizedBox(height: 12),
-              _vowRow(context, Copy.editorCriterionLabel,
-                  goal.successCriterion!),
-            ],
-            if (goal.cueScene != null && goal.cueScene != '不打扰') ...[
-              const SizedBox(height: 6),
-              _vowRow(context, Copy.editorCueLabel, goal.cueScene!),
-            ],
-            if (goal.isHabit) ...[
-              const SizedBox(height: 6),
-              _vowRow(context, Copy.editorFrequencyLabel, pattern?.toString() ?? ''),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _vowRow(BuildContext context, String label, String value) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          const SizedBox(width: 8),
-          Expanded(
-              child: Text(value,
-                  style: Theme.of(context).textTheme.bodyMedium)),
-        ],
-      );
 
   /// 倒计时 + 进度（一次性目标；达成态换祝贺语）。
   Widget _progressCard(BuildContext context, Goal goal, int days, int done,
@@ -188,8 +134,8 @@ class GoalDetailPage extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             Text(
-                '${Copy.milestoneProgress(done, total)} · ${goal.deadline?.isoString ?? ''}',
-                style: theme.textTheme.bodySmall),
+              '${Copy.milestoneProgress(done, total)} · ${goal.deadline?.isoString ?? ''}',
+              style: theme.textTheme.bodySmall),
           ],
         ),
       ),
@@ -313,6 +259,170 @@ class GoalDetailPage extends ConsumerWidget {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text(Copy.milestonePostponed)));
     }
+  }
+}
+
+/// 头部块：图标 + 一句话描述 + 类型徽章 + 提醒行 + 状态行。
+/// 极简目标（仅名称）也呈现完整骨架（spec 边界用例 3）。
+class _HeaderBlock extends StatelessWidget {
+  const _HeaderBlock({required this.goal, required this.today});
+
+  final Goal goal;
+  final LocalDate today;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    final hasCue = goal.cueScene != null && goal.cueScene != Copy.cueNone;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: AppRadius.rMd,
+            border: Border.all(color: palette.divider),
+          ),
+          child: Icon(GoalIconCatalog.byKey(goal.iconKey).icon,
+              size: 28, color: palette.onSurface),
+        ),
+        const SizedBox(width: AppSpace.s4),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(goal.name, style: theme.textTheme.titleL),
+              const SizedBox(height: AppSpace.s2),
+              GoalTypeBadge(goal: goal, today: today),
+              if (goal.status != GoalStatus.active) ...[
+                const SizedBox(height: AppSpace.s2),
+                Text(
+                  goal.status == GoalStatus.paused
+                      ? Copy.goalsPausedNote
+                      : goal.status == GoalStatus.archived
+                          ? Copy.goalArchived
+                          : Copy.milestoneDone,
+                  style: theme.textTheme.bodyS
+                      .copyWith(color: palette.onSurfaceVariant),
+                ),
+              ],
+              if (hasCue) ...[
+                const SizedBox(height: AppSpace.s1),
+                Text(
+                  Copy.goalReminderLine(goal.cueScene!),
+                  style: theme.textTheme.bodyS
+                      .copyWith(color: palette.onSurfaceVariant),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 打卡动线：选填一句话描述（FR-019）+ 记录按钮。
+class _CheckInBar extends ConsumerStatefulWidget {
+  const _CheckInBar({required this.goalId});
+
+  final String goalId;
+
+  @override
+  ConsumerState<_CheckInBar> createState() => _CheckInBarState();
+}
+
+class _CheckInBarState extends ConsumerState<_CheckInBar> {
+  final _note = TextEditingController();
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkIn() async {
+    final text = _note.text.trim();
+    final ci = await ref.read(checkInServiceProvider).checkInToday(
+          widget.goalId,
+          note: text.isEmpty ? null : text,
+        );
+    _note.clear();
+    if (mounted) showCheckInToast(context, ref, ci);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            key: const ValueKey('checkInNoteField'),
+            controller: _note,
+            maxLength: 40,
+            decoration: const InputDecoration(
+              hintText: Copy.checkInNoteHint,
+              counterText: '',
+              isDense: true,
+            ),
+            onSubmitted: (_) => _checkIn(),
+          ),
+        ),
+        const SizedBox(width: AppSpace.s3),
+        FilledButton(
+          onPressed: _checkIn,
+          child: const Text(Copy.todayCheckAction),
+        ),
+      ],
+    );
+  }
+}
+
+/// 历史记录（新→旧）：「相对日期 - 描述」+ 时刻，与今日卡同语言。
+class _HistorySection extends StatelessWidget {
+  const _HistorySection({required this.items, required this.today});
+
+  final List<CheckIn> items;
+  final LocalDate today;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(Copy.goalHistoryTitle, style: theme.textTheme.titleS),
+        const SizedBox(height: AppSpace.s2),
+        for (final c in items)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpace.s2),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${notificationDayLabel(c.day, today)} - '
+                    '${(c.note ?? '').trim().isEmpty ? Copy.checkInDefaultNote : c.note!.trim()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyM,
+                  ),
+                ),
+                const SizedBox(width: AppSpace.s2),
+                Text(
+                  notificationTimeLabel(c.createdAt),
+                  style: theme.textTheme.labelS
+                      .copyWith(color: palette.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 }
 

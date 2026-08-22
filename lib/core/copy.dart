@@ -104,17 +104,23 @@ abstract final class Copy {
   static const goalsResume = '恢复';
   static const goalsClosedHeader = '已结束';
   static const goalsWeekRate = '本周';
-  static const goalsInviteWhy = '＋ 补一句为什么';
   static const goalPauseHint = '先放一放，想回来随时继续';
   static const goalsEmptyTitle = '想守护点什么？';
   static const goalsEmptySub = '从一句熟悉的话开始，或者写一句自己的。';
   static const goalsEmptyOwn = '写一句自己的';
   static String goalsOnceBadge(String deadline) => '一次性 · $deadline';
 
-  // ---- 目标详情（T018：里程碑视图并入统一呈现）----
+  // ---- 目标详情（T021：管理动线 + 打卡描述 + 历史记录）----
 
-  static const goalVowLabel = '这一诺';
   static const goalEdit = '编辑目标';
+  static const goalMoreActions = '更多操作';
+
+  /// 详情头提醒行：「提醒 · 晚饭后」。
+  static String goalReminderLine(String scene) => '提醒 · $scene';
+
+  /// 打卡动线选填描述（FR-019；40 字上限与编辑器描述一致）。
+  static const checkInNoteHint = '选填一句话描述';
+  static const goalHistoryTitle = '记录';
 
   // ---- 首启引导（SC-001）----
 

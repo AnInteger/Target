@@ -10,6 +10,7 @@ import 'dart:convert';
 import '../db/app_database.dart' as db;
 import '../db/repositories.dart' show ReviewRepository;
 import '../models/calendar_types.dart';
+import '../models/entities.dart' show GoalType;
 
 const String kBackupFormat = 'target-backup';
 const int kBackupVersion = 1;
@@ -82,7 +83,9 @@ class BackupExporter {
   static Map<String, Object?> _goalJson(db.Goal g) => {
         'id': g.id,
         'name': g.name,
-        'kind': g.kind.name,
+        // 003 v3 桥接：列已改 goal_type，v2 备份格式冻结（kind 两值）——
+        // 升 v3 双向格式在 US5 迁移收口任务处理。
+        'kind': g.goalType == GoalType.habit ? 'habit' : 'milestone',
         'iconKey': g.iconKey,
         'colorKey': g.colorKey,
         'status': g.status.name,

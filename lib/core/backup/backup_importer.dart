@@ -254,9 +254,15 @@ class BackupImporter {
         await _db.into(_db.goals).insert(db.GoalsCompanion.insert(
               id: g['id']! as String,
               name: g['name']! as String,
-              kind: GoalKind.values.byName(g['kind']! as String),
+              // 003 v3 桥接（T011/US5 换 v3 格式后拆除）：v2 备份 kind
+              // 两值 → goalType 三域，同 repositories._fromGoal 决策树。
+              goalType: (g['kind']! as String) == 'habit'
+                  ? GoalType.habit
+                  : (g['deadline'] == null
+                      ? GoalType.longTerm
+                      : GoalType.shortTerm),
               iconKey: g['iconKey']! as String,
-              colorKey: g['colorKey']! as String,
+              colorKey: Value(g['colorKey'] as String?),
               status: GoalStatus.values.byName(g['status']! as String),
               createdAt: LocalDate.parse(g['createdAt']! as String),
               deadline: Value(g['deadline'] == null

@@ -82,9 +82,13 @@ class GoalRepository {
   static Goal _toGoal(db.Goal r) => Goal(
         id: r.id,
         name: r.name,
-        kind: r.kind,
+        // 003 v3 桥接（T011 换 GoalType 域后拆除）：habit 原样，
+        // shortTerm/longTerm 暂归 milestone（deadline 语义在实体上保留）。
+        kind: r.goalType == GoalType.habit
+            ? GoalKind.habit
+            : GoalKind.milestone,
         iconKey: r.iconKey,
-        colorKey: r.colorKey,
+        colorKey: r.colorKey ?? '',
         status: r.status,
         createdAt: r.createdAt,
         deadline: r.deadline,
@@ -96,9 +100,14 @@ class GoalRepository {
   static db.GoalsCompanion _fromGoal(Goal g) => db.GoalsCompanion.insert(
         id: g.id,
         name: g.name,
-        kind: g.kind,
+        // 003 v3 桥接（T011 拆）：写侧按 D3 决策树同构映射。
+        goalType: g.kind == GoalKind.habit
+            ? GoalType.habit
+            : (g.deadline != null
+                ? GoalType.shortTerm
+                : GoalType.longTerm),
         iconKey: g.iconKey,
-        colorKey: g.colorKey,
+        colorKey: Value(g.colorKey),
         status: g.status,
         createdAt: g.createdAt,
         deadline: Value(g.deadline),

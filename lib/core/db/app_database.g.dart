@@ -27,14 +27,14 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     requiredDuringInsert: true,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<GoalKind, String> kind =
+  late final GeneratedColumnWithTypeConverter<GoalType, String> goalType =
       GeneratedColumn<String>(
-        'kind',
+        'goal_type',
         aliasedName,
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: true,
-      ).withConverter<GoalKind>($GoalsTable.$converterkind);
+      ).withConverter<GoalType>($GoalsTable.$convertergoalType);
   static const VerificationMeta _iconKeyMeta = const VerificationMeta(
     'iconKey',
   );
@@ -53,9 +53,9 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
   late final GeneratedColumn<String> colorKey = GeneratedColumn<String>(
     'color_key',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.string,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
   );
   @override
   late final GeneratedColumnWithTypeConverter<GoalStatus, String> status =
@@ -84,6 +84,15 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       ).withConverter<LocalDate?>($GoalsTable.$converterdeadlinen);
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime?, String> achievedAt =
+      GeneratedColumn<String>(
+        'achieved_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<DateTime?>($GoalsTable.$converterachievedAtn);
   static const VerificationMeta _motivationMeta = const VerificationMeta(
     'motivation',
   );
@@ -121,12 +130,13 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
   List<GeneratedColumn> get $columns => [
     id,
     name,
-    kind,
+    goalType,
     iconKey,
     colorKey,
     status,
     createdAt,
     deadline,
+    achievedAt,
     motivation,
     successCriterion,
     cueScene,
@@ -169,8 +179,6 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         _colorKeyMeta,
         colorKey.isAcceptableOrUnknown(data['color_key']!, _colorKeyMeta),
       );
-    } else if (isInserting) {
-      context.missing(_colorKeyMeta);
     }
     if (data.containsKey('motivation')) {
       context.handle(
@@ -210,10 +218,10 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
-      kind: $GoalsTable.$converterkind.fromSql(
+      goalType: $GoalsTable.$convertergoalType.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
-          data['${effectivePrefix}kind'],
+          data['${effectivePrefix}goal_type'],
         )!,
       ),
       iconKey: attachedDatabase.typeMapping.read(
@@ -223,7 +231,7 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
       colorKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}color_key'],
-      )!,
+      ),
       status: $GoalsTable.$converterstatus.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -240,6 +248,12 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
           data['${effectivePrefix}deadline'],
+        ),
+      ),
+      achievedAt: $GoalsTable.$converterachievedAtn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}achieved_at'],
         ),
       ),
       motivation: attachedDatabase.typeMapping.read(
@@ -262,7 +276,7 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     return $GoalsTable(attachedDatabase, alias);
   }
 
-  static TypeConverter<GoalKind, String> $converterkind = goalKindConverter;
+  static TypeConverter<GoalType, String> $convertergoalType = goalTypeConverter;
   static TypeConverter<GoalStatus, String> $converterstatus =
       goalStatusConverter;
   static TypeConverter<LocalDate, String> $convertercreatedAt =
@@ -271,17 +285,22 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
       const LocalDateText();
   static TypeConverter<LocalDate?, String?> $converterdeadlinen =
       NullAwareTypeConverter.wrap($converterdeadline);
+  static TypeConverter<DateTime, String> $converterachievedAt =
+      const IsoDateTimeText();
+  static TypeConverter<DateTime?, String?> $converterachievedAtn =
+      NullAwareTypeConverter.wrap($converterachievedAt);
 }
 
 class Goal extends DataClass implements Insertable<Goal> {
   final String id;
   final String name;
-  final GoalKind kind;
+  final GoalType goalType;
   final String iconKey;
-  final String colorKey;
+  final String? colorKey;
   final GoalStatus status;
   final LocalDate createdAt;
   final LocalDate? deadline;
+  final DateTime? achievedAt;
 
   /// US3 定义模型（002 B 案 envelope，schema v2 可空列，T014 定稿）：
   /// motivation 动机 ≤60 字 / success_criterion 成功标准 ≤60 字 /
@@ -292,12 +311,13 @@ class Goal extends DataClass implements Insertable<Goal> {
   const Goal({
     required this.id,
     required this.name,
-    required this.kind,
+    required this.goalType,
     required this.iconKey,
-    required this.colorKey,
+    this.colorKey,
     required this.status,
     required this.createdAt,
     this.deadline,
+    this.achievedAt,
     this.motivation,
     this.successCriterion,
     this.cueScene,
@@ -308,10 +328,14 @@ class Goal extends DataClass implements Insertable<Goal> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     {
-      map['kind'] = Variable<String>($GoalsTable.$converterkind.toSql(kind));
+      map['goal_type'] = Variable<String>(
+        $GoalsTable.$convertergoalType.toSql(goalType),
+      );
     }
     map['icon_key'] = Variable<String>(iconKey);
-    map['color_key'] = Variable<String>(colorKey);
+    if (!nullToAbsent || colorKey != null) {
+      map['color_key'] = Variable<String>(colorKey);
+    }
     {
       map['status'] = Variable<String>(
         $GoalsTable.$converterstatus.toSql(status),
@@ -325,6 +349,11 @@ class Goal extends DataClass implements Insertable<Goal> {
     if (!nullToAbsent || deadline != null) {
       map['deadline'] = Variable<String>(
         $GoalsTable.$converterdeadlinen.toSql(deadline),
+      );
+    }
+    if (!nullToAbsent || achievedAt != null) {
+      map['achieved_at'] = Variable<String>(
+        $GoalsTable.$converterachievedAtn.toSql(achievedAt),
       );
     }
     if (!nullToAbsent || motivation != null) {
@@ -343,14 +372,19 @@ class Goal extends DataClass implements Insertable<Goal> {
     return GoalsCompanion(
       id: Value(id),
       name: Value(name),
-      kind: Value(kind),
+      goalType: Value(goalType),
       iconKey: Value(iconKey),
-      colorKey: Value(colorKey),
+      colorKey: colorKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(colorKey),
       status: Value(status),
       createdAt: Value(createdAt),
       deadline: deadline == null && nullToAbsent
           ? const Value.absent()
           : Value(deadline),
+      achievedAt: achievedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(achievedAt),
       motivation: motivation == null && nullToAbsent
           ? const Value.absent()
           : Value(motivation),
@@ -371,12 +405,13 @@ class Goal extends DataClass implements Insertable<Goal> {
     return Goal(
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
-      kind: serializer.fromJson<GoalKind>(json['kind']),
+      goalType: serializer.fromJson<GoalType>(json['goalType']),
       iconKey: serializer.fromJson<String>(json['iconKey']),
-      colorKey: serializer.fromJson<String>(json['colorKey']),
+      colorKey: serializer.fromJson<String?>(json['colorKey']),
       status: serializer.fromJson<GoalStatus>(json['status']),
       createdAt: serializer.fromJson<LocalDate>(json['createdAt']),
       deadline: serializer.fromJson<LocalDate?>(json['deadline']),
+      achievedAt: serializer.fromJson<DateTime?>(json['achievedAt']),
       motivation: serializer.fromJson<String?>(json['motivation']),
       successCriterion: serializer.fromJson<String?>(json['successCriterion']),
       cueScene: serializer.fromJson<String?>(json['cueScene']),
@@ -388,12 +423,13 @@ class Goal extends DataClass implements Insertable<Goal> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
-      'kind': serializer.toJson<GoalKind>(kind),
+      'goalType': serializer.toJson<GoalType>(goalType),
       'iconKey': serializer.toJson<String>(iconKey),
-      'colorKey': serializer.toJson<String>(colorKey),
+      'colorKey': serializer.toJson<String?>(colorKey),
       'status': serializer.toJson<GoalStatus>(status),
       'createdAt': serializer.toJson<LocalDate>(createdAt),
       'deadline': serializer.toJson<LocalDate?>(deadline),
+      'achievedAt': serializer.toJson<DateTime?>(achievedAt),
       'motivation': serializer.toJson<String?>(motivation),
       'successCriterion': serializer.toJson<String?>(successCriterion),
       'cueScene': serializer.toJson<String?>(cueScene),
@@ -403,24 +439,26 @@ class Goal extends DataClass implements Insertable<Goal> {
   Goal copyWith({
     String? id,
     String? name,
-    GoalKind? kind,
+    GoalType? goalType,
     String? iconKey,
-    String? colorKey,
+    Value<String?> colorKey = const Value.absent(),
     GoalStatus? status,
     LocalDate? createdAt,
     Value<LocalDate?> deadline = const Value.absent(),
+    Value<DateTime?> achievedAt = const Value.absent(),
     Value<String?> motivation = const Value.absent(),
     Value<String?> successCriterion = const Value.absent(),
     Value<String?> cueScene = const Value.absent(),
   }) => Goal(
     id: id ?? this.id,
     name: name ?? this.name,
-    kind: kind ?? this.kind,
+    goalType: goalType ?? this.goalType,
     iconKey: iconKey ?? this.iconKey,
-    colorKey: colorKey ?? this.colorKey,
+    colorKey: colorKey.present ? colorKey.value : this.colorKey,
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
     deadline: deadline.present ? deadline.value : this.deadline,
+    achievedAt: achievedAt.present ? achievedAt.value : this.achievedAt,
     motivation: motivation.present ? motivation.value : this.motivation,
     successCriterion: successCriterion.present
         ? successCriterion.value
@@ -431,12 +469,15 @@ class Goal extends DataClass implements Insertable<Goal> {
     return Goal(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
-      kind: data.kind.present ? data.kind.value : this.kind,
+      goalType: data.goalType.present ? data.goalType.value : this.goalType,
       iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
       colorKey: data.colorKey.present ? data.colorKey.value : this.colorKey,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       deadline: data.deadline.present ? data.deadline.value : this.deadline,
+      achievedAt: data.achievedAt.present
+          ? data.achievedAt.value
+          : this.achievedAt,
       motivation: data.motivation.present
           ? data.motivation.value
           : this.motivation,
@@ -452,12 +493,13 @@ class Goal extends DataClass implements Insertable<Goal> {
     return (StringBuffer('Goal(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('kind: $kind, ')
+          ..write('goalType: $goalType, ')
           ..write('iconKey: $iconKey, ')
           ..write('colorKey: $colorKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('deadline: $deadline, ')
+          ..write('achievedAt: $achievedAt, ')
           ..write('motivation: $motivation, ')
           ..write('successCriterion: $successCriterion, ')
           ..write('cueScene: $cueScene')
@@ -469,12 +511,13 @@ class Goal extends DataClass implements Insertable<Goal> {
   int get hashCode => Object.hash(
     id,
     name,
-    kind,
+    goalType,
     iconKey,
     colorKey,
     status,
     createdAt,
     deadline,
+    achievedAt,
     motivation,
     successCriterion,
     cueScene,
@@ -485,12 +528,13 @@ class Goal extends DataClass implements Insertable<Goal> {
       (other is Goal &&
           other.id == this.id &&
           other.name == this.name &&
-          other.kind == this.kind &&
+          other.goalType == this.goalType &&
           other.iconKey == this.iconKey &&
           other.colorKey == this.colorKey &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
           other.deadline == this.deadline &&
+          other.achievedAt == this.achievedAt &&
           other.motivation == this.motivation &&
           other.successCriterion == this.successCriterion &&
           other.cueScene == this.cueScene);
@@ -499,12 +543,13 @@ class Goal extends DataClass implements Insertable<Goal> {
 class GoalsCompanion extends UpdateCompanion<Goal> {
   final Value<String> id;
   final Value<String> name;
-  final Value<GoalKind> kind;
+  final Value<GoalType> goalType;
   final Value<String> iconKey;
-  final Value<String> colorKey;
+  final Value<String?> colorKey;
   final Value<GoalStatus> status;
   final Value<LocalDate> createdAt;
   final Value<LocalDate?> deadline;
+  final Value<DateTime?> achievedAt;
   final Value<String?> motivation;
   final Value<String?> successCriterion;
   final Value<String?> cueScene;
@@ -512,12 +557,13 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   const GoalsCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
-    this.kind = const Value.absent(),
+    this.goalType = const Value.absent(),
     this.iconKey = const Value.absent(),
     this.colorKey = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.deadline = const Value.absent(),
+    this.achievedAt = const Value.absent(),
     this.motivation = const Value.absent(),
     this.successCriterion = const Value.absent(),
     this.cueScene = const Value.absent(),
@@ -526,32 +572,33 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   GoalsCompanion.insert({
     required String id,
     required String name,
-    required GoalKind kind,
+    required GoalType goalType,
     required String iconKey,
-    required String colorKey,
+    this.colorKey = const Value.absent(),
     required GoalStatus status,
     required LocalDate createdAt,
     this.deadline = const Value.absent(),
+    this.achievedAt = const Value.absent(),
     this.motivation = const Value.absent(),
     this.successCriterion = const Value.absent(),
     this.cueScene = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
-       kind = Value(kind),
+       goalType = Value(goalType),
        iconKey = Value(iconKey),
-       colorKey = Value(colorKey),
        status = Value(status),
        createdAt = Value(createdAt);
   static Insertable<Goal> custom({
     Expression<String>? id,
     Expression<String>? name,
-    Expression<String>? kind,
+    Expression<String>? goalType,
     Expression<String>? iconKey,
     Expression<String>? colorKey,
     Expression<String>? status,
     Expression<String>? createdAt,
     Expression<String>? deadline,
+    Expression<String>? achievedAt,
     Expression<String>? motivation,
     Expression<String>? successCriterion,
     Expression<String>? cueScene,
@@ -560,12 +607,13 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
-      if (kind != null) 'kind': kind,
+      if (goalType != null) 'goal_type': goalType,
       if (iconKey != null) 'icon_key': iconKey,
       if (colorKey != null) 'color_key': colorKey,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
       if (deadline != null) 'deadline': deadline,
+      if (achievedAt != null) 'achieved_at': achievedAt,
       if (motivation != null) 'motivation': motivation,
       if (successCriterion != null) 'success_criterion': successCriterion,
       if (cueScene != null) 'cue_scene': cueScene,
@@ -576,12 +624,13 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   GoalsCompanion copyWith({
     Value<String>? id,
     Value<String>? name,
-    Value<GoalKind>? kind,
+    Value<GoalType>? goalType,
     Value<String>? iconKey,
-    Value<String>? colorKey,
+    Value<String?>? colorKey,
     Value<GoalStatus>? status,
     Value<LocalDate>? createdAt,
     Value<LocalDate?>? deadline,
+    Value<DateTime?>? achievedAt,
     Value<String?>? motivation,
     Value<String?>? successCriterion,
     Value<String?>? cueScene,
@@ -590,12 +639,13 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     return GoalsCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
-      kind: kind ?? this.kind,
+      goalType: goalType ?? this.goalType,
       iconKey: iconKey ?? this.iconKey,
       colorKey: colorKey ?? this.colorKey,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       deadline: deadline ?? this.deadline,
+      achievedAt: achievedAt ?? this.achievedAt,
       motivation: motivation ?? this.motivation,
       successCriterion: successCriterion ?? this.successCriterion,
       cueScene: cueScene ?? this.cueScene,
@@ -612,9 +662,9 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     if (name.present) {
       map['name'] = Variable<String>(name.value);
     }
-    if (kind.present) {
-      map['kind'] = Variable<String>(
-        $GoalsTable.$converterkind.toSql(kind.value),
+    if (goalType.present) {
+      map['goal_type'] = Variable<String>(
+        $GoalsTable.$convertergoalType.toSql(goalType.value),
       );
     }
     if (iconKey.present) {
@@ -638,6 +688,11 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
         $GoalsTable.$converterdeadlinen.toSql(deadline.value),
       );
     }
+    if (achievedAt.present) {
+      map['achieved_at'] = Variable<String>(
+        $GoalsTable.$converterachievedAtn.toSql(achievedAt.value),
+      );
+    }
     if (motivation.present) {
       map['motivation'] = Variable<String>(motivation.value);
     }
@@ -658,12 +713,13 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     return (StringBuffer('GoalsCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('kind: $kind, ')
+          ..write('goalType: $goalType, ')
           ..write('iconKey: $iconKey, ')
           ..write('colorKey: $colorKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
           ..write('deadline: $deadline, ')
+          ..write('achievedAt: $achievedAt, ')
           ..write('motivation: $motivation, ')
           ..write('successCriterion: $successCriterion, ')
           ..write('cueScene: $cueScene, ')
@@ -2505,7 +2561,16 @@ class $RemindersTable extends Reminders
     ),
   );
   @override
-  List<GeneratedColumn> get $columns => [id, goalId, time, isEnabled];
+  late final GeneratedColumnWithTypeConverter<Cadence?, String> cadence =
+      GeneratedColumn<String>(
+        'cadence',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<Cadence?>($RemindersTable.$convertercadencen);
+  @override
+  List<GeneratedColumn> get $columns => [id, goalId, time, isEnabled, cadence];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2564,6 +2629,12 @@ class $RemindersTable extends Reminders
         DriftSqlType.bool,
         data['${effectivePrefix}is_enabled'],
       )!,
+      cadence: $RemindersTable.$convertercadencen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}cadence'],
+        ),
+      ),
     );
   }
 
@@ -2574,6 +2645,9 @@ class $RemindersTable extends Reminders
 
   static TypeConverter<LocalTime, String> $convertertime =
       const LocalTimeText();
+  static TypeConverter<Cadence, String> $convertercadence = cadenceConverter;
+  static TypeConverter<Cadence?, String?> $convertercadencen =
+      NullAwareTypeConverter.wrap($convertercadence);
 }
 
 class Reminder extends DataClass implements Insertable<Reminder> {
@@ -2581,11 +2655,13 @@ class Reminder extends DataClass implements Insertable<Reminder> {
   final String? goalId;
   final LocalTime time;
   final bool isEnabled;
+  final Cadence? cadence;
   const Reminder({
     required this.id,
     this.goalId,
     required this.time,
     required this.isEnabled,
+    this.cadence,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2600,6 +2676,11 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       );
     }
     map['is_enabled'] = Variable<bool>(isEnabled);
+    if (!nullToAbsent || cadence != null) {
+      map['cadence'] = Variable<String>(
+        $RemindersTable.$convertercadencen.toSql(cadence),
+      );
+    }
     return map;
   }
 
@@ -2611,6 +2692,9 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           : Value(goalId),
       time: Value(time),
       isEnabled: Value(isEnabled),
+      cadence: cadence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cadence),
     );
   }
 
@@ -2624,6 +2708,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       goalId: serializer.fromJson<String?>(json['goalId']),
       time: serializer.fromJson<LocalTime>(json['time']),
       isEnabled: serializer.fromJson<bool>(json['isEnabled']),
+      cadence: serializer.fromJson<Cadence?>(json['cadence']),
     );
   }
   @override
@@ -2634,6 +2719,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       'goalId': serializer.toJson<String?>(goalId),
       'time': serializer.toJson<LocalTime>(time),
       'isEnabled': serializer.toJson<bool>(isEnabled),
+      'cadence': serializer.toJson<Cadence?>(cadence),
     };
   }
 
@@ -2642,11 +2728,13 @@ class Reminder extends DataClass implements Insertable<Reminder> {
     Value<String?> goalId = const Value.absent(),
     LocalTime? time,
     bool? isEnabled,
+    Value<Cadence?> cadence = const Value.absent(),
   }) => Reminder(
     id: id ?? this.id,
     goalId: goalId.present ? goalId.value : this.goalId,
     time: time ?? this.time,
     isEnabled: isEnabled ?? this.isEnabled,
+    cadence: cadence.present ? cadence.value : this.cadence,
   );
   Reminder copyWithCompanion(RemindersCompanion data) {
     return Reminder(
@@ -2654,6 +2742,7 @@ class Reminder extends DataClass implements Insertable<Reminder> {
       goalId: data.goalId.present ? data.goalId.value : this.goalId,
       time: data.time.present ? data.time.value : this.time,
       isEnabled: data.isEnabled.present ? data.isEnabled.value : this.isEnabled,
+      cadence: data.cadence.present ? data.cadence.value : this.cadence,
     );
   }
 
@@ -2663,13 +2752,14 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           ..write('id: $id, ')
           ..write('goalId: $goalId, ')
           ..write('time: $time, ')
-          ..write('isEnabled: $isEnabled')
+          ..write('isEnabled: $isEnabled, ')
+          ..write('cadence: $cadence')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, goalId, time, isEnabled);
+  int get hashCode => Object.hash(id, goalId, time, isEnabled, cadence);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2677,7 +2767,8 @@ class Reminder extends DataClass implements Insertable<Reminder> {
           other.id == this.id &&
           other.goalId == this.goalId &&
           other.time == this.time &&
-          other.isEnabled == this.isEnabled);
+          other.isEnabled == this.isEnabled &&
+          other.cadence == this.cadence);
 }
 
 class RemindersCompanion extends UpdateCompanion<Reminder> {
@@ -2685,12 +2776,14 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
   final Value<String?> goalId;
   final Value<LocalTime> time;
   final Value<bool> isEnabled;
+  final Value<Cadence?> cadence;
   final Value<int> rowid;
   const RemindersCompanion({
     this.id = const Value.absent(),
     this.goalId = const Value.absent(),
     this.time = const Value.absent(),
     this.isEnabled = const Value.absent(),
+    this.cadence = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RemindersCompanion.insert({
@@ -2698,6 +2791,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     this.goalId = const Value.absent(),
     required LocalTime time,
     required bool isEnabled,
+    this.cadence = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        time = Value(time),
@@ -2707,6 +2801,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Expression<String>? goalId,
     Expression<String>? time,
     Expression<bool>? isEnabled,
+    Expression<String>? cadence,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2714,6 +2809,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       if (goalId != null) 'goal_id': goalId,
       if (time != null) 'time': time,
       if (isEnabled != null) 'is_enabled': isEnabled,
+      if (cadence != null) 'cadence': cadence,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2723,6 +2819,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     Value<String?>? goalId,
     Value<LocalTime>? time,
     Value<bool>? isEnabled,
+    Value<Cadence?>? cadence,
     Value<int>? rowid,
   }) {
     return RemindersCompanion(
@@ -2730,6 +2827,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
       goalId: goalId ?? this.goalId,
       time: time ?? this.time,
       isEnabled: isEnabled ?? this.isEnabled,
+      cadence: cadence ?? this.cadence,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2751,6 +2849,11 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
     if (isEnabled.present) {
       map['is_enabled'] = Variable<bool>(isEnabled.value);
     }
+    if (cadence.present) {
+      map['cadence'] = Variable<String>(
+        $RemindersTable.$convertercadencen.toSql(cadence.value),
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2764,6 +2867,7 @@ class RemindersCompanion extends UpdateCompanion<Reminder> {
           ..write('goalId: $goalId, ')
           ..write('time: $time, ')
           ..write('isEnabled: $isEnabled, ')
+          ..write('cadence: $cadence, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3215,6 +3319,28 @@ class $SettingsRowsTable extends SettingsRows
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   ).withConverter<LocalTime>($SettingsRowsTable.$converterdailyBriefTime);
+  static const VerificationMeta _nicknameMeta = const VerificationMeta(
+    'nickname',
+  );
+  @override
+  late final GeneratedColumn<String> nickname = GeneratedColumn<String>(
+    'nickname',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _avatarKeyMeta = const VerificationMeta(
+    'avatarKey',
+  );
+  @override
+  late final GeneratedColumn<String> avatarKey = GeneratedColumn<String>(
+    'avatar_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _onboardingCompletedMeta =
       const VerificationMeta('onboardingCompleted');
   @override
@@ -3248,6 +3374,8 @@ class $SettingsRowsTable extends SettingsRows
   List<GeneratedColumn> get $columns => [
     id,
     dailyBriefTime,
+    nickname,
+    avatarKey,
     onboardingCompleted,
     notificationDeniedAcknowledged,
   ];
@@ -3265,6 +3393,18 @@ class $SettingsRowsTable extends SettingsRows
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('nickname')) {
+      context.handle(
+        _nicknameMeta,
+        nickname.isAcceptableOrUnknown(data['nickname']!, _nicknameMeta),
+      );
+    }
+    if (data.containsKey('avatar_key')) {
+      context.handle(
+        _avatarKeyMeta,
+        avatarKey.isAcceptableOrUnknown(data['avatar_key']!, _avatarKeyMeta),
+      );
     }
     if (data.containsKey('onboarding_completed')) {
       context.handle(
@@ -3303,6 +3443,14 @@ class $SettingsRowsTable extends SettingsRows
           data['${effectivePrefix}daily_brief_time'],
         )!,
       ),
+      nickname: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}nickname'],
+      ),
+      avatarKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_key'],
+      ),
       onboardingCompleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}onboarding_completed'],
@@ -3326,11 +3474,15 @@ class $SettingsRowsTable extends SettingsRows
 class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final int id;
   final LocalTime dailyBriefTime;
+  final String? nickname;
+  final String? avatarKey;
   final bool onboardingCompleted;
   final bool notificationDeniedAcknowledged;
   const SettingsRow({
     required this.id,
     required this.dailyBriefTime,
+    this.nickname,
+    this.avatarKey,
     required this.onboardingCompleted,
     required this.notificationDeniedAcknowledged,
   });
@@ -3343,6 +3495,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         $SettingsRowsTable.$converterdailyBriefTime.toSql(dailyBriefTime),
       );
     }
+    if (!nullToAbsent || nickname != null) {
+      map['nickname'] = Variable<String>(nickname);
+    }
+    if (!nullToAbsent || avatarKey != null) {
+      map['avatar_key'] = Variable<String>(avatarKey);
+    }
     map['onboarding_completed'] = Variable<bool>(onboardingCompleted);
     map['notification_denied_acknowledged'] = Variable<bool>(
       notificationDeniedAcknowledged,
@@ -3354,6 +3512,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     return SettingsRowsCompanion(
       id: Value(id),
       dailyBriefTime: Value(dailyBriefTime),
+      nickname: nickname == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nickname),
+      avatarKey: avatarKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avatarKey),
       onboardingCompleted: Value(onboardingCompleted),
       notificationDeniedAcknowledged: Value(notificationDeniedAcknowledged),
     );
@@ -3367,6 +3531,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     return SettingsRow(
       id: serializer.fromJson<int>(json['id']),
       dailyBriefTime: serializer.fromJson<LocalTime>(json['dailyBriefTime']),
+      nickname: serializer.fromJson<String?>(json['nickname']),
+      avatarKey: serializer.fromJson<String?>(json['avatarKey']),
       onboardingCompleted: serializer.fromJson<bool>(
         json['onboardingCompleted'],
       ),
@@ -3381,6 +3547,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'dailyBriefTime': serializer.toJson<LocalTime>(dailyBriefTime),
+      'nickname': serializer.toJson<String?>(nickname),
+      'avatarKey': serializer.toJson<String?>(avatarKey),
       'onboardingCompleted': serializer.toJson<bool>(onboardingCompleted),
       'notificationDeniedAcknowledged': serializer.toJson<bool>(
         notificationDeniedAcknowledged,
@@ -3391,11 +3559,15 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   SettingsRow copyWith({
     int? id,
     LocalTime? dailyBriefTime,
+    Value<String?> nickname = const Value.absent(),
+    Value<String?> avatarKey = const Value.absent(),
     bool? onboardingCompleted,
     bool? notificationDeniedAcknowledged,
   }) => SettingsRow(
     id: id ?? this.id,
     dailyBriefTime: dailyBriefTime ?? this.dailyBriefTime,
+    nickname: nickname.present ? nickname.value : this.nickname,
+    avatarKey: avatarKey.present ? avatarKey.value : this.avatarKey,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     notificationDeniedAcknowledged:
         notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
@@ -3406,6 +3578,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       dailyBriefTime: data.dailyBriefTime.present
           ? data.dailyBriefTime.value
           : this.dailyBriefTime,
+      nickname: data.nickname.present ? data.nickname.value : this.nickname,
+      avatarKey: data.avatarKey.present ? data.avatarKey.value : this.avatarKey,
       onboardingCompleted: data.onboardingCompleted.present
           ? data.onboardingCompleted.value
           : this.onboardingCompleted,
@@ -3421,6 +3595,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     return (StringBuffer('SettingsRow(')
           ..write('id: $id, ')
           ..write('dailyBriefTime: $dailyBriefTime, ')
+          ..write('nickname: $nickname, ')
+          ..write('avatarKey: $avatarKey, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
           ..write(
             'notificationDeniedAcknowledged: $notificationDeniedAcknowledged',
@@ -3433,6 +3609,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   int get hashCode => Object.hash(
     id,
     dailyBriefTime,
+    nickname,
+    avatarKey,
     onboardingCompleted,
     notificationDeniedAcknowledged,
   );
@@ -3442,6 +3620,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       (other is SettingsRow &&
           other.id == this.id &&
           other.dailyBriefTime == this.dailyBriefTime &&
+          other.nickname == this.nickname &&
+          other.avatarKey == this.avatarKey &&
           other.onboardingCompleted == this.onboardingCompleted &&
           other.notificationDeniedAcknowledged ==
               this.notificationDeniedAcknowledged);
@@ -3450,29 +3630,39 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
 class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<int> id;
   final Value<LocalTime> dailyBriefTime;
+  final Value<String?> nickname;
+  final Value<String?> avatarKey;
   final Value<bool> onboardingCompleted;
   final Value<bool> notificationDeniedAcknowledged;
   const SettingsRowsCompanion({
     this.id = const Value.absent(),
     this.dailyBriefTime = const Value.absent(),
+    this.nickname = const Value.absent(),
+    this.avatarKey = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
     this.notificationDeniedAcknowledged = const Value.absent(),
   });
   SettingsRowsCompanion.insert({
     this.id = const Value.absent(),
     required LocalTime dailyBriefTime,
+    this.nickname = const Value.absent(),
+    this.avatarKey = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
     this.notificationDeniedAcknowledged = const Value.absent(),
   }) : dailyBriefTime = Value(dailyBriefTime);
   static Insertable<SettingsRow> custom({
     Expression<int>? id,
     Expression<String>? dailyBriefTime,
+    Expression<String>? nickname,
+    Expression<String>? avatarKey,
     Expression<bool>? onboardingCompleted,
     Expression<bool>? notificationDeniedAcknowledged,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (dailyBriefTime != null) 'daily_brief_time': dailyBriefTime,
+      if (nickname != null) 'nickname': nickname,
+      if (avatarKey != null) 'avatar_key': avatarKey,
       if (onboardingCompleted != null)
         'onboarding_completed': onboardingCompleted,
       if (notificationDeniedAcknowledged != null)
@@ -3483,12 +3673,16 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   SettingsRowsCompanion copyWith({
     Value<int>? id,
     Value<LocalTime>? dailyBriefTime,
+    Value<String?>? nickname,
+    Value<String?>? avatarKey,
     Value<bool>? onboardingCompleted,
     Value<bool>? notificationDeniedAcknowledged,
   }) {
     return SettingsRowsCompanion(
       id: id ?? this.id,
       dailyBriefTime: dailyBriefTime ?? this.dailyBriefTime,
+      nickname: nickname ?? this.nickname,
+      avatarKey: avatarKey ?? this.avatarKey,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       notificationDeniedAcknowledged:
           notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
@@ -3506,6 +3700,12 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         $SettingsRowsTable.$converterdailyBriefTime.toSql(dailyBriefTime.value),
       );
     }
+    if (nickname.present) {
+      map['nickname'] = Variable<String>(nickname.value);
+    }
+    if (avatarKey.present) {
+      map['avatar_key'] = Variable<String>(avatarKey.value);
+    }
     if (onboardingCompleted.present) {
       map['onboarding_completed'] = Variable<bool>(onboardingCompleted.value);
     }
@@ -3522,6 +3722,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     return (StringBuffer('SettingsRowsCompanion(')
           ..write('id: $id, ')
           ..write('dailyBriefTime: $dailyBriefTime, ')
+          ..write('nickname: $nickname, ')
+          ..write('avatarKey: $avatarKey, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
           ..write(
             'notificationDeniedAcknowledged: $notificationDeniedAcknowledged',
@@ -3568,12 +3770,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
   required String id,
   required String name,
-  required GoalKind kind,
+  required GoalType goalType,
   required String iconKey,
-  required String colorKey,
+  Value<String?> colorKey,
   required GoalStatus status,
   required LocalDate createdAt,
   Value<LocalDate?> deadline,
+  Value<DateTime?> achievedAt,
   Value<String?> motivation,
   Value<String?> successCriterion,
   Value<String?> cueScene,
@@ -3582,12 +3785,13 @@ typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
 typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
   Value<String> id,
   Value<String> name,
-  Value<GoalKind> kind,
+  Value<GoalType> goalType,
   Value<String> iconKey,
-  Value<String> colorKey,
+  Value<String?> colorKey,
   Value<GoalStatus> status,
   Value<LocalDate> createdAt,
   Value<LocalDate?> deadline,
+  Value<DateTime?> achievedAt,
   Value<String?> motivation,
   Value<String?> successCriterion,
   Value<String?> cueScene,
@@ -3693,9 +3897,9 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<GoalKind, GoalKind, String> get kind =>
+  ColumnWithTypeConverterFilters<GoalType, GoalType, String> get goalType =>
       $composableBuilder(
-        column: $table.kind,
+        column: $table.goalType,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
@@ -3724,6 +3928,12 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
   ColumnWithTypeConverterFilters<LocalDate?, LocalDate, String> get deadline =>
       $composableBuilder(
         column: $table.deadline,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<DateTime?, DateTime, String> get achievedAt =>
+      $composableBuilder(
+        column: $table.achievedAt,
         builder: (column) => ColumnWithTypeConverterFilters(column),
       );
 
@@ -3862,8 +4072,8 @@ class $$GoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get kind => $composableBuilder(
-    column: $table.kind,
+  ColumnOrderings<String> get goalType => $composableBuilder(
+    column: $table.goalType,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3889,6 +4099,11 @@ class $$GoalsTableOrderingComposer
 
   ColumnOrderings<String> get deadline => $composableBuilder(
     column: $table.deadline,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get achievedAt => $composableBuilder(
+    column: $table.achievedAt,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -3923,8 +4138,8 @@ class $$GoalsTableAnnotationComposer
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<GoalKind, String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<GoalType, String> get goalType =>
+      $composableBuilder(column: $table.goalType, builder: (column) => column);
 
   GeneratedColumn<String> get iconKey =>
       $composableBuilder(column: $table.iconKey, builder: (column) => column);
@@ -3940,6 +4155,12 @@ class $$GoalsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<LocalDate?, String> get deadline =>
       $composableBuilder(column: $table.deadline, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DateTime?, String> get achievedAt =>
+      $composableBuilder(
+        column: $table.achievedAt,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<String> get motivation => $composableBuilder(
     column: $table.motivation,
@@ -4091,12 +4312,13 @@ class $$GoalsTableTableManager
               ({
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
-                Value<GoalKind> kind = const Value.absent(),
+                Value<GoalType> goalType = const Value.absent(),
                 Value<String> iconKey = const Value.absent(),
-                Value<String> colorKey = const Value.absent(),
+                Value<String?> colorKey = const Value.absent(),
                 Value<GoalStatus> status = const Value.absent(),
                 Value<LocalDate> createdAt = const Value.absent(),
                 Value<LocalDate?> deadline = const Value.absent(),
+                Value<DateTime?> achievedAt = const Value.absent(),
                 Value<String?> motivation = const Value.absent(),
                 Value<String?> successCriterion = const Value.absent(),
                 Value<String?> cueScene = const Value.absent(),
@@ -4104,12 +4326,13 @@ class $$GoalsTableTableManager
               }) => GoalsCompanion(
                 id: id,
                 name: name,
-                kind: kind,
+                goalType: goalType,
                 iconKey: iconKey,
                 colorKey: colorKey,
                 status: status,
                 createdAt: createdAt,
                 deadline: deadline,
+                achievedAt: achievedAt,
                 motivation: motivation,
                 successCriterion: successCriterion,
                 cueScene: cueScene,
@@ -4119,12 +4342,13 @@ class $$GoalsTableTableManager
               ({
                 required String id,
                 required String name,
-                required GoalKind kind,
+                required GoalType goalType,
                 required String iconKey,
-                required String colorKey,
+                Value<String?> colorKey = const Value.absent(),
                 required GoalStatus status,
                 required LocalDate createdAt,
                 Value<LocalDate?> deadline = const Value.absent(),
+                Value<DateTime?> achievedAt = const Value.absent(),
                 Value<String?> motivation = const Value.absent(),
                 Value<String?> successCriterion = const Value.absent(),
                 Value<String?> cueScene = const Value.absent(),
@@ -4132,12 +4356,13 @@ class $$GoalsTableTableManager
               }) => GoalsCompanion.insert(
                 id: id,
                 name: name,
-                kind: kind,
+                goalType: goalType,
                 iconKey: iconKey,
                 colorKey: colorKey,
                 status: status,
                 createdAt: createdAt,
                 deadline: deadline,
+                achievedAt: achievedAt,
                 motivation: motivation,
                 successCriterion: successCriterion,
                 cueScene: cueScene,
@@ -5874,6 +6099,7 @@ typedef $$RemindersTableCreateCompanionBuilder = RemindersCompanion Function({
   Value<String?> goalId,
   required LocalTime time,
   required bool isEnabled,
+  Value<Cadence?> cadence,
   Value<int> rowid,
 });
 typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
@@ -5881,6 +6107,7 @@ typedef $$RemindersTableUpdateCompanionBuilder = RemindersCompanion Function({
   Value<String?> goalId,
   Value<LocalTime> time,
   Value<bool> isEnabled,
+  Value<Cadence?> cadence,
   Value<int> rowid,
 });
 
@@ -5931,6 +6158,12 @@ class $$RemindersTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnWithTypeConverterFilters<Cadence?, Cadence, String> get cadence =>
+      $composableBuilder(
+        column: $table.cadence,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
   $$GoalsTableFilterComposer get goalId {
     final $$GoalsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -5979,6 +6212,11 @@ class $$RemindersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get cadence => $composableBuilder(
+    column: $table.cadence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$GoalsTableOrderingComposer get goalId {
     final $$GoalsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6020,6 +6258,9 @@ class $$RemindersTableAnnotationComposer
 
   GeneratedColumn<bool> get isEnabled =>
       $composableBuilder(column: $table.isEnabled, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Cadence?, String> get cadence =>
+      $composableBuilder(column: $table.cadence, builder: (column) => column);
 
   $$GoalsTableAnnotationComposer get goalId {
     final $$GoalsTableAnnotationComposer composer = $composerBuilder(
@@ -6077,12 +6318,14 @@ class $$RemindersTableTableManager
                 Value<String?> goalId = const Value.absent(),
                 Value<LocalTime> time = const Value.absent(),
                 Value<bool> isEnabled = const Value.absent(),
+                Value<Cadence?> cadence = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RemindersCompanion(
                 id: id,
                 goalId: goalId,
                 time: time,
                 isEnabled: isEnabled,
+                cadence: cadence,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6091,12 +6334,14 @@ class $$RemindersTableTableManager
                 Value<String?> goalId = const Value.absent(),
                 required LocalTime time,
                 required bool isEnabled,
+                Value<Cadence?> cadence = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RemindersCompanion.insert(
                 id: id,
                 goalId: goalId,
                 time: time,
                 isEnabled: isEnabled,
+                cadence: cadence,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -6393,6 +6638,8 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
     SettingsRowsCompanion Function({
       Value<int> id,
       required LocalTime dailyBriefTime,
+      Value<String?> nickname,
+      Value<String?> avatarKey,
       Value<bool> onboardingCompleted,
       Value<bool> notificationDeniedAcknowledged,
     });
@@ -6400,6 +6647,8 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
     SettingsRowsCompanion Function({
       Value<int> id,
       Value<LocalTime> dailyBriefTime,
+      Value<String?> nickname,
+      Value<String?> avatarKey,
       Value<bool> onboardingCompleted,
       Value<bool> notificationDeniedAcknowledged,
     });
@@ -6422,6 +6671,16 @@ class $$SettingsRowsTableFilterComposer
   get dailyBriefTime => $composableBuilder(
     column: $table.dailyBriefTime,
     builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get nickname => $composableBuilder(
+    column: $table.nickname,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarKey => $composableBuilder(
+    column: $table.avatarKey,
+    builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<bool> get onboardingCompleted => $composableBuilder(
@@ -6454,6 +6713,16 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get nickname => $composableBuilder(
+    column: $table.nickname,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get avatarKey => $composableBuilder(
+    column: $table.avatarKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get onboardingCompleted => $composableBuilder(
     column: $table.onboardingCompleted,
     builder: (column) => ColumnOrderings(column),
@@ -6483,6 +6752,12 @@ class $$SettingsRowsTableAnnotationComposer
         column: $table.dailyBriefTime,
         builder: (column) => column,
       );
+
+  GeneratedColumn<String> get nickname =>
+      $composableBuilder(column: $table.nickname, builder: (column) => column);
+
+  GeneratedColumn<String> get avatarKey =>
+      $composableBuilder(column: $table.avatarKey, builder: (column) => column);
 
   GeneratedColumn<bool> get onboardingCompleted => $composableBuilder(
     column: $table.onboardingCompleted,
@@ -6529,12 +6804,16 @@ class $$SettingsRowsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<LocalTime> dailyBriefTime = const Value.absent(),
+                Value<String?> nickname = const Value.absent(),
+                Value<String?> avatarKey = const Value.absent(),
                 Value<bool> onboardingCompleted = const Value.absent(),
                 Value<bool> notificationDeniedAcknowledged =
                     const Value.absent(),
               }) => SettingsRowsCompanion(
                 id: id,
                 dailyBriefTime: dailyBriefTime,
+                nickname: nickname,
+                avatarKey: avatarKey,
                 onboardingCompleted: onboardingCompleted,
                 notificationDeniedAcknowledged: notificationDeniedAcknowledged,
               ),
@@ -6542,12 +6821,16 @@ class $$SettingsRowsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 required LocalTime dailyBriefTime,
+                Value<String?> nickname = const Value.absent(),
+                Value<String?> avatarKey = const Value.absent(),
                 Value<bool> onboardingCompleted = const Value.absent(),
                 Value<bool> notificationDeniedAcknowledged =
                     const Value.absent(),
               }) => SettingsRowsCompanion.insert(
                 id: id,
                 dailyBriefTime: dailyBriefTime,
+                nickname: nickname,
+                avatarKey: avatarKey,
                 onboardingCompleted: onboardingCompleted,
                 notificationDeniedAcknowledged: notificationDeniedAcknowledged,
               ),

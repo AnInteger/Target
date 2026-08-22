@@ -1,6 +1,6 @@
 // T015：v1 → v2 迁移（B 案 envelope 可空列）——既有数据零丢失 + 新列可写。
-// 手法：临时文件库先用 v1 schema（仅旧列的 goals 表）写入两行真实形态的
-// 旧数据，再用 v2 的 AppDatabase 打开同一文件触发 onUpgrade。
+// 003 T009：schemaVersion 升 3 后同库直迁 v3——goalType/iconKey/colorKey
+// 断言改按 research D3 重映射口径（完整四分支对账见 T010 用例）。
 import 'dart:io';
 
 import 'package:drift/drift.dart' show MigrationStrategy;
@@ -19,7 +19,8 @@ const _v1GoalsDdl = 'CREATE TABLE IF NOT EXISTS "goals" ('
     '"color_key" TEXT NOT NULL, "status" TEXT NOT NULL, '
     '"created_at" TEXT NOT NULL, "deadline" TEXT NULL);';
 
-/// 只含 v1 goals 表的旧库（schemaVersion=1；Settings 等表与本测试无关）。
+/// 只含 v1 goals 表 + 迁移会触碰的三张关联表的旧库（schemaVersion=1；
+/// 真实用户库 onCreate 起九表齐全，此处按需最小化）。
 class _V1Database extends AppDatabase {
   _V1Database(super.e);
 
@@ -29,7 +30,25 @@ class _V1Database extends AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         // Migrator 无 customStatement；建 v1 表直接走库级语句。
-        onCreate: (m) async => customStatement(_v1GoalsDdl),
+        onCreate: (m) async {
+          await customStatement(_v1GoalsDdl);
+          // v3 迁移触碰的关联表（003 T009）：reminders/settings_rows 被
+          // ALTER、frequency_versions 被类型化读取。
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "reminders" ("id" TEXT NOT NULL '
+              'PRIMARY KEY, "goal_id" TEXT NULL, "time" TEXT NOT NULL, '
+              '"is_enabled" INTEGER NOT NULL)');
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "settings_rows" ("id" INTEGER NOT '
+              'NULL PRIMARY KEY, "daily_brief_time" TEXT NOT NULL, '
+              '"onboarding_completed" INTEGER NOT NULL, '
+              '"notification_denied_acknowledged" INTEGER NOT NULL)');
+          await customStatement(
+              'CREATE TABLE IF NOT EXISTS "frequency_versions" ("id" TEXT NOT '
+              'NULL PRIMARY KEY, "goal_id" TEXT NOT NULL, '
+              '"effective_from_week" TEXT NOT NULL, "pattern" TEXT NOT NULL, '
+              '"source" TEXT NOT NULL)');
+        },
       );
 }
 
@@ -46,7 +65,7 @@ void main() {
     if (await tmp.exists()) await tmp.delete(recursive: true);
   });
 
-  test('v1→v2：既有目标零丢失（habit/milestone×deadline），新列 NULL 可读写',
+  test('v1→v3：既有目标零丢失（值域按 D3 重映射），新列 NULL 可读写',
       () async {
     // 1) v1 schema 建库 + 两行旧数据（普通习惯 / 带截止日的里程碑）。
     {
@@ -70,8 +89,10 @@ void main() {
 
     final meal = goals.firstWhere((g) => g.id == 'g1');
     expect(meal.name, '好好吃饭');
-    expect(meal.kind, GoalKind.habit);
-    expect(meal.colorKey, 'coral');
+    // v3 重映射（D3）：无截止无频率的 habit → longTerm（实体桥接为
+    // milestone）；iconKey meal→restaurant；colorKey 退役置 NULL（''）。
+    expect(meal.kind, GoalKind.milestone);
+    expect(meal.colorKey, '');
     expect(meal.deadline, isNull);
     // 新列默认 NULL —— 即「补一句为什么」渐进补全入口的语义（T014）。
     expect(meal.motivation, isNull);

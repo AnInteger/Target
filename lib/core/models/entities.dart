@@ -28,6 +28,13 @@ String newId() {
 
 enum GoalKind { habit, milestone }
 
+/// 003 schema v3 三类型域（Goals.goalType 列值域，research D3）。
+/// T009 起表/迁移层使用；T011 将替换 [GoalKind] 成为 Goal 的类型字段。
+enum GoalType { longTerm, shortTerm, habit }
+
+/// 003 schema v3 提醒频率档（Reminders.cadence 列值域；NULL 视为 daily）。
+enum Cadence { daily, threeDay, weekly }
+
 enum GoalStatus { active, paused, archived, achieved }
 
 /// 活跃目标上限（两类合计，FR-011）。

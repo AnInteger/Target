@@ -33,6 +33,10 @@ class _EnumText<T extends Enum> extends TypeConverter<T, String> {
 }
 
 const goalKindConverter = _EnumText<GoalKind>(GoalKind.values);
+
+/// 003 v3：三类型 + 提醒频率档（值域见 entities.dart；v2 列随 T011 退役）。
+const goalTypeConverter = _EnumText<GoalType>(GoalType.values);
+const cadenceConverter = _EnumText<Cadence>(Cadence.values);
 const goalStatusConverter = _EnumText<GoalStatus>(GoalStatus.values);
 const frequencySourceConverter =
     _EnumText<FrequencySource>(FrequencySource.values);
@@ -97,12 +101,17 @@ class FrequencyPatternJson extends TypeConverter<FrequencyPattern, String> {
 class Goals extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
-  TextColumn get kind => text().map(goalKindConverter)();
+  // 003 v3：kind 重映射为三类型域（v2→v3 迁移见 app_database.dart）。
+  TextColumn get goalType => text().map(goalTypeConverter)();
   TextColumn get iconKey => text()();
-  TextColumn get colorKey => text()();
+  // 003 v3 退役：可空化 + 存量置 NULL（零丢失惯例：只藏不删，不上界面）。
+  TextColumn get colorKey => text().nullable()();
   TextColumn get status => text().map(goalStatusConverter)();
   TextColumn get createdAt => text().map(const LocalDateText())();
   TextColumn get deadline => text().nullable().map(const LocalDateText())();
+  // 003 v3 新增：手动「标记达成」时间戳（research D4；NULL=未达成，
+  // 与 GoalStatus.achieved 归档语义职责分离）。
+  TextColumn get achievedAt => text().nullable().map(const IsoDateTimeText())();
 
   /// US3 定义模型（002 B 案 envelope，schema v2 可空列，T014 定稿）：
   /// motivation 动机 ≤60 字 / success_criterion 成功标准 ≤60 字 /
@@ -176,6 +185,8 @@ class Reminders extends Table {
   TextColumn get goalId => text().nullable().references(Goals, #id)();
   TextColumn get time => text().map(const LocalTimeText())();
   BoolColumn get isEnabled => boolean()();
+  // 003 v3 新增：提醒频率档（一天/三天/一周一次）；NULL 视为 daily。
+  TextColumn get cadence => text().nullable().map(cadenceConverter)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -199,6 +210,9 @@ class WeeklyReviews extends Table {
 class SettingsRows extends Table {
   IntColumn get id => integer().withDefault(const Constant(1))();
   TextColumn get dailyBriefTime => text().map(const LocalTimeText())();
+  // 003 v3 新增（research D7）：账号资料；NULL = 默认「我」+ 默认枚。
+  TextColumn get nickname => text().nullable()();
+  TextColumn get avatarKey => text().nullable()();
   BoolColumn get onboardingCompleted =>
       boolean().withDefault(const Constant(false))();
   BoolColumn get notificationDeniedAcknowledged =>

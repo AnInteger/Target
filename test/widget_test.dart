@@ -445,6 +445,36 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T024 基础信息：一句话 40 字上限+完整短句示范，无心理字段（FR-014/D8）', (tester) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(theme: AppTheme.light(), home: const GoalEditorPage()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final field = find.byKey(const ValueKey('goalNameField'));
+    final tf = tester.widget<TextField>(field);
+    expect(tf.maxLength, 40); // research D8：~40 字上限
+    expect(tf.decoration?.hintText, Copy.editorNameHint); // 完整短句示范
+
+    // 超长输入截到 40 字（frame 层强制）。
+    await tester.enterText(field, '字' * 45);
+    expect((tester.widget(field) as TextField).controller!.text.length, 40);
+
+    // 「为什么想做 / 怎样算做到」字段与写入路径不存在（FR-014）。
+    expect(find.byKey(const ValueKey('goalWhyField')), findsNothing);
+    expect(find.byKey(const ValueKey('goalCriterionField')), findsNothing);
+    expect(find.text(Copy.editorWhyLabel), findsNothing);
+    expect(find.text(Copy.editorCriterionLabel), findsNothing);
+    await db.close();
+  });
+
   testWidgets('US1 路由三分支：页签恰三枚、目标页签退役（FR-001）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());

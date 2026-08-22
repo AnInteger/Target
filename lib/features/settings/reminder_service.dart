@@ -1,13 +1,13 @@
-/// 提醒调度（US3/US5，FR-006/SC-005/FR-012）。
+/// 提醒调度（003 T028 · contracts/goal-type-model「提醒排程」）。
 ///
 /// [planReminders] 纯函数计算"此刻应存在的通知集合"；
 /// [ReminderService.replan] 在数据/设置变化后全量重建 pending
-/// 请求（先 cancelAll 再逐条调度）——已达标、不适用、非活跃
-/// 目标自然被剔除。权限被拒 → 仅清空、不报错（FR-007 降级）。
+/// 请求（先 cancelAll 再逐条调度）——关开关、改档、删除目标
+/// 的取消都由全量重建达成（isEnabled=false 即时取消未触发排程）。
+/// 权限被拒 → 仅清空、不报错（FR-007 降级）。
 ///
-/// FR-012：逐目标提醒由目标 cueScene 场景档驱动（空值回落默认档
-/// 20:00、同档多目标合并成一条、「不打扰」不提醒）；001 的逐目标
-/// Reminder 行不再参与调度，自然失效。
+/// 逐目标提醒的真源 = Reminders 行（cadence/time/isEnabled）；
+/// 002 的 cueScene 场景档体系退役（goal 列不再参与调度）。
 library;
 
 import '../../core/copy.dart';
@@ -17,29 +17,20 @@ import '../../core/models/entities.dart';
 import '../../core/platform/gateways.dart';
 import '../../core/stats/stats_engine.dart';
 
-/// dailyBrief 固定通知 id；场景档从 2 起。
+/// dailyBrief 固定通知 id；逐目标提醒/到期询问分段在 1000/2000 起。
 const int kDailyBriefNotificationId = 1;
 
-/// 场景档 → 提醒时刻（FR-012 定稿：没选 20:00 轻提醒；时刻为本轮
-/// 调度口径，原型只钉了默认 20:00 与「睡前 21:30」两处锚点）。
-const Map<String, LocalTime> kCueSceneTimes = {
-  Copy.cueEarly: LocalTime(7, 30),
-  Copy.cueMidday: LocalTime(12, 30),
-  Copy.cueEvening: LocalTime(19, 30),
-  Copy.cueNight: LocalTime(21, 30),
-};
+/// 逐目标提醒通知 id（goalId 哈希分段；replan 每次 cancelAll 全量重建，
+/// id 只需进程内稳定供覆盖，跨进程漂移无影响——通知列表是推导式不读系统通知）。
+int goalReminderNotificationId(String goalId) =>
+    1000 + (goalId.hashCode & 0x3FFFFFFF);
 
-/// 未选场景（或场景值已不在档）的回落时刻。
-const LocalTime kDefaultCueTime = LocalTime(20, 0);
+/// 短期到期询问通知 id（与逐目标提醒分段互异）。
+int dueAskNotificationId(String goalId) =>
+    2000 + (goalId.hashCode & 0x3FFFFFFF);
 
-/// 档位（场景名，空串 = 默认档）→ 稳定通知 id（跨进程一致，供 cancel/覆盖）。
-int cueSlotNotificationId(String slot) => switch (slot) {
-      Copy.cueEarly => 2,
-      Copy.cueMidday => 3,
-      Copy.cueEvening => 4,
-      Copy.cueNight => 5,
-      _ => 6, // 默认档
-    };
+/// 短期到期询问时刻（D4：deadline 当日默认 09:00 单次，只提醒不判决）。
+const LocalTime kDueAskTime = LocalTime(9, 0);
 
 /// 一条计划内通知。
 class PlannedNotification {
@@ -56,8 +47,7 @@ class PlannedNotification {
   final String title;
   final String body;
 
-  /// 关联目标（T019 通知列表 tap 跳转）：dailyBrief 空；cue 档 =
-  /// 该档全部目标（单目标可直达，多目标合并档不跳）。
+  /// 关联目标（通知列表 tap 跳转）：dailyBrief 空；逐目标/到期询问单目标。
   final List<String> goalIds;
 }
 
@@ -65,9 +55,11 @@ class PlannedNotification {
 ///
 /// - dailyBrief：无行 → [defaultBriefTime] 且默认启用；有行 → 行生效。
 ///   正文为各目标当日概览；下一次触发日为周一时附周回顾行（FR-008 联动）。
-/// - 逐目标提醒（FR-012）：仅活跃习惯目标、今日适用且未达标（SC-005）；
-///   按目标 cueScene 归档——「不打扰」跳过，空值/未知值回落默认档，
-///   同档多目标合并成一条通知（不连环打扰）。
+/// - 逐目标提醒（Reminders 行 cadence 驱动）：daily 每日 time；
+///   threeDay 自启用日（最近一次打卡或创建日）起每 3 天；weekly 每周
+///   同 weekday。仅活跃目标、当日适用且未达标（SC-005）。
+/// - 短期到期询问：deadline 当日 09:00 单次（次日起 deadline≠today
+///   自然离场，超期持续提示由通知列表条目承载）。
 List<PlannedNotification> planReminders({
   required List<Reminder> reminders,
   required LocalTime defaultBriefTime,
@@ -92,44 +84,50 @@ List<PlannedNotification> planReminders({
     ));
   }
 
-  // ---- 逐目标提醒：cueScene 归档（空串键 = 默认档）----
-  final slots = <String, List<Goal>>{};
-  for (final g in goals) {
-    if (!g.isHabit || g.status != GoalStatus.active) continue;
-    final day = stats.dayStatusOf(g.id);
-    if (day.done) continue; // 当日已留痕不打扰（SC-005 新口径）
-    final scene = g.cueScene?.trim();
-    if (scene == Copy.cueNone) continue; // 「不打扰」= 该目标不提醒
-    final slot =
-        (scene == null || !kCueSceneTimes.containsKey(scene)) ? '' : scene;
-    slots.putIfAbsent(slot, () => []).add(g);
-  }
-  slots.forEach((slot, list) {
-    final isDefault = slot.isEmpty;
-    final time = isDefault ? kDefaultCueTime : kCueSceneTimes[slot]!;
-    final String title;
-    final String body;
-    if (list.length == 1) {
-      final g = list.first;
-      title = isDefault ? g.name : Copy.reminderTitleScene(slot, g.name);
-      body = _goalBody(g);
-    } else {
-      title = isDefault
-          ? Copy.reminderTitleDefaultMany(list.length)
-          : Copy.reminderTitleSceneMany(slot, list.length);
-      body = Copy.reminderNames([for (final g in list) g.name]);
-    }
+  // ---- 逐目标提醒（Reminders 行 = 唯一真源）----
+  final goalsById = {for (final g in goals) g.id: g};
+  for (final r in reminders) {
+    if (r.isDailyBrief || !r.isEnabled) continue; // 关 = 不排（即时取消）
+    final g = goalsById[r.goalId];
+    if (g == null || g.status != GoalStatus.active) continue;
+    if (stats.dayStatusOf(g.id).done) continue; // 当日已留痕不打扰（SC-005）
+    // 启用日锚：最近一次打卡，无打卡回落创建日（契约「自启用日起」）。
+    final anchor = stats.lastCheckInDayOf(g.id) ?? g.createdAt;
+    final applicable = switch (r.effectiveCadence) {
+      Cadence.daily => true,
+      Cadence.threeDay =>
+        today.differenceInDays(anchor) % 3 == 0, // 0/3/6… 天命中
+      Cadence.weekly => today.weekdayIso == anchor.weekdayIso,
+    };
+    if (!applicable) continue;
     plan.add(PlannedNotification(
-        id: cueSlotNotificationId(slot),
-        time: time,
-        title: title,
-        body: body,
-        goalIds: [for (final g in list) g.id]));
-  });
+      id: goalReminderNotificationId(g.id),
+      time: r.time,
+      title: g.name,
+      body: _goalBody(g),
+      goalIds: [g.id],
+    ));
+  }
+
+  // ---- 短期到期询问（D4）----
+  for (final g in goals) {
+    if (g.goalType != GoalType.shortTerm || g.status != GoalStatus.active) {
+      continue;
+    }
+    if (g.achievedAt != null) continue; // 已达成不再问
+    if (g.deadline == null || g.deadline != today) continue;
+    plan.add(PlannedNotification(
+      id: dueAskNotificationId(g.id),
+      time: kDueAskTime,
+      title: g.name,
+      body: Copy.shortTermDueAsk,
+      goalIds: [g.id],
+    ));
+  }
   return plan;
 }
 
-/// 单目标档正文：写了「为什么」带上为什么（编辑器预览承诺），否则轻推一句。
+/// 单目标正文：存量「为什么」附上（FR-016 保全），否则轻推一句。
 String _goalBody(Goal g) {
   final why = g.motivation?.trim();
   if (why != null && why.isNotEmpty) return Copy.reminderAsk(why, g.name);

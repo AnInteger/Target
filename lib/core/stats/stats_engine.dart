@@ -75,6 +75,15 @@ class StatsEvaluation {
   DayStatus _zero(String goalId) =>
       DayStatus(goalId: goalId, doneCount: 0, backfilledCount: 0);
 
+  /// 单目标最近一次有效留痕日（无记录 → null；提醒排程 threeDay/weekly
+  /// 档的锚定日，contracts/goal-type-model）。
+  LocalDate? lastCheckInDayOf(String goalId) {
+    final days = _validByGoalDay[goalId]?.keys.toList();
+    if (days == null || days.isEmpty) return null;
+    days.sort((a, b) => a.compareTo(b));
+    return days.last;
+  }
+
   /// 单目标 streak：自今日（或昨日）回溯的连续留痕天数。
   /// 今天未留痕不扣（今天还有机会，自昨天起算）。
   int streakOf(String goalId) {

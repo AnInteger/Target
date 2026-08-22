@@ -72,12 +72,22 @@ List<NotificationItem> _derive(List<Goal> goals, List<CheckIn> checkIns,
     );
 
 void main() {
-  group('① 提醒时刻表（与 planReminders 同源）', () {
-    test('未达标习惯：默认档今日+明日两条，单目标可跳转', () {
-      final items = _derive([_habit('g1')], []);
+  group('① 提醒时刻表（与 planReminders 同源 · 003 行=唯一真源）', () {
+    Reminder row(String goalId,
+            {LocalTime time = const LocalTime(20, 0),
+            bool enabled = true}) =>
+        Reminder(
+            id: 'r-$goalId',
+            goalId: goalId,
+            time: time,
+            isEnabled: enabled,
+            cadence: Cadence.daily);
+
+    test('有 Reminders 行：brief+行提醒今日明日各两条，单目标可跳转', () {
+      final items = _derive([_habit('g1')], [], reminders: [row('g1')]);
       final reminders =
           items.where((i) => i.kind == NotificationKind.reminder).toList();
-      // brief（08:00，无跳转）+ 默认档（20:00，g1）× 今明两天。
+      // brief（08:00，无跳转）+ 行提醒（20:00，g1）× 今明两天。
       expect(reminders.length, 4);
       final cue = reminders
           .where((i) => i.subtitle == Copy.notifSubGoalReminder)
@@ -93,10 +103,19 @@ void main() {
       expect(brief.every((i) => i.goalId == null), isTrue);
     });
 
-    test('当日已留痕：cue 档条目消失（推导式实时性）', () {
+    test('无行 → 无逐目标提醒（003：Reminders 行 = 唯一真源）', () {
+      final items = _derive([_habit('g1')], const []);
+      expect(items.where((i) => i.subtitle == Copy.notifSubGoalReminder),
+          isEmpty);
+      expect(
+          items.where((i) => i.subtitle == Copy.notifSubBrief).length, 2);
+    });
+
+    test('当日已留痕：行提醒条目消失（推导式实时性）', () {
       final checks = <CheckIn>[];
       _checkIn(checks, 'g1', _today);
-      final items = _derive([_habit('g1')], checks);
+      final items =
+          _derive([_habit('g1')], checks, reminders: [row('g1')]);
       expect(
           items.where((i) => i.subtitle == Copy.notifSubGoalReminder),
           isEmpty);

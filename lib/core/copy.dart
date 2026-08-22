@@ -191,9 +191,7 @@ abstract final class Copy {
   static String reminderNames(List<String> names) =>
       '${names.join(' · ')}，挑一件顺手的开始。';
 
-  static const reminderGoalHint =
-      '目标提醒的时刻在编辑目标时选——早起后 / 午休时 / 晚饭后 / 睡前；'
-      '没选的 20:00 轻提醒，同一时段几个目标合并成一条，不连环打扰。';
+  static const reminderGoalHint = '目标提醒在编辑目标时设置，按所选频率定时提醒。';
   static const reminderMondayHint = '周一的概要会带上上周回顾。';
 
   // ---- 备份（FR-015）----

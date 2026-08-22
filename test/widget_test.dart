@@ -940,6 +940,110 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T030 SC-002 计步：今日页创建习惯（描述+类型+提醒+图标）≤8 次交互，页签全程在场',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    void tabsVisible() {
+      expect(find.text(Copy.todayNav), findsOneWidget, reason: '底部页签应全程可见');
+      expect(find.text(Copy.reviewNav), findsOneWidget);
+      expect(find.text(Copy.mineNav), findsOneWidget);
+    }
+
+    var taps = 0;
+    tabsVisible();
+    await tester.tap(find.byTooltip(Copy.todayNewGoal)); // 1 ＋ → 编辑器
+    taps++;
+    await tester.pumpAndSettle();
+    tabsVisible(); // SC-002：编辑器是 today 分支子页，页签不退场
+
+    await tester.tap(find.text(Copy.typeBadgeHabit)); // 2 切习惯
+    taps++;
+    await tester.pumpAndSettle();
+    // 提醒四要素之「提醒」：切习惯默认开 + 频率/时间均有默认值——零交互就位。
+    expect(
+        tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+        isTrue);
+
+    await tester.enterText(find.byKey(const ValueKey('goalNameField')),
+        '饭后散步 20 分钟'); // 3 一句话描述
+    taps++;
+
+    await tester.tap(find.byIcon(GoalIconCatalog.byKey('favorite')
+        .icon)); // 4 常用行选图标
+    taps++;
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton'))); // 5 保存
+    taps++;
+    await tester.pumpAndSettle();
+    tabsVisible();
+
+    expect(taps, lessThanOrEqualTo(8));
+    final g = (await GoalRepository(db).getGoals()).single;
+    expect(g.goalType, GoalType.habit);
+    expect(g.name, '饭后散步 20 分钟');
+    expect(g.iconKey, 'favorite');
+    final rows = await ReminderRepository(db).all();
+    expect(rows.single.isEnabled, isTrue); // 提醒开关随保存落 Reminders 行
+    await db.close();
+  });
+
+  testWidgets('T030 SC-005 走查：设置区 0 自然语言句式设置项（002 场景档语言退场）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/settings');
+    await tester.pumpAndSettle();
+
+    // 002 场景档词汇（早起后/午休时/晚饭后/睡前）与句式说明不再出现在设置区。
+    for (final legacy in [
+      Copy.cueEarly,
+      Copy.cueMidday,
+      Copy.cueEvening,
+      Copy.cueNight,
+      Copy.editorFrequencyLabel, // 「多久做一次？」问答体
+      Copy.editorWhyLabel,
+    ]) {
+      expect(find.text(legacy), findsNothing, reason: '002 句式残留：$legacy');
+    }
+    // 新口径说明在场（003：提醒在编辑目标设置，按频率定时——短句非场景档语言）。
+    expect(find.text(Copy.reminderGoalHint), findsOneWidget);
+    await db.close();
+  });
+
   testWidgets('T021 详情：头部块/管理入口 + 打卡描述落库 + 历史行兜底 + 短期倒计时步骤',
       (tester) async {
     usePhoneSurface(tester);

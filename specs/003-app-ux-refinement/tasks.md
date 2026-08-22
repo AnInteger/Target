@@ -130,7 +130,9 @@
 - [x] T029 [US2] 短期生命周期：`lib/features/goals/goal_detail.dart`——「标记达成」（写 achievedAt）与「续期」（改 deadline，通知列表询问项消失）双入口；截止到点不自动终结、超期持续提示可打卡（FR-018，research D4）；配套行为单测
   - ✅ 改了什么：_overdueCard 改造为 _dueCard（goalDueCard）双入口卡——days<=0 且 active 即现（到期当日温和询问 shortTermDueAsk / 超期持续提示 milestoneOverdue），内含「标记达成」（goalMarkAchievedButton → achieveGoal + toast + 本地 pop）与「续期」（goalRenewButton → _postpone 日期选择器）双按钮；achieveGoal 补写 achievedAt（修 D4 缺口——002 只写 status，通知列②源达成事件依赖此字段）；_postpone initialDate clamp（超期目标 deadline < today 时锚定今天，避 showDatePicker assert）；pop 用 Navigator.of(context).pop()（与编辑器同款，测试 MaterialApp 无 go_router 也能跑）；copy 增 goalMarkAchieved/goalRenewDeadline
   - ✅ 验了什么：analyze 0 + 113/113 绿（111→113）——两用例：①到期询问（deadline=today）双入口在场 + 标记达成 → status achieved + achievedAt 非空 + pop 回 root；②超期（deadline=today-2）milestoneOverdue 卡 + 续期（DatePicker OK）→ deadline 落库 today + toast + 询问文案仍在（days=0）+ 超期仍可打卡（记录落库 FR-018）；用例内打卡挪续期后（打卡 toast 占 ScaffoldMessenger 队列会挡后续 toast 断言）
-- [ ] T030 [US2] 验收走查：SC-002 计步——创建习惯目标 ≤8 次交互 ≤60 秒、全程底部页签可见、无频率问答/颜色/心理字段（SC-005 断言 0 自然语言设置项）；`flutter analyze && flutter test` 全绿；结论记 `design/reviews.md`
+- [x] T030 [US2] 验收走查：SC-002 计步——创建习惯目标 ≤8 次交互 ≤60 秒、全程底部页签可见、无频率问答/颜色/心理字段（SC-005 断言 0 自然语言设置项）；`flutter analyze && flutter test` 全绿；结论记 `design/reviews.md`
+  - ✅ 改了什么：走查发现 settings_view 的 reminderGoalHint 仍是 002 场景档句式（「……早起后/午休时/晚饭后/睡前；没选的 20:00 轻提醒……」），内容与 003 排程契约（Reminders 行真源 + cadence 三档）矛盾——改为「目标提醒在编辑目标时设置，按所选频率定时提醒。」；新增两验收用例钉 SC-002/SC-005
+  - ✅ 验了什么：analyze 0 + 115/115 绿（113→115）——①SC-002 计步：完整 App 从今日页创建习惯（描述+类型+提醒+图标）实测 5 次交互（＋→习惯段→描述→图标→保存；提醒开关切习惯默认开+频率/时间默认值 = 零交互就位，有断言），每步后断言三页签可见（编辑器为 today 分支子路由），落库 habit+Reminders 行 enabled；②SC-005：设置页断言 002 场景档词汇（早起后等）与「多久做一次？」问答体 0 个、新口径 hint 在场（编辑器侧 T023 已断言）；结论记 design/reviews.md（US2 收口）
 
 **Checkpoint**: 创建动线重构完成；三类型行为（打卡/提醒/倒计时/达成）全部可用
 

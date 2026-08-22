@@ -146,7 +146,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] 回顾空态：`lib/features/review/review_view.dart`——空状态竖直居中（非偏上曲线框）+ 引导文案 + 「新建目标」主按钮 → `context.go('/goal-editor')`（落 today 分支，FR-007）
+- [x] T031 [US3] 回顾空态：`lib/features/review/review_view.dart`——空状态竖直居中（非偏上曲线框）+ 引导文案 + 「新建目标」主按钮 → `context.go('/goal-editor')`（落 today 分支，FR-007）
+  - ✅ 改了什么：空态从 ListView 内偏上虚线卡（_EmptyCard）改为原型画板②定稿——布局重构为 Column（标题常驻顶部 + Expanded(Center(空态体))）竖直居中；空态体 = 七格空圈节奏条（22px 圆 2px divider 边、末格虚线 accent「将开始的那天」——新 _DashedCirclePainter）+ 引导文案（titleL + bodyM 1.7 行高）+ CTA（FilledButton.icon accent 底/accentOn 字/StadiumBorder 胶囊 + add 图标 → context.go('/goal-editor')）；旧 _DashedRRectPainter 与 _EmptyCard 删除；copy 更新为原型文案 reviewEmptyTitle「还没有可回看的一周」/reviewEmptySub 两行引导
+  - ✅ 验了什么：analyze 0 + 116/116 绿（115→116）——用例：空库进 /review 断言空态元素在场 + 竖直居中量化（空态块中心 vs「标题底—导航顶」区域中心差 <20px、水平中心偏差 <4px）+ tap CTA ≤1 交互直达编辑器且页签不退场（today 分支）
 - [ ] T032 [US3] 三屏标题对齐：以今日页为基准出对齐规格（左缘缩进/竖直基线常量化入 `lib/app/design_tokens.dart`），`lib/features/review/review_view.dart` 与 `lib/features/settings/settings_view.dart` 大标题统一（FR-008）
 - [ ] T033 [US3] 验收走查：空数据场景 + 三屏截图并排比对（SC-004）；`flutter analyze && flutter test` 全绿
 

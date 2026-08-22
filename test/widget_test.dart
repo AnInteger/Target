@@ -1044,6 +1044,57 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T031 回顾空态：竖直居中 + CTA ≤1 交互直达新建（FR-007/SC-004）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/review');
+    await tester.pumpAndSettle();
+
+    // 空态元素（原型画板②）：节奏条语言延续 + 引导文案 + 主 CTA。
+    expect(find.byKey(const ValueKey('reviewEmptyState')), findsOneWidget);
+    expect(find.text(Copy.reviewEmptyTitle), findsOneWidget);
+    final cta = find.byKey(const ValueKey('reviewEmptyCta'));
+    expect(cta, findsOneWidget);
+
+    // 竖直居中：空态块中心落在「标题以下、底部导航以上」区域中心附近。
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    final areaTop = tester.getRect(find.text(Copy.reviewTitle)).bottom;
+    final areaBottom = tester.getRect(find.text(Copy.todayNav)).top;
+    final stateRect = tester.getRect(find.byKey(const ValueKey('reviewEmptyState')));
+    expect(
+        (stateRect.center.dy - (areaTop + areaBottom) / 2).abs(),
+        lessThan(20),
+        reason: '空态应竖直居中（FR-007），实际中心 '
+            '${stateRect.center.dy} vs 区域中心 ${(areaTop + areaBottom) / 2}');
+    expect(stateRect.center.dx, closeTo(screen.width / 2, 4));
+
+    // SC-004：≤1 次交互直达新建——tap CTA → 编辑器（today 分支，页签不退场）。
+    await tester.tap(cta);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
+    expect(find.text(Copy.todayNav), findsOneWidget);
+    await db.close();
+  });
+
   testWidgets('T021 详情：头部块/管理入口 + 打卡描述落库 + 历史行兜底 + 短期倒计时步骤',
       (tester) async {
     usePhoneSurface(tester);

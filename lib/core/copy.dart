@@ -40,8 +40,8 @@ abstract final class Copy {
   static const reviewCoachAll = '这一周很扎实，该在的都在。';
   static const reviewCoachOkay = '有几天被挤掉了，正常的一周。';
   static const reviewCoachLow = '这周留下得不多，看看都停在哪几天。';
-  static const reviewEmptyTitle = '上周还没有记录';
-  static const reviewEmptySub = '这一周还没留下什么。去今天屏记上一笔，下周这里就有得看了。';
+  static const reviewEmptyTitle = '还没有可回看的一周';
+  static const reviewEmptySub = '先建一个目标、留下几次记录，\n这里会把那一周替你收好。';
 
   // ---- 目标创建 / 编辑（FR-001/011/012）----
 

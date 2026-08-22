@@ -11,6 +11,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
@@ -76,49 +77,59 @@ class _ReviewViewState extends ConsumerState<ReviewView> {
       backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
-        // 水平零内边距：pager 出血滑到屏缘，其余各行自带 s6。
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(0, AppSpace.s2, 0, AppSpace.s12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.s6),
+              padding:
+                  const EdgeInsets.fromLTRB(AppSpace.s6, AppSpace.s2, AppSpace.s6, 0),
               child: Text(Copy.reviewTitle,
                   style: Theme.of(context).textTheme.displayS),
             ),
-            if (cards.isEmpty) ...[
-              const SizedBox(height: AppSpace.s4),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpace.s6),
-                child: _EmptyCard(),
-              ),
-            ] else ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpace.s6),
-                child: _WeekSummary(
-                    week: week, records: records, goals: cards.length),
-              ),
-              const _Legend(),
-              SizedBox(
-                height: 204,
-                child: PageView.builder(
-                  controller: _pager ??= PageController(),
-                  itemCount: cards.length,
-                  onPageChanged: (i) => setState(() {}),
-                  itemBuilder: (_, i) => Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpace.s6),
-                    child: _GoalReviewCard(cards[i]),
-                  ),
+            if (cards.isEmpty)
+              // 空态竖直居中（FR-007：非偏上卡框，标题以下导航以上取中）。
+              Expanded(
+                child: Center(
+                  child: _EmptyState(
+                      onCreate: () => context.go('/goal-editor')),
+                ),
+              )
+            else
+              Expanded(
+                // 水平零内边距：pager 出血滑到屏缘，其余各行自带 s6。
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(0, AppSpace.s2, 0, AppSpace.s12),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s6),
+                      child: _WeekSummary(
+                          week: week, records: records, goals: cards.length),
+                    ),
+                    const _Legend(),
+                    SizedBox(
+                      height: 204,
+                      child: PageView.builder(
+                        controller: _pager ??= PageController(),
+                        itemCount: cards.length,
+                        onPageChanged: (i) => setState(() {}),
+                        itemBuilder: (_, i) => Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: AppSpace.s6),
+                          child: _GoalReviewCard(cards[i]),
+                        ),
+                      ),
+                    ),
+                    _Dots(
+                      cards: cards,
+                      index:
+                          _pager?.hasClients == true ? _pager!.page?.round() ?? 0 : 0,
+                      onTap: (i) => _pager?.animateToPage(i,
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut),
+                    ),
+                  ],
                 ),
               ),
-              _Dots(
-                cards: cards,
-                index: _pager?.hasClients == true ? _pager!.page?.round() ?? 0 : 0,
-                onTap: (i) => _pager?.animateToPage(i,
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOut),
-              ),
-            ],
           ],
         ),
       ),
@@ -502,33 +513,69 @@ class _Dots extends StatelessWidget {
   }
 }
 
-/// 空态：虚线卡一句邀请（上周没有适用目标或没有记录）。
-class _EmptyCard extends StatelessWidget {
+/// 空态（003 FR-007 · 原型画板②）：竖直居中——七格空圈节奏条
+/// （末格虚线 accent = 将开始的那天）+ 引导文案 + 「新建目标」CTA
+/// 直达编辑器（≤1 交互，落 today 分支）。
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onCreate});
+
+  final VoidCallback onCreate;
+
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
-    return CustomPaint(
-      foregroundPainter: _DashedRRectPainter(
-          color: palette.divider, radius: AppRadius.xl, strokeWidth: 1.5),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.s6, vertical: AppSpace.s8),
-        child: Column(
+    return Column(
+      key: const ValueKey('reviewEmptyState'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(Copy.reviewEmptyTitle,
-                style: Theme.of(context).textTheme.titleM),
-            const SizedBox(height: AppSpace.s3),
-            Text(
-              Copy.reviewEmptySub,
-              textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyM
-                  .copyWith(color: palette.onSurfaceVariant, height: 1.8),
-            ),
+            for (var i = 0; i < 7; i++)
+              Padding(
+                padding: EdgeInsets.only(left: i == 0 ? 0 : AppSpace.s2),
+                child: i == 6
+                    ? CustomPaint(
+                        foregroundPainter:
+                            _DashedCirclePainter(color: palette.accent),
+                        child: const SizedBox(width: 22, height: 22),
+                      )
+                    : Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: palette.divider, width: 2),
+                        ),
+                      ),
+              ),
           ],
         ),
-      ),
+        const SizedBox(height: AppSpace.s6),
+        Text(Copy.reviewEmptyTitle, style: Theme.of(context).textTheme.titleL),
+        const SizedBox(height: AppSpace.s2),
+        Text(
+          Copy.reviewEmptySub,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyM.copyWith(
+              color: palette.onSurfaceVariant, height: 1.7),
+        ),
+        const SizedBox(height: AppSpace.s3),
+        FilledButton.icon(
+          key: const ValueKey('reviewEmptyCta'),
+          onPressed: onCreate,
+          style: FilledButton.styleFrom(
+            backgroundColor: palette.accent,
+            foregroundColor: palette.accentOn,
+            shape: const StadiumBorder(),
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.s6, vertical: AppSpace.s2),
+          ),
+          icon: const Icon(Icons.add, size: 16),
+          label: Text(Copy.todayNewGoal,
+              style: Theme.of(context).textTheme.titleS),
+        ),
+      ],
     );
   }
 }
@@ -551,28 +598,24 @@ String _latestLabel(List<CheckIn> mine, LocalDate today) {
 String _dayLabel(int i) =>
     const ['一', '二', '三', '四', '五', '六', '日'][i];
 
-/// 虚线圆角容器描边（与目标列表空态同一语言）。
-class _DashedRRectPainter extends CustomPainter {
-  _DashedRRectPainter({
-    required this.color,
-    required this.radius,
-    this.strokeWidth = 1.2,
-  });
+/// 虚线圆描边（空态末格「将开始的那天」，accent 提示而非实体）。
+class _DashedCirclePainter extends CustomPainter {
+  _DashedCirclePainter({required this.color});
 
   final Color color;
-  final double radius;
-  final double strokeWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
+    const strokeWidth = 2.0;
     final paint = Paint()
       ..color = color
       ..strokeWidth = strokeWidth
       ..style = PaintingStyle.stroke;
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-          Offset.zero & size, Radius.circular(radius)));
-    const dash = 6.0, gap = 5.0;
+      ..addOval(Rect.fromCircle(
+          center: size.center(Offset.zero),
+          radius: size.width / 2 - strokeWidth / 2));
+    const dash = 5.0, gap = 4.0;
     for (final metric in path.computeMetrics()) {
       var d = 0.0;
       while (d < metric.length) {
@@ -584,6 +627,5 @@ class _DashedRRectPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DashedRRectPainter old) =>
-      old.color != color || old.radius != radius;
+  bool shouldRepaint(_DashedCirclePainter old) => old.color != color;
 }

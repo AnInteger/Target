@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target/app/app.dart';
 import 'package:target/app/providers.dart';
+import 'package:target/app/router.dart';
 import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/core/backup/backup_exporter.dart';
@@ -372,72 +373,73 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T017 列表语言：为什么第二行 + 渐进补全邀请 + 暂停恢复', (tester) async {
+  testWidgets('US1 路由三分支：页签恰三枚、目标页签退役（FR-001）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
-    final gateway = FakeNotificationGateway();
-    final today = LocalDate.fromDateTime(DateTime.now());
-    final repo = GoalRepository(db);
-    final eat = await repo.create(Goal(
-      name: '好好吃饭',
-      goalType: GoalType.habit,
-      iconKey: 'meal',
-      colorKey: 'coral',
-      createdAt: today,
-      motivation: '为了晚上不胃胀',
-      cueScene: '晚饭后',
-    ));
-    await seedVersion(db, 
-        eat.id, const DailyFrequency(1), WeekStart.containing(today));
-    final sleep = await repo.create(Goal(
-      name: '早睡',
-      goalType: GoalType.habit,
-      iconKey: 'sleep',
-      colorKey: 'indigo',
-      createdAt: today,
-    ));
-    await seedVersion(db, 
-        sleep.id, const DailyFrequency(1), WeekStart.containing(today));
-    final sport = await repo.create(Goal(
-      name: '规律运动',
-      goalType: GoalType.habit,
-      iconKey: 'fitness',
-      colorKey: 'sage',
-      createdAt: today,
-      status: GoalStatus.paused,
-    ));
-    await seedVersion(db, 
-        sport.id, const WeeklyFrequency(3), WeekStart.containing(today));
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
     );
-
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(gateway),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text(Copy.goalsNav));
+
+    // 三页签恰三枚：今日/回顾/我的；目标页签不再存在。
+    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.text(Copy.reviewNav), findsOneWidget);
+    expect(find.text(Copy.mineNav), findsOneWidget);
+    expect(find.text(Copy.goalsNav), findsNothing);
+    await db.close();
+  });
+
+  testWidgets('US1 编辑器/详情落 today 分支：导航不退场 + /goals 兜底（FR-010）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    // 第二行「为什么」带出；空维度目标显虚线邀请（点卡片即渐进补全入口）。
-    expect(find.text('为了晚上不胃胀'), findsOneWidget);
-    expect(find.text(Copy.goalsInviteWhy), findsOneWidget);
-    // 暂停区：虚线行 + 记录保留说明（与目标名拼为一行）+ 恢复按钮。
-    expect(find.textContaining(Copy.goalsPausedNote), findsOneWidget);
-    expect(find.text(Copy.goalsResume), findsOneWidget);
-
-    await tester.tap(find.text(Copy.goalsResume));
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/goal-editor');
     await tester.pumpAndSettle();
-    expect(find.textContaining(Copy.goalsPausedNote), findsNothing);
-    // R2 列表语言：分节头「进行中 N/5」被小结行「N 个目标 · 本周…」取代。
-    expect(find.textContaining('3 个目标'), findsOneWidget);
+    // 编辑器整页在场而底部三页签仍可见（today 分支子页，非根路由全屏）。
+    expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
+    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.text(Copy.mineNav), findsOneWidget);
+
+    // 存量 /goals 入口兜底落回今日（redirect）。
+    router.go('/goals');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalNameField')), findsNothing);
+    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(router.routerDelegate.currentConfiguration.uri.path, '/today');
+
+    // 深链：goal 无 id 兜底 /today；带 id 落详情（today 分支）。
+    expect(mapDeepLink(Uri.parse('target://goal')), '/today');
+    expect(mapDeepLink(Uri.parse('target://goal/g1')), '/goal/g1');
+
     await db.close();
   });
 

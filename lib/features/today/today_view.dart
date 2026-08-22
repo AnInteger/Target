@@ -103,7 +103,7 @@ class TodayView extends ConsumerWidget {
                       streak: streak,
                       goals: active.length,
                     ),
-                    _SectionHeader(onViewAll: () => context.go('/goals')),
+                    _SectionHeader(),
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppSpace.s6),
                       child: Row(
@@ -577,34 +577,18 @@ class _StatRow extends StatelessWidget {
   }
 }
 
-/// 节头：今日目标 / 查看全部。
+/// 节头：今日目标（003 T016：目标页退役，「查看全部」随之退场——
+/// 浏览职能由本页卡片列表承载）。
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.onViewAll});
-
-  final VoidCallback onViewAll;
+  const _SectionHeader();
 
   @override
   Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpace.s4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              Copy.todaySection,
-              style: Theme.of(context).textTheme.titleS,
-            ),
-          ),
-          InkWell(
-            onTap: onViewAll,
-            child: Text(
-              Copy.todayViewAll,
-              style: Theme.of(context).textTheme.bodyM
-                  .copyWith(color: palette.onSurfaceVariant),
-            ),
-          ),
-        ],
+      child: Text(
+        Copy.todaySection,
+        style: Theme.of(context).textTheme.titleS,
       ),
     );
   }

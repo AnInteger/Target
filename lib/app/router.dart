@@ -1,9 +1,13 @@
-/// go_router 路由表（ui-contract.md：主栈 Today → Goals → Review → Mine；
-/// Editor 模态 / GoalDetail 页；深链 target://today|review|goal/{id}，research D14）。
+/// go_router 路由表（003 三 Tab 收敛，ui-contract.md：主栈 Today / Review / Mine；
+/// Editor 与 GoalDetail 为 today 分支子页——底部胶囊全程可见可点（FR-010，
+/// research D5）；深链 target://today|review|goal/{id}，goal 无 id 兜底 /today）。
 ///
-/// 导航壳层按今日屏 R4 定稿（screen-today.html）：底部白色悬浮全圆角胶囊条，
-/// 四页签（今日/目标/回顾/我的），选中 = 墨色胶囊内图标上文字下；
+/// 导航壳层按今日屏 R7 定稿（screen-today.html）：底部白色悬浮全圆角胶囊条，
+/// 三页签（今日/回顾/我的），选中 = 墨色胶囊内图标上文字下；
 /// 壳层画四段底幕渐变，今日页透明叠在其上。
+///
+/// /goals 页签与路由退役（目标页职能并入今日卡与详情，T015/T016）——
+/// 存量入口（今日页旧「查看全部」、书签深链）经 redirect 落 /today。
 ///
 /// Provider 形式：每个 ProviderScope（测试/应用）独立实例，避免跨用例状态残留。
 library;
@@ -16,7 +20,6 @@ import '../core/copy.dart';
 import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
 import '../features/goals/goal_templates.dart';
-import '../features/goals/goals_view.dart';
 import '../features/goals/onboarding.dart';
 import '../features/settings/settings_view.dart';
 import '../features/review/review_view.dart';
@@ -27,17 +30,31 @@ final routerProvider = Provider<GoRouter>((ref) => _build());
 
 GoRouter _build() => GoRouter(
       initialLocation: '/today',
+      // /goals 退役兜底：任何存量入口改落今日页（目标浏览即卡片列表）。
+      redirect: (context, state) =>
+          state.uri.path == '/goals' ? '/today' : null,
       routes: [
         GoRoute(
             path: '/onboarding', builder: (_, _) => const OnboardingPage()),
         StatefulShellRoute.indexedStack(
           builder: (_, _, shell) => _AppShell(navigationShell: shell),
           branches: [
+            // today 分支：今日页 + 编辑器/详情子页（D5：挂分支内而非根路由，
+            // 进入创建/详情动线时导航壳层不退场，FR-010 根因修复）。
             StatefulShellBranch(routes: [
               GoRoute(path: '/today', builder: (_, _) => const TodayView()),
-            ]),
-            StatefulShellBranch(routes: [
-              GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
+              GoRoute(
+                  path: '/goal-editor',
+                  builder: (_, s) => GoalEditorPage(
+                      goalId: s.uri.queryParameters['id'],
+                      template: s.extra is GoalTemplate
+                          ? s.extra as GoalTemplate
+                          : null)),
+              // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。
+              GoRoute(
+                  path: '/goal/:id',
+                  builder: (_, s) =>
+                      GoalDetailPage(goalId: s.pathParameters['id']!)),
             ]),
             StatefulShellBranch(routes: [
               GoRoute(path: '/review', builder: (_, _) => const ReviewView()),
@@ -49,16 +66,6 @@ GoRouter _build() => GoRouter(
             ]),
           ],
         ),
-        GoRoute(
-            path: '/goal-editor',
-            builder: (_, s) => GoalEditorPage(
-                goalId: s.uri.queryParameters['id'],
-                template: s.extra is GoalTemplate ? s.extra as GoalTemplate : null)),
-        // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。
-        GoRoute(
-            path: '/goal/:id',
-            builder: (_, s) =>
-                GoalDetailPage(goalId: s.pathParameters['id']!)),
       ],
     );
 
@@ -100,7 +107,6 @@ class _NavDest {
 
 const _navDests = [
   _NavDest('/today', Copy.todayNav, Icons.home_outlined, Icons.home_rounded),
-  _NavDest('/goals', Copy.goalsNav, Icons.menu, Icons.menu),
   _NavDest('/review', Copy.reviewNav, Icons.insights_outlined, Icons.insights),
   _NavDest('/settings', Copy.mineNav, Icons.person_outline, Icons.person),
 ];
@@ -222,8 +228,14 @@ String? mapDeepLink(Uri uri) {
     case 'review':
       return '/review';
     case 'goal':
-      final id = uri.pathSegments.length > 1 ? uri.pathSegments[1] : uri.queryParameters['id'];
-      return id == null ? '/goals' : '/goal/$id';
+      // 小组件侧 widgetURL 形如 target://goal/{id}（host=goal，首段即 id）；
+      // query id 仅作兜底；两处皆无 → 落今日（003 T015：原 '/goals' 退役）。
+      // 注：旧判定 pathSegments.length > 1 对 host 式恒假，goal 卡深链
+      // 从未真正命中 id 分支——本次随 /goals 兜底一并修正。
+      final id = uri.pathSegments.isNotEmpty
+          ? uri.pathSegments.first
+          : uri.queryParameters['id'];
+      return (id == null || id.isEmpty) ? '/today' : '/goal/$id';
     default:
       return null;
   }

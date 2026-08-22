@@ -72,8 +72,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T015 [US1] 路由三分支：`lib/app/router.dart`——StatefulShellRoute 四分支→三分支（today/review/settings→「我的」），`/goal-editor` 与 `/goal/:id` 从根路由移入 today 分支子路由（FR-010 根因修复，research D5），`/goals` 路由退役 + 深链兜底改落 `/today`；`test/widget_test.dart` 增路由结构断言（页签恰 3、编辑器内导航可见、/goals 兜底）
-- [ ] T016 [US1] goals_view 退役：删除 `lib/features/goals/goals_view.dart`，浏览/管理职能落点确认（今日页卡列表承载浏览，详情承载管理）；清除全部残留引用
+- [x] T015 [US1] 路由三分支：`lib/app/router.dart`——StatefulShellRoute 四分支→三分支（today/review/settings→「我的」），`/goal-editor` 与 `/goal/:id` 从根路由移入 today 分支子路由（FR-010 根因修复，research D5），`/goals` 路由退役 + 深链兜底改落 `/today`；`test/widget_test.dart` 增路由结构断言（页签恰 3、编辑器内导航可见、/goals 兜底）
+  - ✅ 2026-08-22：三分支 + editor/详情落 today 分支（分支内多顶层路由，导航壳层全程在场）；`/goals` 退役走 GoRouter redirect→/today；mapDeepLink 顺手修潜伏 bug——原生 widget 深链实为 host 式 `target://goal/{id}`，旧判定 `pathSegments.length > 1` 恒假导致 goal 卡点击从未命中 id 分支（改取首段 + query 兜底）；新用例 2（页签恰三枚/编辑器内导航在场+/goals 兜底+深链两态）；analyze 0 + 77/77 绿
+- [x] T016 [US1] goals_view 退役：删除 `lib/features/goals/goals_view.dart`，浏览/管理职能落点确认（今日页卡列表承载浏览，详情承载管理）；清除全部残留引用
+  - ✅ 2026-08-22：文件删除，全库零残留引用；今日页 `_SectionHeader` 去「查看全部」死导航（onViewAll 参数与 InkWell 退场，节头收敛为「今日目标」单标签——T017 将按 R7 重构为「今日目标+已记录 x/n」）；列表语言旧用例（为什么第二行/暂停恢复/小结行）随视图退役删除——暂停机制仍有 settlement_test 覆盖，UI 恢复入口由 T021 详情管理动线补回；analyze 0 + 77/77 绿
 - [ ] T017 [US1] 今日头部重组：`lib/features/today/today_view.dart`——头部与内容同连续图层（背景贯通、无分隔线，FR-003）：左 = 账号区（头像环+昵称，tap→资料 sheet）；中 = 日期语；右 = 铃铛（角标=今日新增推导条目数）+ ＋（→/goal-editor）；目标卡列表改 GoalIconCatalog 图标+一句话+类型徽章+最新记录行（「相对时间-描述」，未填兜底「完成打卡」，FR-019），整卡可点直达详情、卡上无按钮，今日之环卡与周节奏微条均移除（FR-020，R2 裁决 2 + R3 裁决 1）；空态文案正式 App 语域（R3 裁决 3）（依赖 T015/T018/T019/T008/T044）
 - [ ] T018 [P] [US1] 本地资料编辑：新建 `lib/features/profile/profile.dart`——资料编辑 bottom sheet（昵称输入 + 8 枚预设头像选择，图标+令牌环），读写 SettingsRows.nickname/avatarKey（经 repositories），保存即时生效、重启保留、未填显示默认头像+「我」；配套单测（默认兜底/往返持久化）
 - [ ] T019 [P] [US1] 通知列表推导：新建 `lib/features/notifications/notification_list.dart` + 推导逻辑——四源合成（①Reminders 排程+cadence 的今日/明日提醒时刻 ②近 7 天成就与全完成日 ③streak 里程碑 ④deadline≤今天且未 achieved 的到期询问，research D6），时间倒序、按天分组、行=类型图标+标题+相对时间、空态友好语；tap 行→/goal/:id；配套推导单测（四源各自+混排排序）

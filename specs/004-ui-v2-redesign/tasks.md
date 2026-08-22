@@ -81,7 +81,9 @@ description: "Task list for 004 UI v2 重构"
 
 ### 评审门禁
 
-- [ ] T011 [US1] 原型评审门禁：用户逐屏走查 design/prototypes/ 五稿，通过/返工裁决与轮次记 design/reviews.md，全部冻结后方可实现（**阻塞 T012–T016 与 T023**；返工循环至全冻结）
+- [x] T011 [US1] 原型评审门禁：用户逐屏走查 design/prototypes/ 五稿，通过/返工裁决与轮次记 design/reviews.md，全部冻结后方可实现（**阻塞 T012–T016 与 T023**；返工循环至全冻结）
+  - ✅ 七屏全冻结（2026-08-23，R1–R3 三轮全录 design/reviews.md 屏幕评审区）：R1 修 gi() DOM 注入 bug + 补今日/回顾；R2 环六案/色系四系对比稿；R3 三裁决落定并回填（环=案 C 单环三段弧、色系=四案全否保留渐变卡统一同构梯度入 tokens、dock=D2 黑色线条三屏定稿）；末轮五延展屏（editor/detail/settings/notifications/goals-all）用户裁定「过」全数冻结——T012–T016 与 T023 解锁
+  - ✅ 冻结基线 = design/prototypes/ v2-{today,review,goal-editor,goal-detail,settings,notifications,goals-all}.html（tokens.css?v=0823b）+ tokens 三端（9656dfd）；门禁 analyze 0 + 133 全绿
 
 ### 实现（按冻结稿）
 

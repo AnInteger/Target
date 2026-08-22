@@ -1373,6 +1373,68 @@ void main() {
     await db.close();
   });
 
+  testWidgets('T036 US4 走查：设置页行形态全标准 + 深色态全行齐备（FR-009）',
+      (tester) async {
+    usePhoneSurface(tester);
+    tester.binding.platformDispatcher.platformBrightnessTestValue =
+        Brightness.dark;
+    addTearDown(
+        tester.binding.platformDispatcher.clearPlatformBrightnessTestValue);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goal = await GoalRepository(db).create(Goal(
+        name: '锻炼',
+        goalType: GoalType.habit,
+        iconKey: 'fitness_center',
+        colorKey: 'teal',
+        createdAt: today));
+    await ReminderRepository(db).upsert(Reminder(
+        id: 'r-1', goalId: goal.id, time: const LocalTime(9, 0)));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider
+              .overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/settings');
+    await tester.pumpAndSettle();
+
+    // 深色态：darkTheme 注入的令牌确实生效（浅/深 palette 不同实例）。
+    final palette = TargetPalette.of(
+        tester.element(find.byType(SettingsView)));
+    expect(identical(palette, TargetPalette.dark), isTrue);
+
+    // 通知组三行（开关/值/二级）+ 展开后二级行——深色下照常渲染。
+    expect(find.text(Copy.settingsNotifMasterTitle), findsOneWidget);
+    expect(find.text(Copy.settingsBriefTitle), findsOneWidget);
+    expect(find.text(Copy.settingsGoalRemindersTitle), findsOneWidget);
+    await tester.tap(find.text(Copy.settingsGoalRemindersTitle));
+    await tester.pumpAndSettle();
+    expect(find.text('一天一次 · 09:00'), findsOneWidget);
+
+    // 屏下分组（目标/数据/关于）滚动走查：行全渲染不抛错。
+    await scrollTo(tester, find.text(Copy.settingsSectionData));
+    expect(find.text(Copy.backupExport), findsOneWidget);
+    expect(find.text(Copy.backupImport), findsOneWidget);
+    await scrollTo(tester, find.text(Copy.settingsVersionValue));
+    expect(find.text(Copy.settingsVersionValue), findsOneWidget);
+    await db.close();
+  });
+
   testWidgets('T021 详情：头部块/管理入口 + 打卡描述落库 + 历史行兜底 + 短期倒计时步骤',
       (tester) async {
     usePhoneSurface(tester);

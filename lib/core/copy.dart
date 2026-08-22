@@ -216,6 +216,21 @@ abstract final class Copy {
   static const settingsTitle = '我的';
   static const settingsMeName = '星行';
   static const dailyBriefTimeLabel = '提醒';
+
+  // 我的页结构（003 R3 原型：账号卡 + 通知/目标/数据/关于四分组，
+  // 行 = 图标 + 标题 + 行尾值|开关|箭头）。
+  static const settingsMeSub = '本地资料';
+  static const settingsEdit = '编辑';
+  static const settingsSectionNotif = '通知';
+  static const settingsSectionGoals = '目标';
+  static const settingsSectionData = '数据';
+  static const settingsSectionAbout = '关于';
+  static const settingsGoalsActiveTitle = '活跃目标';
+  static const settingsGoalsActiveSub = '想坚持的事，都在今日页';
+  static const settingsBackfillTitle = '补签';
+  static const settingsBackfillSub = '长按今日页的目标卡，可为往日补一条记录';
+  static const settingsVersionTitle = '版本';
+  static const settingsVersionValue = '1.0.0';
   static const dailyBriefSub = '每天一份，不催促';
   static const notifOffHint = '开关会记住你的偏好，开通知后按这里的时间提醒。';
   static const backupExportSub = '生成一份文件，带走全部记录';

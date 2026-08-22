@@ -168,7 +168,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T034 [US4] 设置结构重组：重构 `lib/features/settings/settings_view.dart`——账号卡（复用 T018 profile sheet）+ 分组列表：通知（提醒总开关值行/每日简报时间/按目标提醒二级）/ 目标（活跃目标数→今日页、补签说明只读）/ 数据（备份与导出/导入）/ 关于（版本/隐私脚注）（FR-009，ui-contract.md 我的页结构）
+- [x] T034 [US4] 设置结构重组：重构 `lib/features/settings/settings_view.dart`——账号卡（复用 T018 profile sheet）+ 分组列表：通知（提醒总开关值行/每日简报时间/按目标提醒二级）/ 目标（活跃目标数→今日页、补签说明只读）/ 数据（备份与导出/导入）/ 关于（版本/隐私脚注）（FR-009，ui-contract.md 我的页结构）
+  - ✅ 改了什么：settings_view 按 R3 四分组重构——`_MeCard` 账号卡（ProfileAvatar 44 + 昵称兜底「我」+「本地资料」+「编辑」→ profile sheet）；`_SettingsRow` 通用行扩展（value 行尾值/showChevron 箭头/sub 可空副题）；目标组活跃数行（只计 active，tap → /today）+ 补签只读行；数据组 `_BackupCard`（导出/导入原样迁组）；关于组版本行；copy 新增四分组 12 键。昵称文本挂 `ValueKey('meNickname')`（今日页头部与头像首字兜底同渲染「我」，IndexedStack 下撞名）
+  - ✅ 验了什么：新用例「T034 设置四分组」——四分组标题齐备/账号卡默认昵称+编辑进 sheet/种 2 active+1 paused 断言活跃数『2』/tap 活跃行落今日/补签只读+版本值行；T026/T033 昵称断言同步改 byKey；`flutter analyze` 0 issues + `flutter test` 119/119 全绿
 - [ ] T035 [US4] 通知设置迁入：提醒总开关/每日简报时间/按目标提醒自今日页旧设置面迁至我的页通知分组，能力等价（FR-006）；今日页设置职能彻底拆除（与 T020 衔接终查）
 - [ ] T036 [US4] 验收走查：结构走查（行形态全标准）+ 深浅两态对比 + V7 备份导出导入回归在新入口下通过；`flutter analyze && flutter test` 全绿
 

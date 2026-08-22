@@ -1179,11 +1179,87 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('reviewEmptyCta')), findsOneWidget);
 
-    // 我的：账号卡 + 备份组照常渲染（无数据依赖）。
+    // 我的：账号卡（默认昵称兜底，头像首字兜底同文故按 key）+ 备份组照常渲染。
     router.go('/settings');
     await tester.pumpAndSettle();
-    expect(find.text(Copy.settingsMeName), findsOneWidget);
+    expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
     expect(find.text(Copy.backupExport), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('T034 设置四分组：账号卡真资料/目标活跃数行跳今日/补签只读/版本行（FR-009）',
+      (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    for (final name in ['锻炼', '阅读']) {
+      await repo.create(Goal(
+          name: name,
+          goalType: GoalType.habit,
+          iconKey: 'fitness_center',
+          colorKey: 'teal',
+          createdAt: today));
+    }
+    await repo.create(Goal(
+        name: '已暂停目标',
+        goalType: GoalType.habit,
+        iconKey: 'menu_book',
+        colorKey: 'sage',
+        createdAt: today,
+        status: GoalStatus.paused));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/settings');
+    await tester.pumpAndSettle();
+
+    // 四分组齐备（通知/目标/数据/关于）。
+    expect(find.text(Copy.settingsSectionNotif), findsOneWidget);
+    expect(find.text(Copy.settingsSectionGoals), findsOneWidget);
+    expect(find.text(Copy.settingsSectionData), findsOneWidget);
+    expect(find.text(Copy.settingsSectionAbout), findsOneWidget);
+
+    // 账号卡：真资料（默认昵称兜底）+「编辑」→ 资料 sheet。
+    // 昵称文本按 key 断言——今日页头部与头像首字兜底同渲染「我」（IndexedStack 常驻）。
+    expect(find.byKey(const ValueKey('meNickname')),
+        findsOneWidget);
+    expect(find.text(Copy.settingsMeSub), findsOneWidget);
+    await tester.tap(find.text(Copy.settingsEdit));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.profileSheetTitle), findsOneWidget);
+    await tester.tap(find.text(Copy.profileDone));
+    await tester.pumpAndSettle();
+
+    // 目标组：活跃数只计 active（2，不含暂停）+ 箭头行 tap → 今日页。
+    expect(find.text(Copy.settingsGoalsActiveTitle), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    await tester.tap(find.text(Copy.settingsGoalsActiveTitle));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('reviewEmptyCta')), findsNothing);
+    expect(find.text(Copy.todayNav), findsOneWidget);
+
+    // 补签只读 + 版本值行（回到我的页断言）。
+    router.go('/settings');
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.settingsBackfillTitle), findsOneWidget);
+    expect(find.text(Copy.settingsBackfillSub), findsOneWidget);
+    expect(find.text(Copy.settingsVersionValue), findsOneWidget);
     await db.close();
   });
 
@@ -1542,10 +1618,12 @@ void main() {
     await tester.tap(find.text(Copy.mineNav));
     await tester.pumpAndSettle();
 
-    // R2 骨架：身份卡（无目标统计）+ 概要行副文 + 场景指引 + 隐私脚注。
+    // R2 骨架 → T034 四分组：账号卡（真资料昵称兜底「我」+ 编辑入口）
+    // + 概要行副文 + 场景指引 + 隐私脚注。
     // 标题「我的」与底部 nav 标签同文，断言至少一处即可。
     expect(find.text(Copy.settingsTitle), findsWidgets);
-    expect(find.text(Copy.settingsMeName), findsOneWidget);
+    expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
+    expect(find.text(Copy.settingsEdit), findsOneWidget);
     expect(find.text(Copy.dailyBriefSub), findsOneWidget);
     expect(find.text(Copy.reminderGoalHint), findsOneWidget);
     expect(find.text(Copy.privacyFoot), findsOneWidget);

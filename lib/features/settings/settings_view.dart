@@ -1,8 +1,8 @@
-/// 设置页（US5 · T026 R2 重写 · 2026-08-21 screen-settings.html 定稿）。
+/// 设置页（003 R3 定稿 · T034 四分组重构：账号卡 + 通知/目标/数据/关于）。
 ///
-/// R2 裁决「聚焦 App 本身」：身份卡（无目标统计）+ 提醒组（概要一行 +
-/// 场景指引两条——逐目标提醒行全删，目标提醒时刻在编辑器选场景）+
-/// 备份与数据（导出/导入，导入冲突显式确认）+ 隐私脚注。
+/// 行形态全标准（图标 + 标题 + 行尾值|开关|箭头，FR-009）：账号卡复用
+/// 资料编辑 sheet；通知组（T035 迁入总开关与按目标二级）；目标组活跃数
+/// → 今日页 + 补签只读；数据组备份导出/导入；关于组版本 + 隐私脚注。
 /// 权限被拒不反复弹窗（FR-007）：未开启只说明一次，「知道了」后不再打扰。
 library;
 
@@ -12,6 +12,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
@@ -20,6 +21,7 @@ import '../../core/backup/backup_importer.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
+import '../profile/profile.dart';
 import 'debug_clock.dart';
 
 /// dailyBrief 提醒行固定 id（goalId=null ⇔ 概要）。
@@ -55,6 +57,9 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   Widget build(BuildContext context) {
     final reminders = ref.watch(remindersProvider).value ?? const <Reminder>[];
     final settings = ref.watch(settingsProvider).value;
+    final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
+    final activeCount =
+        goals.where((g) => g.status == GoalStatus.active).length;
 
     final briefRow = reminders.where((r) => r.isDailyBrief).firstOrNull;
     final briefTime =
@@ -88,8 +93,11 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                 ),
               ),
             ),
+            const SizedBox(height: AppSpace.s2),
             const _MeCard(),
-            const _SectionLabel(Copy.dailyBriefTimeLabel),
+
+            // ---- 分组·通知（T035 迁入总开关与按目标提醒二级）----
+            const _SectionLabel(Copy.settingsSectionNotif),
             if (permCardVisible) _PermCard(onRequest: _requestPermission),
             _GroupCard(children: [
               _SettingsRow(
@@ -106,8 +114,38 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
             _Hints(hints: permCardVisible
                 ? const [Copy.notifOffHint]
                 : const [Copy.reminderMondayHint, Copy.reminderGoalHint]),
-            const _SectionLabel(Copy.backupHeader),
+
+            // ---- 分组·目标：活跃数（→今日页）+ 补签只读说明 ----
+            const _SectionLabel(Copy.settingsSectionGoals),
+            _GroupCard(children: [
+              _SettingsRow(
+                icon: Icons.flag_outlined,
+                title: Copy.settingsGoalsActiveTitle,
+                sub: Copy.settingsGoalsActiveSub,
+                value: '$activeCount',
+                showChevron: true,
+                onTap: () => context.go('/today'),
+              ),
+              const _SettingsRow(
+                icon: Icons.event_outlined,
+                title: Copy.settingsBackfillTitle,
+                sub: Copy.settingsBackfillSub,
+              ),
+            ]),
+
+            // ---- 分组·数据 ----
+            const _SectionLabel(Copy.settingsSectionData),
             const _BackupCard(),
+
+            // ---- 分组·关于 ----
+            const _SectionLabel(Copy.settingsSectionAbout),
+            const _GroupCard(children: [
+              _SettingsRow(
+                icon: Icons.info_outline,
+                title: Copy.settingsVersionTitle,
+                value: Copy.settingsVersionValue,
+              ),
+            ]),
             const SizedBox(height: AppSpace.s2),
             const _PrivacyFoot(),
             if (kDebugMode) ...[
@@ -157,13 +195,14 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
   }
 }
 
-/// 身份卡：44 头像（装饰渐变）+ 名字；R2 裁决不带目标统计。
-class _MeCard extends StatelessWidget {
+/// 账号卡（003 R3）：真资料头像 + 昵称 + 「本地资料」+「编辑」→ sheet。
+class _MeCard extends ConsumerWidget {
   const _MeCard();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = TargetPalette.of(context);
+    final profile = ref.watch(profileProvider).value;
     return Material(
       color: palette.glassCard,
       borderRadius: AppRadius.rLg,
@@ -176,31 +215,33 @@ class _MeCard extends StatelessWidget {
           boxShadow: palette.shadowLow,
         ),
         child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [kAvatarGradA, kAvatarGradB],
+          children: [
+            ProfileAvatar(profile: profile, size: 44),
+            const SizedBox(width: AppSpace.s3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      profile?.nickname ?? Copy.profileDefaultNickname,
+                      key: const ValueKey('meNickname'),
+                      style: Theme.of(context).textTheme.titleS),
+                  const SizedBox(height: 2),
+                  Text(
+                    Copy.settingsMeSub,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyS
+                        .copyWith(color: palette.onSurfaceVariant),
+                  ),
+                ],
               ),
             ),
-            child: Center(
-              child: Text(
-                Copy.settingsMeName.characters.first,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleS
-                    .copyWith(color: Colors.white, height: 1),
-              ),
+            TextButton(
+              onPressed: () => showProfileSheet(context),
+              child: const Text(Copy.settingsEdit),
             ),
-          ),
-          const SizedBox(width: AppSpace.s3),
-          Text(Copy.settingsMeName, style: Theme.of(context).textTheme.titleS),
-        ],
+          ],
         ),
       ),
     );
@@ -262,24 +303,30 @@ class _GroupCard extends StatelessWidget {
   }
 }
 
-/// 通用设置行：32 图标格 + 标题/副文 + 时间 + 开关。
+/// 通用设置行：32 图标格 + 标题/副文 + 行尾（值 | 时间 | 开关 | 箭头）。
 class _SettingsRow extends StatelessWidget {
   const _SettingsRow({
     required this.icon,
     required this.title,
-    required this.sub,
+    this.sub,
+    this.value,
     this.time,
     this.switchValue,
     this.onSwitch,
+    this.showChevron = false,
     this.onTap,
   });
 
   final IconData icon;
   final String title;
-  final String sub;
+  final String? sub;
+  final String? value;
   final LocalTime? time;
   final bool? switchValue;
   final ValueChanged<bool>? onSwitch;
+
+  /// 行尾箭头（值行/二级入口）。
+  final bool showChevron;
   final VoidCallback? onTap;
 
   @override
@@ -307,17 +354,28 @@ class _SettingsRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: Theme.of(context).textTheme.bodyL),
-                  const SizedBox(height: 2),
-                  Text(
-                    sub,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyS
-                        .copyWith(color: palette.onSurfaceVariant),
-                  ),
+                  if (sub case final s? when s.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      s,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyS
+                          .copyWith(color: palette.onSurfaceVariant),
+                    ),
+                  ],
                 ],
               ),
             ),
+            if (value case final v?) ...[
+              const SizedBox(width: AppSpace.s2),
+              Text(
+                v,
+                style: Theme.of(context).textTheme.bodyM.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()]),
+              ),
+            ],
             if (time case LocalTime t) ...[
               const SizedBox(width: AppSpace.s2),
               Text(
@@ -334,6 +392,11 @@ class _SettingsRow extends StatelessWidget {
                 onChanged: onSwitch,
                 activeThumbColor: palette.positiveFill,
               ),
+            ],
+            if (showChevron) ...[
+              const SizedBox(width: AppSpace.s1),
+              Icon(Icons.chevron_right,
+                  size: 20, color: palette.onSurfaceVariant),
             ],
           ],
         ),

@@ -76,7 +76,8 @@ description: "Task list for 004 UI v2 重构"
   - ✅ 五板：浅色·我的页全页（me 卡+外观组 3 行选中对勾+通知/目标/数据/关于组，inset-groups）/ 深色·我的页（深色选中态）/ 浅色·按目标提醒展开（二级缩进骑行/读书行）/ 深色·资料编辑弹层（昵称+8 头像环色，kAvatarRingByKey 镜像为例外声明）/ 浅色·恢复备份确认 dlg
 - [x] T009 [P] [US1] 通知列表原型稿 design/prototypes/v2-notifications.html（时间倒序/类型图标/空态）
   - ✅ 三板：浅色·通知列表（今日页底 sheet，5 条 nrow 类型色格 bell/task_alt/trophy/streak/due，未读红点+全部已读）/ 深色·已读态（标题降次级色）/ 浅色·空态（ring 图形+暂无通知）；底幕为简化今日页（三环+两页签 dock+FAB 可见）
-- [ ] T010 [P] [US1] 全部目标列表原型稿 design/prototypes/v2-goals-all.html（兼承 US3「查看全部」屏：分类筛选单选/进详情/管理动线）
+- [x] T010 [P] [US1] 全部目标列表原型稿 design/prototypes/v2-goals-all.html（兼承 US3「查看全部」屏：分类筛选单选/进详情/管理动线）
+  - ✅ 四板：浅色·全部（三大类分组头 健康5/习惯1/目标6，12 目标卡=大类色图标格+类型/状态徽章+摘要/进度条）/ 深色·筛选中（运动单选反色实底，计数 12→2 联动）/ 浅色·筛选空态（宠物分类，空态说明+新建 CTA）/ 深色·长按管理菜单（编辑/暂停/删除 danger）；图标域与 T005 映射对账（hiking 属 fitness 故徒步用 flight）；Playwright 全页渲染验证通过
 
 ### 评审门禁
 

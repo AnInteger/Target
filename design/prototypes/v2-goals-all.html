@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全部目标 · Target（v2 延展设计 · FR-015 门禁稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=0823a">
+<script src="goal-icons.js"></script>
+<style>
+  /* ============================================================
+     v2-goals-all · 全部目标列表延展原型（004 · T010 · R1）
+     ------------------------------------------------------------
+     - 承载：今日页关注卡轮播「查看全部」push 进入（US3 场景 4）
+     - FR-016 能力对账：分类筛选（全部 + 十小类，单选，chips 带
+       大类色点）· 进详情（整卡可点）· 管理动线（长按卡片上滑菜
+       单：编辑/暂停或恢复/删除）；「全部」视图按三大类分组
+     - 语言：v2 基准图延展；列表卡 = 图标格(大类色) + 名称 + 类型/
+       状态徽章 + 摘要行；状态非色相单通道（文字徽章，FR-013）
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 720px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 242, 247, .7); }
+  .chip.t { color: var(--accent); }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1),
+                var(--bg-grad-2), var(--bg-grad-3), var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+
+  /* ---- 屏内 ---- */
+  .ga-status { height: 52px; flex: none; display: flex; align-items: flex-end;
+               justify-content: space-between; padding: 0 var(--space-6) var(--space-1);
+               font: var(--font-body-m); font-weight: 600; color: var(--on-surface); }
+  .ga-top { flex: none; display: flex; align-items: center; gap: var(--space-3);
+            padding: var(--space-3) var(--space-5) var(--space-2); }
+  .ga-btn { width: 38px; height: 38px; border-radius: var(--radius-full);
+            background: var(--surface); color: var(--on-surface); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            border: 1px solid var(--divider); box-shadow: var(--shadow-low);
+            font-size: 20px; line-height: 1; padding: 0; }
+  .ga-top .tt { font: var(--font-title-m); color: var(--on-surface); }
+  .ga-top .cnt { font: var(--font-body-s); color: var(--on-surface-variant);
+                 margin-left: var(--space-1); font-variant-numeric: tabular-nums; }
+  .ga-top .spacer { flex: 1; }
+  .ga-top .new { border: 1px solid var(--divider); border-radius: var(--radius-full);
+                 background: var(--surface); color: var(--on-surface); cursor: pointer;
+                 font: var(--font-body-m); padding: var(--space-2) var(--space-4);
+                 display: flex; align-items: center; gap: var(--space-1); }
+  .ga-top .new svg { width: 14px; height: 14px; color: var(--accent); }
+
+  /* 筛选 chips（单选） */
+  .filters { flex: none; display: flex; gap: var(--space-2); overflow-x: auto;
+             scrollbar-width: none; padding: var(--space-1) var(--space-5) var(--space-3); }
+  .filters::-webkit-scrollbar { display: none; }
+  .fchip { flex: none; display: flex; align-items: center; gap: 6px;
+           border: 1px solid var(--divider); background: var(--surface);
+           border-radius: var(--radius-full); padding: var(--space-2) var(--space-4);
+           font: var(--font-body-m); color: var(--on-surface); cursor: pointer; }
+  .fchip .d { width: 8px; height: 8px; border-radius: var(--radius-full);
+              background: var(--fc, var(--on-surface-variant)); }
+  .fchip.on { background: var(--on-surface); color: var(--surface);
+              border-color: transparent; font-weight: 700; }
+  .fchip.on .d { background: var(--surface); }
+  [data-theme="dark"] .fchip.on { color: var(--on-surface); background: var(--surface);
+              border-color: var(--on-surface); }
+  [data-theme="dark"] .fchip.on .d { background: var(--on-surface); }
+
+  .ga-scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
+               padding: 0 var(--space-5) var(--space-6);
+               display: flex; flex-direction: column; gap: var(--space-3); }
+  .ga-scroll::-webkit-scrollbar { display: none; }
+
+  /* 大类分组头 */
+  .ghead { display: flex; align-items: center; gap: var(--space-2);
+           margin-top: var(--space-2); }
+  .ghead .d { width: 10px; height: 10px; border-radius: var(--radius-full); }
+  .ghead .t { font: var(--font-title-s); color: var(--on-surface); }
+  .ghead .n { font: var(--font-body-s); color: var(--on-surface-variant);
+              font-variant-numeric: tabular-nums; }
+
+  /* 目标卡 */
+  .gcard { background: var(--surface); border-radius: var(--radius-lg);
+           box-shadow: var(--shadow-low); padding: var(--space-4);
+           display: flex; align-items: center; gap: var(--space-3);
+           cursor: pointer; position: relative;
+           transition: transform var(--motion-fast) var(--ease-standard); }
+  .gcard:active { transform: scale(.985); }
+  .gcard .ic { width: 44px; height: 44px; border-radius: var(--radius-md); flex: none;
+               background: var(--surface-alt); display: flex; align-items: center;
+               justify-content: center; }
+  .gcard .ic svg { width: 22px; height: 22px; }
+  .gcard .bd { flex: 1; min-width: 0; }
+  .gcard .r1 { display: flex; align-items: center; gap: var(--space-2); }
+  .gcard .nm { font: var(--font-title-s); color: var(--on-surface); margin: 0;
+               white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gcard .bdg { font: var(--font-label); padding: 1px var(--space-2); flex: none;
+                border-radius: var(--radius-full); background: var(--surface-alt);
+                color: var(--on-surface-variant); white-space: nowrap; }
+  .gcard .bdg.warn { color: var(--warning); }
+  .gcard .bdg.ok { color: var(--positive); }
+  .gcard .r2 { font: var(--font-body-s); color: var(--on-surface-variant); margin: 3px 0 0;
+               display: flex; align-items: center; gap: var(--space-2);
+               font-variant-numeric: tabular-nums; }
+  .gcard .chev { color: var(--on-surface-variant); font-size: 16px; flex: none; }
+  .gcard .prog { height: 6px; border-radius: var(--radius-full);
+                 background: var(--surface-alt); overflow: hidden; margin-top: var(--space-2); }
+  .gcard .prog i { display: block; height: 100%; border-radius: var(--radius-full);
+                   background: var(--gc, var(--accent)); }
+
+  /* 筛选空态 */
+  .fempty { display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+            padding: var(--space-12) 0; }
+  .fempty .ring { width: 88px; height: 88px; border-radius: var(--radius-full);
+                  background: var(--surface-alt); display: flex; align-items: center;
+                  justify-content: center; color: var(--on-surface-variant); }
+  .fempty .ring svg { width: 38px; height: 38px; }
+  .fempty .t1 { font: var(--font-title-m); color: var(--on-surface); margin: 0; }
+  .fempty .t2 { font: var(--font-body-m); color: var(--on-surface-variant); margin: 0; }
+  .fempty .cta { margin-top: var(--space-2); border: none; cursor: pointer;
+                 background: var(--accent); color: var(--accent-on);
+                 font: var(--font-body-l); border-radius: var(--radius-full);
+                 padding: var(--space-3) var(--space-6); box-shadow: var(--shadow-mid); }
+
+  /* 长按管理菜单 */
+  .sheet-wrap { position: absolute; inset: 0; z-index: 30; }
+  .scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0;
+           background: var(--surface); border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+           box-shadow: var(--shadow-high);
+           padding: var(--space-3) var(--space-5) calc(var(--space-5) + 8px); }
+  .grab { width: 40px; height: 4px; border-radius: var(--radius-full);
+          background: var(--divider); margin: 0 auto var(--space-3); }
+  .sheet .cap { display: flex; align-items: center; gap: var(--space-3);
+                padding: var(--space-2) var(--space-2) var(--space-3); }
+  .sheet .cap .ic { width: 40px; height: 40px; border-radius: var(--radius-md);
+                    background: var(--surface-alt); display: flex; align-items: center;
+                    justify-content: center; }
+  .sheet .cap .ic svg { width: 20px; height: 20px; }
+  .sheet .cap .t { font: var(--font-title-s); color: var(--on-surface); }
+  .menu { display: flex; flex-direction: column; }
+  .menu button { display: flex; align-items: center; gap: var(--space-3);
+                 border: none; background: none; cursor: pointer;
+                 font: var(--font-body-l); color: var(--on-surface);
+                 padding: var(--space-4) var(--space-2); }
+  .menu button + button { border-top: 1px solid var(--divider); }
+  .menu button svg { width: 20px; height: 20px; color: var(--on-surface-variant); }
+  .menu button.danger { color: var(--badge); }
+  .menu button.danger svg { color: var(--badge); }
+  .menu .to { font: var(--font-body-s); color: var(--on-surface-variant); margin-left: auto; }
+</style>
+</head>
+<body>
+
+<h1 class="pt-title">全部目标 · v2 延展稿 R1</h1>
+<p class="pt-sub">004 T010（FR-015 门禁输入，兼承 US3「查看全部」屏）。筛选 chips 单选（全部 + 十小类，带大类色点）；「全部」视图按三大类分组；
+整卡进详情；长按卡片上滑管理菜单（编辑/暂停/删除）；筛选空态引导。</p>
+
+<div class="row">
+  <!-- ===================== 板 1：浅色 · 全部（三大类分组） ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="ga-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="ga-top">
+        <button class="ga-btn" aria-label="返回">‹</button>
+        <span class="tt">全部目标</span><span class="cnt">12</span>
+        <span class="spacer"></span>
+        <button class="new">
+          <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+          新建
+        </button>
+      </div>
+
+      <div class="filters" id="f1">
+        <button class="fchip on">全部</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>运动</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>学习</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>健康</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>创作</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>旅行</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>理财</button>
+        <button class="fchip" style="--fc:var(--major-habit)"><span class="d"></span>生活</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>冥想</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>社交</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>宠物</button>
+      </div>
+
+      <div class="ga-scroll">
+
+        <div class="ghead">
+          <span class="d" style="background:var(--major-health)"></span>
+          <span class="t">健康</span><span class="n">5</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="directions_bike" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">骑行大 PRO 计划</p><span class="bdg">习惯</span></div>
+            <p class="r2">连续 12 天 · 每天 · 08:00 提醒</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="pool" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">铁人三项备赛</p><span class="bdg">短期</span></div>
+            <p class="r2">距截止 45 天 · 已完成 70%</p>
+            <div class="prog"><i style="width:70%"></i></div>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="bedtime" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">十二点前上床睡觉</p><span class="bdg">习惯</span></div>
+            <p class="r2">本周 6/7 天</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="water_drop" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">每天喝够 8 杯水</p><span class="bdg">习惯</span></div>
+            <p class="r2">今天已记录</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="self_improvement" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">每天放空十分钟</p><span class="bdg">习惯</span></div>
+            <p class="r2">连续 5 天</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+
+        <div class="ghead">
+          <span class="d" style="background:var(--major-habit)"></span>
+          <span class="t">习惯</span><span class="n">1</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-habit)">
+          <span class="ic" data-gi="cleaning_services" style="color:var(--major-habit)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">每周大扫除</p><span class="bdg">习惯</span></div>
+            <p class="r2">每周 · 周六 10:00 提醒</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+
+        <div class="ghead">
+          <span class="d" style="background:var(--major-goal)"></span>
+          <span class="t">目标</span><span class="n">6</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-goal)">
+          <span class="ic" data-gi="menu_book" style="color:var(--major-goal)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">读完《设计中的设计》</p><span class="bdg">短期</span></div>
+            <p class="r2">距截止 12 天 · 已完成 85%</p>
+            <div class="prog"><i style="width:85%"></i></div>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-goal)">
+          <span class="ic" data-gi="school" style="color:var(--major-goal)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">三个月内考过日语 N2</p><span class="bdg ok">已达成</span></div>
+            <p class="r2">08-20 标记达成</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-goal)">
+          <span class="ic" data-gi="brush" style="color:var(--major-goal)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">做出第一个 App 并上架</p><span class="bdg warn">已暂停</span></div>
+            <p class="r2">历史 23 条记录</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-goal)">
+          <span class="ic" data-gi="explore" style="color:var(--major-goal)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">考下潜水证 OW/AOW</p><span class="bdg">短期</span></div>
+            <p class="r2">距截止 100 天 · 已完成 40%</p>
+            <div class="prog"><i style="width:40%"></i></div>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-goal)">
+          <span class="ic" data-gi="flight" style="color:var(--major-goal)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">冈仁波齐徒步</p><span class="bdg">长期</span></div>
+            <p class="r2">最近 · 格聂南线完成</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-goal)">
+          <span class="ic" data-gi="savings" style="color:var(--major-goal)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">基金定投打卡</p><span class="bdg">习惯</span></div>
+            <p class="r2">连续 30 天</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+
+      </div>
+    </div>
+    <h3>浅色 · 全部（三大类分组）</h3>
+    <p class="desc">「全部」视图按 健康/习惯/目标 分组（组头色点 + 计数）；卡片 = 大类色图标格 + 名称 + 类型/状态徽章（已暂停琥珀/已达成青柠）+ 摘要（连续/倒计时/进度条）；整卡进详情。</p>
+    <div class="chips"><span class="chip t">分组浏览</span><span class="chip t">状态徽章</span><span class="chip t">进详情</span><span class="chip">筛选单选</span></div>
+  </div>
+
+  <!-- ===================== 板 2：深色 · 筛选中（运动） ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="dark">
+      <div class="island"></div>
+      <div class="ga-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="ga-top">
+        <button class="ga-btn" aria-label="返回">‹</button>
+        <span class="tt">全部目标</span><span class="cnt">2</span>
+        <span class="spacer"></span>
+      </div>
+
+      <div class="filters">
+        <button class="fchip">全部</button>
+        <button class="fchip on" style="--fc:var(--major-health)"><span class="d"></span>运动</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>学习</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>健康</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>创作</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>旅行</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>理财</button>
+        <button class="fchip" style="--fc:var(--major-habit)"><span class="d"></span>生活</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>冥想</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>社交</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>宠物</button>
+      </div>
+
+      <div class="ga-scroll">
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="directions_bike" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">骑行大 PRO 计划</p><span class="bdg">习惯</span></div>
+            <p class="r2">连续 12 天 · 每天 · 08:00 提醒</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="pool" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">铁人三项备赛</p><span class="bdg">短期</span></div>
+            <p class="r2">距截止 45 天 · 已完成 70%</p>
+            <div class="prog"><i style="width:70%"></i></div>
+          </div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+    </div>
+    <h3>深色 · 筛选中（运动）</h3>
+    <p class="desc">筛选 = 单选（选中 chip 反色实底）；标题旁计数随筛选联动（12→2）；深色下大类色用提亮档（健康 #4ADE80）。</p>
+    <div class="chips"><span class="chip t">单选筛选</span><span class="chip t">计数联动</span><span class="chip">深色可读性</span></div>
+  </div>
+
+  <!-- ===================== 板 3：浅色 · 筛选空态（冥想） ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="light">
+      <div class="island"></div>
+      <div class="ga-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="ga-top">
+        <button class="ga-btn" aria-label="返回">‹</button>
+        <span class="tt">全部目标</span><span class="cnt">0</span>
+        <span class="spacer"></span>
+      </div>
+
+      <div class="filters">
+        <button class="fchip">全部</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>运动</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>学习</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>健康</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>创作</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>旅行</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>理财</button>
+        <button class="fchip" style="--fc:var(--major-habit)"><span class="d"></span>生活</button>
+        <button class="fchip on" style="--fc:var(--major-health)"><span class="d"></span>宠物</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>社交</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>冥想</button>
+      </div>
+
+      <div class="ga-scroll">
+        <div class="fempty">
+          <span class="ring">
+            <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M280-280h400v-80H280v80Zm-40-160q-83 0-141.5-58.5T40-640q0-83 58.5-141.5T240-840q83 0 141.5 58.5T440-640q0 83-58.5 141.5T240-440Z"/></svg>
+          </span>
+          <p class="t1">该分类暂无目标</p>
+          <p class="t2">「宠物」分类下还没有目标</p>
+          <button class="cta">新建目标</button>
+        </div>
+      </div>
+    </div>
+    <h3>浅色 · 筛选空态</h3>
+    <p class="desc">筛选分类无目标时呈空态说明（分类名明示）+「新建目标」CTA，非空白页；再点「全部」恢复全量。</p>
+    <div class="chips"><span class="chip t">空态说明</span><span class="chip t">新建 CTA</span></div>
+  </div>
+
+  <!-- ===================== 板 4：深色 · 长按管理菜单 ===================== -->
+  <div class="board">
+    <div class="phone" data-theme="dark">
+      <div class="island"></div>
+      <div class="ga-status"><span>9:41</span><span>100 ▮</span></div>
+      <div class="ga-top">
+        <button class="ga-btn" aria-label="返回">‹</button>
+        <span class="tt">全部目标</span><span class="cnt">12</span>
+        <span class="spacer"></span>
+      </div>
+
+      <div class="filters">
+        <button class="fchip on">全部</button>
+        <button class="fchip" style="--fc:var(--major-health)"><span class="d"></span>运动</button>
+        <button class="fchip" style="--fc:var(--major-goal)"><span class="d"></span>学习</button>
+      </div>
+
+      <div class="ga-scroll" style="filter:blur(1px)">
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="directions_bike" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">骑行大 PRO 计划</p><span class="bdg">习惯</span></div>
+            <p class="r2">连续 12 天 · 每天 · 08:00 提醒</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+        <div class="gcard" style="--gc:var(--major-health)">
+          <span class="ic" data-gi="pool" style="color:var(--major-health)"></span>
+          <div class="bd">
+            <div class="r1"><p class="nm">铁人三项备赛</p><span class="bdg">短期</span></div>
+            <p class="r2">距截止 45 天 · 已完成 70%</p>
+          </div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <div class="sheet-wrap">
+        <div class="scrim"></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="cap">
+            <span class="ic" data-gi="directions_bike" style="color:var(--major-health)"></span>
+            <span class="t">骑行大 PRO 计划</span>
+          </div>
+          <div class="menu">
+            <button>
+              <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>
+              编辑目标<span class="to">›</span>
+            </button>
+            <button>
+              <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M520-200h240v-120L520-320v120ZM120-120q-33 0-56.5-23.5T40-200v-560q0-33 23.5-56.5T120-840h720q33 0 56.5 23.5T920-760v240h-80v-240H120v560h80v80h-80Z"/></svg>
+              暂停目标
+            </button>
+            <button class="danger">
+              <svg viewBox="0 -960 960 960" fill="currentColor"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Z"/></svg>
+              删除目标
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <h3>深色 · 管理动线（长按）</h3>
+    <p class="desc">长按卡片上滑管理菜单（caption = 目标图标 + 名称）：编辑 / 暂停（已暂停则显示「恢复」）/ 删除（红，走删除确认）；点卡进详情与长按管理互不冲突。</p>
+    <div class="chips"><span class="chip t">编辑/暂停/删除</span><span class="chip t">长按手势</span><span class="chip">003 管理职能全承</span></div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('[data-gi]').forEach(el => {
+    el.innerHTML = gi(el.dataset.gi, el.classList.contains('ic') ? 22 : 20);
+  });
+  // 筛选 chips 单选演示（板 1 可点切换，仅样式演示）
+  document.querySelectorAll('#f1 .fchip').forEach(c => c.addEventListener('click', () => {
+    document.querySelectorAll('#f1 .fchip').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+  }));
+</script>
+
+</body>
+</html>

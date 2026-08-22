@@ -34,7 +34,7 @@ kind=oneshot…（现库实为 habit/milestone 两值）
 | 列 | 变更 | 说明 |
 |---|---|---|
 | goalId / time / isEnabled | 不变 | FR-013 的开关即 isEnabled |
-| **cadence** | **新增** TEXT 枚举 `daily`/`threeDay`/`weekdays7`…（取值 `daily`/`threeDay`/`weekly`） | 习惯型提醒频率档（一天/三天/一周一次）；NULL 视为 daily |
+| **cadence** | **新增** TEXT 枚举（取值 `daily`/`threeDay`/`weekly`） | 提醒频率档（一天/三天/一周一次）；NULL 视为 daily |
 
 排程语义：cadence=daily → 每日 time；threeDay → 每 3 天自启用日起；weekly → 每周同 weekday。排程器（reminder_service）按档计算下一触发；关闭 isEnabled 即时取消未触发排程。
 
@@ -62,7 +62,7 @@ kind=oneshot…（现库实为 habit/milestone 两值）
 
 - goalType ∈ {longTerm, shortTerm, habit}；仅 shortTerm 允许 deadline 非空（表单保证）
 - name 非空、≤40 字；创建流程无 motivation/successCriterion/频率问答写入路径
-- cadence 仅 habit 型目标的 Reminder 允许非 NULL（其他类型提醒为辅、默认 daily 口径亦可，由表单约束）
+- cadence 三档（daily/threeDay/weekly）对习惯与长期目标的提醒均可用（长期默认关，开后同习惯档——见 goal-type-model 表）；shortTerm 的提醒为到期询问单次，cadence 不适用恒 NULL。约束由表单保证，库层不按类型校验
 - 活跃目标上限 5（kMaxActiveGoals，001 FR-011）不变，类型不分摊
 
 ### 状态迁移（Goal 生命周期）

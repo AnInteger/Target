@@ -61,10 +61,10 @@
 
 - [ ] T015 [US1] 路由三分支：`lib/app/router.dart`——StatefulShellRoute 四分支→三分支（today/review/settings→「我的」），`/goal-editor` 与 `/goal/:id` 从根路由移入 today 分支子路由（FR-010 根因修复，research D5），`/goals` 路由退役 + 深链兜底改落 `/today`；`test/widget_test.dart` 增路由结构断言（页签恰 3、编辑器内导航可见、/goals 兜底）
 - [ ] T016 [US1] goals_view 退役：删除 `lib/features/goals/goals_view.dart`，浏览/管理职能落点确认（今日页卡列表承载浏览，详情承载管理）；清除全部残留引用
-- [ ] T017 [US1] 今日头部重组：`lib/features/today/today_view.dart`——头部与内容同连续图层（背景贯通、无分隔线，FR-003）：左 = 账号区（头像环+昵称，tap→资料 sheet）；中 = 日期语；右 = 铃铛（角标=今日未读推导项数）+ ＋（→/goal-editor）；目标卡列表改 GoalIconCatalog 图标+一句话+类型徽章（依赖 T015/T018/T019/T008）
+- [ ] T017 [US1] 今日头部重组：`lib/features/today/today_view.dart`——头部与内容同连续图层（背景贯通、无分隔线，FR-003）：左 = 账号区（头像环+昵称，tap→资料 sheet）；中 = 日期语；右 = 铃铛（角标=今日新增推导条目数）+ ＋（→/goal-editor）；目标卡列表改 GoalIconCatalog 图标+一句话+类型徽章（依赖 T015/T018/T019/T008）
 - [ ] T018 [P] [US1] 本地资料编辑：新建 `lib/features/profile/profile.dart`——资料编辑 bottom sheet（昵称输入 + 8 枚预设头像选择，图标+令牌环），读写 SettingsRows.nickname/avatarKey（经 repositories），保存即时生效、重启保留、未填显示默认头像+「我」；配套单测（默认兜底/往返持久化）
 - [ ] T019 [P] [US1] 通知列表推导：新建 `lib/features/notifications/notification_list.dart` + 推导逻辑——四源合成（①Reminders 排程+cadence 的今日/明日提醒时刻 ②近 7 天成就与全完成日 ③streak 里程碑 ④deadline≤今天且未 achieved 的到期询问，research D6），时间倒序、按天分组、行=类型图标+标题+相对时间、空态友好语；tap 行→/goal/:id；配套推导单测（四源各自+混排排序）
-- [ ] T020 [US1] 铃铛接入：`lib/features/today/today_view.dart`——铃铛 tap 打开通知列表 sheet（不遮底部导航）、角标数=今日未读推导项；今日页旧通知设置入口拆除（迁往 US4 T035 落位）
+- [ ] T020 [US1] 铃铛接入：`lib/features/today/today_view.dart`——铃铛 tap 打开通知列表 sheet（不遮底部导航）、角标数=今日新增推导条目；今日页旧通知设置入口拆除（迁往 US4 T035 落位）
 - [ ] T021 [US1] 详情管理动线补全：`lib/features/goals/goal_detail.dart`——吸收 goals_view 退役后的管理职能（编辑/暂停/恢复/删除全入口可达，FR-002）；极简目标详情不空（图标+描述+类型徽章+打卡节奏占位，spec 边界用例 3）
 - [ ] T022 [US1] 验收走查：FR-001~006 逐条核对——`flutter build web --release` 走查（导航恒三页签/滚动无分隔线/账号编辑往返/铃铛列表空态与四类混排）+ `flutter analyze && flutter test` 全绿；结论记 `design/reviews.md`
 

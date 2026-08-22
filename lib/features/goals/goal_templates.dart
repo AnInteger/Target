@@ -1,96 +1,75 @@
-/// 目标模板库（FR-012）：预设常见生活目标，30 秒内完成创建（FR-001）。
+/// 目标模板库（003 T027 对齐三类型编辑器）。
 ///
-/// 模板只做"预填"——名称可改、频率可改、图标颜色可换；
-/// editor 全程消费同一 GoalEditorDraft，模板是它的出厂值。
+/// 模板只做"预填"——一句话名称（research D8 完整短句示范）、类型、
+/// v3 图标键进编辑器后仍可改；无频率问答、无颜色步（FR-014/015），
+/// 提醒档位用编辑器默认（习惯默认开 · 一天一次 09:00）。
 library;
 
 import '../../core/models/entities.dart';
-import '../../core/models/frequency_pattern.dart';
 
 class GoalTemplate {
   const GoalTemplate({
     required this.name,
     required this.goalType,
     required this.iconKey,
-    required this.colorKey,
-    this.frequency,
-  }) : assert(goalType == GoalType.habit || frequency == null,
-            '仅习惯模板带频率');
+  });
 
-  /// 预填名称（进入编辑框后仍可修改，≤30 字由 Goal 断言把关）。
+  /// 预填名称（进入编辑框后仍可修改，40 字上限由编辑器把关）。
   final String name;
 
-  /// 003 v3 三类型（模板策展随 US2 编辑器重构再整理）。
+  /// 003 v3 三类型（三类型都有代表模板，策展见 kAllTemplates）。
   final GoalType goalType;
 
-  /// 设计令牌键（design_tokens.dart 枚举 .name）。
+  /// v3 图标键（GoalIconCatalog 值域，snake_case）。
   final String iconKey;
-  final String colorKey;
-
-  /// 习惯型默认频率；里程碑型为 null（由截止日期驱动）。
-  final FrequencyPattern? frequency;
 }
 
-/// 习惯模板（spec FR-012 列举的 5 个 + 2 个常见补充）。
+/// 模板策展（9 枚：习惯 6 + 短期 2 + 长期 1）。
+///
+/// 名称语域 = 编辑器 placeholder 同款完整短句（research D8），
+/// 图标取常用行策展同一批（T026 COMMON_ICONS 同源）。
 const List<GoalTemplate> kHabitTemplates = [
   GoalTemplate(
-      name: '好好吃饭',
+      name: '睡前读 5 页书就好',
       goalType: GoalType.habit,
-      iconKey: 'meal',
-      colorKey: 'coral',
-      frequency: DailyFrequency(1)),
+      iconKey: 'menu_book'),
   GoalTemplate(
-      name: '规律运动',
+      name: '饭后散步 20 分钟',
       goalType: GoalType.habit,
-      iconKey: 'fitness',
-      colorKey: 'sage',
-      frequency: WeeklyFrequency(3)),
+      iconKey: 'directions_run'),
   GoalTemplate(
-      name: '早睡',
+      name: '十二点前上床睡觉',
       goalType: GoalType.habit,
-      iconKey: 'sleep',
-      colorKey: 'indigo',
-      frequency: DailyFrequency(1)),
+      iconKey: 'bedtime'),
   GoalTemplate(
-      name: '屏幕休息',
+      name: '每天喝够 8 杯水',
       goalType: GoalType.habit,
-      iconKey: 'screenRest',
-      colorKey: 'sky',
-      frequency: DailyFrequency(1)),
+      iconKey: 'water_drop'),
   GoalTemplate(
-      name: '个人项目时间',
+      name: '每天放空十分钟',
       goalType: GoalType.habit,
-      iconKey: 'project',
-      colorKey: 'amber',
-      frequency: WeeklyFrequency(2)),
+      iconKey: 'self_improvement'),
   GoalTemplate(
-      name: '每天喝够水',
+      name: '每周给家人打一个电话',
       goalType: GoalType.habit,
-      iconKey: 'water',
-      colorKey: 'teal',
-      frequency: DailyFrequency(1)),
-  GoalTemplate(
-      name: '睡前阅读',
-      goalType: GoalType.habit,
-      iconKey: 'read',
-      colorKey: 'plum',
-      frequency: DailyFrequency(1)),
+      iconKey: 'favorite'),
 ];
 
-/// 冲刺/长线模板（FR-013：截止日期 + 步骤清单，创建后再补步骤；
-/// 003 v3：旅行=短期（有日子），项目 1.0=长期）。
+/// 短期/长线模板（有日子的给短期，无Deadline 的长线给长期）。
 const List<GoalTemplate> kMilestoneTemplates = [
   GoalTemplate(
-      name: '去一次旅行',
+      name: '三个月内考过日语 N2',
       goalType: GoalType.shortTerm,
-      iconKey: 'travel',
-      colorKey: 'sky'),
+      iconKey: 'school'),
   GoalTemplate(
-      name: '完成个人项目 1.0',
+      name: '年底前去一次短途旅行',
+      goalType: GoalType.shortTerm,
+      iconKey: 'flight'),
+  GoalTemplate(
+      name: '把个人项目做到 1.0',
       goalType: GoalType.longTerm,
-      iconKey: 'project',
-      colorKey: 'teal'),
+      iconKey: 'brush'),
 ];
 
-/// "自定义"入口（编辑器里模板区之后的空白草稿）。
+/// 全量（引导页 chips 消费）。
 const List<GoalTemplate> kAllTemplates = [...kHabitTemplates, ...kMilestoneTemplates];

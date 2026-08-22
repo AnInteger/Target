@@ -14,6 +14,7 @@ import 'package:target/app/providers.dart';
 import 'package:target/app/router.dart';
 import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goal_editor.dart';
+import 'package:target/features/goals/goal_templates.dart';
 import 'package:target/core/backup/backup_exporter.dart';
 import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart'
@@ -342,7 +343,6 @@ void main() {
     expect(find.text(Copy.editorCriterionLabel), findsNothing);
     expect(find.text(Copy.editorCueLabel), findsNothing);
     expect(find.text(Copy.editorIconColor), findsNothing);
-    expect(find.text(Copy.smartSuggest('每天散步 20 分钟')), findsNothing);
 
     // 内容滚出视口后保存按钮仍在场（常驻底部，ListView 外）。
     await tester.drag(find.byType(ListView), const Offset(0, -400));
@@ -757,6 +757,20 @@ void main() {
     await db.close();
   });
 
+  test('T027 模板策展：三类型齐备 + iconKey 全 v3 值域 + 无颜色/频率载荷', () {
+    // 三类型都有代表模板（003 三类型语言）。
+    expect(kHabitTemplates, isNotEmpty);
+    expect(kHabitTemplates.every((t) => t.goalType == GoalType.habit), isTrue);
+    expect(kMilestoneTemplates.map((t) => t.goalType).toSet(),
+        {GoalType.shortTerm, GoalType.longTerm});
+    // 图标键全部落在 v3 目录（不靠 byKey 兜底即命中）。
+    for (final t in kAllTemplates) {
+      expect(GoalIconCatalog.values.any((i) => i.key == t.iconKey), isTrue,
+          reason: '「${t.name}」图标键 ${t.iconKey} 不在 v3 目录');
+      expect(t.name.length, lessThanOrEqualTo(40));
+    }
+  });
+
   testWidgets('US1 路由三分支：页签恰三枚、目标页签退役（FR-001）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
@@ -959,11 +973,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(Copy.onboardingTitle), findsOneWidget);
 
-    // 模板路径：引导页选「好好吃饭」→ 统一编辑器预填名称（自定义路径即不选模板直接写）。
-    await tester.tap(find.text('好好吃饭'));
+    // 模板路径：引导页选「饭后散步 20 分钟」→ 统一编辑器预填名称（自定义路径即不选模板直接写）。
+    await tester.tap(find.text('饭后散步 20 分钟'));
     await tester.pumpAndSettle();
     final nameField = find.byKey(const ValueKey('goalNameField'));
-    expect((tester.widget(nameField) as TextField).controller!.text, '好好吃饭');
+    expect((tester.widget(nameField) as TextField).controller!.text,
+        '饭后散步 20 分钟');
 
     // 003 动线：预填即保存（模板带习惯型；B 案为什么字段已退役）。
     await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
@@ -971,12 +986,13 @@ void main() {
 
     // 引导视为完成 → 今日页出现该目标（V1：模板+确认即首个目标）。
     final goals = await GoalRepository(db).getGoals();
-    expect(goals.single.name, '好好吃饭');
+    expect(goals.single.name, '饭后散步 20 分钟');
     expect(goals.single.goalType, GoalType.habit);
+    expect(goals.single.iconKey, 'directions_run'); // 模板带 v3 图标键
     expect(goals.single.motivation, isNull);
     expect((await SettingsRepository(db).get()).onboardingCompleted, true);
     expect(find.text(Copy.onboardingTitle), findsNothing);
-    expect(find.text('好好吃饭'), findsWidgets);
+    expect(find.text('饭后散步 20 分钟'), findsWidgets);
     await db.close();
   });
 

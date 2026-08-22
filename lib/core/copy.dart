@@ -53,8 +53,6 @@ abstract final class Copy {
   static const editorDeadline = '截止日期';
   static const editorDeadlineRequired = '选一个日子，给里程碑一个锚点';
   static const editorSave = '保存';
-  static String smartSuggest(String suggestion) => '换成更具体的？「$suggestion」';
-  static const smartApply = '采用建议';
   static const focusLimitTitle = '先照顾好这 5 个';
   static const focusLimitBody = '目标贵在聚焦。暂停或归档一个，再放新的进来。';
   static const goalArchived = '已归档，历史记录都在';

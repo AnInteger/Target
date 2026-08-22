@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
+import '../../core/models/goal_icon_catalog.dart';
 import 'goal_templates.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
@@ -67,7 +68,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant)),
             const SizedBox(height: 24),
-            // 与编辑器/列表空态同一语言：色点 + 一句话。
+            // 与编辑器同一语言：v3 图标 + 一句话（无颜色步，FR-015）。
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -75,10 +76,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 for (final t in kAllTemplates)
                   ActionChip(
                     avatar: CircleAvatar(
-                      backgroundColor: GoalColor.byKey(t.colorKey).of(context),
-                      radius: 9,
-                      child: Icon(GoalIcon.byKey(t.iconKey).icon,
-                          size: 11, color: Colors.white),
+                      backgroundColor:
+                          TargetPalette.of(context).surfaceAlt,
+                      radius: 10,
+                      child: Icon(GoalIconCatalog.byKey(t.iconKey).icon,
+                          size: 12,
+                          color: TargetPalette.of(context).onSurfaceVariant),
                     ),
                     label: Text(t.name),
                     onPressed: () => _start(template: t),

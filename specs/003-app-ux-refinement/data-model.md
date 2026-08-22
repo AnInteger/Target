@@ -1,6 +1,6 @@
 # Data Model: 003 App 体验精修
 
-演进自 001/002 的 drift schema（现 v2）。存储约定不变（见 tables.dart 头注：LocalDate→"YYYY-MM-DD"、枚举→.name、Instant→UTC ISO-8601）。本特性升 **schema v3**。
+演进自 001/002 的 drift schema（现 v2）。存储约定不变（见 tables.dart 头注：LocalDate→"YYYY-MM-DD"、枚举→.name、Instant→UTC ISO-8601）。本特性升 schema **v3**（类型/图标/资料地基），R2 评审追加 CheckIns.note 后升 **v4**。
 
 ## 实体演进
 
@@ -38,6 +38,15 @@ kind=oneshot…（现库实为 habit/milestone 两值）
 
 排程语义：cadence=daily → 每日 time；threeDay → 每 3 天自启用日起；weekly → 每周同 weekday。排程器（reminder_service）按档计算下一触发；关闭 isEnabled 即时取消未触发排程。
 
+### CheckIns（加一列，schema v4，R2 评审裁决 2）
+
+| 列 | 变更 | 说明 |
+|---|---|---|
+| id / goalId / day / createdAt / isBackfill / status | 不变 | |
+| **note** | **新增** TEXT NULL | 打卡时可选一句话描述（FR-019）；NULL=未填，显示层兜底「完成打卡」（今日卡最新记录行 / 详情页历史）；今日卡超长单行截断省略 |
+
+迁移：v3→v4 仅 `ALTER TABLE checkins ADD COLUMN note TEXT NULL`（drift schemaVersion 3→4，纯增量无重映射）。
+
 ### SettingsRows（加两列，research D7）
 
 | 列 | 变更 | 说明 |
@@ -74,9 +83,9 @@ active → achieved：用户手动「标记达成」（写 achievedAt；短期�
 archived：既有归档语义不变
 ```
 
-## 备份格式（v3，详见 contracts/backup-format.md）
+## 备份格式（v4，详见 contracts/backup-format.md）
 
-schemaVersion 3；goals +goalType/+achievedAt、reminders +cadence、settings +nickname/+avatarKey；未知字段忽略、缺失取默认——v2 文件导入走 D3 同款映射，v3 文件被旧版本读取时基础字段完整可用。
+schemaVersion 4；goals +goalType/+achievedAt、reminders +cadence、settings +nickname/+avatarKey、checkins +note；未知字段忽略、缺失取默认——v2 文件导入走 D3 同款映射，v3/v4 文件被旧版本读取时基础字段完整可用（note 缺失视为 NULL）。
 
 ## 迁移测试口径
 

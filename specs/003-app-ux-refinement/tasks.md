@@ -73,11 +73,12 @@
 
 - [ ] T015 [US1] 路由三分支：`lib/app/router.dart`——StatefulShellRoute 四分支→三分支（today/review/settings→「我的」），`/goal-editor` 与 `/goal/:id` 从根路由移入 today 分支子路由（FR-010 根因修复，research D5），`/goals` 路由退役 + 深链兜底改落 `/today`；`test/widget_test.dart` 增路由结构断言（页签恰 3、编辑器内导航可见、/goals 兜底）
 - [ ] T016 [US1] goals_view 退役：删除 `lib/features/goals/goals_view.dart`，浏览/管理职能落点确认（今日页卡列表承载浏览，详情承载管理）；清除全部残留引用
-- [ ] T017 [US1] 今日头部重组：`lib/features/today/today_view.dart`——头部与内容同连续图层（背景贯通、无分隔线，FR-003）：左 = 账号区（头像环+昵称，tap→资料 sheet）；中 = 日期语；右 = 铃铛（角标=今日新增推导条目数）+ ＋（→/goal-editor）；目标卡列表改 GoalIconCatalog 图标+一句话+类型徽章（依赖 T015/T018/T019/T008）
+- [ ] T017 [US1] 今日头部重组：`lib/features/today/today_view.dart`——头部与内容同连续图层（背景贯通、无分隔线，FR-003）：左 = 账号区（头像环+昵称，tap→资料 sheet）；中 = 日期语；右 = 铃铛（角标=今日新增推导条目数）+ ＋（→/goal-editor）；目标卡列表改 GoalIconCatalog 图标+一句话+类型徽章+最新记录行（「相对时间-描述」，未填兜底「完成打卡」，FR-019），整卡可点直达详情、卡上无按钮，今日之环卡移除（FR-020，R2 裁决 2）（依赖 T015/T018/T019/T008/T044）
 - [ ] T018 [P] [US1] 本地资料编辑：新建 `lib/features/profile/profile.dart`——资料编辑 bottom sheet（昵称输入 + 8 枚预设头像选择，图标+令牌环），读写 SettingsRows.nickname/avatarKey（经 repositories），保存即时生效、重启保留、未填显示默认头像+「我」；配套单测（默认兜底/往返持久化）
 - [ ] T019 [P] [US1] 通知列表推导：新建 `lib/features/notifications/notification_list.dart` + 推导逻辑——四源合成（①Reminders 排程+cadence 的今日/明日提醒时刻 ②近 7 天成就与全完成日 ③streak 里程碑 ④deadline≤今天且未 achieved 的到期询问，research D6），时间倒序、按天分组、行=类型图标+标题+相对时间、空态友好语；tap 行→/goal/:id；配套推导单测（四源各自+混排排序）
 - [ ] T020 [US1] 铃铛接入：`lib/features/today/today_view.dart`——铃铛 tap 打开通知列表 sheet（不遮底部导航）、角标数=今日新增推导条目；今日页旧通知设置入口拆除（迁往 US4 T035 落位）
-- [ ] T021 [US1] 详情管理动线补全：`lib/features/goals/goal_detail.dart`——吸收 goals_view 退役后的管理职能（编辑/暂停/恢复/删除全入口可达，FR-002）；极简目标详情不空（图标+描述+类型徽章+打卡节奏占位，spec 边界用例 3）
+- [ ] T021 [US1] 详情管理动线补全：`lib/features/goals/goal_detail.dart`——吸收 goals_view 退役后的管理职能（编辑/暂停/恢复/删除全入口可达，FR-002）；极简目标详情不空（图标+描述+类型徽章+打卡节奏占位，spec 边界用例 3）；打卡动线内选填一句话描述（写 CheckIns.note，FR-019），历史记录行显示描述（未填兜底「完成打卡」）
+- [ ] T044 [US1] CheckIns 描述列（schema v4，R2 评审追加）：`lib/core/db/tables.dart` + `app_database.dart`——CheckIns +note TEXT NULL、schemaVersion 3→4（纯 ADD COLUMN 迁移 + drift schema 刷新）；repositories 打卡写入贯通 note；备份 v4 导出/导入（note 缺失宽容 NULL，contracts/backup-format.md）；配套迁移与备份往返用例
 - [ ] T022 [US1] 验收走查：FR-001~006 逐条核对——`flutter build web --release` 走查（导航恒三页签/滚动无分隔线/账号编辑往返/铃铛列表空态与四类混排）+ `flutter analyze && flutter test` 全绿；结论记 `design/reviews.md`
 
 **Checkpoint**: MVP 可交付——三 Tab 骨架 + 今日页新头部独立可用，V1–V8 主路径不回退
@@ -86,16 +87,16 @@
 
 ## Phase 4: User Story 2 - 编辑器重构：分组表单+三类型+开关提醒+图标库 (Priority: P1)
 
-**Goal**: 创建/编辑动线在三 Tab 内、分组折叠、标准控件；类型=长期/短期/习惯；提醒开关化；图标库选图标、颜色退场
+**Goal**: 创建/编辑动线在三 Tab 内、分组平铺（无折叠，R2 裁决 1）、标准控件；分类区=常用行+更多弹窗；类型=长期/短期/习惯；提醒开关化；图标库选分类图标、颜色退场
 
 **Independent Test**: 三 Tab 内点新建底部页签仍在；一句话→类型→（习惯）提醒频率+时间→图标→保存，全程无频率问答/颜色/心理字段；新目标即时上今日页可打卡
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] 编辑器骨架：重构 `lib/features/goals/goal_editor.dart`——三分组折叠容器（基础信息/目标类型与提醒/图标）+ 保存常驻底部（导航条上方）；编辑既有目标同构（类型可改，改型联动显隐）
+- [ ] T023 [US2] 编辑器骨架：重构 `lib/features/goals/goal_editor.dart`——分组平铺容器无折叠（「分类」区置顶 / 基础信息 / 目标类型与提醒，R2 裁决 1）+ 保存常驻底部（导航条上方）；编辑既有目标同构（类型可改，改型联动显隐）
 - [ ] T024 [US2] 基础信息组：一句话描述输入（goals.name 语义升级，~40 字上限，placeholder 示范完整短句「月底前能连续跑 3 公里」式，research D8）——无「为什么想做/怎样算做到」字段与写入路径（FR-014）
 - [ ] T025 [US2] 类型与提醒组：分段选择 长期|短期|习惯 + 联动——短期→截止日选择器（必填）+ 倒计时预告；习惯→提醒开关→（开）频率档 [一天一次|三天一次|一周一次] + 时间选择器（FR-012/013）；写 Reminders.isEnabled/cadence/time；长期默认无提醒（可开后同习惯档）
-- [ ] T026 [US2] 图标组：GoalIconCatalog 九宫格（领域分区滚动），单选即存 iconKey；无颜色步（FR-015）；表单不再出现 colorKey 写入
+- [ ] T026 [US2] 分类组：「分类」区 = 常用一行（固定策展约 6 枚）+「更多」按钮打开悬浮选择弹窗（GoalIconCatalog 全量、按领域分组），常用行与弹窗选中态同步、单选即存 iconKey（FR-011/015，R2 裁决 1）；无颜色步；表单不再出现 colorKey 写入
 - [ ] T027 [US2] 模板与建议对齐：`lib/features/goals/goal_templates.dart` + `lib/features/goals/smart_suggestion.dart`——模板改三类型语言（无频率问答/无颜色），预填一句话示范
 - [ ] T028 [US2] 提醒排程档位：`lib/features/settings/reminder_service.dart`——按 cadence 排程（daily 每日 time / threeDay 自启用日起每 3 天 / weekly 每周同 weekday，contracts/goal-type-model.md）+ 短期到期询问单次（deadline 当日默认 09:00）+ 关开关即时取消未触发排程；`test/reminder_service_test.dart` 增三档+到期询问+关闭取消用例
 - [ ] T029 [US2] 短期生命周期：`lib/features/goals/goal_detail.dart`——「标记达成」（写 achievedAt）与「续期」（改 deadline，通知列表询问项消失）双入口；截止到点不自动终结、超期持续提示可打卡（FR-018，research D4）；配套行为单测

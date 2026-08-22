@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>目标编辑器 · Target（柔彩仪表盘 · R2 三类型分组）</title>
+<title>目标编辑器 · Target（柔彩仪表盘 · 分类置顶 + 更多弹窗）</title>
 <link rel="stylesheet" href="../tokens.css?v=0820f">
 <style>
   /* ============================================================
-     目标编辑器原型（003 · T003 · R2 · 三类型分组，T007 R1 修订）
+     目标编辑器原型（003 · T003 · R2 · 三类型分组，T007 R2 修订）
      - 取值 100% 来自 ../tokens.css（SC-004）；图标经 goal-icons.js
-     - FR-011 图标区置顶平铺：每领域一行横向滑动即见即选，无折叠；
-       其下基础信息 / 目标类型 两组可折叠
+     - FR-011「分类」区置顶：常用一行（固定策展）+「更多」悬浮弹窗
+       选全量（按领域分组）；其余组一律平铺展开、无折叠设计
      - FR-012 无频率问答：类型改 长期|短期|习惯 分段，切型联动显隐
      - FR-013 提醒开关化：习惯/长期共用开关区，三档频率 + 时间
-     - FR-015 图标库按领域平铺分区，无颜色步
+     - FR-015 图标库按领域分组（弹窗内），无颜色步
      - FR-010 编辑器在 today 分支：底部三页签导航全程可见
      - 台面（评审环境灰底）与手机外框属呈现 chrome，非屏内设计
      ============================================================ */
@@ -90,25 +90,15 @@
                display: flex; flex-direction: column; gap: var(--space-4); }
   .ed-scroll::-webkit-scrollbar { display: none; }
 
-  /* 分组折叠卡：头可点折叠，身承载字段 */
+  /* 分组卡：一律平铺展开、无折叠（T007 R2 裁决 1） */
   .ed-card { background: var(--glass-card); border: 1px solid var(--glass-border);
              border-radius: var(--radius-lg);
              box-shadow: var(--shadow-low); backdrop-filter: var(--glass-blur); }
-  .grp-h { display: flex; align-items: center; gap: var(--space-2);
-           padding: var(--space-4) var(--space-4) 0; cursor: pointer;
-           border: none; background: none; width: 100%; box-sizing: border-box;
-           text-align: left; }
-  .grp-h .ed-lab { flex: 1; }
-  .grp-h .chev { width: 16px; height: 16px; color: var(--on-surface-variant); flex: none;
-                 transition: transform var(--motion-base) var(--ease-standard); }
-  .ed-card[data-collapsed] .chev { transform: rotate(-90deg); }
-  /* 静态组头（图标组置顶平铺用——不折叠，T007 R1 裁决 1） */
   .grp-static { display: flex; align-items: center; gap: var(--space-2);
                 padding: var(--space-4) var(--space-4) 0; }
   .grp-b { display: flex; flex-direction: column; gap: var(--space-3);
            padding: var(--space-3) var(--space-4) var(--space-4);
            animation: rise var(--motion-base) var(--ease-standard); }
-  .ed-card[data-collapsed] .grp-b { display: none; }
   @keyframes rise { from { opacity: 0; transform: translateY(4px); }
                     to   { opacity: 1; transform: none; } }
 
@@ -184,14 +174,8 @@
                                  border-color: var(--positive-fill); }
   .switch[aria-checked="true"]::after { transform: translateX(18px); }
 
-  /* 图标平铺（T007 R1 裁决 1：置顶、每领域一行横向平铺滑动，无折叠/下拉） */
-  .dom-row { display: flex; align-items: center; gap: var(--space-3); }
-  .dom-row + .dom-row { margin-top: var(--space-2); }
-  .dom-name { font: var(--font-label); letter-spacing: .06em;
-              color: var(--on-surface-variant); width: 3em; flex: none; }
-  .icon-strip { display: flex; gap: var(--space-2); flex: 1; min-width: 0;
-                overflow-x: auto; scrollbar-width: none; }
-  .icon-strip::-webkit-scrollbar { display: none; }
+  /* 分类选择（T007 R2 裁决 1：常用一行 + 「更多」悬浮弹窗选全量） */
+  .common-row { display: flex; align-items: center; gap: var(--space-2); }
   .ico { width: 44px; height: 44px; flex: none; border-radius: var(--radius-md); cursor: pointer;
          border: 1px solid var(--divider); background: var(--surface);
          display: flex; align-items: center; justify-content: center;
@@ -201,6 +185,40 @@
   .ico.on { background: var(--accent); color: var(--accent-on);
             border-color: var(--accent); }
   .ico svg { width: 22px; height: 22px; }
+  .more-btn { width: 44px; height: 44px; flex: none; border-radius: var(--radius-md);
+              cursor: pointer; border: 1px dashed var(--divider);
+              background: transparent; color: var(--on-surface-variant);
+              display: flex; align-items: center; justify-content: center; padding: 0;
+              transition: all var(--motion-fast) var(--ease-standard); }
+  .more-btn:active { transform: scale(.9); }
+  .more-btn svg { width: 22px; height: 22px; }
+
+  /* 「更多」悬浮选择弹窗（浮于编辑器之上，scrim 点外关闭） */
+  .picker-scrim { position: absolute; inset: 0; z-index: 50; background: var(--scrim);
+                  display: flex; align-items: center; justify-content: center;
+                  padding: var(--space-6); }
+  .picker { width: 100%; max-width: 326px; max-height: 560px; display: flex;
+            flex-direction: column; background: var(--surface);
+            border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-high); overflow: hidden;
+            animation: pop var(--motion-base) var(--ease-standard); }
+  @keyframes pop { from { opacity: 0; transform: scale(.95); }
+                   to   { opacity: 1; transform: none; } }
+  .picker-head { display: flex; align-items: center; justify-content: space-between;
+                 padding: var(--space-4) var(--space-4) var(--space-2); flex: none; }
+  .picker-head .t { font: var(--font-title-s); color: var(--on-surface); }
+  .picker-x { width: 32px; height: 32px; border-radius: var(--radius-full); flex: none;
+              border: none; background: var(--surface-alt); color: var(--on-surface-variant);
+              cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .picker-scroll { overflow-y: auto; scrollbar-width: none;
+                   padding: 0 var(--space-4) var(--space-4);
+                   display: flex; flex-direction: column; gap: var(--space-3); }
+  .picker-scroll::-webkit-scrollbar { display: none; }
+  .pick-dom { font: var(--font-label); letter-spacing: .06em;
+              color: var(--on-surface-variant); }
+  .pick-grid { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .picker .ico { width: 40px; height: 40px; }
+  .picker .ico svg { width: 20px; height: 20px; }
 
   /* 保存（常驻底部，导航条上方） */
   .ed-savebar { flex: none; padding: var(--space-2) var(--space-6) 0;
@@ -250,17 +268,17 @@
 </head>
 <body>
 
-<h1 class="pt-title">目标编辑器 · R2 三类型分组</h1>
+<h1 class="pt-title">目标编辑器 · 分类置顶 + 更多弹窗</h1>
 <p class="pt-sub">
-  003 编辑器重构（T007 R1 修订）：图标置顶——每领域一行平铺滑动即见即选，无折叠下拉；
-  其下基础信息一句话 + 类型分段，类型改 长期 · 短期 · 习惯——无频率问答、无为什么怎样算、无颜色步（FR-011~015）。
+  003 编辑器重构（T007 R2 修订）：「分类」区置顶——常用图标一行（固定策展）+「更多」打开悬浮弹窗选全量（按领域分组）；
+  其余组一律平铺展开、无折叠。基础信息一句话 + 类型分段，类型改 长期 · 短期 · 习惯——无频率问答、无为什么怎样算、无颜色步（FR-011~015）。
   提醒开关化：一天 / 三天 / 一周一次 + 时间（FR-013）。编辑器挂在今日页签下，底部导航全程可见（FR-010）。
 </p>
 
 <nav class="shellmap" aria-label="编辑器结构">
-  <h2>表单结构（图标置顶平铺）</h2>
+  <h2>表单结构（分类置顶 · 全组平铺）</h2>
   <div class="flow">
-    <div class="node"><b>图标</b>每领域一行 平铺滑动</div><span class="arrow">→</span>
+    <div class="node"><b>分类</b>常用一行 + 更多弹窗</div><span class="arrow">→</span>
     <div class="node"><b>基础信息</b>一句话描述 40 字</div><span class="arrow">→</span>
     <div class="node"><b>目标类型</b>长期 | 短期 | 习惯 分段</div><span class="arrow">→</span>
     <div class="node"><b>类型联动</b>短期→截止必填 / 习惯·长期→提醒开关</div><span class="arrow">→</span>
@@ -274,18 +292,18 @@
   <section class="board" data-board="short">
     <h3>① 典型态 · 新建（默认短期）</h3>
     <p class="desc">新目标默认落在「短期」：截止日必填 + 倒计时预告。点类型分段切换联动显隐；
-      提醒开关、图标选中、字数统计、分组折叠都可点。</p>
+      提醒开关、字数统计都可点；「更多」打开悬浮弹窗选全量分类图标。</p>
     <div class="chips">
       <span class="chip t">类型联动 base250</span>
-      <span class="chip t">开关 / 分段 / 九宫格</span>
-      <span class="chip">分组折叠</span>
+      <span class="chip t">开关 / 分段 / 弹窗选图标</span>
+      <span class="chip">全组平铺无折叠</span>
     </div>
   </section>
 
   <!-- ============ ② 长期型（极简态） ============ -->
   <section class="board" data-board="long">
     <h3>② 长期型选中</h3>
-    <p class="desc">无截止、无展开的提醒区——表单最短的样子：一句话 + 类型 + 图标就能保存。
+    <p class="desc">无截止、无展开的提醒区——表单最短的样子：一句话 + 类型 + 分类就能保存。
       提醒开关默认关，想要时打开即是习惯同款档位。</p>
     <div class="chips"><span class="chip t">极简可存</span><span class="chip">提醒默认关</span></div>
   </section>
@@ -331,36 +349,32 @@
 
   <div class="ed-scroll form" data-type="short">
 
-    <!-- 分组〇（置顶）：图标——每领域一行平铺滑动，静态头无折叠（T007 R1 裁决 1） -->
+    <!-- 分组〇（置顶）：分类——常用一行 + 「更多」悬浮弹窗（T007 R2 裁决 1） -->
     <div class="ed-card">
       <div class="grp-static">
-        <span class="ed-lab">图标<span class="hint">按领域挑一个，不选也行</span></span>
+        <span class="ed-lab">分类<span class="hint">常用在这儿选，不选也行</span></span>
       </div>
-      <div class="grp-b" data-icon-scroll></div>
+      <div class="grp-b">
+        <div class="common-row" data-common></div>
+      </div>
     </div>
 
-    <!-- 分组一：基础信息（一句话描述） -->
+    <!-- 分组一：基础信息（一句话描述，平铺无折叠） -->
     <div class="ed-card">
-      <button class="grp-h" type="button" aria-expanded="true">
+      <div class="grp-static">
         <span class="ed-lab">基础信息<span class="cnt" data-cnt hidden>0/40</span></span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M6 9l6 6 6-6"/></svg>
-      </button>
+      </div>
       <div class="grp-b">
         <input class="ed-input" data-name type="text" maxlength="40" autocomplete="off"
                placeholder="一句话说清它，比如：月底前能连续跑 3 公里">
       </div>
     </div>
 
-    <!-- 分组二：目标类型 + 联动区 -->
+    <!-- 分组二：目标类型 + 联动区（平铺无折叠） -->
     <div class="ed-card">
-      <button class="grp-h" type="button" aria-expanded="true">
+      <div class="grp-static">
         <span class="ed-lab">目标类型</span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M6 9l6 6 6-6"/></svg>
-      </button>
+      </div>
       <div class="grp-b">
         <div class="seg" data-type-seg role="group" aria-label="目标类型">
           <button type="button" data-t="long">长期</button>
@@ -401,7 +415,22 @@
       </div>
     </div>
 
-    <!-- 分组三（已退役）：图标原为底部折叠九宫格——T007 R1 裁决 1 改置顶平铺，见分组〇 -->
+    <!-- 分组三（已退役）：图标原为底部折叠九宫格——R1 改置顶每域一行、R2 改常用行+更多弹窗，见分组〇 -->
+  </div>
+
+  <!-- 「更多」悬浮选择弹窗：全量图标库按领域分组（浮于表单上，scrim/✕/Esc 关闭） -->
+  <div class="picker-scrim" data-picker hidden>
+    <div class="picker" role="dialog" aria-modal="true" aria-label="选择分类图标">
+      <div class="picker-head">
+        <span class="t">选择分类</span>
+        <button class="picker-x" type="button" aria-label="关闭">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="picker-scroll" data-picker-grid></div>
+    </div>
   </div>
 
   <!-- 保存：常驻底部（导航条上方） -->
@@ -445,37 +474,73 @@ const BOARDS = [
     name: '三个月内考过日语 N2', switchOn: false, cadence: 'daily', time: '09:00' },
 ];
 
-/* ---------- 图标平铺（T007 R1 裁决 1：每领域一行横向平铺滑动） ---------- */
-function buildIconGrid(box, selectedKey) {
+/* ---------- 分类选择（T007 R2 裁决 1：常用一行 + 「更多」悬浮弹窗选全量） ---------- */
+const COMMON_ICONS = ['fitness_center', 'menu_book', 'favorite',
+                      'self_improvement', 'brush', 'savings'];
+
+/* 选中态在常用行与弹窗两处同步 */
+function setIcon(phone, key) {
+  phone.querySelectorAll('.ico[data-key]').forEach(x =>
+    x.classList.toggle('on', x.dataset.key === key));
+}
+
+function buildCommonRow(phone, selectedKey) {
+  const box = phone.querySelector('[data-common]');
+  COMMON_ICONS.forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'ico'; b.type = 'button';
+    b.setAttribute('aria-label', `分类图标 ${k}`);
+    b.dataset.key = k;
+    b.appendChild(gi(k, 22));
+    box.appendChild(b);
+  });
+  const more = document.createElement('button');
+  more.className = 'more-btn'; more.type = 'button';
+  more.setAttribute('aria-label', '更多分类图标');
+  more.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+    [5, 12, 19].map(y => [5, 12, 19].map(x =>
+      `<circle cx="${x}" cy="${y}" r="2"/>`).join('')).join('') + '</svg>';
+  box.appendChild(more);
+  if (selectedKey) setIcon(phone, selectedKey);
+  box.addEventListener('click', e => {
+    const b = e.target.closest('.ico'); if (!b) return;
+    setIcon(phone, b.dataset.key);
+  });
+  more.addEventListener('click', () => openPicker(phone));
+}
+
+function buildPicker(phone) {
+  const grid = phone.querySelector('[data-picker-grid]');
   for (const [dom, domName] of Object.entries(GOAL_ICON_DOMAINS)) {
     const keys = Object.keys(GOAL_ICONS).filter(k => GOAL_ICONS[k].domain === dom);
     if (!keys.length) continue;
-    const row = document.createElement('div');
-    row.className = 'dom-row';
-    const nm = document.createElement('span');
-    nm.className = 'dom-name'; nm.textContent = domName;
-    const strip = document.createElement('div');
-    strip.className = 'icon-strip';
+    const lab = document.createElement('span');
+    lab.className = 'pick-dom'; lab.textContent = domName;
+    const wrap = document.createElement('div');
+    wrap.className = 'pick-grid';
     keys.forEach(k => {
       const b = document.createElement('button');
       b.className = 'ico'; b.type = 'button';
-      b.setAttribute('aria-label', `图标 ${k}`);
+      b.setAttribute('aria-label', `分类图标 ${k}`);
       b.dataset.key = k;
-      b.appendChild(gi(k, 22));
-      strip.appendChild(b);
+      b.appendChild(gi(k, 20));
+      wrap.appendChild(b);
     });
-    row.append(nm, strip);
-    box.appendChild(row);
+    grid.append(lab, wrap);
   }
-  if (selectedKey) {
-    const hit = box.querySelector(`[data-key="${selectedKey}"]`);
-    if (hit) hit.classList.add('on');
-  }
-  box.addEventListener('click', e => {
+  grid.addEventListener('click', e => {
     const b = e.target.closest('.ico'); if (!b) return;
-    box.querySelectorAll('.ico').forEach(x => x.classList.remove('on'));
-    b.classList.add('on');
+    setIcon(phone, b.dataset.key);
+    closePicker(phone);
   });
+}
+
+function openPicker(phone) {
+  phone.querySelector('[data-picker]').hidden = false;
+  phone.querySelector('.picker-x').focus();
+}
+function closePicker(phone) {
+  phone.querySelector('[data-picker]').hidden = true;
 }
 
 /* ---------- 倒计时 ---------- */
@@ -552,17 +617,16 @@ function initPhone(phone, cfg) {
   });
   q('[data-time]').value = cfg.time;
 
-  // 图标九宫格
-  buildIconGrid(q('[data-icon-scroll]'), cfg.icon);
-
-  // 分组折叠
-  phone.querySelectorAll('.grp-h').forEach(h => {
-    const card = h.closest('.ed-card');
-    const toggle = () => {
-      const col = card.toggleAttribute('data-collapsed');
-      h.setAttribute('aria-expanded', String(!col));
-    };
-    h.addEventListener('click', toggle);
+  // 分类：常用行 + 「更多」悬浮弹窗（选中态两处同步）
+  buildCommonRow(phone, cfg.icon);
+  buildPicker(phone);
+  const picker = q('[data-picker]');
+  picker.addEventListener('click', e => {
+    if (e.target === picker) closePicker(phone);
+  });
+  q('.picker-x').addEventListener('click', () => closePicker(phone));
+  phone.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !picker.hidden) closePicker(phone);
   });
 
   // id 唯一化（模板克隆的 for/id 对）

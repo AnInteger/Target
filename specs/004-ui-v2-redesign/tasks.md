@@ -176,7 +176,9 @@ description: "Task list for 004 UI v2 重构"
 
 **Independent Test**: 2 目标跨 3 天打卡 → 周平均与手工核算一致；七天圆点打卡日着色未来日不完成；切上周数据正确且上周无数据环比「无可比较」（quickstart 阶段 E）
 
-- [ ] T027 [P] [US5] 周视图派生扩展：lib/core/stats/stats_engine.dart（周完成率沿用 GoalWeekStat 实时口径；逐日完成度=当日有记录/当日活跃；环比=本周−上周、上周零应记→无可比较；WeekStart 参数化周切换）+ test/stats_engine_test.dart 对账（不读 WeeklyReviews 快照）
+- [x] T027 [P] [US5] 周视图派生扩展：lib/core/stats/stats_engine.dart（周完成率沿用 GoalWeekStat 实时口径；逐日完成度=当日有记录/当日活跃；环比=本周−上周、上周零应记→无可比较；WeekStart 参数化周切换）+ test/stats_engine_test.dart 对账（不读 WeeklyReviews 快照）
+  - ✅ 实现完成：引擎新增三法三型，全实时派生零快照——①WeekOverview/weekOverview(week)：周平均完成率 = 活跃目标池 Σ留痕日/Σ应记日（分子分母同池，暂停目标留痕不灌入；应记日 = 创建日起算、本周截至今日不稀释），环比 delta = 本周−上周，任一周零应记 → null（「无可比较」/「该周暂无记录」）；②DayActivity/dayActivities(week)：周一→周日逐日聚合，fill 三档 full/partial/none（doneGoals/activeGoals，活跃 = 当前 active 且创建日 ≤ 当日）、checks 全量有效打卡（暂停目标历史留痕如实计数）、isFuture 未来日不完成；③GoalWeekRate/weekRateOf(goalId, week)：metDays 沿 weekStatOf 同口径 + expectedDays（状态不滤回看口径，供本周目标卡 x/y），fraction null = 该周无应记。WeekStart 全参数化（addWeeks 切周）。对账测试 7 组：2 目标跨 3 天 5/6→83% 手工核算、上周零应记→delta null、暂停目标不抬概览、切周各取各数、创建日钳起、点阵三档+未来日、空库全 none。教训：differenceInDays 是 this−other，区间长要 end.differenceInDays(start)
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（159/159，stats_engine +7）
 - [ ] T028 [US5] 回顾页头部与周平均区块：lib/features/review/review_view.dart 重做——小字语义位 + 大标题「回顾」+ 周切换入口 + 完成率环与环比（depends T002, T027）
 - [ ] T029 [US5] 每日活动与本周目标区块：lib/features/review/review_view.dart 续——七天圆点行（M–S 语义、按完成度着色、未来日不完成态）+ 本周目标列表（目标名+线性进度+百分比）+「查看全部」入口 + 空态引导 CTA 直达编辑器（depends T028）
 

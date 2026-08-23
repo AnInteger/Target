@@ -84,41 +84,46 @@ class _LegacyV2Database extends AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await customStatement(
-              'CREATE TABLE IF NOT EXISTS "goals" ("id" TEXT NOT NULL '
-              'PRIMARY KEY, "name" TEXT NOT NULL, "kind" TEXT NOT NULL, '
-              '"icon_key" TEXT NOT NULL, "color_key" TEXT NOT NULL, '
-              '"status" TEXT NOT NULL, "created_at" TEXT NOT NULL, '
-              '"deadline" TEXT NULL, "motivation" TEXT NULL, '
-              '"success_criterion" TEXT NULL, "cue_scene" TEXT NULL)');
-          await customStatement(
-              'CREATE TABLE IF NOT EXISTS "reminders" ("id" TEXT NOT NULL '
-              'PRIMARY KEY, "goal_id" TEXT NULL, "time" TEXT NOT NULL, '
-              '"is_enabled" INTEGER NOT NULL)');
-          await customStatement(
-              'CREATE TABLE IF NOT EXISTS "settings_rows" ("id" INTEGER NOT '
-              'NULL PRIMARY KEY, "daily_brief_time" TEXT NOT NULL, '
-              '"onboarding_completed" INTEGER NOT NULL, '
-              '"notification_denied_acknowledged" INTEGER NOT NULL)');
-          await customStatement(
-              'CREATE TABLE IF NOT EXISTS "frequency_versions" ("id" TEXT NOT '
-              'NULL PRIMARY KEY, "goal_id" TEXT NOT NULL, '
-              '"effective_from_week" TEXT NOT NULL, "pattern" TEXT NOT NULL, '
-              '"source" TEXT NOT NULL)');
-          await customStatement(
-              'CREATE TABLE IF NOT EXISTS "check_ins" ("id" TEXT NOT NULL '
-              'PRIMARY KEY, "goal_id" TEXT NOT NULL, "day" TEXT NOT NULL, '
-              '"created_at" TEXT NOT NULL, "is_backfill" INTEGER NOT NULL, '
-              '"status" TEXT NOT NULL)');
-          // 其余四表 v1..v4 形态未变——真实用户库九表齐全，App 启动即查，
-          // 直接用 Migrator 生成 DDL（缺表会让启动查询抛错挂死）。
-          await m.createTable(busyModeSessions);
-          await m.createTable(busyModeEntries);
-          await m.createTable(milestoneSteps);
-          await m.createTable(weeklyReviews);
-        },
+    onCreate: (m) async {
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS "goals" ("id" TEXT NOT NULL '
+        'PRIMARY KEY, "name" TEXT NOT NULL, "kind" TEXT NOT NULL, '
+        '"icon_key" TEXT NOT NULL, "color_key" TEXT NOT NULL, '
+        '"status" TEXT NOT NULL, "created_at" TEXT NOT NULL, '
+        '"deadline" TEXT NULL, "motivation" TEXT NULL, '
+        '"success_criterion" TEXT NULL, "cue_scene" TEXT NULL)',
       );
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS "reminders" ("id" TEXT NOT NULL '
+        'PRIMARY KEY, "goal_id" TEXT NULL, "time" TEXT NOT NULL, '
+        '"is_enabled" INTEGER NOT NULL)',
+      );
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS "settings_rows" ("id" INTEGER NOT '
+        'NULL PRIMARY KEY, "daily_brief_time" TEXT NOT NULL, '
+        '"onboarding_completed" INTEGER NOT NULL, '
+        '"notification_denied_acknowledged" INTEGER NOT NULL)',
+      );
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS "frequency_versions" ("id" TEXT NOT '
+        'NULL PRIMARY KEY, "goal_id" TEXT NOT NULL, '
+        '"effective_from_week" TEXT NOT NULL, "pattern" TEXT NOT NULL, '
+        '"source" TEXT NOT NULL)',
+      );
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS "check_ins" ("id" TEXT NOT NULL '
+        'PRIMARY KEY, "goal_id" TEXT NOT NULL, "day" TEXT NOT NULL, '
+        '"created_at" TEXT NOT NULL, "is_backfill" INTEGER NOT NULL, '
+        '"status" TEXT NOT NULL)',
+      );
+      // 其余四表 v1..v4 形态未变——真实用户库九表齐全，App 启动即查，
+      // 直接用 Migrator 生成 DDL（缺表会让启动查询抛错挂死）。
+      await m.createTable(busyModeSessions);
+      await m.createTable(busyModeEntries);
+      await m.createTable(milestoneSteps);
+      await m.createTable(weeklyReviews);
+    },
+  );
 }
 
 /// 测试假文件选择：固定返回预置备份字节。
@@ -224,7 +229,8 @@ void main() {
         createdAt: today,
       ),
     );
-    await seedVersion(db, 
+    await seedVersion(
+      db,
       goal.id,
       const DailyFrequency(1),
       WeekStart.containing(today),
@@ -247,17 +253,19 @@ void main() {
 
     // R7 统一卡：整卡可点进详情，卡上无打卡钮。
     expect(find.text(Copy.todayRecordedNote(0, 1)), findsOneWidget);
-    expect(find.bySemanticsLabel(Copy.todayCheckAction), findsNothing);
+    expect(find.bySemanticsLabel(Copy.goalCheckInAction), findsNothing);
     await tester.tap(find.text('锻炼'));
     await tester.pumpAndSettle();
     expect(find.byType(GoalDetailPage), findsOneWidget);
 
     // 详情页打卡（T017 保障段动线）→ toast + 落库。
-    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
     expect(find.text(Copy.checkInDone), findsOneWidget);
-    expect((await CheckInRepository(db).all()).where((c) => c.isValid),
-        hasLength(1));
+    expect(
+      (await CheckInRepository(db).all()).where((c) => c.isValid),
+      hasLength(1),
+    );
 
     // 返回今日 → 节注刷新 + 全完成绽放（单目标）。
     await tester.pageBack();
@@ -272,8 +280,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T010 成就时刻：上升沿绽放、点按退场、离开全完成态后重臂（FR-004/R4）',
-      (tester) async {
+  testWidgets('T010 成就时刻：上升沿绽放、点按退场、离开全完成态后重臂（FR-004/R4）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
@@ -283,17 +290,25 @@ void main() {
       ('锻炼', 'fitness', 'sage'),
       ('阅读', 'read', 'teal'),
     ]) {
-      final g = await repo.create(Goal(
-        name: name,
-        goalType: GoalType.habit,
-        iconKey: icon,
-        colorKey: color,
-        createdAt: today,
-      ));
-      await seedVersion(db, g.id, const DailyFrequency(1), WeekStart.containing(today));
+      final g = await repo.create(
+        Goal(
+          name: name,
+          goalType: GoalType.habit,
+          iconKey: icon,
+          colorKey: color,
+          createdAt: today,
+        ),
+      );
+      await seedVersion(
+        db,
+        g.id,
+        const DailyFrequency(1),
+        WeekStart.containing(today),
+      );
     }
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
-        const SettingsRowsCompanion(onboardingCompleted: Value(true)));
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -310,7 +325,7 @@ void main() {
     // R7 动线：整卡进详情打卡。先只记锻炼 → 部分进展，不绽放。
     await tester.tap(find.text('锻炼'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -320,7 +335,7 @@ void main() {
     // 补上阅读 → 上升沿，全屏成就时刻。
     await tester.tap(find.text('阅读'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -338,7 +353,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('阅读'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -346,8 +361,9 @@ void main() {
     await db.close();
   });
 
-
-  testWidgets('T023 骨架：分组平铺+保存常驻+改型联动显隐+零行为说明句（FR-011/014/021）', (tester) async {
+  testWidgets('T023 骨架：分组平铺+保存常驻+改型联动显隐+零行为说明句（FR-011/014/021）', (
+    tester,
+  ) async {
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
@@ -355,7 +371,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
-        child: MaterialApp(theme: AppTheme.light(), home: const GoalEditorPage()),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const GoalEditorPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -378,7 +397,9 @@ void main() {
     await scrollTo(tester, find.byKey(const ValueKey('goalRemindSwitch')));
     expect(find.byKey(const ValueKey('goalRemindSwitch')), findsOneWidget);
     expect(
-      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      tester
+          .widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch')))
+          .value,
       isTrue,
     );
 
@@ -388,7 +409,9 @@ void main() {
     await tester.pumpAndSettle();
     await scrollTo(tester, find.byKey(const ValueKey('goalRemindSwitch')));
     expect(
-      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      tester
+          .widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch')))
+          .value,
       isFalse,
     );
 
@@ -420,12 +443,18 @@ void main() {
         ),
       ),
     );
-    navKey.currentState!.push(MaterialPageRoute(
-        fullscreenDialog: true, builder: (_) => const GoalEditorPage()));
+    navKey.currentState!.push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const GoalEditorPage(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.enterText(
-        find.byKey(const ValueKey('goalNameField')), '三个月内考过日语 N2');
+      find.byKey(const ValueKey('goalNameField')),
+      '三个月内考过日语 N2',
+    );
     await tester.pump();
 
     // 默认短期：截止日带默认值（today+39），直接保存即落库。
@@ -447,18 +476,23 @@ void main() {
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
-    final goal = await repo.create(Goal(
-      name: '规律运动',
-      goalType: GoalType.habit,
-      iconKey: 'directions_run',
-      colorKey: 'teal',
-      createdAt: today,
-    ));
+    final goal = await repo.create(
+      Goal(
+        name: '规律运动',
+        goalType: GoalType.habit,
+        iconKey: 'directions_run',
+        colorKey: 'teal',
+        createdAt: today,
+      ),
+    );
     final navKey = GlobalKey<NavigatorState>();
     Future<void> openEditor() async {
-      navKey.currentState!.push(MaterialPageRoute(
+      navKey.currentState!.push(
+        MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) => GoalEditorPage(goalId: goal.id)));
+          builder: (_) => GoalEditorPage(goalId: goal.id),
+        ),
+      );
       await tester.pumpAndSettle();
     }
 
@@ -477,8 +511,10 @@ void main() {
     // 分段置灰不可点，保存后类型/截止/图标全部原值继承。
     await openEditor();
     expect(find.text(Copy.editorTypeLockedTag), findsOneWidget);
-    await tester.tap(find.text(Copy.typeBadgeShortTerm),
-        warnIfMissed: false); // IgnorePointer：点击落空
+    await tester.tap(
+      find.text(Copy.typeBadgeShortTerm),
+      warnIfMissed: false,
+    ); // IgnorePointer：点击落空
     await tester.pumpAndSettle();
     expect(find.text(Copy.editorDeadlineLabel), findsNothing); // 改型未生效
     await scrollTo(tester, find.byKey(const ValueKey('goalRemindSwitch')));
@@ -501,7 +537,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
-        child: MaterialApp(theme: AppTheme.light(), home: const GoalEditorPage()),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: const GoalEditorPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -539,19 +578,27 @@ void main() {
     );
 
     Future<void> openEditor() async {
-      navKey.currentState!.push(MaterialPageRoute(
-          fullscreenDialog: true, builder: (_) => const GoalEditorPage()));
+      navKey.currentState!.push(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => const GoalEditorPage(),
+        ),
+      );
       await tester.pumpAndSettle();
     }
 
     // 习惯型：开关默认开 → 频率档（默认每天）+ 时间行（默认 09:00）。
     await openEditor();
     await tester.enterText(
-        find.byKey(const ValueKey('goalNameField')), '睡前读 5 页书');
+      find.byKey(const ValueKey('goalNameField')),
+      '睡前读 5 页书',
+    );
     await tester.tap(find.text(Copy.typeBadgeHabit));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      tester
+          .widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch')))
+          .value,
       isTrue,
     );
     expect(find.byKey(const ValueKey('goalCadenceSeg')), findsOneWidget);
@@ -560,7 +607,8 @@ void main() {
     expect(
       tester
           .widget<SegmentedPill<Cadence>>(
-              find.byKey(const ValueKey('goalCadenceSeg')))
+            find.byKey(const ValueKey('goalCadenceSeg')),
+          )
           .selected,
       Cadence.daily, // 004 v2：SegmentedPill 单值读态
     );
@@ -583,11 +631,15 @@ void main() {
     // 长期型：默认关；手动开 → 默认每天档。
     await openEditor();
     await tester.enterText(
-        find.byKey(const ValueKey('goalNameField')), '把冈仁波齐走完');
+      find.byKey(const ValueKey('goalNameField')),
+      '把冈仁波齐走完',
+    );
     await tester.tap(find.text(Copy.typeBadgeLongTerm));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      tester
+          .widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch')))
+          .value,
       isFalse,
     );
     expect(find.byKey(const ValueKey('goalCadenceSeg')), findsNothing);
@@ -603,8 +655,7 @@ void main() {
 
     // 习惯型但开关关 → 不建行。
     await openEditor();
-    await tester.enterText(
-        find.byKey(const ValueKey('goalNameField')), '好好吃饭');
+    await tester.enterText(find.byKey(const ValueKey('goalNameField')), '好好吃饭');
     await tester.tap(find.text(Copy.typeBadgeHabit));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goalRemindSwitch')));
@@ -620,20 +671,23 @@ void main() {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
-    final goal = await GoalRepository(db).create(Goal(
-      name: '规律运动',
-      goalType: GoalType.habit,
-      iconKey: 'directions_run',
-      colorKey: 'teal',
-      createdAt: today,
-    ));
-    final reminderId = (await ReminderRepository(db).upsert(Reminder(
-      goalId: goal.id,
-      time: const LocalTime(21, 30),
-      isEnabled: true,
-      cadence: Cadence.threeDay,
-    )))
-        .id;
+    final goal = await GoalRepository(db).create(
+      Goal(
+        name: '规律运动',
+        goalType: GoalType.habit,
+        iconKey: 'directions_run',
+        colorKey: 'teal',
+        createdAt: today,
+      ),
+    );
+    final reminderId = (await ReminderRepository(db).upsert(
+      Reminder(
+        goalId: goal.id,
+        time: const LocalTime(21, 30),
+        isEnabled: true,
+        cadence: Cadence.threeDay,
+      ),
+    )).id;
     final navKey = GlobalKey<NavigatorState>();
     await tester.pumpWidget(
       ProviderScope(
@@ -647,23 +701,29 @@ void main() {
     );
 
     Future<void> openEditor() async {
-      navKey.currentState!.push(MaterialPageRoute(
+      navKey.currentState!.push(
+        MaterialPageRoute(
           fullscreenDialog: true,
-          builder: (_) => GoalEditorPage(goalId: goal.id)));
+          builder: (_) => GoalEditorPage(goalId: goal.id),
+        ),
+      );
       await tester.pumpAndSettle();
     }
 
     // 回填：开关开、时间 21:30、档=隔三天。
     await openEditor();
     expect(
-      tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
+      tester
+          .widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch')))
+          .value,
       isTrue,
     );
     expect(find.text('21:30'), findsOneWidget);
     expect(
       tester
           .widget<SegmentedPill<Cadence>>(
-              find.byKey(const ValueKey('goalCadenceSeg')))
+            find.byKey(const ValueKey('goalCadenceSeg')),
+          )
           .selected,
       Cadence.threeDay,
     );
@@ -725,7 +785,9 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T026 分类组：常用行 6 枚 + 「更多」弹窗全量按域分组，单选即存 iconKey（FR-011/015）', (tester) async {
+  testWidgets('T026 分类组：常用行 6 枚 + 「更多」弹窗全量按域分组，单选即存 iconKey（FR-011/015）', (
+    tester,
+  ) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await tester.pumpWidget(
@@ -744,8 +806,12 @@ void main() {
 
     // 常用行 6 枚策展（冻结稿 COMMON）+「更多」格在场。
     const commonKeys = [
-      'fitness_center', 'menu_book', 'favorite',
-      'directions_bike', 'brush', 'savings',
+      'fitness_center',
+      'menu_book',
+      'favorite',
+      'directions_bike',
+      'brush',
+      'savings',
     ];
     for (final k in commonKeys) {
       expect(find.byIcon(GoalIconCatalog.byKey(k).icon), findsOneWidget);
@@ -773,17 +839,22 @@ void main() {
         ),
       ),
     );
-    navKey.currentState!.push(MaterialPageRoute(
+    navKey.currentState!.push(
+      MaterialPageRoute(
         fullscreenDialog: true,
-        builder: (_) => GoalEditorPage(goalId: created.id)));
+        builder: (_) => GoalEditorPage(goalId: created.id),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('goalIconMoreButton')));
     await tester.pumpAndSettle();
     expect(find.text(Copy.editorPickCategoryTitle), findsOneWidget);
     expect(
-      find.text('${GoalIconDomain.travel.zhLabel} · '
-          '${GoalIconDomain.travel.major.zhLabel}'),
+      find.text(
+        '${GoalIconDomain.travel.zhLabel} · '
+        '${GoalIconDomain.travel.major.zhLabel}',
+      ),
       findsOneWidget,
     );
 
@@ -810,7 +881,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('goalIconMoreButton')));
     await tester.pumpAndSettle();
     for (var i = 0; i < 10; i++) {
-      if (find.byIcon(Icons.flight_rounded).hitTestable().evaluate().isNotEmpty) {
+      if (find
+          .byIcon(Icons.flight_rounded)
+          .hitTestable()
+          .evaluate()
+          .isNotEmpty) {
         break;
       }
       await tester.drag(sheet, const Offset(0, -120));
@@ -826,20 +901,21 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T029 到期询问：到点不终结——双入口在场 + 标记达成写 achievedAt（D4）',
-      (tester) async {
+  testWidgets('T029 到期询问：到点不终结——双入口在场 + 标记达成写 achievedAt（D4）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
-    final goal = await repo.create(Goal(
-      name: '三个月内考过日语 N2',
-      goalType: GoalType.shortTerm,
-      iconKey: 'school',
-      colorKey: 'teal',
-      createdAt: today,
-      deadline: today, // 到日子了
-    ));
+    final goal = await repo.create(
+      Goal(
+        name: '三个月内考过日语 N2',
+        goalType: GoalType.shortTerm,
+        iconKey: 'school',
+        colorKey: 'teal',
+        createdAt: today,
+        deadline: today, // 到日子了
+      ),
+    );
     final navKey = GlobalKey<NavigatorState>();
     await tester.pumpWidget(
       ProviderScope(
@@ -851,15 +927,19 @@ void main() {
         ),
       ),
     );
-    navKey.currentState!.push(MaterialPageRoute(
-        builder: (_) => GoalDetailPage(goalId: goal.id)));
+    navKey.currentState!.push(
+      MaterialPageRoute(builder: (_) => GoalDetailPage(goalId: goal.id)),
+    );
     await tester.pumpAndSettle();
 
-    // 到期卡：只提醒不判决——「到日子了，怎么样？」+ 双入口；打卡条仍在。
-    expect(find.byKey(const ValueKey('goalDueCard')), findsOneWidget);
-    expect(find.text(Copy.shortTermDueAsk), findsOneWidget);
+    // 到期只提醒不判决：004 v2 到期卡退役，倒计时/截止日胶囊接管提醒，
+    // 「到日子了怎么样」询问移交通知列表（notifDueTitle）。
+    expect(find.text(Copy.deadlineCountdownMeta(0)), findsOneWidget);
+    expect(find.text(Copy.deadlineDateMeta(today.isoString)), findsOneWidget);
     expect(
-        find.byKey(const ValueKey('goalMarkAchievedButton')), findsOneWidget);
+      find.byKey(const ValueKey('goalMarkAchievedButton')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('goalRenewButton')), findsOneWidget);
     expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
 
@@ -873,20 +953,21 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T029 超期：持续提示 + 仍可打卡 + 续期改 deadline（FR-018/D4）',
-      (tester) async {
+  testWidgets('T029 超期：持续提示 + 仍可打卡 + 续期改 deadline（FR-018/D4）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
-    final goal = await repo.create(Goal(
-      name: '读完一本书',
-      goalType: GoalType.shortTerm,
-      iconKey: 'menu_book',
-      colorKey: 'sky',
-      createdAt: today.addDays(-10),
-      deadline: today.addDays(-2), // 已过 2 天，不自动终结
-    ));
+    final goal = await repo.create(
+      Goal(
+        name: '读完一本书',
+        goalType: GoalType.shortTerm,
+        iconKey: 'menu_book',
+        colorKey: 'sky',
+        createdAt: today.addDays(-10),
+        deadline: today.addDays(-2), // 已过 2 天，不自动终结
+      ),
+    );
     final navKey = GlobalKey<NavigatorState>();
     await tester.pumpWidget(
       ProviderScope(
@@ -898,13 +979,13 @@ void main() {
         ),
       ),
     );
-    navKey.currentState!.push(MaterialPageRoute(
-        builder: (_) => GoalDetailPage(goalId: goal.id)));
+    navKey.currentState!.push(
+      MaterialPageRoute(builder: (_) => GoalDetailPage(goalId: goal.id)),
+    );
     await tester.pumpAndSettle();
 
-    // 超期持续提示（温和）+ 打卡条可用。
-    expect(find.byKey(const ValueKey('goalDueCard')), findsOneWidget);
-    expect(find.text(Copy.milestoneOverdue), findsOneWidget);
+    // 超期持续提示（倒计时胶囊「已过 N 天」）+ 打卡条可用。
+    expect(find.text(Copy.deadlineCountdownMeta(-2)), findsOneWidget);
     expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
 
     // 续期：日期选择器锚定今天 → 确认 → deadline 落库、卡仍在（温和询问）。
@@ -915,13 +996,18 @@ void main() {
     await tester.pumpAndSettle();
     expect((await repo.getGoals()).single.deadline, today); // -2 → 今天
     expect(find.text(Copy.milestonePostponed), findsOneWidget);
-    expect(find.text(Copy.shortTermDueAsk), findsOneWidget); // days=0 仍在
+    expect(
+      find.text(Copy.deadlineCountdownMeta(0)),
+      findsOneWidget,
+    ); // days=0 仍在
 
     // 超期仍可打卡（FR-018：到点不自动终结、记录不受影响）。
-    await tester.tap(find.text(Copy.todayCheckAction));
+    await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
-    expect((await CheckInRepository(db).all()).where((c) => c.isValid),
-        hasLength(1));
+    expect(
+      (await CheckInRepository(db).all()).where((c) => c.isValid),
+      hasLength(1),
+    );
     await db.close();
   });
 
@@ -929,12 +1015,17 @@ void main() {
     // 三类型都有代表模板（003 三类型语言）。
     expect(kHabitTemplates, isNotEmpty);
     expect(kHabitTemplates.every((t) => t.goalType == GoalType.habit), isTrue);
-    expect(kMilestoneTemplates.map((t) => t.goalType).toSet(),
-        {GoalType.shortTerm, GoalType.longTerm});
+    expect(kMilestoneTemplates.map((t) => t.goalType).toSet(), {
+      GoalType.shortTerm,
+      GoalType.longTerm,
+    });
     // 图标键全部落在 v3 目录（不靠 byKey 兜底即命中）。
     for (final t in kAllTemplates) {
-      expect(GoalIconCatalog.values.any((i) => i.key == t.iconKey), isTrue,
-          reason: '「${t.name}」图标键 ${t.iconKey} 不在 v3 目录');
+      expect(
+        GoalIconCatalog.values.any((i) => i.key == t.iconKey),
+        isTrue,
+        reason: '「${t.name}」图标键 ${t.iconKey} 不在 v3 目录',
+      );
       expect(t.name.length, lessThanOrEqualTo(40));
     }
   });
@@ -949,7 +1040,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -965,8 +1058,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('US1 编辑器/详情落 today 分支：导航不退场 + /goals 兜底（FR-010）',
-      (tester) async {
+  testWidgets('US1 编辑器/详情落 today 分支：导航不退场 + /goals 兜底（FR-010）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -976,7 +1068,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1012,8 +1106,9 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T030 SC-002 计步：今日页创建习惯（描述+类型+提醒+图标）≤8 次交互，页签全程在场',
-      (tester) async {
+  testWidgets('T030 SC-002 计步：今日页创建习惯（描述+类型+提醒+图标）≤8 次交互，页签全程在场', (
+    tester,
+  ) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -1023,7 +1118,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1048,15 +1145,21 @@ void main() {
     await tester.pumpAndSettle();
     // 提醒四要素之「提醒」：切习惯默认开 + 频率/时间均有默认值——零交互就位。
     expect(
-        tester.widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch'))).value,
-        isTrue);
+      tester
+          .widget<Switch>(find.byKey(const ValueKey('goalRemindSwitch')))
+          .value,
+      isTrue,
+    );
 
-    await tester.enterText(find.byKey(const ValueKey('goalNameField')),
-        '饭后散步 20 分钟'); // 3 一句话描述
+    await tester.enterText(
+      find.byKey(const ValueKey('goalNameField')),
+      '饭后散步 20 分钟',
+    ); // 3 一句话描述
     taps++;
 
-    await tester.tap(find.byIcon(GoalIconCatalog.byKey('favorite')
-        .icon)); // 4 常用行选图标
+    await tester.tap(
+      find.byIcon(GoalIconCatalog.byKey('favorite').icon),
+    ); // 4 常用行选图标
     taps++;
     await tester.pumpAndSettle();
 
@@ -1075,8 +1178,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T030 SC-005 走查：设置区 0 自然语言句式设置项（002 场景档语言退场）',
-      (tester) async {
+  testWidgets('T030 SC-005 走查：设置区 0 自然语言句式设置项（002 场景档语言退场）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -1086,7 +1188,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1116,8 +1220,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T031 回顾空态：竖直居中 + CTA ≤1 交互直达新建（FR-007/SC-004）',
-      (tester) async {
+  testWidgets('T031 回顾空态：竖直居中 + CTA ≤1 交互直达新建（FR-007/SC-004）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -1127,7 +1230,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1151,12 +1256,16 @@ void main() {
     final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
     final areaTop = tester.getRect(find.text(Copy.reviewTitle)).bottom;
     final areaBottom = tester.getRect(find.text(Copy.todayNav)).top;
-    final stateRect = tester.getRect(find.byKey(const ValueKey('reviewEmptyState')));
+    final stateRect = tester.getRect(
+      find.byKey(const ValueKey('reviewEmptyState')),
+    );
     expect(
-        (stateRect.center.dy - (areaTop + areaBottom) / 2).abs(),
-        lessThan(20),
-        reason: '空态应竖直居中（FR-007），实际中心 '
-            '${stateRect.center.dy} vs 区域中心 ${(areaTop + areaBottom) / 2}');
+      (stateRect.center.dy - (areaTop + areaBottom) / 2).abs(),
+      lessThan(20),
+      reason:
+          '空态应竖直居中（FR-007），实际中心 '
+          '${stateRect.center.dy} vs 区域中心 ${(areaTop + areaBottom) / 2}',
+    );
     expect(stateRect.center.dx, closeTo(screen.width / 2, 4));
 
     // SC-004：≤1 次交互直达新建——tap CTA → 编辑器（today 分支，页签不退场）。
@@ -1167,8 +1276,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T032 标题带对齐：今日/回顾同带（我的页 004 v2 改 push 顶栏）',
-      (tester) async {
+  testWidgets('T032 标题带对齐：今日/回顾同带（我的页 004 v2 改 push 顶栏）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -1178,7 +1286,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1197,13 +1307,17 @@ void main() {
 
     router.go('/review');
     await tester.pumpAndSettle();
-    final reviewTitle =
-        tester.getRect(find.byKey(const ValueKey('screenTitle')));
+    final reviewTitle = tester.getRect(
+      find.byKey(const ValueKey('screenTitle')),
+    );
 
     // 回顾标题带左缘 ≥ padX；今日屏头像与其同带竖直相容。
     expect(reviewTitle.left, greaterThanOrEqualTo(24));
-    expect((avatar.top - reviewTitle.top).abs(), lessThan(16),
-        reason: '今日屏头部带与标题带应竖直相容');
+    expect(
+      (avatar.top - reviewTitle.top).abs(),
+      lessThan(16),
+      reason: '今日屏头部带与标题带应竖直相容',
+    );
 
     // 004 v2（T012）：我的页改 push 顶栏（返回键 + 我的），退出 003 三屏
     // 标题带约束——在场性与形态断言（T036 深色态用例另有覆盖）。
@@ -1213,8 +1327,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T033 US3 走查：空数据三屏全渲染无死角（今日空态/回顾空态 CTA/我的账号卡）',
-      (tester) async {
+  testWidgets('T033 US3 走查：空数据三屏全渲染无死角（今日空态/回顾空态 CTA/我的账号卡）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -1224,7 +1337,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1258,8 +1373,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T034 设置四分组：账号卡真资料/目标活跃数行跳今日/补签只读/版本行（FR-009）',
-      (tester) async {
+  testWidgets('T034 设置四分组：账号卡真资料/目标活跃数行跳今日/补签只读/版本行（FR-009）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -1268,25 +1382,33 @@ void main() {
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
     for (final name in ['锻炼', '阅读']) {
-      await repo.create(Goal(
+      await repo.create(
+        Goal(
           name: name,
           goalType: GoalType.habit,
           iconKey: 'fitness_center',
           colorKey: 'teal',
-          createdAt: today));
+          createdAt: today,
+        ),
+      );
     }
-    await repo.create(Goal(
+    await repo.create(
+      Goal(
         name: '已暂停目标',
         goalType: GoalType.habit,
         iconKey: 'menu_book',
         colorKey: 'sage',
         createdAt: today,
-        status: GoalStatus.paused));
+        status: GoalStatus.paused,
+      ),
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1308,8 +1430,7 @@ void main() {
 
     // 账号卡：真资料（默认昵称兜底）+ 整卡（v2：编辑资料 + 箭头）→ sheet。
     // 昵称文本按 key 断言——今日页头部与头像首字兜底同渲染「我」（IndexedStack 常驻）。
-    expect(find.byKey(const ValueKey('meNickname')),
-        findsOneWidget);
+    expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
     expect(find.text(Copy.settingsMeSub), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('meCard')));
     await tester.pumpAndSettle();
@@ -1342,8 +1463,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T035 通知迁入：总开关聚合全开全关 + 按目标提醒二级逐行开关（FR-006）',
-      (tester) async {
+  testWidgets('T035 通知迁入：总开关聚合全开全关 + 按目标提醒二级逐行开关（FR-006）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -1352,37 +1472,50 @@ void main() {
     final today = LocalDate.fromDateTime(DateTime.now());
     final goalRepo = GoalRepository(db);
     final reminderRepo = ReminderRepository(db);
-    final ride = await goalRepo.create(Goal(
+    final ride = await goalRepo.create(
+      Goal(
         name: '锻炼',
         goalType: GoalType.habit,
         iconKey: 'fitness_center',
         colorKey: 'teal',
-        createdAt: today));
-    final read = await goalRepo.create(Goal(
+        createdAt: today,
+      ),
+    );
+    final read = await goalRepo.create(
+      Goal(
         name: '阅读',
         goalType: GoalType.habit,
         iconKey: 'menu_book',
         colorKey: 'sage',
-        createdAt: today));
-    await reminderRepo.upsert(Reminder(
+        createdAt: today,
+      ),
+    );
+    await reminderRepo.upsert(
+      Reminder(
         id: 'r-ride',
         goalId: ride.id,
         time: const LocalTime(9, 0),
         isEnabled: true,
-        cadence: Cadence.daily));
-    await reminderRepo.upsert(Reminder(
+        cadence: Cadence.daily,
+      ),
+    );
+    await reminderRepo.upsert(
+      Reminder(
         id: 'r-read',
         goalId: read.id,
         time: const LocalTime(22, 30),
         isEnabled: false,
-        cadence: Cadence.weekly));
+        cadence: Cadence.weekly,
+      ),
+    );
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider
-              .overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1398,17 +1531,21 @@ void main() {
 
     /// 目标名与今日页卡片撞名（IndexedStack 常驻），行内查找限定 SettingsView。
     Finder rowSwitch(String title) => find.descendant(
-        of: find.ancestor(
-            of: find.descendant(
-                of: find.byType(SettingsView),
-                matching: find.text(title)),
-            matching: find.byType(InkWell)),
-        matching: find.byType(Switch));
+      of: find.ancestor(
+        of: find.descendant(
+          of: find.byType(SettingsView),
+          matching: find.text(title),
+        ),
+        matching: find.byType(InkWell),
+      ),
+      matching: find.byType(Switch),
+    );
 
     /// 总开关行：v2 标题「通知」与分组标签同文，按行 key 定位。
     final masterSwitch = find.descendant(
-        of: find.byKey(const ValueKey('notifMasterRow')),
-        matching: find.byType(Switch));
+      of: find.byKey(const ValueKey('notifMasterRow')),
+      matching: find.byType(Switch),
+    );
 
     // 通知三行：总开关（聚合开——锻炼行在开）+ 简报默认时间值 + 计数副题。
     expect(find.text(Copy.settingsNotifMasterSub), findsOneWidget);
@@ -1427,10 +1564,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(Copy.settingsGoalRemindersSub(2)), findsOneWidget);
     expect(
-        (await reminderRepo.all())
-            .firstWhere((r) => r.id == 'r-read')
-            .isEnabled,
-        isTrue);
+      (await reminderRepo.all()).firstWhere((r) => r.id == 'r-read').isEnabled,
+      isTrue,
+    );
 
     // 总开关关 → 简报行 + 逐目标行全落 false；简报无行时视为默认开，
     // 故必须显式落一条简报行承载关闭态（否则聚合视图被拉回 true）。
@@ -1450,33 +1586,38 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T036 US4 走查：设置页行形态全标准 + 深色态全行齐备（FR-009）',
-      (tester) async {
+  testWidgets('T036 US4 走查：设置页行形态全标准 + 深色态全行齐备（FR-009）', (tester) async {
     usePhoneSurface(tester);
     tester.binding.platformDispatcher.platformBrightnessTestValue =
         Brightness.dark;
     addTearDown(
-        tester.binding.platformDispatcher.clearPlatformBrightnessTestValue);
+      tester.binding.platformDispatcher.clearPlatformBrightnessTestValue,
+    );
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
     );
     final today = LocalDate.fromDateTime(DateTime.now());
-    final goal = await GoalRepository(db).create(Goal(
+    final goal = await GoalRepository(db).create(
+      Goal(
         name: '锻炼',
         goalType: GoalType.habit,
         iconKey: 'fitness_center',
         colorKey: 'teal',
-        createdAt: today));
-    await ReminderRepository(db).upsert(Reminder(
-        id: 'r-1', goalId: goal.id, time: const LocalTime(9, 0)));
+        createdAt: today,
+      ),
+    );
+    await ReminderRepository(
+      db,
+    ).upsert(Reminder(id: 'r-1', goalId: goal.id, time: const LocalTime(9, 0)));
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider
-              .overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1491,8 +1632,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 深色态：darkTheme 注入的令牌确实生效（浅/深 palette 不同实例）。
-    final palette = TargetPalette.of(
-        tester.element(find.byType(SettingsView)));
+    final palette = TargetPalette.of(tester.element(find.byType(SettingsView)));
     expect(identical(palette, TargetPalette.dark), isTrue);
 
     // 通知组三行（开关/值/二级）+ 展开后二级行——深色下照常渲染。
@@ -1513,13 +1653,13 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T012 我的页换装：外观组主题三档单选即时生效并持久（FR-002）',
-      (tester) async {
+  testWidgets('T012 我的页换装：外观组主题三档单选即时生效并持久（FR-002）', (tester) async {
     usePhoneSurface(tester);
     tester.binding.platformDispatcher.platformBrightnessTestValue =
         Brightness.dark;
     addTearDown(
-        tester.binding.platformDispatcher.clearPlatformBrightnessTestValue);
+      tester.binding.platformDispatcher.clearPlatformBrightnessTestValue,
+    );
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
@@ -1528,7 +1668,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -1568,37 +1710,39 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T021 详情：头部块/管理入口 + 打卡描述落库 + 历史行兜底 + 短期倒计时步骤',
-      (tester) async {
+  testWidgets('T021 详情：头部块/管理入口 + 打卡描述落库 + 历史行兜底 + 短期倒计时步骤', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
-    final goal = await repo.create(Goal(
-      name: '年底前跑一次 10km',
-      goalType: GoalType.shortTerm,
-      iconKey: 'fitness',
-      colorKey: 'sage',
-      createdAt: today,
-      deadline: LocalDate(today.year, 12, 31),
-      motivation: '为了夏天的约定',
-      successCriterion: '完成一次 10km',
-      cueScene: '早起后',
-    ));
-    await repo.addStep(
-        MilestoneStep(id: 's1', goalId: goal.id, title: '买跑鞋'));
+    final goal = await repo.create(
+      Goal(
+        name: '年底前跑一次 10km',
+        goalType: GoalType.shortTerm,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: today,
+        deadline: LocalDate(today.year, 12, 31),
+        motivation: '为了夏天的约定',
+        successCriterion: '完成一次 10km',
+        cueScene: '早起后',
+      ),
+    );
+    await repo.addStep(MilestoneStep(id: 's1', goalId: goal.id, title: '买跑鞋'));
     // 003 T038：提醒行真源 = Reminders 行（cueScene 场景档退役不上屏）。
-    await ReminderRepository(db).upsert(Reminder(
-        id: 'r-t21', goalId: goal.id, time: const LocalTime(8, 30)));
+    await ReminderRepository(db).upsert(
+      Reminder(id: 'r-t21', goalId: goal.id, time: const LocalTime(8, 30)),
+    );
     // 昨日一条无描述打卡 → 历史行兜底「完成打卡」。
-    await CheckInRepository(db)
-        .add(goal.id, today.addDays(-1), DateTime.now());
+    await CheckInRepository(db).add(goal.id, today.addDays(-1), DateTime.now());
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
         child: MaterialApp(
-            theme: AppTheme.light(), home: GoalDetailPage(goalId: goal.id)),
+          theme: AppTheme.light(),
+          home: GoalDetailPage(goalId: goal.id),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -1608,55 +1752,96 @@ void main() {
     // iconKey 'fitness' 非 38 键值域 → byKey 兜底 explore → 旅行域。
     expect(find.text('年底前跑一次 10km'), findsWidgets);
     expect(
-        find.text('${Copy.typeBadgeShortTerm} · ${GoalIconDomain.travel.zhLabel}'
-            ' · ${GoalIconDomain.travel.major.zhLabel}'),
-        findsOneWidget);
+      find.text(
+        '${Copy.typeBadgeShortTerm} · ${GoalIconDomain.travel.zhLabel}'
+        ' · ${GoalIconDomain.travel.major.zhLabel}',
+      ),
+      findsOneWidget,
+    );
+    // 短期 meta 冻结稿口径：倒计时 + 截止日胶囊；提醒胶囊属习惯/长期，
+    // 短期不呈现（提醒信息在编辑器与我的页二级行）。
+    final deadline = LocalDate(today.year, 12, 31);
     expect(
-        find.text(Copy.goalReminderLine(Copy.settingsGoalReminderLine(
-            Copy.cadenceDaily, '08:30'))),
-        findsOneWidget);
+      find.text(Copy.deadlineCountdownMeta(deadline.differenceInDays(today))),
+      findsOneWidget,
+    );
+    expect(
+      find.text(Copy.deadlineDateMeta(deadline.isoString)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(Copy.reminderMeta(Copy.cadenceDaily, '08:30')),
+      findsNothing,
+    );
     expect(find.text('为了夏天的约定'), findsNothing);
     expect(find.text('完成一次 10km'), findsNothing);
     expect(find.text('买跑鞋'), findsOneWidget);
-    // 昨日记录：无描述 → 兜底文案。
-    expect(
-        find.text('${Copy.notifDayYesterday} - ${Copy.checkInDefaultNote}'),
-        findsOneWidget);
+    // 昨日记录：无描述 → 兜底文案（004 v2 历史行 = MM-DD + 描述）。
+    // 历史卡在折叠线下：先滚到构建再断言。
+    final y = today.addDays(-1);
+    final ymd =
+        '${y.month.toString().padLeft(2, '0')}-${y.day.toString().padLeft(2, '0')}';
+    await scrollTo(tester, find.text(ymd));
+    expect(find.text(ymd), findsOneWidget);
+    expect(find.text(Copy.checkInDefaultNote), findsOneWidget);
 
-    // 打卡动线：填描述 → 落库 note + 历史行「今天 - 描述」。
+    // 打卡动线：填描述 → 落库 note + 历史行今日一行带描述。
+    await scrollTo(tester, find.byKey(const ValueKey('checkInNoteField')));
     await tester.enterText(
-        find.byKey(const ValueKey('checkInNoteField')), '报名了首场比赛');
-    await tester.tap(find.text(Copy.todayCheckAction));
+      find.byKey(const ValueKey('checkInNoteField')),
+      '报名了首场比赛',
+    );
+    await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
     expect(find.text(Copy.checkInDone), findsOneWidget);
     final saved = await CheckInRepository(db).all();
     expect(saved.where((c) => c.day == today).single.note, '报名了首场比赛');
-    expect(find.text('${Copy.notifDayToday} - 报名了首场比赛'), findsOneWidget);
+    await scrollTo(tester, find.text('报名了首场比赛'));
+    expect(find.text('报名了首场比赛'), findsOneWidget);
 
-    // ⋯ 动作面板：暂停 → 状态行出现 + 打卡动线隐藏；恢复回 active。
+    // ⋯ 菜单：暂停目标 → 横幅出现 + 打卡动线隐藏；恢复回 active
+    // （暂停态横幅也带「恢复」，按菜单 sheet 键收窄避免双命中）。
     await tester.tap(find.byTooltip(Copy.goalMoreActions));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('暂停'));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('goalMenuSheet')),
+        matching: find.text(Copy.menuPauseGoal),
+      ),
+    );
     await tester.pumpAndSettle();
-    expect(find.text(Copy.goalsPausedNote), findsOneWidget);
+    expect(find.text(Copy.goalPausedBanner), findsOneWidget);
     expect(find.byKey(const ValueKey('checkInNoteField')), findsNothing);
     await tester.tap(find.byTooltip(Copy.goalMoreActions));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('恢复'));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('goalMenuSheet')),
+        matching: find.text(Copy.goalResumeAction),
+      ),
+    );
     await tester.pumpAndSettle();
+    await scrollTo(tester, find.byKey(const ValueKey('checkInNoteField')));
     expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
 
     // 加一步：输入回车入库（加一步输入框以 hint 定位）。
+    await scrollTo(
+      tester,
+      find.widgetWithText(TextFormField, Copy.milestoneStepHint),
+    );
     await tester.enterText(
-        find.widgetWithText(TextFormField, Copy.milestoneStepHint), '报名比赛');
+      find.widgetWithText(TextFormField, Copy.milestoneStepHint),
+      '报名比赛',
+    );
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     expect((await repo.stepsOf(goal.id)).length, 2);
 
-    // 勾选第一步（步骤名是可编辑框，直接点复选框）→ done/total 变 1/2。
-    await tester.tap(find.byType(Checkbox).first);
+    // 勾选第一步（004 v2 自绘圆勾，键 stepCheck-<id>）→ 进度 50%。
+    await scrollTo(tester, find.byKey(const ValueKey('stepCheck-s1')));
+    await tester.tap(find.byKey(const ValueKey('stepCheck-s1')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('1/2'), findsOneWidget);
+    expect(find.text('50%'), findsOneWidget);
     await db.close();
   });
 
@@ -1665,19 +1850,23 @@ void main() {
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
-    final goal = await repo.create(Goal(
-      name: '把英语捡回来',
-      goalType: GoalType.longTerm,
-      iconKey: 'read',
-      colorKey: 'sky',
-      createdAt: today,
-    ));
+    final goal = await repo.create(
+      Goal(
+        name: '把英语捡回来',
+        goalType: GoalType.longTerm,
+        iconKey: 'read',
+        colorKey: 'sky',
+        createdAt: today,
+      ),
+    );
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
         child: MaterialApp(
-            theme: AppTheme.light(), home: GoalDetailPage(goalId: goal.id)),
+          theme: AppTheme.light(),
+          home: GoalDetailPage(goalId: goal.id),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -1686,12 +1875,167 @@ void main() {
     // iconKey 'read' 旧键 → byKey 兜底 explore → 旅行域）+ 打卡动线。
     expect(find.text('把英语捡回来'), findsWidgets);
     expect(
-        find.text('${Copy.typeBadgeLongTerm} · ${GoalIconDomain.travel.zhLabel}'
-            ' · ${GoalIconDomain.travel.major.zhLabel}'),
-        findsOneWidget);
+      find.text(
+        '${Copy.typeBadgeLongTerm} · ${GoalIconDomain.travel.zhLabel}'
+        ' · ${GoalIconDomain.travel.major.zhLabel}',
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
-    expect(find.byTooltip(Copy.goalEdit), findsOneWidget);
+    // 004 v2：编辑目标为常驻行式卡（无 tooltip），⋯ 菜单保留 tooltip。
+    expect(find.text(Copy.goalEdit), findsOneWidget);
     expect(find.byTooltip(Copy.goalMoreActions), findsOneWidget);
+    await db.close();
+  });
+
+  // 004 T014：补签弹层（冻结稿板 3）——周点阵点过去日 → 14 天窗口日历
+  // 单选 → 确认落库 isBackfill + 历史行「补签」标。
+  testWidgets('T014 补签弹层：周点阵点过去日 → 日历单选 → 落库带补签标', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(
+      Goal(
+        name: '晨间骑行',
+        goalType: GoalType.habit,
+        iconKey: 'directions_bike',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    final navKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          navigatorKey: navKey,
+          home: const Scaffold(body: Text('root')),
+        ),
+      ),
+    );
+    navKey.currentState!.push(
+      MaterialPageRoute(builder: (_) => GoalDetailPage(goalId: goal.id)),
+    );
+    await tester.pumpAndSettle();
+
+    // 周点阵点 3 天前（整列可点）→ 弹层：题 + 确认按钮带初始日。
+    final target = today.addDays(-3);
+    await scrollTo(tester, find.byKey(const ValueKey('detailWeekDots')));
+    await tester.tap(find.text('${target.day}'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('backfillSheet')), findsOneWidget);
+    expect(find.text(Copy.backfillSheetTitle), findsOneWidget);
+    expect(
+      find.text(Copy.backfillConfirm(target.month, target.day)),
+      findsOneWidget,
+    );
+
+    // 日历改选 5 天前（按弹层键收窄，避开周点阵同名日期）→ 确认。
+    final target2 = today.addDays(-5);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('backfillSheet')),
+        matching: find.text('${target2.day}'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text(Copy.backfillConfirm(target2.month, target2.day)),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('backfillConfirmButton')));
+    await tester.pumpAndSettle();
+
+    // 落库：day = 改选日、isBackfill = true；toast + 历史行「补签」标。
+    final rows = await CheckInRepository(db).all();
+    expect(rows.single.day, target2);
+    expect(rows.single.isBackfill, isTrue);
+    expect(find.text(Copy.backfillDone(target2.isoString)), findsOneWidget);
+    await scrollTo(tester, find.text(Copy.backfillTag));
+    expect(find.text(Copy.backfillTag), findsOneWidget);
+    await db.close();
+  });
+
+  // 004 T014：删除目标（冻结稿板 4 .dlg + FR-016）——二次确认；
+  // 取消不动库；确认物理级联清 打卡/步骤/提醒/频率版本 并退出详情。
+  testWidgets('T014 删除目标：二次确认 → 四子表级联清行 + 退出详情（FR-016）', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(
+      Goal(
+        name: '冈仁波齐徒步',
+        goalType: GoalType.shortTerm,
+        iconKey: 'flight',
+        colorKey: 'teal',
+        createdAt: today,
+        deadline: today.addDays(90),
+      ),
+    );
+    await repo.addStep(MilestoneStep(id: 's1', goalId: goal.id, title: '订机票'));
+    await ReminderRepository(
+      db,
+    ).upsert(Reminder(id: 'r-d', goalId: goal.id, time: const LocalTime(9, 0)));
+    await CheckInRepository(db).add(goal.id, today.addDays(-1), DateTime.now());
+    await seedVersion(
+      db,
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(today),
+    );
+    final navKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          navigatorKey: navKey,
+          home: const Scaffold(body: Text('root')),
+        ),
+      ),
+    );
+    navKey.currentState!.push(
+      MaterialPageRoute(builder: (_) => GoalDetailPage(goalId: goal.id)),
+    );
+    await tester.pumpAndSettle();
+
+    // ⋯ → 删除目标 → 居中确认：取消 → 库不动。
+    await tester.tap(find.byTooltip(Copy.goalMoreActions));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('goalMenuSheet')),
+        matching: find.text(Copy.menuDeleteGoal),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalDeleteDialog')), findsOneWidget);
+    expect(find.text(Copy.deleteConfirmBody(goal.name)), findsOneWidget);
+    await tester.tap(find.text(Copy.dialogCancel));
+    await tester.pumpAndSettle();
+    expect((await repo.getGoals()), hasLength(1));
+
+    // 再删 → 确认 → pop 回 root + 四子表与目标全清。
+    await tester.tap(find.byTooltip(Copy.goalMoreActions));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('goalMenuSheet')),
+        matching: find.text(Copy.menuDeleteGoal),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Copy.deleteConfirmYes));
+    await tester.pumpAndSettle();
+    expect(find.text('root'), findsOneWidget);
+    expect(await repo.getGoals(), isEmpty);
+    expect(await CheckInRepository(db).all(), isEmpty);
+    expect(await repo.stepsOf(goal.id), isEmpty);
+    expect(await ReminderRepository(db).all(), isEmpty);
+    expect(await db.select(db.frequencyVersions).get(), isEmpty);
     await db.close();
   });
 
@@ -1716,8 +2060,10 @@ void main() {
     await tester.tap(find.text('饭后散步 20 分钟'));
     await tester.pumpAndSettle();
     final nameField = find.byKey(const ValueKey('goalNameField'));
-    expect((tester.widget(nameField) as TextField).controller!.text,
-        '饭后散步 20 分钟');
+    expect(
+      (tester.widget(nameField) as TextField).controller!.text,
+      '饭后散步 20 分钟',
+    );
 
     // 003 动线：预填即保存（模板带习惯型；B 案为什么字段已退役）。
     await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
@@ -1750,7 +2096,8 @@ void main() {
         createdAt: today,
       ),
     );
-    await seedVersion(db, 
+    await seedVersion(
+      db,
       goal.id,
       const DailyFrequency(1),
       WeekStart.containing(today),
@@ -1803,8 +2150,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T021 周回顾 R3：纯回看语言——周摘要/图例/节奏条/观察语，无决策控件',
-      (tester) async {
+  testWidgets('T021 周回顾 R3：纯回看语言——周摘要/图例/节奏条/观察语，无决策控件', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
@@ -1824,7 +2170,8 @@ void main() {
         createdAt: createdAt,
       ),
     );
-    await seedVersion(db, 
+    await seedVersion(
+      db,
       goal.id,
       const DailyFrequency(1),
       WeekStart.containing(createdAt),
@@ -1842,7 +2189,8 @@ void main() {
         createdAt: createdAt,
       ),
     );
-    await seedVersion(db, 
+    await seedVersion(
+      db,
       goal2.id,
       const DailyFrequency(1),
       WeekStart.containing(createdAt),
@@ -1892,91 +2240,100 @@ void main() {
   });
 
   testWidgets(
-      'T026 设置 R2 + V7 备份回归：身份卡/提醒/隐私脚注 + 导出 toast + 冲突弹层 → 覆盖 → 计数 toast',
-      (tester) async {
-    usePhoneSurface(tester);
-    final db = AppDatabase(NativeDatabase.memory());
-    final gateway = FakeNotificationGateway();
-    final today = LocalDate.fromDateTime(DateTime.now());
-    final repo = GoalRepository(db);
-    final createdAt = today.addDays(-7);
-    final goal = await repo.create(Goal(
-      name: '锻炼',
-      goalType: GoalType.habit,
-      iconKey: 'fitness',
-      colorKey: 'sage',
-      createdAt: createdAt,
-    ));
-    await seedVersion(db, 
-        goal.id, const DailyFrequency(1), WeekStart.containing(createdAt));
-    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
-      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
-    );
+    'T026 设置 R2 + V7 备份回归：身份卡/提醒/隐私脚注 + 导出 toast + 冲突弹层 → 覆盖 → 计数 toast',
+    (tester) async {
+      usePhoneSurface(tester);
+      final db = AppDatabase(NativeDatabase.memory());
+      final gateway = FakeNotificationGateway();
+      final today = LocalDate.fromDateTime(DateTime.now());
+      final repo = GoalRepository(db);
+      final createdAt = today.addDays(-7);
+      final goal = await repo.create(
+        Goal(
+          name: '锻炼',
+          goalType: GoalType.habit,
+          iconKey: 'fitness',
+          colorKey: 'sage',
+          createdAt: createdAt,
+        ),
+      );
+      await seedVersion(
+        db,
+        goal.id,
+        const DailyFrequency(1),
+        WeekStart.containing(createdAt),
+      );
+      await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+        const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+      );
 
-    // V7 往返：备份文件 = 从同一库导出的 JSON。
-    final backupJson = await BackupExporter(db).exportString();
-    final sharer = FakeShareGateway();
+      // V7 往返：备份文件 = 从同一库导出的 JSON。
+      final backupJson = await BackupExporter(db).exportString();
+      final sharer = FakeShareGateway();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(gateway),
-          shareGatewayProvider.overrideWithValue(sharer),
-          filePickGatewayProvider
-              .overrideWithValue(FakeFilePickGateway(utf8.encode(backupJson))),
-          dayTickerProvider.overrideWith((ref) {}),
-        ],
-        child: const TargetApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            dbProvider.overrideWithValue(db),
+            notificationGatewayProvider.overrideWithValue(gateway),
+            shareGatewayProvider.overrideWithValue(sharer),
+            filePickGatewayProvider.overrideWithValue(
+              FakeFilePickGateway(utf8.encode(backupJson)),
+            ),
+            dayTickerProvider.overrideWith((ref) {}),
+          ],
+          child: const TargetApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text(Copy.mineNav));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text(Copy.mineNav));
+      await tester.pumpAndSettle();
 
-    // R2 骨架 → T034 四分组：账号卡（真资料昵称兜底「我」+ 编辑入口）
-    // + 概要行副文 + 场景指引。
-    // 标题「我的」与底部 nav 标签同文，断言至少一处即可。
-    expect(find.text(Copy.settingsTitle), findsWidgets);
-    expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
-    expect(find.byKey(const ValueKey('meCard')), findsOneWidget);
-    expect(find.text(Copy.settingsMeSub), findsOneWidget);
-    expect(find.text(Copy.settingsBriefTitle), findsOneWidget);
-    expect(find.byKey(const ValueKey('notifMasterRow')), findsOneWidget);
-    expect(find.text(Copy.reminderGoalHint), findsOneWidget);
-    // T045 语域清查：隐私脚注（本地存储说明）不上屏（FR-021）。
-    expect(find.textContaining('这台设备'), findsNothing);
-    // 聚焦 App 本身：目标内容不上设置屏（旧版逐目标提醒行已删）。
-    expect(find.text('锻炼'), findsNothing);
+      // R2 骨架 → T034 四分组：账号卡（真资料昵称兜底「我」+ 编辑入口）
+      // + 概要行副文 + 场景指引。
+      // 标题「我的」与底部 nav 标签同文，断言至少一处即可。
+      expect(find.text(Copy.settingsTitle), findsWidgets);
+      expect(find.byKey(const ValueKey('meNickname')), findsOneWidget);
+      expect(find.byKey(const ValueKey('meCard')), findsOneWidget);
+      expect(find.text(Copy.settingsMeSub), findsOneWidget);
+      expect(find.text(Copy.settingsBriefTitle), findsOneWidget);
+      expect(find.byKey(const ValueKey('notifMasterRow')), findsOneWidget);
+      expect(find.text(Copy.reminderGoalHint), findsOneWidget);
+      // T045 语域清查：隐私脚注（本地存储说明）不上屏（FR-021）。
+      expect(find.textContaining('这台设备'), findsNothing);
+      // 聚焦 App 本身：目标内容不上设置屏（旧版逐目标提醒行已删）。
+      expect(find.text('锻炼'), findsNothing);
 
-    // V7 导出：走分享网关 + 备份已生成 toast。
-    await scrollTo(tester, find.text(Copy.backupExport));
-    await tester.tap(find.text(Copy.backupExport));
-    await tester.pumpAndSettle();
-    expect(sharer.exported.length, 1);
-    expect(find.text(Copy.backupExported), findsOneWidget);
+      // V7 导出：走分享网关 + 备份已生成 toast。
+      await scrollTo(tester, find.text(Copy.backupExport));
+      await tester.tap(find.text(Copy.backupExport));
+      await tester.pumpAndSettle();
+      expect(sharer.exported.length, 1);
+      expect(find.text(Copy.backupExported), findsOneWidget);
 
-    // V7 导入：本地有数据 → 必显式确认，不静默合并（FR-015）。
-    await tester.pump(const Duration(seconds: 4)); // 等 toast 退场
-    await tester.pumpAndSettle();
-    await scrollTo(tester, find.text(Copy.backupImport));
-    await tester.tap(find.text(Copy.backupImport));
-    await tester.pumpAndSettle();
-    // v2 dlg：居中确认卡（标题与行同文「恢复备份」，按 key 断言）。
-    expect(find.byKey(const ValueKey('restoreConfirmTitle')), findsOneWidget);
-    await tester.tap(find.text(Copy.backupImportOverwrite));
-    await tester.pumpAndSettle();
-    expect(find.textContaining(Copy.backupImportDone), findsOneWidget);
-    expect(find.textContaining('目标 1'), findsOneWidget);
-    await db.close();
-  });
+      // V7 导入：本地有数据 → 必显式确认，不静默合并（FR-015）。
+      await tester.pump(const Duration(seconds: 4)); // 等 toast 退场
+      await tester.pumpAndSettle();
+      await scrollTo(tester, find.text(Copy.backupImport));
+      await tester.tap(find.text(Copy.backupImport));
+      await tester.pumpAndSettle();
+      // v2 dlg：居中确认卡（标题与行同文「恢复备份」，按 key 断言）。
+      expect(find.byKey(const ValueKey('restoreConfirmTitle')), findsOneWidget);
+      await tester.tap(find.text(Copy.backupImportOverwrite));
+      await tester.pumpAndSettle();
+      expect(find.textContaining(Copy.backupImportDone), findsOneWidget);
+      expect(find.textContaining('目标 1'), findsOneWidget);
+      await db.close();
+    },
+  );
 
   // 003 T038 终查（SC-006）：v2 存量文件库升级启动 → 三 Tab + 目标详情
   // 全界面走查——旧字段（频率版本/颜色/为什么/怎样算/场景）零上屏；
   // 数据本身仍逐项保全（对账见 migration_test T038 用例）。
-  testWidgets('T038 迁移终查：v2 存量升级启动，旧字段全界面零上屏（SC-006）',
-      (WidgetTester tester) async {
+  testWidgets('T038 迁移终查：v2 存量升级启动，旧字段全界面零上屏（SC-006）', (
+    WidgetTester tester,
+  ) async {
     usePhoneSurface(tester);
     // testWidgets 的 FakeAsync 区内真实文件 IO 永不完成——库搭建整体
     // 走 runAsync（升级启动本身仍是真实 onUpgrade，见 migration_test）。
@@ -1984,46 +2341,56 @@ void main() {
       final dir = await Directory.systemTemp.createTemp('t038_ui');
       return File('${dir.path}/db.sqlite');
     }))!;
-    addTearDown(() => tester.runAsync(() async {
-      final dir = file.parent;
-      if (await dir.exists()) await dir.delete(recursive: true);
-    }));
+    addTearDown(
+      () => tester.runAsync(() async {
+        final dir = file.parent;
+        if (await dir.exists()) await dir.delete(recursive: true);
+      }),
+    );
     await tester.runAsync(() async {
       final v2 = _LegacyV2Database(NativeDatabase(file));
       // gd：habit + envelope 全填 + daily 频率版本 + 提醒；gw：weekly 频率版本。
       await v2.customStatement(
-          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
-          "created_at,motivation,success_criterion,cue_scene) VALUES "
-          "('gd','好好吃饭','habit','meal','coral','active','2026-08-01',"
-          "'为了晚上不胃胀','晚饭吃八分饱','晚饭后')");
+        "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+        "created_at,motivation,success_criterion,cue_scene) VALUES "
+        "('gd','好好吃饭','habit','meal','coral','active','2026-08-01',"
+        "'为了晚上不胃胀','晚饭吃八分饱','晚饭后')",
+      );
       await v2.customStatement(
-          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
-          "created_at) VALUES ('gw','跑步锻炼','habit','fitness','sage',"
-          "'active','2026-08-01')");
+        "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+        "created_at) VALUES ('gw','跑步锻炼','habit','fitness','sage',"
+        "'active','2026-08-01')",
+      );
       await v2.customStatement(
-          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
-          "created_at,deadline,motivation) VALUES ('gs','冈仁波齐徒步',"
-          "'milestone','travel','indigo','active','2026-08-01',"
-          "'2026-10-01','想亲眼看到日出')");
+        "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+        "created_at,deadline,motivation) VALUES ('gs','冈仁波齐徒步',"
+        "'milestone','travel','indigo','active','2026-08-01',"
+        "'2026-10-01','想亲眼看到日出')",
+      );
       await v2.customStatement(
-          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
-          "pattern,source) VALUES ('fv-d','gd','2026-08-03',"
-          "'{\"type\":\"daily\",\"targetPerDay\":1}','initial')");
+        "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+        "pattern,source) VALUES ('fv-d','gd','2026-08-03',"
+        "'{\"type\":\"daily\",\"targetPerDay\":1}','initial')",
+      );
       await v2.customStatement(
-          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
-          "pattern,source) VALUES ('fv-w','gw','2026-08-03',"
-          "'{\"type\":\"weekly\",\"timesPerWeek\":3}','initial')");
+        "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+        "pattern,source) VALUES ('fv-w','gw','2026-08-03',"
+        "'{\"type\":\"weekly\",\"timesPerWeek\":3}','initial')",
+      );
       await v2.customStatement(
-          "INSERT INTO reminders (id,goal_id,time,is_enabled) VALUES "
-          "('r-d','gd','08:30',1)");
+        "INSERT INTO reminders (id,goal_id,time,is_enabled) VALUES "
+        "('r-d','gd','08:30',1)",
+      );
       await v2.customStatement(
-          "INSERT INTO check_ins (id,goal_id,day,created_at,is_backfill,"
-          "status) VALUES ('c3','gd','2026-08-19',"
-          "'2026-08-19T12:00:00.000Z',0,'valid')");
+        "INSERT INTO check_ins (id,goal_id,day,created_at,is_backfill,"
+        "status) VALUES ('c3','gd','2026-08-19',"
+        "'2026-08-19T12:00:00.000Z',0,'valid')",
+      );
       await v2.customStatement(
-          "INSERT INTO settings_rows (id,daily_brief_time,"
-          "onboarding_completed,notification_denied_acknowledged) VALUES "
-          "(1,'08:00',1,0)");
+        "INSERT INTO settings_rows (id,daily_brief_time,"
+        "onboarding_completed,notification_denied_acknowledged) VALUES "
+        "(1,'08:00',1,0)",
+      );
       await v2.close();
     });
 
@@ -2051,8 +2418,11 @@ void main() {
     // 旧字段零上屏：envelope（为什么/怎样算/场景）+ 频率版本（每周档）
     // + 旧图标域键名（meal/fitness/travel 已换域，键名不得漏出）。
     final leaked = find.textContaining(
-        RegExp('胃胀|八分饱|晚饭后|亲眼|每周|timesPerWeek|targetPerDay|'
-            'meal|fitness|travel|cue_scene|colorKey'));
+      RegExp(
+        '胃胀|八分饱|晚饭后|亲眼|每周|timesPerWeek|targetPerDay|'
+        'meal|fitness|travel|cue_scene|colorKey',
+      ),
+    );
     expect(leaked, findsNothing, reason: '旧字段不得在任何已构建分支上屏');
 
     // 回顾 Tab + 我的 Tab（含滚动到底）同口径终查。
@@ -2071,11 +2441,12 @@ void main() {
     await tester.tap(find.text('好好吃饭').first);
     await tester.pumpAndSettle();
     expect(find.text('好好吃饭'), findsWidgets); // 详情页标题
-    // 提醒行真源 = 迁移补档后的 Reminders 行（daily 08:30 原样续用）。
+    // 提醒真源 = 迁移补档后的 Reminders 行（daily 08:30 原样续用；
+    // 004 v2 习惯目标 meta 胶囊「每天 · 08:30 提醒」）。
     expect(
-        find.text(Copy.goalReminderLine(Copy.settingsGoalReminderLine(
-            Copy.cadenceDaily, '08:30'))),
-        findsOneWidget);
+      find.text(Copy.reminderMeta(Copy.cadenceDaily, '08:30')),
+      findsOneWidget,
+    );
     expect(leaked, findsNothing);
     await db.close();
   });
@@ -2083,43 +2454,49 @@ void main() {
   // 003 T039：US5 场景 2/3 UI 呈现——升级库启动，今日页徽章直接可见
   // 「习惯」（每日 3 次档映射）与「短期」（004 v2 组合式徽章；旧键
   // mic/star 均兜底 explore → 旅行域）。
-  testWidgets('T039 迁移呈现：每日 3 次→习惯徽章；带截止→短期徽章',
-      (WidgetTester tester) async {
+  testWidgets('T039 迁移呈现：每日 3 次→习惯徽章；带截止→短期徽章', (WidgetTester tester) async {
     usePhoneSurface(tester);
     final today = LocalDate.fromDateTime(DateTime.now());
     final file = (await tester.runAsync(() async {
       final dir = await Directory.systemTemp.createTemp('t039_ui');
       return File('${dir.path}/db.sqlite');
     }))!;
-    addTearDown(() => tester.runAsync(() async {
-      final dir = file.parent;
-      if (await dir.exists()) await dir.delete(recursive: true);
-    }));
+    addTearDown(
+      () => tester.runAsync(() async {
+        final dir = file.parent;
+        if (await dir.exists()) await dir.delete(recursive: true);
+      }),
+    );
     await tester.runAsync(() async {
       final v2 = _LegacyV2Database(NativeDatabase(file));
       await v2.customStatement(
-          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
-          "created_at) VALUES ('g3','练声','habit','mic','coral','active',"
-          "'${today.addDays(-10).isoString}')");
+        "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+        "created_at) VALUES ('g3','练声','habit','mic','coral','active',"
+        "'${today.addDays(-10).isoString}')",
+      );
       await v2.customStatement(
-          "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
-          "pattern,source) VALUES ('fv-3','g3',"
-          "'${WeekStart.containing(today).isoString}',"
-          "'{\"type\":\"daily\",\"targetPerDay\":3}','initial')");
+        "INSERT INTO frequency_versions (id,goal_id,effective_from_week,"
+        "pattern,source) VALUES ('fv-3','g3',"
+        "'${WeekStart.containing(today).isoString}',"
+        "'{\"type\":\"daily\",\"targetPerDay\":3}','initial')",
+      );
       await v2.customStatement(
-          "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
-          "created_at,deadline) VALUES ('gdl','考认证','milestone',"
-          "'star','amber','active','${today.addDays(-10).isoString}',"
-          "'${today.addDays(12).isoString}')");
+        "INSERT INTO goals (id,name,kind,icon_key,color_key,status,"
+        "created_at,deadline) VALUES ('gdl','考认证','milestone',"
+        "'star','amber','active','${today.addDays(-10).isoString}',"
+        "'${today.addDays(12).isoString}')",
+      );
       // 昨日一条记录：今日卡「最近」行有内容。
       await v2.customStatement(
-          "INSERT INTO check_ins (id,goal_id,day,created_at,is_backfill,"
-          "status) VALUES ('c1','g3','${today.addDays(-1).isoString}',"
-          "'2026-08-22T02:00:00.000Z',0,'valid')");
+        "INSERT INTO check_ins (id,goal_id,day,created_at,is_backfill,"
+        "status) VALUES ('c1','g3','${today.addDays(-1).isoString}',"
+        "'2026-08-22T02:00:00.000Z',0,'valid')",
+      );
       await v2.customStatement(
-          "INSERT INTO settings_rows (id,daily_brief_time,"
-          "onboarding_completed,notification_denied_acknowledged) VALUES "
-          "(1,'08:00',1,0)");
+        "INSERT INTO settings_rows (id,daily_brief_time,"
+        "onboarding_completed,notification_denied_acknowledged) VALUES "
+        "(1,'08:00',1,0)",
+      );
       await v2.close();
     });
 
@@ -2140,36 +2517,44 @@ void main() {
     // 场景 2：每日 3 次频率档 → 习惯徽章（「习惯 · 旅行 · 目标」）。
     expect(find.text('练声'), findsWidgets);
     expect(
-        find.text('${Copy.typeBadgeHabit} · ${GoalIconDomain.travel.zhLabel}'
-            ' · ${GoalIconDomain.travel.major.zhLabel}'),
-        findsOneWidget);
+      find.text(
+        '${Copy.typeBadgeHabit} · ${GoalIconDomain.travel.zhLabel}'
+        ' · ${GoalIconDomain.travel.major.zhLabel}',
+      ),
+      findsOneWidget,
+    );
     // 场景 3：带截止 → 短期徽章（v2 组合式，倒计时移交详情 meta 行）。
     await scrollTo(tester, find.text('考认证'));
     expect(find.text('考认证'), findsOneWidget);
     expect(
-        find.text('${Copy.typeBadgeShortTerm} · ${GoalIconDomain.travel.zhLabel}'
-            ' · ${GoalIconDomain.travel.major.zhLabel}'),
-        findsOneWidget);
+      find.text(
+        '${Copy.typeBadgeShortTerm} · ${GoalIconDomain.travel.zhLabel}'
+        ' · ${GoalIconDomain.travel.major.zhLabel}',
+      ),
+      findsOneWidget,
+    );
     await db.close();
   });
 
   // 003 T041：通知 tap 落地页——sheet 条目 tap → /goal/{id} 详情，
   // 落 today 分支（页签不退场）；小组件 widgetURL 同走 mapDeepLink
   // （上用例已断言），真机行为归 T043 清单。
-  testWidgets('T041 通知落地：sheet 条目 tap → 目标详情，页签不退场',
-      (tester) async {
+  testWidgets('T041 通知落地：sheet 条目 tap → 目标详情，页签不退场', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final today = LocalDate.fromDateTime(DateTime.now());
-    final goal = await GoalRepository(db).create(Goal(
-      name: '睡前拉伸',
-      goalType: GoalType.habit,
-      iconKey: 'self_improvement',
-      colorKey: 'teal',
-      createdAt: today,
-    ));
-    await ReminderRepository(db).upsert(Reminder(
-        id: 'r-stretch', goalId: goal.id, time: const LocalTime(9, 0)));
+    final goal = await GoalRepository(db).create(
+      Goal(
+        name: '睡前拉伸',
+        goalType: GoalType.habit,
+        iconKey: 'self_improvement',
+        colorKey: 'teal',
+        createdAt: today,
+      ),
+    );
+    await ReminderRepository(db).upsert(
+      Reminder(id: 'r-stretch', goalId: goal.id, time: const LocalTime(9, 0)),
+    );
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
     );
@@ -2177,8 +2562,9 @@ void main() {
       ProviderScope(
         overrides: [
           dbProvider.overrideWithValue(db),
-          notificationGatewayProvider
-              .overrideWithValue(FakeNotificationGateway()),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
           dayTickerProvider.overrideWith((ref) {}),
         ],
         child: const TargetApp(),
@@ -2191,7 +2577,9 @@ void main() {
     await tester.pumpAndSettle();
     // 遮罩下今日卡同名：条目限定 sheet 内查找（今日/明日各一条行提醒）。
     final sheetEntries = find.descendant(
-        of: find.byType(BottomSheet), matching: find.text('睡前拉伸'));
+      of: find.byType(BottomSheet),
+      matching: find.text('睡前拉伸'),
+    );
     expect(sheetEntries, findsNWidgets(2));
 
     // tap 条目 → 落地目标详情（打卡动线在场 = 详情页标识），页签不退场。

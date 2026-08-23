@@ -37,7 +37,6 @@ abstract final class Copy {
   static const editorSave = '保存';
   static const focusLimitTitle = '先照顾好这 5 个';
   static const focusLimitBody = '目标贵在聚焦。暂停或归档一个，再放新的进来。';
-  static const goalArchived = '已归档，历史记录都在';
 
   // ---- 编辑器 · B 案动线（002 T014 定稿：单一概念 + 动机先行）----
 
@@ -51,20 +50,77 @@ abstract final class Copy {
   static const goalsTitle = '目标';
   static const goalsDaysRecorded = '天有记录';
   static const goalsPausedNote = '暂停中 · 记录保留';
-  static const goalPauseHint = '先放一放，想回来随时继续';
   static const goalsEmptyOwn = '写一句自己的';
 
-  // ---- 目标详情（T021：管理动线 + 打卡描述 + 历史记录）----
+  // ---- 目标详情（T021：管理动线 + 打卡描述 + 历史记录；
+  //      004 T014 按冻结稿 v2-goal-detail 换装）----
 
+  static const goalDetailTitle = '目标详情';
   static const goalEdit = '编辑目标';
   static const goalMoreActions = '更多操作';
 
-  /// 详情头提醒行（003 T038 修正：真源 Reminders 行）：「提醒 · 一天一次 · 08:30」。
-  static String goalReminderLine(String detail) => '提醒 · $detail';
+  /// 打卡动线选填描述（FR-019；40 字上限与编辑器描述一致；
+  /// 004 v2 冻结稿提示语）。
+  static const checkInNoteHint = '一句话记录（选填）';
+  static const goalHistoryTitle = '历史记录';
 
-  /// 打卡动线选填描述（FR-019；40 字上限与编辑器描述一致）。
-  static const checkInNoteHint = '选填一句话描述';
-  static const goalHistoryTitle = '记录';
+  /// 今日行动卡标题与主按钮（冻结稿 .card-title / .btn-primary）。
+  static const detailTodayCard = '今日记录';
+  static const goalCheckInAction = '记录打卡';
+
+  /// 近 7 天点阵脚注（冻结稿 .sub：虚线圈 = 补签）。
+  static const weekDotsHint = '虚线圈 = 补签记录；点任意过去日可补签';
+
+  /// 补签弹层（冻结稿板 3：14 天窗口日历单选 + 确认主按钮）。
+  static const backfillSheetTitle = '补签日期';
+  static const backfillSheetHint = '青圈边 = 已有记录；灰且不可点 = 未来日期或超出 14 天';
+  static String backfillConfirm(int month, int day) => '补签 $month 月 $day 日';
+  static const backfillTag = '补签';
+
+  /// 日历星期头（周一开头，与周窗口统计同口径）。
+  static const List<String> backfillWeekdays = [
+    '一',
+    '二',
+    '三',
+    '四',
+    '五',
+    '六',
+    '日',
+  ];
+
+  /// 暂停横幅与菜单动作（冻结稿板 4/5：⋯ 收纳 + 暂停态恢复行动）。
+  static const goalPausedBanner = '目标已暂停，不参与统计与提醒';
+  static const goalResumeAction = '恢复';
+  static const menuPauseGoal = '暂停目标';
+  static const menuDeleteGoal = '删除目标';
+
+  /// 徽章状态尾缀（冻结稿板 5：「长期 · 创作 · 目标 · 已暂停」）。
+  static const goalStatusPausedSuffix = '已暂停';
+  static const goalStatusAchievedSuffix = '已达成';
+  static const goalStatusArchivedSuffix = '已归档';
+
+  /// 删除二次确认（冻结稿 .dlg：居中对话框 + 双胶囊按钮）。
+  static const deleteConfirmTitle = '删除目标';
+  static String deleteConfirmBody(String name) => '「$name」及其全部记录将被删除，此操作不可恢复。';
+  static const deleteConfirmYes = '删除';
+  static const dialogCancel = '取消';
+
+  /// 身份区 meta 胶囊（冻结稿 .meta：连续/本周/提醒；短期倒计时）。
+  static String streakMeta(int n) => '连续 $n 天';
+  static String weekMeta(int done, int elapsed) => '本周 $done/$elapsed 次';
+  static String reminderMeta(String cadenceLabel, String time) =>
+      '$cadenceLabel · $time 提醒';
+  static String deadlineCountdownMeta(int days) => days > 0
+      ? '距截止 $days 天'
+      : days == 0
+      ? '截止日就是今天'
+      : '已过 ${-days} 天';
+  static String deadlineDateMeta(String iso) => '$iso 截止';
+  static String historyCountMeta(int n) => '历史 $n 条记录';
+  static String createdMeta(String iso) => '创建于 $iso';
+
+  /// 续期行副题（冻结稿板 2 .sub）。
+  static const renewHint = '续期后倒计时重置，已有记录保留';
 
   // ---- 首启引导（SC-001）----
 
@@ -77,17 +133,17 @@ abstract final class Copy {
   static String milestoneProgress(int done, int total) => '$done/$total';
   static String milestoneCountdown(int days) =>
       days >= 0 ? '还剩 $days 天' : '过了 ${-days} 天';
-  static const milestoneOverdue = '不急，下一步是什么？'; // 过期温和提示
   static const milestoneDone = '达成了，恭喜！';
-  static const milestoneStepsHeader = '拆成小步';
-  static const milestoneAddStep = '加一步';
+  static const milestoneStepsHeader = '里程碑'; // 004 v2 冻结稿卡题
+  static const milestoneAddStep = '添加'; // 004 v2 冻结稿 .ms-add 按钮字
   static const milestoneDeleteStep = '删除步骤';
-  static const milestoneStepHint = '一句话描述这一步'; // 003 T045 语域清查：口语劝诫改正式描述
+  static const milestoneStepHint = '添加步骤…'; // 004 v2 冻结稿输入占位
   static const milestonePostponed = '截止日已更新';
 
-  // 短期到期处理（003 D4：到点只提醒不判决——标记达成/续期双入口）。
+  // 短期到期处理（003 D4：到点只提醒不判决——标记达成/续期双入口；
+  // 004 v2 常驻行形态，冻结稿板 2 字面）。
   static const goalMarkAchieved = '标记达成';
-  static const goalRenewDeadline = '续期';
+  static const goalRenewDeadline = '续期（调整截止日期）';
 
   // ---- 提醒 / 通知（FR-006/007）----
 
@@ -107,9 +163,8 @@ abstract final class Copy {
 
   static const dailyBriefTitle = '今天的小事';
   static const dailyBriefAllDone = '都照顾到了，安心过今天。';
-  static String dailyBriefSummary(int unmet) => unmet == 1
-      ? '还有 1 件小事在等你，不着急。'
-      : '还有 $unmet 件小事在等你，不着急。';
+  static String dailyBriefSummary(int unmet) =>
+      unmet == 1 ? '还有 1 件小事在等你，不着急。' : '还有 $unmet 件小事在等你，不着急。';
   static const dailyBriefReviewLine = '上周回顾已生成，花两分钟看看这一周';
 
   // 逐目标提醒（场景档驱动）：单目标带「为什么」（编辑器预览承诺的句式）。
@@ -196,7 +251,8 @@ abstract final class Copy {
 
   static const todaySection = '今日目标';
   static const todayNewGoal = '新建目标';
-  static const todayCheckAction = '记录一次努力';
+  // 004 v2：打卡按钮字统一「记录打卡」（goalCheckInAction），
+  // 「记录一次努力」退役。
 
   /// 头部带日期语：「8月19日 周三」。
   static String todayDateLine(int month, int day, String weekdayZh) =>
@@ -246,9 +302,8 @@ abstract final class Copy {
 
   /// 短期到期询问（D4：只提醒不判决；tap → 目标详情）。
   static String notifDueTitle(String name) => '$name到日子了，怎么样？';
-  static String notifDueSub(int daysOver) => daysOver <= 0
-      ? '短期目标 · 今天'
-      : '短期目标 · $daysOver 天前';
+  static String notifDueSub(int daysOver) =>
+      daysOver <= 0 ? '短期目标 · 今天' : '短期目标 · $daysOver 天前';
 
   /// streak 里程碑（当前总连击命中的档位）。
   static String notifStreak(int n) => '连续记录 $n 天，节奏稳住了';
@@ -303,8 +358,8 @@ abstract final class Copy {
   static String editorCountdownPreview(int days) => days > 0
       ? '距截止还有 $days 天'
       : days == 0
-          ? '截止日就是今天'
-          : '已过 ${-days} 天';
+      ? '截止日就是今天'
+      : '已过 ${-days} 天';
 
   // 类型徽章（D2 三类型域：长期/短期/习惯）。
   static const typeBadgeLongTerm = '长期';

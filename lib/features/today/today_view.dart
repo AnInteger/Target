@@ -7,9 +7,9 @@
 /// 全库零活跃环区整体让位空态新建 CTA，FR-004）+ 关注卡轮播（T022
 /// 挂载：cap 行「关注 / 查看全部」→ /goals-all，主行动 → /goal/{id}，
 /// 暂停/删除经流实时移出）。003 目标列表与今日页长按补签退役（补签
-/// 统一走详情页 14 天日历）。铃铛（T009 冻结形态 = 通知列表上滑入
-/// 口）与 ＋（T025 中央 FAB 落地前的过渡新建入口）暂驻头部右侧。
-/// 成就覆盖层保留。
+/// 统一走详情页 14 天日历）。铃铛驻留头部（T009 冻结形态 = 通知列表
+/// 上滑入口，v2 各屏唯一入口）；头部过渡＋ 已随 T025 中央 FAB 落地
+/// 退役（新建 = dock 中央凸起圆形＋）。成就覆盖层保留。
 library;
 
 import 'dart:math' as math;
@@ -107,8 +107,9 @@ class TodayView extends ConsumerWidget {
 }
 
 /// v2 头部（v2-today 冻结稿 .head）：左 = 日期行（label 体 + 字距）
-/// 叠大标题「今日」（displayL）；右 = 头像 44px（surface 描边环 + 低
-/// 投影，tap → 「我的」页，Q1 裁决）。铃铛/＋ 为过渡驻留（见文件头）。
+/// 叠大标题「今日」（displayL）；右 = 铃铛（通知列表上滑入口，T009
+/// 冻结形态驻留）+ 头像 44px（surface 描边环 + 低投影，tap → 「我的」
+/// 页，Q1 裁决）。过渡＋ 已退役（T025 中央 FAB 接管新建）。
 class _Head extends ConsumerWidget {
   const _Head();
 
@@ -147,18 +148,10 @@ class _Head extends ConsumerWidget {
             ),
           ),
           _CircleButton(
-            ghost: true,
             tooltip: Copy.notificationTitle,
             icon: Icons.notifications_outlined,
             badge: badge,
             onTap: () => showNotificationSheet(context),
-          ),
-          const SizedBox(width: AppSpace.s2),
-          _CircleButton(
-            ghost: false,
-            tooltip: Copy.todayNewGoal,
-            icon: Icons.add,
-            onTap: () => context.push('/goal-editor'),
           ),
           const SizedBox(width: AppSpace.s3),
           _AvatarEntry(profile: profile),
@@ -402,17 +395,16 @@ class _TriArcPainter extends CustomPainter {
   }
 }
 
-/// 36px 圆钮：主（墨实心）/ 次（白面 + 发丝边）；铃铛带数字角标。
+/// 36px 圆钮（次级形态：白面 + 发丝边 + 低投影）；铃铛带数字角标。
+/// 主形态（墨实心）随头部过渡＋ 退役（T025），仅存铃铛消费。
 class _CircleButton extends StatelessWidget {
   const _CircleButton({
-    required this.ghost,
     required this.tooltip,
     required this.icon,
     required this.onTap,
     this.badge = 0,
   });
 
-  final bool ghost;
   final String tooltip;
   final IconData icon;
   final VoidCallback onTap;
@@ -433,19 +425,15 @@ class _CircleButton extends StatelessWidget {
           height: 36,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: ghost ? palette.surface : palette.accent,
-            border: ghost ? Border.all(color: palette.divider) : null,
-            boxShadow: ghost ? palette.shadowLow : palette.shadowMid,
+            color: palette.surface,
+            border: Border.all(color: palette.divider),
+            boxShadow: palette.shadowLow,
           ),
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.center,
             children: [
-              Icon(
-                icon,
-                size: 18,
-                color: ghost ? palette.onSurface : palette.accentOn,
-              ),
+              Icon(icon, size: 18, color: palette.onSurface),
               if (badge > 0)
                 Positioned(
                   top: -5,

@@ -159,7 +159,9 @@ description: "Task list for 004 UI v2 重构"
 - [x] T024 [US4] 路由两分支改造：lib/app/router.dart StatefulShellRoute 3→2 分支（today/review）；/settings 改 today 分支全屏 push 子路由；/goal-editor 保持 today 子路由；/goals 兜底 /today 核验
   - ✅ 实现完成：router.dart StatefulShellRoute 3→2 分支（settings 分支退役）——/settings 迁根级 GoRoute 全屏 push 子路由（覆盖壳层 dock：opaque 页压顶，shell 不再构建 → navTab finder 找不到，页签自然退场；今日页头像 go→push，T012 过渡式返回钮 canPop?pop:go('/today') 自然成立）；/goal-editor、/goal/:id、/goals-all 保持 today 分支子路由（dock 恒定 FR-010/D5）；_navDests 收两枚（today/review）；today_view _AvatarEntry 文档更新。测试迁移七处：US1 两分支用例重写（页签恰两枚 key 断言 + mineNav/goalsNav 文本零上屏 + 头像 push→screenTitle/dock 退场→chevron 返回复原）；US1 编辑器用例 mineNav 断言换 navTab 两 key；T030/T033/T026(avatar 入口 byTooltip)/T041（页签不退场改 navTab 两 key）/T038（回顾终查后回今日再头像 push、chevron 返回后进 gd 卡——mineNav 页签 tap 动线退役）逐点清退；router.go('/settings') 存量用例全部自然兼容（断言均 Scoped 在 SettingsView 内）
   - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（150/150；US1 两分支/编辑器/深链、T026/T032/T033/T038/T041 全量绿）
-- [ ] T025 [US4] 底部导航壳重做：lib/app/router.dart _PillNav 换新语言——今日 | 中央凸起圆形＋ | 回顾，任意页面恒定，中央按钮直达 /goal-editor（depends T024）
+- [x] T025 [US4] 底部导航壳重做：lib/app/router.dart _PillNav 换新语言——今日 | 中央凸起圆形＋ | 回顾，任意页面恒定，中央按钮直达 /goal-editor（depends T024）
+  - ✅ 实现完成：_PillNav 悬浮胶囊退役 → _Dock 冻结稿 D2「黑色线条」定稿复刻——全宽近实卡底条（glassCard + 顶缘发丝线，84px · 顶 padding 8）三槽「今日 | 中央＋ | 回顾」（两页签 Expanded 对称、FAB 恰在屏中线）；当前页签 onSurface 加粗 w700 + 标签下 16×3 短横线 navTabMark（深色自动反白，全条无彩色）；_DockFab 56px 墨面圆 + glassCard 4px 描边环 + shadowMid，上缘凸出 22px（凸出带透明但占位命中——凸出部分点击落在 dock 区域才能稳定命中 FAB），push /goal-editor，Tooltip 沿用「新建目标」；页签字形复刻冻结稿 SVG（今日=_TodayGlyphPainter 点阵 960 画布两列 r73×3+中列 r33×2 绘入 22px；回顾=Icons.cloudy_snowing 同源）；今日页头部过渡＋退役（_CircleButton 主形态随之精简为铃铛单形态，铃铛驻留=通知列表唯一入口 T009 冻结）；T031 竖直居中锚点从页签文字顶改 dockBar 底条顶缘（dock 增高 26px，FAB 凸出带视觉透明不计入区域）；新增 T025 用例（三槽在场/短横线随选中迁移/FAB 今日·回顾两页直达编辑器/dock 恒定/全屏唯一 add 即 FAB）
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（151/151，新增 1 用例）
 - [ ] T026 [US4] 导航与深链回归：test/widget_test.dart 用例更新（target:// today/review/goal/{id} 映射不变；第三页签移除后旧断言清退；头像→我的页职能可达核验）（depends T024, T025）
 
 **Checkpoint**: 导航结构全局恒定，深链面零回归

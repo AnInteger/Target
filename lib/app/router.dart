@@ -5,9 +5,9 @@
 /// research D5）；深链 target://today|review|goal/{id}，goal 无 id 兜底
 /// /today）。
 ///
-/// 导航壳层按今日屏 R7 定稿（screen-today.html）：底部白色悬浮全圆角胶囊条，
-/// 选中 = 墨色胶囊内图标上文字下；壳层画四段底幕渐变，今日页透明叠在其上。
-/// （T025 将按 v2 冻结稿重做 dock：今日 | 中央凸起＋ | 回顾。）
+/// 导航壳层按 v2-today 冻结稿（004 T025 重做，R3 裁决 D2「黑色线条」）：
+/// 底部全宽 dock = 今日 | 中央凸起圆形＋ | 回顾，当前页签黑字加粗 +
+/// 16×3 短横线、FAB 中性墨面；壳层画四段底幕渐变，今日页透明叠在其上。
 ///
 /// /goals 页签与路由退役（目标页职能并入今日卡与详情，T015/T016）——
 /// 存量入口（今日页旧「查看全部」、书签深链）经 redirect 落 /today。
@@ -81,7 +81,7 @@ GoRouter _build() => GoRouter(
   ],
 );
 
-/// 导航壳层：底幕渐变画布 + 底部胶囊导航（今日屏 R4 定稿几何）。
+/// 导航壳层：底幕渐变画布 + 底部 dock（004 T025 重做，D2 定稿几何）。
 class _AppShell extends StatelessWidget {
   const _AppShell({required this.navigationShell});
 
@@ -102,74 +102,135 @@ class _AppShell extends StatelessWidget {
         ),
         child: navigationShell,
       ),
-      bottomNavigationBar: _PillNav(shell: navigationShell),
+      bottomNavigationBar: _Dock(shell: navigationShell),
     );
   }
 }
 
 /// 底部导航页签描述。
 class _NavDest {
-  const _NavDest(this.location, this.label, this.icon, this.activeIcon);
+  const _NavDest(this.location, this.label, this.glyph);
 
   final String location;
   final String label;
-  final IconData icon;
-  final IconData activeIcon;
+  final _DockGlyph glyph;
 }
 
+/// 页签字形（v2 冻结稿 dock 内嵌 SVG；今日为手绘点阵，非 Icons 字形）。
+enum _DockGlyph { todayDots, cloudSnow }
+
 const _navDests = [
-  _NavDest('/today', Copy.todayNav, Icons.home_outlined, Icons.home_rounded),
-  _NavDest('/review', Copy.reviewNav, Icons.insights_outlined, Icons.insights),
+  _NavDest('/today', Copy.todayNav, _DockGlyph.todayDots),
+  _NavDest('/review', Copy.reviewNav, _DockGlyph.cloudSnow),
 ];
 
-/// 悬浮全圆角胶囊导航条：navwrap inset 与内容列对齐（space-6），
-/// 条内 space-1 呼吸；等分槽位，选中胶囊变宽不推挤邻页签。
-class _PillNav extends StatelessWidget {
-  const _PillNav({required this.shell});
+/// 底部 dock（004 T025 重做，v2-today 冻结稿 D2「黑色线条」定稿）：
+/// 全宽近实卡底条（glass-card + 顶缘发丝线，.dock 84px · 顶 padding 8），
+/// 今日 | 中央凸起圆形＋ | 回顾 三槽——两页签 Expanded 对称、FAB 恰在
+/// 屏中线；当前页签 on-surface 加粗 + 标签下 16×3 短横线（深色自动
+/// 反白，全条无彩色）；FAB 56px 中性（浅色墨底白＋/深色反白），上缘
+/// 凸出底条 22px、带 glass-card 4px 描边环；任意壳层页恒定（FR-010）。
+class _Dock extends StatelessWidget {
+  const _Dock({required this.shell});
 
   final StatefulNavigationShell shell;
+
+  /// FAB 上缘凸出量（冻结稿 .fab margin-top: -22px）。
+  static const double _fabOverhang = 22;
+
+  /// 底条高（冻结稿 .dock height: 84px）。
+  static const double _barHeight = 84;
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
+    Widget tab(int i) => Expanded(
+      child: Padding(
+        // 页签起于底条顶 padding 8 之后（22 + 8 = 30）。
+        padding: const EdgeInsets.only(top: _fabOverhang + AppSpace.s2),
+        child: _NavTab(
+          dest: _navDests[i],
+          selected: shell.currentIndex == i,
+          onTap: () =>
+              shell.goBranch(i, initialLocation: shell.currentIndex == i),
+        ),
+      ),
+    );
     return SafeArea(
       top: false,
-      minimum: const EdgeInsets.only(bottom: AppSpace.s4),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpace.s6,
-          AppSpace.s2,
-          AppSpace.s6,
-          0,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpace.s1),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: AppRadius.rFull,
-            boxShadow: palette.shadowMid,
-          ),
-          child: Row(
-            children: [
-              for (final (i, dest) in _navDests.indexed)
-                Expanded(
-                  child: _NavTab(
-                    dest: dest,
-                    selected: shell.currentIndex == i,
-                    onTap: () => shell.goBranch(
-                      i,
-                      initialLocation: shell.currentIndex == i,
-                    ),
-                  ),
+      child: SizedBox(
+        // 高出底条的 22px = FAB 凸出带：视觉透明但占位命中（凸出部分
+        // 的点击须落在 dock 自身区域而非 body，才能稳定命中 FAB）。
+        height: _barHeight + _fabOverhang,
+        child: Stack(
+          children: [
+            // 底条本体：近实卡底 + 顶缘发丝线（冻结稿 .dock）。
+            Positioned(
+              top: _fabOverhang,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: DecoratedBox(
+                key: const ValueKey('dockBar'),
+                decoration: BoxDecoration(
+                  color: palette.glassCard,
+                  border: Border(top: BorderSide(color: palette.divider)),
                 ),
-            ],
-          ),
+              ),
+            ),
+            // 三槽行：FAB 起于 0（凸出 22），两页签起于 30。
+            Positioned.fill(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  tab(0),
+                  _DockFab(onTap: () => context.push('/goal-editor')),
+                  tab(1),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
+/// 中央凸起圆形＋（冻结稿 .fab）：56px 墨面圆 + glass-card 4px 描边环 +
+/// 中层投影；直达 /goal-editor（SC-004 ≤1 交互）。Tooltip 沿用「新建目标」
+/// ——今日页头部过渡＋退役（T025），测试动线无感迁移。
+class _DockFab extends StatelessWidget {
+  const _DockFab({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Tooltip(
+      message: Copy.todayNewGoal,
+      child: InkWell(
+        key: const ValueKey('dockFab'),
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: palette.onSurface,
+            border: Border.all(color: palette.glassCard, width: 4),
+            boxShadow: palette.shadowMid,
+          ),
+          child: Icon(Icons.add, size: 24, color: palette.surface),
+        ),
+      ),
+    );
+  }
+}
+
+/// 页签（冻结稿 .tab：88px 槽位列布局，图标 22 + 缝 3 + labelS；
+/// D2 选中态 = on-surface 加粗 + 标签下 16×3 短横线，非选中弱化灰）。
 class _NavTab extends StatelessWidget {
   const _NavTab({
     required this.dest,
@@ -184,50 +245,20 @@ class _NavTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
-    final labelStyle = Theme.of(context).textTheme.labelS;
-    final icon = Icon(
-      selected ? dest.activeIcon : dest.icon,
-      size: 20,
-      color: selected ? palette.accentOn : palette.onSurfaceVariant,
-    );
-
-    Widget content;
-    if (selected) {
-      // 选中胶囊：墨色实心，图标上文字下。
-      content = Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpace.s4,
-          vertical: AppSpace.s1,
-        ),
-        decoration: BoxDecoration(
-          color: palette.accent,
-          borderRadius: AppRadius.rFull,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            icon,
-            const SizedBox(height: 3),
-            Text(
-              dest.label,
-              style: labelStyle.copyWith(color: palette.accentOn),
-            ),
-          ],
-        ),
-      );
-    } else {
-      content = Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpace.s1),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            icon,
-            const SizedBox(height: 3),
-            Text(dest.label, style: labelStyle),
-          ],
-        ),
-      );
-    }
+    final color = selected ? palette.onSurface : palette.onSurfaceVariant;
+    final Widget icon = switch (dest.glyph) {
+      // 今日：手绘点阵字形（两列各三枚大点 + 中列上段两枚小点）。
+      _DockGlyph.todayDots => CustomPaint(
+        size: const Size.square(22),
+        painter: _TodayGlyphPainter(color: color),
+      ),
+      // 回顾：云雪字形（Material Symbols cloudy_snowing 同源）。
+      _DockGlyph.cloudSnow => Icon(
+        Icons.cloudy_snowing,
+        size: 22,
+        color: color,
+      ),
+    };
 
     return Semantics(
       button: true,
@@ -237,13 +268,62 @@ class _NavTab extends StatelessWidget {
         // 004 T020：今日页大标题与页签同文「今日」，测试以 key 定位页签。
         key: ValueKey('navTab-${dest.location}'),
         onTap: onTap,
-        borderRadius: AppRadius.rFull,
-        // 不用 Center 包裹：底部导航槽高度无上界，Center 会取
-        // constraints.biggest 撑到无穷高（Column 本身已居中且按内容收缩）。
-        child: content,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(height: 3),
+            Text(
+              dest.label,
+              style: Theme.of(context).textTheme.labelS.copyWith(
+                color: color,
+                fontWeight: selected ? FontWeight.w700 : null,
+              ),
+            ),
+            if (selected) ...[
+              const SizedBox(height: 3),
+              Container(
+                key: ValueKey('navTabMark-${dest.location}'),
+                width: 16,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: palette.onSurface,
+                  borderRadius: AppRadius.rFull,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
+}
+
+/// 今日页签点阵字形（v2 冻结稿 dock SVG 同形复刻）：960 画布，两列
+/// （x 233/730）各三枚 r73 大点（y 153/480/807）+ 中列（x 480）上段
+/// 两枚 r33 小点（y 226/387），绘制到 22px 槽。
+class _TodayGlyphPainter extends CustomPainter {
+  const _TodayGlyphPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = size.width / 960;
+    final paint = Paint()..color = color;
+    void dot(double x, double y, double r) =>
+        canvas.drawCircle(Offset(x * scale, y * scale), r * scale, paint);
+    for (final x in [233.0, 730.0]) {
+      for (final y in [153.0, 480.0, 807.0]) {
+        dot(x, y, 73);
+      }
+    }
+    dot(480, 226, 33);
+    dot(480, 387, 33);
+  }
+
+  @override
+  bool shouldRepaint(_TodayGlyphPainter old) => old.color != color;
 }
 
 /// 深链 target:// → 内部路由。

@@ -1335,6 +1335,59 @@ void main() {
     await db.close();
   });
 
+  testWidgets('US4 dock 重做（004 T025）：两页签+中央FAB 三槽恒定、FAB 直达编辑器、头部过渡＋退役', (
+    tester,
+  ) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(
+            FakeNotificationGateway(),
+          ),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 今日页：dock 三槽在场——两页签 + 中央 FAB（D2 黑线：当前页签带
+    // 16×3 短横线 navTabMark，非选中无）；全屏唯一 Icons.add 即 FAB
+    // 的＋（头部过渡＋退役），铃铛驻留头部（通知列表唯一入口）。
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTabMark-/today')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTabMark-/review')), findsNothing);
+    expect(find.byIcon(Icons.cloudy_snowing), findsOneWidget); // 回顾字形
+    expect(find.byIcon(Icons.add), findsOneWidget);
+    expect(find.byTooltip(Copy.todayNewGoal), findsOneWidget); // FAB Tooltip
+    expect(find.byTooltip(Copy.notificationTitle), findsOneWidget); // 铃铛
+
+    // 中央按钮 ≤1 交互直达编辑器（SC-004），dock 恒定（FR-010）。
+    await tester.tap(find.byKey(const ValueKey('dockFab')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dockFab')), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.chevron_left)); // 编辑器返回（无 Tooltip）
+    await tester.pumpAndSettle();
+
+    // 回顾页：短横线随选中迁移；FAB 任意页恒定，同样直达。
+    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('navTabMark-/review')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTabMark-/today')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('dockFab')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
+    await db.close();
+  });
+
   testWidgets('US1 编辑器/详情落 today 分支：导航不退场 + /goals 兜底（FR-010）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
@@ -1534,10 +1587,13 @@ void main() {
     final cta = find.byKey(const ValueKey('reviewEmptyCta'));
     expect(cta, findsOneWidget);
 
-    // 竖直居中：空态块中心落在「标题以下、底部导航以上」区域中心附近。
+    // 竖直居中：空态块中心落在「标题以下、dock 底条顶缘以上」区域中心
+    // 附近（004 T025 dock 重做后以底条顶缘为界，FAB 凸出带视觉透明）。
     final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
     final areaTop = tester.getRect(find.text(Copy.reviewTitle)).bottom;
-    final areaBottom = tester.getRect(find.text(Copy.todayNav)).top;
+    final areaBottom = tester
+        .getRect(find.byKey(const ValueKey('dockBar')))
+        .top;
     final stateRect = tester.getRect(
       find.byKey(const ValueKey('reviewEmptyState')),
     );

@@ -14,13 +14,13 @@
 
 **测试**: widget test 注入 `MediaMediaQuery.padding.bottom=34` 断言 dockBar 底缘 == 屏底、页签 bottom ≥ 34；inset=0 用例断言几何与现版一致。
 
-## D2 · 页级边距统一 24（FR-003）
+## D2 · 页级边距分层基准：hero 24 / 次级 16（FR-003）
 
-**Decision**: 四个 push 页（goals_all_view / settings_view / goal_editor / goal_detail）页级水平 padding 从 `AppSpace.s5`(20) 全部收敛到 `AppScreen.padX`(24)——涉及各页顶栏 padding、可滚列表水平 padding、正文区水平 padding。今日/回顾已 24 不动。
+**Decision**: 分层两档（2026-08-23 clarify 用户裁定，原「单值 24」案被取代）——今日/回顾维持 `AppScreen.padX`(24) 不动；四个 push 页（goals_all_view / settings_view / goal_editor / goal_detail）页级水平 padding 从 `AppSpace.s5`(20) 收敛到 `AppSpace.s4`(16)——涉及各页顶栏 padding、可滚列表水平 padding、正文区水平 padding。
 
-**Rationale**: 24 = 003 FR-008 三屏标题带基准 + 004 hero 冻结值；只动次级页、改动面最小（spec Assumptions 裁定）。**只收敛页缘水平值**；卡片内边距、胶囊内距、组件间缝（垂直向）一律不动——那是节奏设计不是页缘漂移。`goal_detail` 中 `AppSpace.s5 + 8` 类裸算式顺手归档说明（垂直底距非本轮口径，不强行刻度化）。
+**Rationale**: hero 大标题屏 24 保编辑排版气势（两屏冻结稿零改动）；次级四页为扫读/表单页，16 = 移动端行业默认基线（Material keyline / Apple 系统页），卡更宽（390pt 屏 358 vs 342）、密度更优。跨层差异（24↔16）仅出现在 push 转场两侧，转场天然隔离层级读感；dock 页签间（今日 24 ↔ 回顾 24）零跳动。16/24 均为 design_tokens 既有刻度（s4/padX），零新令牌。**只收敛页缘水平值**；卡片内边距、胶囊内距、组件间缝（垂直向）一律不动——那是节奏设计不是页缘漂移。次级页 20→16 偏离冻结稿原型（.ga-top 20）4pt 为有意裁定，与 D7 一并 T012 留档；`goal_detail` 中 `AppSpace.s5 + 8` 类裸算式顺手归档说明（垂直底距非本轮口径，不强行刻度化）。
 
-**Alternatives**: 统一 20（动 hero 冻结稿）✗；16（四页全动 + 与冻结 hero 冲突，外部文档建议已驳回）✗。
+**Alternatives**: ①全端单值 24（原默认案：零跳动最彻底、改动面最小，但列表卡最窄、次级页偏松）——clarify 裁定弃 ✗；②全端单值 16（外部文档建议：hero 冻结屏气势受损、两屏全动）✗；③全端单值 20（hero 冻结稿要改、次级维持现状根因不除）✗。
 
 ## D3 · 轮播首末卡对齐页基准（FR-004）
 
@@ -80,7 +80,7 @@
 | lib/app/page_top_bar.dart | D5 新建共享顶栏（含 D6 返回钮 44 触达） |
 | lib/features/today/today_view.dart | D3 结构反转+段 padding · D6 铃铛 44 · D7 头部两行 |
 | lib/features/today/focus_carousel.dart | D3 全出血 fraction |
-| lib/features/goals/goals_all_view.dart | D2 边距 24 · D5 顶栏替换 · D6 |
+| lib/features/goals/goals_all_view.dart | D2 边距 16 · D5 顶栏替换 · D6 |
 | lib/features/settings/settings_view.dart | D2 · D5 |
 | lib/features/goals/goal_editor.dart | D2 · D5 |
 | lib/features/goals/goal_detail.dart | D2 · D5 · D6 |

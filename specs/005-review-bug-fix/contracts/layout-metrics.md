@@ -3,15 +3,16 @@
 **消费者**: 屏幕层代码（lib/features/**、lib/app/**）与测试（token_contract_test 扩展、widget 断言）。
 **真源**: lib/app/design_tokens.dart（既有 AppSpace/AppScreen/AppRadius/AppMotion 刻度，本轮零新增令牌）。
 
-## 1 · 页缘水平基准（FR-003 / SC-001）
+## 1 · 页缘水平基准（FR-003 / SC-001）——分层两档
 
-- 全部页面（今日/回顾/全部目标/我的/编辑器/详情）内容左右缘 = `AppScreen.padX`(24)，全 App 唯一。
+- hero 两屏（今日/回顾）内容左右缘 = `AppScreen.padX`(24)；次级 push 四页（全部目标/我的/编辑器/详情）= `AppSpace.s4`(16)。同层各屏完全一致，页级水平 padding 禁用两档之外的值（均出自既有刻度，零新令牌）。
+- 跨层差异（24↔16）仅存在于 push 转场两侧；dock 页签间恒同层（今日/回顾均 24）。
 - 页级与组件级水平 padding 不得叠加出页缘（轮播段按 §3 全出血例外）。
-- 测试消费：各页根可滚容器水平 padding 断言 = padX；四屏左缘 x 叠加一致。
+- 测试消费：hero 两屏根容器水平 padding 断言 = padX；次级四页断言 = s4；同层左缘 x 叠加一致。
 
 ## 2 · 次级顶栏几何（FR-007 / FR-008 / SC-005）
 
-- 唯一组件 `PageTopBar`（lib/app/page_top_bar.dart）：返回圆钮视觉 38px + 标题 titleM + trailing 槽；水平 padding = padX；栏内垂直节奏 上 s3 / 下 s2。
+- 唯一组件 `PageTopBar`（lib/app/page_top_bar.dart）：返回圆钮视觉 38px + 标题 titleM + trailing 槽；水平 padding = `AppSpace.s4`(16)（组件仅用于次级页，随列表档）；栏内垂直节奏 上 s3 / 下 s2。
 - 返回钮触达 44×44（视觉 38 不变）；次级页禁再手写顶栏。
 - 今日/回顾 hero 头部（冻结稿结构）不套用本组件。
 

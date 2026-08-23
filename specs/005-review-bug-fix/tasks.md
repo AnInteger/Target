@@ -47,16 +47,16 @@ description: "Task list for 005 走查修复轮"
 
 ---
 
-## Phase 3: User Story 2 - 页缘单值对齐 24 (Priority: P1)
+## Phase 3: User Story 2 - 页缘分层对齐 hero 24 / 次级 16 (Priority: P1)
 
-**Goal**: 全部页面内容左右缘统一 AppScreen.padX(24)，跨屏无左右跳动（FR-003，research D2）
+**Goal**: hero 两屏 24 维持、次级四页收敛 16（分层基准，同层跨屏零左右跳动；FR-003，research D2 / clarify 裁定）
 
-**Independent Test**: 各页根容器水平 padding 断言 = padX；四屏左缘叠加一致（深浅双主题）
+**Independent Test**: hero 两屏根容器水平 padding 断言 = padX(24)、次级四页断言 = s4(16)；同层左缘叠加一致（深浅双主题）
 
-- [ ] T003 [P] [US2] 全部目标页+我的页页缘收敛：lib/features/goals/goals_all_view.dart 与 lib/features/settings/settings_view.dart 页级水平 `AppSpace.s5`(20)→`AppScreen.padX`(24)（顶栏/筛选行/列表/正文区水平值；卡片内距与垂直节奏不动）+ test/ 页缘断言用例
-- [ ] T004 [P] [US2] 编辑器+详情页页缘收敛：lib/features/goals/goal_editor.dart 与 lib/features/goals/goal_detail.dart 同口径 s5→padX（含正文可滚区；`AppSpace.s5+8` 类垂直裸算式顺手留档说明不强行刻度化）+ test/ 四屏（+编辑器/详情）左缘一致用例
+- [ ] T003 [P] [US2] 全部目标页+我的页页缘收敛：lib/features/goals/goals_all_view.dart 与 lib/features/settings/settings_view.dart 页级水平 `AppSpace.s5`(20)→`AppSpace.s4`(16)（列表档基准；顶栏/筛选行/列表/正文区水平值，卡片内距与垂直节奏不动）+ test/ 次级档页缘断言用例
+- [ ] T004 [P] [US2] 编辑器+详情页页缘收敛：lib/features/goals/goal_editor.dart 与 lib/features/goals/goal_detail.dart 同口径 s5→s4(16)（含正文可滚区；`AppSpace.s5+8` 类垂直裸算式顺手留档说明不强行刻度化）+ test/ 次级四屏（+编辑器/详情）左缘一致（16）用例
 
-**Checkpoint**: SC-001 页缘单值达成（六屏叠加同线）
+**Checkpoint**: SC-001 页缘分层达成（hero 两屏同线 24 + 次级四屏同线 16）
 
 ---
 
@@ -90,7 +90,7 @@ description: "Task list for 005 走查修复轮"
 
 **Independent Test**: 四页顶栏几何叠加一致断言；触达区逐钮 ≥44 断言；头部中线对齐断言
 
-- [ ] T007 [US5] 新建共享顶栏 lib/app/page_top_bar.dart（D5+D6）：返回圆钮视觉 38px/触达 44×44（SizedBox+Center 模式）+ 标题 titleM + trailing 槽；水平 padding=AppScreen.padX、栏内垂直 s3/s2；hero 两屏不套用
+- [ ] T007 [US5] 新建共享顶栏 lib/app/page_top_bar.dart（D5+D6）：返回圆钮视觉 38px/触达 44×44（SizedBox+Center 模式）+ 标题 titleM + trailing 槽；水平 padding=AppSpace.s4(16)（次级页列表档，契约 §2）、栏内垂直 s3/s2；hero 两屏不套用
 - [ ] T008 [US5] 四页顶栏替换（D5，依赖 T007）：goals_all_view（trailing=计数+新建胶囊）、settings_view（无 trailing）、goal_editor（保留 Navigator.maybePop 语义）、goal_detail（trailing=⋯菜单钮）各自手写顶栏退役换 PageTopBar；test/ 四顶栏几何同构断言 + 既有返回/菜单动线用例回归
 - [ ] T009 [P] [US5] 触达 44 扫尾（D6）：lib/features/today/today_view.dart `_CircleButton`（铃铛 36 视觉→44 触达）、lib/features/review/review_view.dart 日历钮、goal_detail ⋯ 若独立于 PageTopBar 的残余小钮——统一 SizedBox(44)+Center 外扩，视觉尺寸零变化；test/ 触达区断言
 - [ ] T010 [P] [US5] 今日头部两行重构（D7）：lib/features/today/today_view.dart `_Head` 改「日期行 + 标题行（标题+铃铛+头像 CrossAxisAlignment.center）」——铃铛/头像视觉中线恒与大标题中线重合；与冻结稿整块居中的 4–6px 有意偏差于 T012 留档；test/ 中线对齐断言 + 头像/铃铛动线回归
@@ -104,7 +104,7 @@ description: "Task list for 005 走查修复轮"
 **Purpose**: 回归、复核留档与文档收口
 
 - [ ] T011 全量回归+quickstart 代码层走查：跑 specs/005-review-bug-fix/quickstart.md 阶段 A–D（深浅双主题逐项）+ 阶段 F 门禁（analyze 0 + 全量绿，既有 161 零回归确认）；FR-009a 抽查（创建/打卡/编辑/暂停恢复删除/通知/资料/备份往返）
-- [ ] T012 FR-010 复核留档 + reviews.md 续录：模拟器复核「切换粘连」（T006 转场上线后复测）与「今日页大块空白」（对照 24 设计值）——复现则修复补档、未复现记录裁定依据；D7 冻结稿偏差留档；真机项标注沿用 003 T043 合并窗口；design/reviews.md 续「实现审计」条目（T002–T010 各任务结论）
+- [ ] T012 FR-010 复核留档 + reviews.md 续录：模拟器复核「切换粘连」（T006 转场上线后复测）与「今日页大块空白」（对照 24 设计值）——复现则修复补档、未复现记录裁定依据；D7 头部中线与 D2 次级页 20→16 两处冻结稿有意偏差留档；真机项标注沿用 003 T043 合并窗口；design/reviews.md 续「实现审计」条目（T002–T010 各任务结论）
 - [ ] T013 文档收口：spec.md Status: Draft→Complete 附收口摘要（四属实全修/两不属实留档/两复核结论）；tasks.md 全勾核对；memory 终态更新
 
 ---
@@ -149,5 +149,5 @@ description: "Task list for 005 走查修复轮"
 ## Notes
 
 - 修复型任务用例与实现同批提交（无 TDD 先行批）；用例优先断言「不变式」而非像素（契约 layout-metrics.md §1–6 即断言清单）
-- 冻结稿偏差仅 D7 一处（4–6px 有意），T012 留档；其余全部为对齐冻结稿意图的修复
+- 冻结稿偏差两处均为有意裁定：D7 头部中线（4–6px）、D2 次级四页 20→16（clarify 用户裁定，列表密度优化）——T012 统一留档；其余全部为对齐冻结稿意图的修复
 - 真机侧载轮沿用 003 T043 合并窗口（本轮 quickstart 阶段 E 两项 + FR-010 真机面）

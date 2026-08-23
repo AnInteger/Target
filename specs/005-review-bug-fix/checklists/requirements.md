@@ -32,5 +32,5 @@
 ## Notes
 
 - 输入为外部审查文档，spec 前置「输入核验结论」表逐条裁定（属实收编 / 不属实留档 / 待真机复核），全部裁定依据可回溯代码。
-- 边距统一值（24）与转场刻度复用为裁定默认值，依据与弃选理由记录于 Assumptions，无需澄清阻塞。
+- 边距基准经 2026-08-23 clarify 用户裁定为分层两档（hero 24 / 次级 16，见 spec Clarifications）；转场刻度复用为裁定默认值，依据记录于 Assumptions。
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`

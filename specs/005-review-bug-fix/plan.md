@@ -6,7 +6,7 @@
 
 ## Summary
 
-外部审查十条核验后收编四类属实缺陷：①dock 被外层 SafeArea 整条抬离物理底边——改为背景下延至 y=0、互动元素避让 inset（D1）；②页级边距 24/20 双标准——四个 push 页统一 `AppScreen.padX`(24)（D2）；③今日轮播首卡缘叠加 ≈41pt——ListView 结构反转 + 全出血 fraction=(W−2·padX)/W（D3）；④dock 切页 0ms 硬切 + 次级顶栏四份手写 + 图标触达 36/38<44 + 今日头部整块居中错位——fade-through 自研包壳（D4）、共享 `PageTopBar`（D5）、44 触达外扩（D6）、头部两行重构（D7）。两不属实不修、两未复现转真机复核（D8）。零数据变更、004 冻结语言不动。
+外部审查十条核验后收编四类属实缺陷：①dock 被外层 SafeArea 整条抬离物理底边——改为背景下延至 y=0、互动元素避让 inset（D1）；②页级边距双标准——分层基准：hero 两屏 24 不动、四个 push 页收敛 `AppSpace.s4`(16)（D2，clarify 用户裁定）；③今日轮播首卡缘叠加 ≈41pt——ListView 结构反转 + 全出血 fraction=(W−2·padX)/W（D3）；④dock 切页 0ms 硬切 + 次级顶栏四份手写 + 图标触达 36/38<44 + 今日头部整块居中错位——fade-through 自研包壳（D4）、共享 `PageTopBar`（D5）、44 触达外扩（D6）、头部两行重构（D7）。两不属实不修、两未复现转真机复核（D8）。零数据变更、004 冻结语言不动。
 
 ## Technical Context
 
@@ -70,7 +70,7 @@ lib/
 │   │   ├── today_view.dart    # D3 结构反转+分段 padding · D6 铃铛 44 · D7 头部两行
 │   │   └── focus_carousel.dart# D3 全出血 viewportFraction
 │   ├── goals/
-│   │   ├── goals_all_view.dart# D2 边距 24 · D5 顶栏替换（trailing=计数+新建胶囊）
+│   │   ├── goals_all_view.dart# D2 边距 16 · D5 顶栏替换（trailing=计数+新建胶囊）
 │   │   ├── goal_editor.dart   # D2 · D5（保留 maybePop 语义）
 │   │   └── goal_detail.dart   # D2 · D5（trailing=⋯菜单）· D6
 │   ├── settings/settings_view.dart # D2 · D5

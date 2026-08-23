@@ -1635,64 +1635,53 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T031 回顾空态：竖直居中 + CTA ≤1 交互直达新建（FR-007/SC-004）', (tester) async {
-    usePhoneSurface(tester);
-    final db = AppDatabase(NativeDatabase.memory());
-    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
-      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
-    );
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(
-            FakeNotificationGateway(),
-          ),
-          dayTickerProvider.overrideWith((ref) {}),
-        ],
-        child: const TargetApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final router = ProviderScope.containerOf(
-      tester.element(find.byType(TargetApp)),
-      listen: false,
-    ).read(routerProvider);
-    router.go('/review');
-    await tester.pumpAndSettle();
+  testWidgets(
+    'T031 回顾空态：概览整卡「—」+ 空态引导 + CTA ≤1 交互直达新建（FR-007/SC-004 · 004 v2）',
+    (tester) async {
+      usePhoneSurface(tester);
+      final db = AppDatabase(NativeDatabase.memory());
+      await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+        const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            dbProvider.overrideWithValue(db),
+            notificationGatewayProvider.overrideWithValue(
+              FakeNotificationGateway(),
+            ),
+            dayTickerProvider.overrideWith((ref) {}),
+          ],
+          child: const TargetApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final router = ProviderScope.containerOf(
+        tester.element(find.byType(TargetApp)),
+        listen: false,
+      ).read(routerProvider);
+      router.go('/review');
+      await tester.pumpAndSettle();
 
-    // 空态元素（原型画板②）：节奏条语言延续 + 引导文案 + 主 CTA。
-    expect(find.byKey(const ValueKey('reviewEmptyState')), findsOneWidget);
-    expect(find.text(Copy.reviewEmptyTitle), findsOneWidget);
-    final cta = find.byKey(const ValueKey('reviewEmptyCta'));
-    expect(cta, findsOneWidget);
+      // v2 空周（冻结稿画板③同源）：概览整卡空态 + 引导块 + 主 CTA。
+      // 大数字与环心双位示「—」、副行「该周暂无记录」、环比无可比较不出胶囊。
+      expect(find.byKey(const ValueKey('weekAvgNum')), findsOneWidget);
+      expect(find.text('—'), findsNWidgets(2));
+      expect(find.text(Copy.reviewAvgEmpty), findsOneWidget);
+      expect(find.byKey(const ValueKey('weekAvgDelta')), findsNothing);
+      expect(find.byKey(const ValueKey('reviewEmptyState')), findsOneWidget);
+      expect(find.text(Copy.reviewEmptyTitle), findsOneWidget);
+      final cta = find.byKey(const ValueKey('reviewEmptyCta'));
+      expect(cta, findsOneWidget);
 
-    // 竖直居中：空态块中心落在「标题以下、dock 底条顶缘以上」区域中心
-    // 附近（004 T025 dock 重做后以底条顶缘为界，FAB 凸出带视觉透明）。
-    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
-    final areaTop = tester.getRect(find.text(Copy.reviewTitle)).bottom;
-    final areaBottom = tester
-        .getRect(find.byKey(const ValueKey('dockBar')))
-        .top;
-    final stateRect = tester.getRect(
-      find.byKey(const ValueKey('reviewEmptyState')),
-    );
-    expect(
-      (stateRect.center.dy - (areaTop + areaBottom) / 2).abs(),
-      lessThan(20),
-      reason:
-          '空态应竖直居中（FR-007），实际中心 '
-          '${stateRect.center.dy} vs 区域中心 ${(areaTop + areaBottom) / 2}',
-    );
-    expect(stateRect.center.dx, closeTo(screen.width / 2, 4));
-
-    // SC-004：≤1 次交互直达新建——tap CTA → 编辑器（today 分支，页签不退场）。
-    await tester.tap(cta);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
-    expect(find.text(Copy.todayNav), findsOneWidget);
-    await db.close();
-  });
+      // SC-004：≤1 次交互直达新建——tap CTA → 编辑器（today 分支，页签不退场）。
+      await tester.tap(cta);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
+      expect(find.text(Copy.todayNav), findsOneWidget);
+      await db.close();
+    },
+  );
 
   testWidgets('T032 标题带对齐：今日/回顾同带（我的页 004 v2 改 push 顶栏）', (tester) async {
     usePhoneSurface(tester);
@@ -2498,7 +2487,9 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T021 周回顾 R3：纯回看语言——周摘要/图例/节奏条/观察语，无决策控件', (tester) async {
+  testWidgets('T021 周回顾 v2：‹ 周 › 切换 + 概览（周平均/环比/均分环），纯回看无决策控件（004 T028）', (
+    tester,
+  ) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
@@ -2507,7 +2498,8 @@ void main() {
     final repo = GoalRepository(db);
     final checkIns = CheckInRepository(db);
 
-    // 三周前立的习惯，上周 7 天适用、留下 4 次（一/二/四/五）。
+    // 三周前立两个习惯：上周 4+1 = 5 次留痕 / 14 应记 → 36%；
+    // 上上周（创建周尾段）零留痕 → 0%；本周尚无留痕 → 0%。
     final createdAt = today.addDays(-21);
     final goal = await repo.create(
       Goal(
@@ -2527,7 +2519,6 @@ void main() {
     for (final d in [0, 1, 3, 4]) {
       await checkIns.add(goal.id, lastWeek.monday.addDays(d), DateTime.now());
     }
-    // 第二个习惯：上周只留 1 次（低档观察语 + 横滑第二卡）。
     final goal2 = await repo.create(
       Goal(
         name: '读书',
@@ -2560,30 +2551,40 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 切到回顾页签。
-    await tester.tap(find.text(Copy.reviewNav));
+    // 切到回顾页签（「回顾」与 dock 页签同文，按键定位）。
+    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
     await tester.pumpAndSettle();
 
-    // 周摘要 + 三态图例 + N/M 节奏数（努力语言，无完成率百分比）。
-    expect(find.text(Copy.reviewTitle), findsOneWidget);
-    expect(find.text(Copy.reviewWeekSum(5, 2)), findsOneWidget);
-    expect(find.text(Copy.reviewLegendRecorded), findsOneWidget);
-    expect(find.text(Copy.reviewLegendMissed), findsOneWidget);
-    expect(find.text(Copy.reviewLegendNa), findsOneWidget);
-    expect(find.text('4/7'), findsOneWidget);
-    expect(find.text(Copy.goalsDaysRecorded), findsOneWidget);
-    // 观察语（okay 档，4/7 = 57%）。
-    expect(find.text(Copy.reviewCoachOkay), findsOneWidget);
-    // R3 裁决：决策动线与保存不再上屏。
+    String rangeText(WeekStart w) =>
+        '${w.monday.month} 月 ${w.monday.day} 日 – ${w.sunday.month} 月 ${w.sunday.day} 日';
+
+    // 默认本周：0%（本周尚无留痕）+ 环比 ↓36（上周 36%）。
+    expect(find.byKey(const ValueKey('screenTitle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('weekRange')), findsOneWidget);
+    expect(find.text(rangeText(today.weekStart)), findsOneWidget);
+    expect(find.text('0%'), findsOneWidget);
+    expect(find.text('↓ 36%'), findsOneWidget);
+    expect(find.text(Copy.reviewAvgSub(36)), findsOneWidget);
+    // 纯回看（R3 沿革）：决策动线不上屏。
     expect(find.textContaining('下周怎么走'), findsNothing);
     expect(find.textContaining('记下这一周'), findsNothing);
 
-    // 横滑到第二卡：低档观察语（1/7 = 14%）。
-    await tester.drag(find.byType(PageView), const Offset(-320, 0));
+    // ‹ 切上周：5/14 → 36%，环比 ↑36（上上周 0%——已立未留痕）。
+    await tester.tap(find.byKey(const ValueKey('weekPrev')));
     await tester.pumpAndSettle();
-    expect(find.text('读书'), findsOneWidget);
-    expect(find.text('1/7'), findsOneWidget);
-    expect(find.text(Copy.reviewCoachLow), findsOneWidget);
+    expect(find.text(rangeText(lastWeek)), findsOneWidget);
+    expect(find.text('36%'), findsOneWidget);
+    expect(find.text('↑ 36%'), findsOneWidget);
+    expect(find.text('36'), findsOneWidget); // 环心均分
+    expect(find.text(Copy.reviewAvgSub(0)), findsOneWidget);
+
+    // › 回本周；已在本周时 › 置灰（前瞻钳制，点了不动）。
+    await tester.tap(find.byKey(const ValueKey('weekNext')));
+    await tester.pumpAndSettle();
+    expect(find.text(rangeText(today.weekStart)), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('weekNext')));
+    await tester.pumpAndSettle();
+    expect(find.text(rangeText(today.weekStart)), findsOneWidget);
     await db.close();
   });
 

@@ -11,22 +11,24 @@ abstract final class Copy {
   static String backfillDone(String day) => '已补上 $day 的记录';
   static const checkInRevoked = '已撤销，统计同步更新';
 
-  // ---- 周回顾（FR-008 · R3 纯回看：只描述，不建议，不决策）----
+  // ---- 周回顾（FR-008 · v2-review：周切换 + 三区块，只描述不建议）----
 
-  static const reviewTitle = '上周回顾';
+  static const reviewTitle = '回顾';
 
-  /// 周摘要：「留下 N 次记录 · M 个目标」（努力语言，无完成率）。
-  static String reviewWeekSum(int records, int goals) =>
-      records == 0 ? '还没有留下记录' : '留下 $records 次记录 · $goals 个目标';
+  /// 概览区块题（选中周非必为本周，不写死「本周」）。
+  static const reviewOverviewTitle = '本周概览';
 
-  static const reviewLegendRecorded = '有记录';
-  static const reviewLegendMissed = '没记录';
-  static const reviewLegendNa = '不适用';
-  static const reviewTrendCap = '近 4 周';
-  // 观察语三档（R3：只说这一周怎么过的，不指挥下周）。
-  static const reviewCoachAll = '这一周很扎实，该在的都在。';
-  static const reviewCoachOkay = '有几天被挤掉了，正常的一周。';
-  static const reviewCoachLow = '这周留下得不多，看看都停在哪几天。';
+  /// 概览副行：「周平均完成率 · 上周 N%」；上周零应记 → 无可比较
+  ///（区别于本周零应记的 reviewAvgEmpty「该周暂无记录」）。
+  static String reviewAvgSub(int? lastRate) =>
+      lastRate == null ? '周平均完成率 · 上周无可比较' : '周平均完成率 · 上周 $lastRate%';
+
+  static const reviewAvgEmpty = '该周暂无记录';
+  static const reviewAvgScore = '均分';
+
+  /// 右上日历钮占位提示（选择周期交互后续版本，Tooltip 明示无动作）。
+  static const reviewPickWeek = '选择周期';
+
   static const reviewEmptyTitle = '还没有可回看的一周';
   static const reviewEmptySub = '先建一个目标、留下几次记录，\n这里会把那一周替你收好。';
 

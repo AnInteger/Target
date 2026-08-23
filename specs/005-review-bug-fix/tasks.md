@@ -60,7 +60,9 @@ description: "Task list for 005 走查修复轮"
 - [x] T003 [P] [US2] 全部目标页+我的页页缘收敛：lib/features/goals/goals_all_view.dart 与 lib/features/settings/settings_view.dart 页级水平 `AppSpace.s5`(20)→`AppSpace.s4`(16)（列表档基准；顶栏/筛选行/列表/正文区水平值，卡片内距与垂直节奏不动）+ test/ 次级档页缘断言用例
   - ✅ 实现完成：goals_all 三处页级（ListView/_TopBar/_FilterRow）+ settings 两处（顶栏/ListView）水平 s5→s4；sheet/对话框/胶囊/chip 卡内值零触碰
   - ✅ 门禁通过：analyze 0 + test 164/164（新增 005 T003 一例：goals-all 列表 padding 不变式+筛选首 chip/目标卡左缘=16 同线、settings ListView 同档）
-- [ ] T004 [P] [US2] 编辑器+详情页页缘收敛：lib/features/goals/goal_editor.dart 与 lib/features/goals/goal_detail.dart 同口径 s5→s4(16)（含正文可滚区；`AppSpace.s5+8` 类垂直裸算式顺手留档说明不强行刻度化）+ test/ 次级四屏（+编辑器/详情）左缘一致（16）用例
+- [x] T004 [P] [US2] 编辑器+详情页页缘收敛：lib/features/goals/goal_editor.dart 与 lib/features/goals/goal_detail.dart 同口径 s5→s4(16)（含正文可滚区；`AppSpace.s5+8` 类垂直裸算式顺手留档说明不强行刻度化）+ test/ 次级四屏（+编辑器/详情）左缘一致（16）用例
+  - ✅ 实现完成：编辑器三处（顶栏/ListView/底部主行动区）+ 详情两处（_TopBar/ListView——原左 s2 偏离冻结稿 .dt-list 对称 20 的漂移一并归直）；两处弹层 s5+8 裸算式留档注释；sheet/对话框内距零触碰
+  - ✅ 门禁通过：analyze 0 + test 165/165（新增 005 T004 一例：编辑器/详情根 ListView 页缘=16 对称）
 
 **Checkpoint**: SC-001 页缘分层达成（hero 两屏同线 24 + 次级四屏同线 16）
 

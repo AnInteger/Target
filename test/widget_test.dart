@@ -3319,4 +3319,73 @@ void main() {
     );
     await db.close();
   });
+
+  // 005 T004（US2/FR-003 续）：编辑器+详情页页缘同档 16——至此次级
+  // 四屏（全部目标/我的/编辑器/详情）根容器水平 padding 全部 s4。
+  testWidgets('005 T004 次级档页缘：编辑器+详情 页级水平=16', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goal = await GoalRepository(db).create(
+      Goal(
+        name: '锻炼',
+        goalType: GoalType.habit,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 编辑器：dock FAB 直达，根 ListView 页缘=16（顶栏/底行动区同值，
+    // 组件级断言并入 T008 顶栏同构用例）。
+    await tester.tap(find.byKey(const ValueKey('dockFab')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ListView>(find.byType(ListView).first).padding,
+      const EdgeInsets.fromLTRB(
+        AppSpace.s4,
+        AppSpace.s2,
+        AppSpace.s4,
+        AppSpace.s4,
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.chevron_left).first);
+    await tester.pumpAndSettle();
+
+    // 详情：全部目标 → 卡进详情，根 ListView 页缘=16 对称（原左 8
+    // 漂移一并归直）。
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/goals-all');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('goalsAllRow-${goal.id}')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ListView>(find.byType(ListView).first).padding,
+      const EdgeInsets.fromLTRB(
+        AppSpace.s4,
+        AppSpace.s2,
+        AppSpace.s4,
+        AppSpace.s5,
+      ),
+    );
+    await db.close();
+  });
 }

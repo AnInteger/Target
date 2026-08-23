@@ -235,10 +235,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
           children: [
             // v2 push 顶栏：38 圆返回键 + 标题（新建目标/编辑目标）。
             Padding(
+              // 005 D2：水平随页缘列表档 16（垂直节奏不动）。
               padding: const EdgeInsets.fromLTRB(
-                AppSpace.s5,
+                AppSpace.s4,
                 AppSpace.s3,
-                AppSpace.s5,
+                AppSpace.s4,
                 AppSpace.s2,
               ),
               child: Row(
@@ -255,10 +256,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             ),
             Expanded(
               child: ListView(
+                // 005 D2：页缘=列表档 s4(16)（hero 两屏 24，分层基准）。
                 padding: const EdgeInsets.fromLTRB(
-                  AppSpace.s5,
+                  AppSpace.s4,
                   AppSpace.s2,
-                  AppSpace.s5,
+                  AppSpace.s4,
                   AppSpace.s4,
                 ),
                 children: [
@@ -313,10 +315,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             // 底部固定主行动（冻结稿 .btn-primary：胶囊 + accent 实心，
             // 必填未满足置灰）。
             Padding(
+              // 005 D2：水平随页缘列表档 16。
               padding: const EdgeInsets.fromLTRB(
-                AppSpace.s5,
+                AppSpace.s4,
                 AppSpace.s3,
-                AppSpace.s5,
+                AppSpace.s4,
                 AppSpace.s5,
               ),
               child: _SaveButton(enabled: _canSave, onPressed: _save),

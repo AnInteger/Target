@@ -64,10 +64,12 @@ class GoalDetailPage extends ConsumerWidget {
             _TopBar(onMenu: () => _showMenu(context, ref, goal)),
             Expanded(
               child: ListView(
+                // 005 D2：页缘=列表档 s4(16) 对称（原左 s2/右 s5 偏离
+                // 冻结稿 .dt-list 对称 20，随分层基准一并归直）。
                 padding: const EdgeInsets.fromLTRB(
+                  AppSpace.s4,
                   AppSpace.s2,
-                  AppSpace.s2,
-                  AppSpace.s5,
+                  AppSpace.s4,
                   AppSpace.s5,
                 ),
                 children: [
@@ -197,6 +199,8 @@ class GoalDetailPage extends ConsumerWidget {
           borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
           boxShadow: palette.shadowHigh,
         ),
+        // 005 留档：底距 s5+8 为弹层 home 避让裸算式（垂直底距非
+        // 本轮页缘口径，不强行刻度化）。
         padding: const EdgeInsets.fromLTRB(
           AppSpace.s5,
           AppSpace.s3,
@@ -311,10 +315,11 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
+      // 005 D2：水平随页缘列表档 16（垂直节奏不动）。
       padding: const EdgeInsets.fromLTRB(
-        AppSpace.s5,
+        AppSpace.s4,
         AppSpace.s3,
-        AppSpace.s5,
+        AppSpace.s4,
         AppSpace.s2,
       ),
       child: Row(
@@ -925,6 +930,7 @@ class _BackfillSheetState extends State<_BackfillSheet> {
         borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
         boxShadow: palette.shadowHigh,
       ),
+      // 005 留档：同 _showMenu 弹层——底距 s5+8 home 避让裸算式非页缘口径。
       padding: const EdgeInsets.fromLTRB(
         AppSpace.s5,
         AppSpace.s3,

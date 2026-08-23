@@ -104,10 +104,11 @@ class TodayView extends ConsumerWidget {
   }
 }
 
-/// v2 头部（v2-today 冻结稿 .head）：左 = 日期行（label 体 + 字距）
-/// 叠大标题「今日」（displayL）；右 = 铃铛（通知列表上滑入口，T009
-/// 冻结形态驻留）+ 头像 44px（surface 描边环 + 低投影，tap → 「我的」
-/// 页，Q1 裁决）。过渡＋ 已退役（T025 中央 FAB 接管新建）。
+/// v2 头部（v2-today 冻结稿 .head，005 T010 两行重构 D7）：日期行
+/// （label 体 + 字距）+ 标题行——大标题「今日」（displayL）与铃铛
+/// （通知列表上滑入口）+ 头像 44px（tap → 「我的」页，Q1 裁决）
+/// 同行 CrossAxisAlignment.center：铃铛/头像视觉中线恒与大标题中线
+/// 重合（冻结稿为左右两栏整块居中，存在 4–6px 有意偏差，T012 留档）。
 class _Head extends ConsumerWidget {
   const _Head();
 
@@ -126,39 +127,30 @@ class _Head extends ConsumerWidget {
         AppScreen.padX,
         0,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  Copy.todayHeadDate(
-                    today.weekday.zhLabel,
-                    today.month,
-                    today.day,
-                  ),
-                  style: Theme.of(context).textTheme.labelS.copyWith(
-                    color: palette.onSurfaceVariant,
-                    letterSpacing: 0.7,
-                  ),
-                ),
-                const SizedBox(height: AppSpace.s1),
-                Text(
-                  Copy.todayNav,
-                  style: Theme.of(context).textTheme.displayL,
-                ),
-              ],
-            ),
+          Text(
+            Copy.todayHeadDate(today.weekday.zhLabel, today.month, today.day),
+            style: Theme.of(context).textTheme.labelS
+                .copyWith(color: palette.onSurfaceVariant, letterSpacing: 0.7),
           ),
-          _CircleButton(
-            tooltip: Copy.notificationTitle,
-            icon: Icons.notifications_outlined,
-            badge: badge,
-            onTap: () => showNotificationSheet(context),
+          const SizedBox(height: AppSpace.s1),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(Copy.todayNav, style: Theme.of(context).textTheme.displayL),
+              const Spacer(),
+              _CircleButton(
+                tooltip: Copy.notificationTitle,
+                icon: Icons.notifications_outlined,
+                badge: badge,
+                onTap: () => showNotificationSheet(context),
+              ),
+              const SizedBox(width: AppSpace.s3),
+              _AvatarEntry(profile: profile),
+            ],
           ),
-          const SizedBox(width: AppSpace.s3),
-          _AvatarEntry(profile: profile),
         ],
       ),
     );

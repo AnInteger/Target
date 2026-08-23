@@ -3671,4 +3671,66 @@ void main() {
     expect(titleLeft(find.text(Copy.editorNewGoal)), closeTo(titleDx, 0.5));
     await db.close();
   });
+
+  testWidgets('005 T010：今日头部两行——铃铛/头像中线与大标题重合+头像/铃铛动线', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // D7 中线不变式：标题行内三者（大标题/铃铛/头像）垂直中心重合。
+    final titleCenter = tester.getCenter(
+      find.descendant(
+        of: find.byType(TodayView),
+        matching: find.text(Copy.todayNav),
+      ),
+    );
+    expect(
+      tester.getCenter(find.byIcon(Icons.notifications_outlined)).dy,
+      closeTo(titleCenter.dy, 0.5),
+    );
+    expect(
+      tester.getCenter(find.byTooltip(Copy.mineNav)).dy,
+      closeTo(titleCenter.dy, 0.5),
+    );
+    // 日期行在标题行之上（两行结构成立）。
+    expect(
+      tester
+          .getTopLeft(
+            find.descendant(
+              of: find.byType(TodayView),
+              matching: find.text(Copy.todayNav),
+            ),
+          )
+          .dy,
+      greaterThan(0),
+    );
+
+    // 动线回归：头像 → 我的页（PageTopBar 返回弹栈回今日）。
+    await tester.tap(find.byTooltip(Copy.mineNav));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screenTitle')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+
+    // 铃铛 → 通知上滑弹层。
+    await tester.tap(find.byIcon(Icons.notifications_outlined));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('notificationSheet')), findsOneWidget);
+    await db.close();
+  });
 }

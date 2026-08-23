@@ -122,7 +122,9 @@ description: "Task list for 004 UI v2 重构"
 - [x] T019 [US2] healthScoreProvider：lib/app/providers.dart（goals/checkIns/today 任一流变化失效重算，dayTicker 跨天联动窗口右移）（depends T005, T018）
   - ✅ 实现完成：healthScoreProvider = Provider<HealthSnapshot?> 挂在 statsProvider 同族模板上——watch goalsProvider/checkInsProvider（.value 任一 null → null 三环加载态）+ todayProvider（dateProviderProvider 派生，dayTicker 跨天 invalidate 自动联动窗口右移），就绪即委托 T018 evaluateHealth 纯函数；流式失效重算无需自建监听（riverpod watch 链：打卡/补签/暂停恢复/删除/新建任一 DB 变更经 watchAll 流回放触发）
   - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（149 = 148+1：⑦容器级接线测试——goals/checkIns 双 broadcast 流 override + dateProviderProvider 锚 FixedDateProvider（SystemDateProvider 读真实系统日会窗口错位），全序列 null→97（流就绪零记录）→100（checkIns 流替换左缘补卡失效重算）→97（dateProvider 切 t+1 窗口右移左缘记录出窗））
-- [ ] T020 [US2] 今日页头部与三环：lib/features/today/today_view.dart 重做——中文「星期, 日期」行 + 大标题「今日」+ 右上头像入口（同一连续图层无分隔线）+ 三环同心嵌套组件（三类各一色、独立计分无综合分、无数据态、全库零活跃环区让位空态新建 CTA）（depends T002, T019）
+- [x] T020 [US2] 今日页头部与三环：lib/features/today/today_view.dart 重做——中文「星期, 日期」行 + 大标题「今日」+ 右上头像入口（同一连续图层无分隔线）+ 三环同心嵌套组件（三类各一色、独立计分无综合分、无数据态、全库零活跃环区让位空态新建 CTA）（depends T002, T019）
+  - ✅ 实现完成：today_view 全文件重做——_Head（labelS 字距日期行「星期日 · 8 月 23 日」+ displayL 大标题「今日」+ 44px 头像 surface 双层环/低投影，tap → /settings「我的」页 Q1 裁决；铃铛=T009 冻结通知入口驻留、＋=T025 FAB 前过渡）+ _RingZone（R3 案 C 单环三段弧：_TriArcPainter 128/r56/描边 11/三槽 120°·lead 1.5°·gap 9°·butt 端帽·12 点起步健康→习惯→目标，弧长=分数；中心=有数据类平均分 tabular+「健康度」；图例 10px 色点+分数 /100）+ 无数据态（段空置只余底轨+色点淡化 35%+类名弱化+「—」）+ 空态让位（health.isEmpty → _EmptyCTA 板 4 冻结稿：96px surfaceAlt 圆底 eco 图形+两行引导+accent 胶囊新建 CTA）；数据源 healthScoreProvider（T019）；今日目标列表暂承 003 形态待 T022；copy 新增 todayHeadDate/todayHealthLabel/todayHealthSuffix/todayHealthNone、todayEmptyBody 换冻结稿两行语、todayDateLine 退役；router _NavTab 挂 navTab-{location} key（大标题与页签同文后测试改 key 定位，六处「页签在场」断言换 key）
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（149/149：34 widget 用例零回归——空态/计步/迁移/深链/通知全过；健康度与手工核算一致由 T018 六组对账背书，今日页消费同 provider）
 
 **Checkpoint**: 今日页骨架与基准图 01/02 头部+环区对应，健康度与手工核算一致
 

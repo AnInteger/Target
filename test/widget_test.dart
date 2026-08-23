@@ -210,7 +210,7 @@ void main() {
     // TodayView 空态（R7）：节头隐藏 + 虚线邀请卡（正式语域）。
     expect(find.text(Copy.todayEmptyTitle), findsOneWidget);
     expect(find.text(Copy.todaySection), findsNothing);
-    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
     await db.close();
   });
 
@@ -1051,7 +1051,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 三页签恰三枚：今日/回顾/我的；目标页签不再存在。
-    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
     expect(find.text(Copy.reviewNav), findsOneWidget);
     expect(find.text(Copy.mineNav), findsOneWidget);
     expect(find.text(Copy.goalsNav), findsNothing);
@@ -1093,7 +1093,7 @@ void main() {
     router.go('/goals');
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('goalNameField')), findsNothing);
-    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
     expect(router.routerDelegate.currentConfiguration.uri.path, '/today');
 
     // 深链：goal 无 id 兜底 /today；带 id 落详情（today 分支）；
@@ -1128,7 +1128,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     void tabsVisible() {
-      expect(find.text(Copy.todayNav), findsOneWidget, reason: '底部页签应全程可见');
+      expect(
+        find.byKey(const ValueKey('navTab-/today')),
+        findsOneWidget,
+        reason: '底部页签应全程可见',
+      );
       expect(find.text(Copy.reviewNav), findsOneWidget);
       expect(find.text(Copy.mineNav), findsOneWidget);
     }
@@ -1349,7 +1353,7 @@ void main() {
 
     // 今日：空态邀请卡在场（todayEmptyTitle），三页签齐。
     expect(find.text(Copy.todayEmptyTitle), findsOneWidget);
-    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
     expect(find.text(Copy.reviewNav), findsOneWidget);
     expect(find.text(Copy.mineNav), findsOneWidget);
 
@@ -1445,7 +1449,7 @@ void main() {
     await tester.tap(find.text(Copy.settingsGoalsActiveTitle));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('reviewEmptyCta')), findsNothing);
-    expect(find.text(Copy.todayNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
 
     // 补签只读行（回到我的页断言）。
     router.go('/settings');

@@ -244,16 +244,26 @@ abstract final class Copy {
   static const reviewNav = '回顾';
   static const mineNav = '我的';
 
-  // ---- 今日页 · R7 定稿（T017 头部带 + 统一卡；旧今日之环语言退役）----
+  // ---- 今日页（004 T020 v2 重做：头部日期语 + 大标题 + 三段弧环；
+  //      003 头部带日期语退役）----
 
   static const todaySection = '今日目标';
   static const todayNewGoal = '新建目标';
   // 004 v2：打卡按钮字统一「记录打卡」（goalCheckInAction），
   // 「记录一次努力」退役。
 
-  /// 头部带日期语：「8月19日 周三」。
-  static String todayDateLine(int month, int day, String weekdayZh) =>
-      '$month月$day日 $weekdayZh';
+  /// v2 头部日期行（v2-today 冻结稿 .date）：「星期日 · 8 月 23 日」。
+  static String todayHeadDate(String weekdayZh, int month, int day) =>
+      '星期$weekdayZh · $month 月 $day 日';
+
+  /// 三段弧环中心标签（.ctr i）。
+  static const todayHealthLabel = '健康度';
+
+  /// 图例分数后缀（.lg .li span）。
+  static const todayHealthSuffix = '/ 100';
+
+  /// 图例无数据态占位（类内零活跃：不显示数字）。
+  static const todayHealthNone = '—';
 
   /// 节注（今日之环退役后承接进度一句话）：「已记录 2/5」。
   static String todayRecordedNote(int done, int total) => '已记录 $done/$total';
@@ -269,9 +279,9 @@ abstract final class Copy {
   static const todayLatestToday = '今天';
   static const todayLatestYesterday = '昨天';
 
-  // 空态邀请卡（R3 裁决 3：正式语域）。
+  // 空态（004 T020 按 v2-today 板 4 冻结稿：环区让位 + 新建 CTA）。
   static const todayEmptyTitle = '还没有目标';
-  static const todayEmptyBody = '点击右上角 ＋ 创建第一个目标';
+  static const todayEmptyBody = '创建第一个目标，开始记录每一天的坚持。\n健康度将随打卡记录逐步累积。';
 
   // 成就时刻（每个目标今天都有记录）。
   static const celebrationTitle = '🎉 每个目标都有进展';

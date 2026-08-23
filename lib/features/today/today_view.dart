@@ -1,12 +1,16 @@
-/// TodayView（003 T017，按 screen-today.html R7 定稿落地）。
+/// TodayView（004 T020 重做，按 v2-today.html R3 冻结稿）。
 ///
-/// 三 Tab 收敛后今日页 = 目标浏览与记录的单一主页：
-/// 头部带（账号区 | 日期语 | 铃铛角标＋新建）与内容同连续图层
-/// （FR-003）；「今日目标」节 + 统一目标卡（图标 + 一句话 + 类型
-/// 徽章 + 最新记录行，整卡可点进详情，卡上无按钮——FR-020 今日之
-/// 环/周节奏微条/状态胶囊退役）；空态邀请卡（正式语域）；成就时刻
-/// 覆盖层保留。补签仍走卡长按。
+/// 今日页骨架 v2：头部（中文「星期, 日期」行 + 大标题「今日」+ 右上
+/// 头像入「我的」页，同一连续图层无分隔线）+ 三大类健康度环（R3
+/// 裁决案 C「单环·三段弧」：一环三色各占 1/3 槽位，弧长 = 该类分
+/// 数，中心 = 有数据类平均分；类内零活跃 = 空置段 + 图例弱化无数字；
+/// 全库零活跃环区整体让位空态新建 CTA，FR-004）。今日目标列表暂承
+/// 003 形态（T022 换装关注卡轮播）；成就覆盖层与补签长按保留。铃
+/// 铛（T009 冻结形态 = 通知列表上滑入口）与 ＋（T025 中央 FAB 落
+/// 地前的过渡新建入口）暂驻头部右侧。
 library;
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +22,7 @@ import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/goal_icon_catalog.dart';
+import '../../core/models/health_score.dart';
 import '../goals/goal_type_badge.dart';
 import '../notifications/notification_list.dart';
 import '../profile/profile.dart';
@@ -31,7 +36,8 @@ class TodayView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsAsync = ref.watch(goalsProvider);
     final stats = ref.watch(statsProvider);
-    if (!goalsAsync.hasValue || stats == null) {
+    final health = ref.watch(healthScoreProvider);
+    if (!goalsAsync.hasValue || stats == null || health == null) {
       return Scaffold(
         backgroundColor: Colors.transparent,
         body: Center(
@@ -47,14 +53,14 @@ class TodayView extends ConsumerWidget {
     final active = goalsAsync.value!
         .where((g) => g.status == GoalStatus.active)
         .toList();
-    final doneGoals =
-        active.where((g) => stats.dayStatusOf(g.id).done).length;
+    final doneGoals = active.where((g) => stats.dayStatusOf(g.id).done).length;
     final actions = active.fold<int>(
       0,
       (sum, g) => sum + stats.dayStatusOf(g.id).doneCount,
     );
     final allProgress = active.isNotEmpty && doneGoals == active.length;
-    final isEmpty = active.isEmpty;
+    // 全库零活跃 = health.isEmpty（环区让位口径，FR-004）。
+    final isEmpty = health.isEmpty;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -65,14 +71,20 @@ class TodayView extends ConsumerWidget {
             child: SafeArea(
               bottom: false,
               child: ListView(
-                // FR-008：水平 24 = 三屏标题带左缘基准；顶垫 0——
-                // 头部带自带 titleTop，与回顾/我的竖直基线一致。
+                // FR-008：水平 24 = 三屏标题带左缘基准。
                 padding: const EdgeInsets.fromLTRB(
-                    AppScreen.padX, 0, AppScreen.padX, AppSpace.s6),
+                  AppScreen.padX,
+                  0,
+                  AppScreen.padX,
+                  AppSpace.s6,
+                ),
                 children: [
-                  const _HeaderBand(),
+                  const _Head(),
                   if (!isEmpty) ...[
-                    _SectionHeader(note: Copy.todayRecordedNote(doneGoals, active.length)),
+                    _RingZone(health: health),
+                    _SectionHeader(
+                      note: Copy.todayRecordedNote(doneGoals, active.length),
+                    ),
                     for (final g in active)
                       _GoalCard(
                         goal: g,
@@ -85,7 +97,7 @@ class TodayView extends ConsumerWidget {
                       ),
                   ],
                   if (isEmpty)
-                    _EmptyCard(onTap: () => context.push('/goal-editor')),
+                    _EmptyCTA(onTap: () => context.push('/goal-editor')),
                 ],
               ),
             ),
@@ -113,71 +125,53 @@ class TodayView extends ConsumerWidget {
     final rel = gap <= 0
         ? Copy.todayLatestToday
         : gap == 1
-            ? Copy.todayLatestYesterday
-            : Copy.todayLatestDaysAgo(gap);
+        ? Copy.todayLatestYesterday
+        : Copy.todayLatestDaysAgo(gap);
     final note = (last.note ?? '').trim();
     return '$rel - ${note.isEmpty ? Copy.checkInDefaultNote : note}';
   }
 }
 
-/// 头部带（FR-003 同图层 / FR-008 三屏对齐基准）：44px 单行——
-/// 左 = 账号区（头像环 + 昵称，tap → 资料编辑 sheet）；中 = 日期语；
-/// 右 = 铃铛（角标 = 今日推导条目数，tap → 通知列表 sheet）+ ＋ 新建。
-class _HeaderBand extends ConsumerWidget {
-  const _HeaderBand();
+/// v2 头部（v2-today 冻结稿 .head）：左 = 日期行（label 体 + 字距）
+/// 叠大标题「今日」（displayL）；右 = 头像 44px（surface 描边环 + 低
+/// 投影，tap → 「我的」页，Q1 裁决）。铃铛/＋ 为过渡驻留（见文件头）。
+class _Head extends ConsumerWidget {
+  const _Head();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = TargetPalette.of(context);
     final profile = ref.watch(profileProvider).value;
     final today = ref.watch(todayProvider);
-    final badge = todayBadgeCount(
-        ref.watch(notificationItemsProvider), today);
+    final badge = todayBadgeCount(ref.watch(notificationItemsProvider), today);
 
-    // FR-008 三屏标题带同构：顶垫 titleTop、最小带高 44（原型 st-top）。
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: AppScreen.titleBand),
-      child: Padding(
-        padding: const EdgeInsets.only(top: AppScreen.titleTop),
-        child: Row(
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.s4),
+      child: Row(
         children: [
-          // 账号区：头像外缘 surface 描一圈环（原型 box-shadow 语义）。
-          InkWell(
-            onTap: () => showProfileSheet(context),
-            borderRadius: AppRadius.rFull,
-            child: Padding(
-              padding: const EdgeInsets.all(2),
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: palette.surface,
-                ),
-                padding: const EdgeInsets.all(2),
-                child: ProfileAvatar(profile: profile, size: 32),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpace.s2),
           Expanded(
-            child: Text(
-              profileNicknameOf(profile),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleS
-                  .copyWith(fontWeight: FontWeight.w700),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Copy.todayHeadDate(
+                    today.weekday.zhLabel,
+                    today.month,
+                    today.day,
+                  ),
+                  style: Theme.of(context).textTheme.labelS.copyWith(
+                    color: palette.onSurfaceVariant,
+                    letterSpacing: 0.7,
+                  ),
+                ),
+                const SizedBox(height: AppSpace.s1),
+                Text(
+                  Copy.todayNav,
+                  style: Theme.of(context).textTheme.displayL,
+                ),
+              ],
             ),
           ),
-          Text(
-            Copy.todayDateLine(
-                today.month, today.day, '周${today.weekday.zhLabel}'),
-            style: Theme.of(context)
-                .textTheme
-                .bodyM
-                .copyWith(color: palette.onSurfaceVariant),
-          ),
-          const SizedBox(width: AppSpace.s3),
           _CircleButton(
             ghost: true,
             tooltip: Copy.notificationTitle,
@@ -192,10 +186,244 @@ class _HeaderBand extends ConsumerWidget {
             icon: Icons.add,
             onTap: () => context.push('/goal-editor'),
           ),
+          const SizedBox(width: AppSpace.s3),
+          _AvatarEntry(profile: profile),
         ],
+      ),
+    );
+  }
+}
+
+/// 头像入口：36px 头像 + surface 双层描边环成 44px 视觉（冻结稿
+/// .avatar 2px surface 边 + 低投影），tap → /settings（「我的」页）。
+class _AvatarEntry extends StatelessWidget {
+  const _AvatarEntry({required this.profile});
+
+  final Profile? profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Tooltip(
+      message: Copy.mineNav,
+      child: InkWell(
+        onTap: () => context.go('/settings'),
+        borderRadius: AppRadius.rFull,
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.surface,
+              boxShadow: palette.shadowLow,
+            ),
+            padding: const EdgeInsets.all(2),
+            child: ProfileAvatar(profile: profile, size: 36),
+          ),
         ),
       ),
     );
+  }
+}
+
+/// 三段弧环区（v2-today 冻结稿 .ring-zone）：128px 单环三段弧 +
+/// 右侧图例三行。中心数字 = 有数据类平均分（案 C 裁决）；无数据类
+/// 空置段（只余底轨）+ 图例弱化「—」。
+class _RingZone extends StatelessWidget {
+  const _RingZone({required this.health});
+
+  final HealthSnapshot health;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final colors = {
+      for (final c in MajorCategory.values)
+        c: MajorColors.byKey(c.name).of(context),
+    };
+    final scored = MajorCategory.values
+        .map((c) => health.byCategory[c]!)
+        .where((c) => c.hasData)
+        .toList();
+    final average = scored.isEmpty
+        ? 0
+        : scored.fold<int>(0, (s, c) => s + c.score) ~/ scored.length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, AppSpace.s5, 0, AppSpace.s2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 128,
+            height: 128,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _TriArcPainter(
+                      health: health,
+                      colors: colors,
+                      track: palette.surfaceAlt,
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$average',
+                        style: Theme.of(context).textTheme.titleM.copyWith(
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                      Text(
+                        Copy.todayHealthLabel,
+                        style: Theme.of(context).textTheme.labelS
+                            .copyWith(color: palette.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpace.s5),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final c in MajorCategory.values)
+                _LegendRow(data: health.byCategory[c]!, color: colors[c]!),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 图例行（冻结稿 .lg .li）：10px 色点 + 类名 + 分数 / 100；无数据
+/// 态色点淡化、类名弱化、数字位「—」（FR-004 非满分非 0 的空置呈现）。
+class _LegendRow extends StatelessWidget {
+  const _LegendRow({required this.data, required this.color});
+
+  final CategoryHealth data;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpace.s1),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: data.hasData ? color : color.withValues(alpha: 0.35),
+            ),
+          ),
+          const SizedBox(width: AppSpace.s2),
+          Text(
+            data.category.zhLabel,
+            style: theme.textTheme.bodyM.copyWith(
+              color: data.hasData
+                  ? palette.onSurface
+                  : palette.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: AppSpace.s2),
+          if (data.hasData) ...[
+            Text(
+              '${data.score}',
+              style: theme.textTheme.bodyM.copyWith(
+                fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            Text(
+              ' ${Copy.todayHealthSuffix}',
+              style: theme.textTheme.bodyM.copyWith(
+                color: palette.onSurfaceVariant,
+              ),
+            ),
+          ] else
+            Text(
+              Copy.todayHealthNone,
+              style: theme.textTheme.bodyM.copyWith(
+                color: palette.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 案 C 单环三段弧画笔（冻结稿 SVG 几何）：128 画布、r=56、描边 11；
+/// 三类各占 120° 槽位、槽内 1.5° 起始留缝、尾部 9° 段缝；弧长 =
+/// 分数 × 可用槽长；butt 端帽（无圆头）。12 点方向起步（健康段），
+/// 顺时针 健康 → 习惯 → 目标。
+class _TriArcPainter extends CustomPainter {
+  _TriArcPainter({
+    required this.health,
+    required this.colors,
+    required this.track,
+  });
+
+  final HealthSnapshot health;
+  final Map<MajorCategory, Color> colors;
+  final Color track;
+
+  static const double _center = 64, _radius = 56, _stroke = 11;
+  static const double _slotDeg = 120, _leadDeg = 1.5, _gapDeg = 9;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = const Offset(_center, _center);
+    final rect = Rect.fromCircle(center: center, radius: _radius);
+    canvas.drawCircle(
+      center,
+      _radius,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = _stroke
+        ..color = track,
+    );
+    for (final (i, category) in MajorCategory.values.indexed) {
+      final data = health.byCategory[category]!;
+      if (!data.hasData) continue; // 无数据态：槽位空置只余底轨
+      final startDeg = -90 + i * _slotDeg + _leadDeg;
+      final sweepDeg = data.score / 100 * (_slotDeg - _leadDeg - _gapDeg);
+      canvas.drawArc(
+        rect,
+        startDeg * math.pi / 180,
+        sweepDeg * math.pi / 180,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = _stroke
+          ..strokeCap = StrokeCap.butt
+          ..color = colors[category]!,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TriArcPainter old) {
+    if (old.track != track || old.colors.length != colors.length) return true;
+    for (final e in colors.entries) {
+      if (old.colors[e.key] != e.value) return true;
+    }
+    for (final c in MajorCategory.values) {
+      final a = health.byCategory[c]!, b = old.health.byCategory[c]!;
+      if (a.score != b.score || a.hasData != b.hasData) return true;
+    }
+    return false;
   }
 }
 
@@ -260,10 +488,10 @@ class _CircleButton extends StatelessWidget {
                     child: Text(
                       '$badge',
                       style: Theme.of(context).textTheme.labelS.copyWith(
-                            color: palette.badgeOn,
-                            fontWeight: FontWeight.w700,
-                            height: 1,
-                          ),
+                        color: palette.badgeOn,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                      ),
                     ),
                   ),
                 ),
@@ -275,8 +503,7 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
-/// 节头：今日目标 + 节注「已记录 N/M」（今日之环卡移除后直接承接
-/// 头部带，T007 R2 裁决 2）。
+/// 节头：今日目标 + 节注「已记录 N/M」（T022 关注卡轮播换装前过渡）。
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({required this.note});
 
@@ -295,9 +522,7 @@ class _SectionHeader extends StatelessWidget {
           const Spacer(),
           Text(
             note,
-            style: Theme.of(context)
-                .textTheme
-                .bodyM
+            style: Theme.of(context).textTheme.bodyM
                 .copyWith(color: palette.onSurfaceVariant),
           ),
         ],
@@ -352,8 +577,11 @@ class _GoalCard extends ConsumerWidget {
                     borderRadius: AppRadius.rMd,
                     border: Border.all(color: palette.divider),
                   ),
-                  child: Icon(GoalIconCatalog.byKey(goal.iconKey).icon,
-                      size: 22, color: palette.onSurface),
+                  child: Icon(
+                    GoalIconCatalog.byKey(goal.iconKey).icon,
+                    size: 22,
+                    color: palette.onSurface,
+                  ),
                 ),
                 const SizedBox(width: AppSpace.s3),
                 Expanded(
@@ -365,10 +593,8 @@ class _GoalCard extends ConsumerWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleS.copyWith(
-                              color: done
-                                  ? palette.positive
-                                  : palette.onSurface,
-                            ),
+                          color: done ? palette.positive : palette.onSurface,
+                        ),
                       ),
                       const SizedBox(height: AppSpace.s1),
                       GoalTypeBadge(goal: goal),
@@ -378,9 +604,10 @@ class _GoalCard extends ConsumerWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyS.copyWith(
-                              color:
-                                  done ? palette.positive : palette.onSurfaceVariant,
-                            ),
+                          color: done
+                              ? palette.positive
+                              : palette.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -394,9 +621,11 @@ class _GoalCard extends ConsumerWidget {
   }
 }
 
-/// 空态邀请卡（虚线边框，R3 裁决 3 正式语域）：整卡可点 → 新建目标。
-class _EmptyCard extends StatelessWidget {
-  const _EmptyCard({required this.onTap});
+/// 空态（v2-today 板 4 冻结稿 .empty）：96px 圆底图形 + 两行引导 +
+/// accent 胶囊「新建目标」CTA（同 FAB 动作）。全库零活跃时环区与
+/// 列表整体让位于此（FR-004 / 场景 7）。
+class _EmptyCTA extends StatelessWidget {
+  const _EmptyCTA({required this.onTap});
 
   final VoidCallback onTap;
 
@@ -404,87 +633,56 @@ class _EmptyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.s5, bottom: AppSpace.s6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.rLg,
-        child: CustomPaint(
-          foregroundPainter: _DashedBorderPainter(
-            color: palette.divider,
-            radius: AppRadius.lg,
-          ),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpace.s5,
-              AppSpace.s6,
-              AppSpace.s5,
-              AppSpace.s6,
+      padding: const EdgeInsets.only(top: AppSpace.s12, bottom: AppSpace.s6),
+      child: Column(
+        children: [
+          Container(
+            width: 96,
+            height: 96,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.surfaceAlt,
             ),
-            child: Column(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: palette.surface,
-                    border: Border.all(color: palette.divider),
+            child: Icon(Icons.eco, size: 40, color: palette.onSurfaceVariant),
+          ),
+          const SizedBox(height: AppSpace.s3),
+          Text(Copy.todayEmptyTitle, style: Theme.of(context).textTheme.titleM),
+          const SizedBox(height: AppSpace.s3),
+          Text(
+            Copy.todayEmptyBody,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyM
+                .copyWith(color: palette.onSurfaceVariant, height: 1.7),
+          ),
+          const SizedBox(height: AppSpace.s2),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.rFull,
+              boxShadow: palette.shadowMid,
+            ),
+            child: Material(
+              color: palette.accent,
+              borderRadius: AppRadius.rFull,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: AppRadius.rFull,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpace.s6,
+                    vertical: AppSpace.s3,
                   ),
-                  child: Icon(
-                    Icons.add,
-                    size: 20,
-                    color: palette.onSurfaceVariant,
+                  child: Text(
+                    Copy.todayNewGoal,
+                    style: Theme.of(context).textTheme.bodyL
+                        .copyWith(color: palette.accentOn),
                   ),
                 ),
-                const SizedBox(height: AppSpace.s3),
-                Text(
-                  Copy.todayEmptyTitle,
-                  style: Theme.of(context).textTheme.titleM,
-                ),
-                const SizedBox(height: AppSpace.s3),
-                Text(
-                  Copy.todayEmptyBody,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyS
-                      .copyWith(color: palette.onSurfaceVariant, height: 1.7),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
-}
-
-/// 圆角矩形的虚线描边（空态邀请卡）。
-class _DashedBorderPainter extends CustomPainter {
-  _DashedBorderPainter({required this.color, required this.radius});
-
-  final Color color;
-  final double radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Offset.zero & size,
-      Radius.circular(radius),
-    );
-    final path = Path()..addRRect(rrect);
-    final metric = path.computeMetrics().first;
-    const dash = 6.0, gap = 5.0;
-    var dist = 0.0;
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..color = color;
-    while (dist < metric.length) {
-      canvas.drawPath(metric.extractPath(dist, dist + dash), paint);
-      dist += dash + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedBorderPainter old) =>
-      old.color != color || old.radius != radius;
 }

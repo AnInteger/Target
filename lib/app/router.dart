@@ -29,45 +29,50 @@ import 'design_tokens.dart';
 final routerProvider = Provider<GoRouter>((ref) => _build());
 
 GoRouter _build() => GoRouter(
-      initialLocation: '/today',
-      // /goals 退役兜底：任何存量入口改落今日页（目标浏览即卡片列表）。
-      redirect: (context, state) =>
-          state.uri.path == '/goals' ? '/today' : null,
-      routes: [
-        GoRoute(
-            path: '/onboarding', builder: (_, _) => const OnboardingPage()),
-        StatefulShellRoute.indexedStack(
-          builder: (_, _, shell) => _AppShell(navigationShell: shell),
-          branches: [
-            // today 分支：今日页 + 编辑器/详情子页（D5：挂分支内而非根路由，
-            // 进入创建/详情动线时导航壳层不退场，FR-010 根因修复）。
-            StatefulShellBranch(routes: [
-              GoRoute(path: '/today', builder: (_, _) => const TodayView()),
-              GoRoute(
-                  path: '/goal-editor',
-                  builder: (_, s) => GoalEditorPage(
-                      goalId: s.uri.queryParameters['id'],
-                      template: s.extra is GoalTemplate
-                          ? s.extra as GoalTemplate
-                          : null)),
-              // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。
-              GoRoute(
-                  path: '/goal/:id',
-                  builder: (_, s) =>
-                      GoalDetailPage(goalId: s.pathParameters['id']!)),
-            ]),
-            StatefulShellBranch(routes: [
-              GoRoute(path: '/review', builder: (_, _) => const ReviewView()),
-            ]),
-            StatefulShellBranch(routes: [
-              GoRoute(
-                  path: '/settings',
-                  builder: (_, _) => const SettingsView()),
-            ]),
+  initialLocation: '/today',
+  // /goals 退役兜底：任何存量入口改落今日页（目标浏览即卡片列表）。
+  redirect: (context, state) => state.uri.path == '/goals' ? '/today' : null,
+  routes: [
+    GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingPage()),
+    StatefulShellRoute.indexedStack(
+      builder: (_, _, shell) => _AppShell(navigationShell: shell),
+      branches: [
+        // today 分支：今日页 + 编辑器/详情子页（D5：挂分支内而非根路由，
+        // 进入创建/详情动线时导航壳层不退场，FR-010 根因修复）。
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/today', builder: (_, _) => const TodayView()),
+            GoRoute(
+              path: '/goal-editor',
+              builder: (_, s) => GoalEditorPage(
+                goalId: s.uri.queryParameters['id'],
+                template: s.extra is GoalTemplate
+                    ? s.extra as GoalTemplate
+                    : null,
+              ),
+            ),
+            // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。
+            GoRoute(
+              path: '/goal/:id',
+              builder: (_, s) =>
+                  GoalDetailPage(goalId: s.pathParameters['id']!),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/review', builder: (_, _) => const ReviewView()),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/settings', builder: (_, _) => const SettingsView()),
           ],
         ),
       ],
-    );
+    ),
+  ],
+);
 
 /// 导航壳层：底幕渐变画布 + 底部胶囊导航（今日屏 R4 定稿几何）。
 class _AppShell extends StatelessWidget {
@@ -125,8 +130,12 @@ class _PillNav extends StatelessWidget {
       top: false,
       minimum: const EdgeInsets.only(bottom: AppSpace.s4),
       child: Padding(
-        padding:
-            const EdgeInsets.fromLTRB(AppSpace.s6, AppSpace.s2, AppSpace.s6, 0),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.s6,
+          AppSpace.s2,
+          AppSpace.s6,
+          0,
+        ),
         child: Container(
           padding: const EdgeInsets.all(AppSpace.s1),
           decoration: BoxDecoration(
@@ -141,8 +150,10 @@ class _PillNav extends StatelessWidget {
                   child: _NavTab(
                     dest: dest,
                     selected: shell.currentIndex == i,
-                    onTap: () => shell.goBranch(i,
-                        initialLocation: shell.currentIndex == i),
+                    onTap: () => shell.goBranch(
+                      i,
+                      initialLocation: shell.currentIndex == i,
+                    ),
                   ),
                 ),
             ],
@@ -168,15 +179,20 @@ class _NavTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final labelStyle = Theme.of(context).textTheme.labelS;
-    final icon = Icon(selected ? dest.activeIcon : dest.icon,
-        size: 20, color: selected ? palette.accentOn : palette.onSurfaceVariant);
+    final icon = Icon(
+      selected ? dest.activeIcon : dest.icon,
+      size: 20,
+      color: selected ? palette.accentOn : palette.onSurfaceVariant,
+    );
 
     Widget content;
     if (selected) {
       // 选中胶囊：墨色实心，图标上文字下。
       content = Container(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.s4, vertical: AppSpace.s1),
+          horizontal: AppSpace.s4,
+          vertical: AppSpace.s1,
+        ),
         decoration: BoxDecoration(
           color: palette.accent,
           borderRadius: AppRadius.rFull,
@@ -186,8 +202,10 @@ class _NavTab extends StatelessWidget {
           children: [
             icon,
             const SizedBox(height: 3),
-            Text(dest.label,
-                style: labelStyle.copyWith(color: palette.accentOn)),
+            Text(
+              dest.label,
+              style: labelStyle.copyWith(color: palette.accentOn),
+            ),
           ],
         ),
       );
@@ -210,6 +228,8 @@ class _NavTab extends StatelessWidget {
       selected: selected,
       label: dest.label,
       child: InkWell(
+        // 004 T020：今日页大标题与页签同文「今日」，测试以 key 定位页签。
+        key: ValueKey('navTab-${dest.location}'),
         onTap: onTap,
         borderRadius: AppRadius.rFull,
         // 不用 Center 包裹：底部导航槽高度无上界，Center 会取

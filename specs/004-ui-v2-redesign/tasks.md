@@ -215,7 +215,9 @@ description: "Task list for 004 UI v2 重构"
 - [x] T033 全量回归收口：flutter analyze 0 + flutter test 全绿（既有 128 项零回归 + 004 新增用例全量）；SC-004/SC-005/SC-006 对账结论落 quickstart「完成口径」
   - ✅ 实现完成：quickstart 阶段 B–F 全部 19 项体验清单勾结（阶段 C 数字框 2.–5. 四项含 97/100/无数据态、即时回升、全暂停空态）；「完成口径」一节落档——SC-001…SC-006 六条对账表（SC-001→T032 矩阵+四令牌修复、SC-002→T032 骨架映射、SC-003→T012 三档、SC-004→T027 33例+T018 口径+T021/T029 回升、SC-005→T030 冷启动用例、SC-006→T031 十五项映射），格式沿用 003 quickstart 完成口径先例；收口态标注 analyze 0 + 161/161
   - ✅ 门禁通过：flutter analyze 0 issues；flutter test 全量 161/161 通过（既有 003 基线 160 零回归 + T032 新增 1 例；本轮纯文档收口无代码改动）
-- [ ] T034 文档收口：design/reviews.md 004 实现审计条目齐、spec.md Status: Complete、specs/004-ui-v2-redesign/tasks.md 全勾无留口
+- [x] T034 文档收口：design/reviews.md 004 实现审计条目齐、spec.md Status: Complete、specs/004-ui-v2-redesign/tasks.md 全勾无留口
+  - ✅ 实现完成：reviews.md 续录 T033 收口对账 + T034 终检两条（兑现 T031「逐条续录」预告，004 实现审计四条连续）；spec.md Status: Draft→Complete 附收口摘要（七屏换装全落地/SC 六条对账/四令牌修复/基线 161/161/真机轮沿用 003 T043 窗口）；tasks.md T001–T034 全勾无留口
+  - ✅ 门禁通过：flutter analyze 0 issues；flutter test 全量 161/161 通过（文档收口轮无代码改动）
 
 ---
 

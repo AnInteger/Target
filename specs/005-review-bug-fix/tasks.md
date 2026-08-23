@@ -31,7 +31,9 @@ description: "Task list for 005 走查修复轮"
 
 **Purpose**: 基线核验与执行口径落档
 
-- [ ] T001 核验实现基线：`flutter analyze` 0 issue + `flutter test` 161/161 绿（004 收口态复验），在 specs/005-review-bug-fix/tasks.md 顶部确认执行口径生效（commit 格式与 ✅ 双子行约定）
+- [x] T001 核验实现基线：`flutter analyze` 0 issue + `flutter test` 161/161 绿（004 收口态复验），在 specs/005-review-bug-fix/tasks.md 顶部确认执行口径生效（commit 格式与 ✅ 双子行约定）
+  - ✅ 实现完成：基线复验通过（analyze 0 / test 161 全绿），硬口径节（commit 格式+双子行+零新令牌+冻结语言红线）已在文件顶部生效
+  - ✅ 门禁通过：`flutter analyze` No issues found · `flutter test` 00:15 +161 All tests passed
 
 ---
 

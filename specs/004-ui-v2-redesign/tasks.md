@@ -136,7 +136,9 @@ description: "Task list for 004 UI v2 重构"
 
 **Independent Test**: 3 目标其一打卡 → 轮播 3 卡最近互动居首可滑动；主行动按钮直达详情；查看全部开列表筛选管理可用（quickstart 阶段 D）
 
-- [ ] T021 [P] [US3] 关注卡轮播组件：lib/features/today/focus_carousel.dart（新文件；PageView.builder+viewportFraction 露边；卡序=max(最新 CheckIn.createdAt, goal.createdAt) 降序仅 active；状态标签+目标名+一句话描述+主行动按钮+辅助行；单卡退化无滑动指示）
+- [x] T021 [P] [US3] 关注卡轮播组件：lib/features/today/focus_carousel.dart（新文件；PageView.builder+viewportFraction 露边；卡序=max(最新 CheckIn.createdAt, goal.createdAt) 降序仅 active；状态标签+目标名+一句话描述+主行动按钮+辅助行；单卡退化无滑动指示）
+  - ✅ 实现完成：FocusCarousel(goals/checkIns/stats/today/onOpenGoal 注入式组件，挂载与「查看全部」入口留 T022)——_ordered 派生卡序（isValid 记录按 goalId 聚最新 createdAt，max(最新, goal.createdAt) 降序，仅 active，纯计算不落库）+ PageView.builder(viewportFraction 0.9 + 卡间 s2 内距 = 露邻卡边，卡高 208 固定) + _FocusCard 按冻结稿 .fcard（MajorGradients byKey(iconKey→domain.major) 同构梯度底 + rLg + shadowMid；右上 40px 白 18% rMd 图标格白图标；● 状态胶囊白 22%（短期/今日已记录=进行中，否则待办）；titleM 目标名 maxLines 1；一句话描述=successCriterion→motivation→cueScene 择先非空 maxLines 2 白 85%；底部白胶囊「记录打卡」中性墨字 kFocusGoInk（R3 去 accent，新令牌入 design_tokens 过 SC-004 契约）+ 辅助行 tabular（短期=deadlineCountdownMeta、习惯/长期=streak>0 连击，口径同详情页 meta 胶囊））+ 页点（N>1 才出，6/18px divider/onSurface 去彩，AnimatedContainer 200ms；单卡退化无指示）；copy 新增 focusTagActive/focusTagTodo
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（149 全绿；组件未挂载无新用例，token 契约初犯 Color(0x…) 字面量已令牌化为 kFocusGoInk 修正后通过）
 - [ ] T022 [US3] 轮播接入今日页：lib/features/today/today_view.dart（环区下方挂载；主行动按钮进该目标记录动线；「查看全部」入口；暂停/删除经流实时移出）（depends T020, T021）
 - [ ] T023 [US3] 全部目标列表页：lib/app/router.dart 新增 /goals-all（today 分支子路由）+ lib/features/goals/goals_all_view.dart（新文件，按冻结稿 v2-goals-all 实现：全部+各小类单选筛选、筛选空态说明、进详情/编辑/暂停恢复/删除全动线）（depends T011 冻结, T022）
 

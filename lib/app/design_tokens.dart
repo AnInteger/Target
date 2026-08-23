@@ -43,8 +43,10 @@ enum GoalIcon {
   final String zhLabel;
   final IconData icon;
 
-  static GoalIcon byKey(String key) =>
-      GoalIcon.values.firstWhere((i) => i.name == key, orElse: () => GoalIcon.star);
+  static GoalIcon byKey(String key) => GoalIcon.values.firstWhere(
+    (i) => i.name == key,
+    orElse: () => GoalIcon.star,
+  );
 }
 
 /// 浅/深成对色值（004 v2：三大类常驻色等非语义槽位的通用载体）。
@@ -63,22 +65,28 @@ class MajorColor {
 /// 值域冻结见 data-model.md）。基准图 02 chips 三色：绿/橙/蓝。
 abstract final class MajorColors {
   /// 健康：绿。
-  static const MajorColor health =
-      MajorColor(Color(0xFF34A853), Color(0xFF4ADE80));
+  static const MajorColor health = MajorColor(
+    Color(0xFF34A853),
+    Color(0xFF4ADE80),
+  );
 
   /// 习惯：橙。
-  static const MajorColor habit =
-      MajorColor(Color(0xFFFF9800), Color(0xFFFFA726));
+  static const MajorColor habit = MajorColor(
+    Color(0xFFFF9800),
+    Color(0xFFFFA726),
+  );
 
   /// 目标：蓝（= 主强调同族，关注主色）。
-  static const MajorColor goal =
-      MajorColor(Color(0xFF2196F3), Color(0xFF00B0FF));
+  static const MajorColor goal = MajorColor(
+    Color(0xFF2196F3),
+    Color(0xFF00B0FF),
+  );
 
   static MajorColor byKey(String key) => switch (key) {
-        'health' => health,
-        'habit' => habit,
-        _ => goal,
-      };
+    'health' => health,
+    'habit' => habit,
+    _ => goal,
+  };
 }
 
 /// 大类渐变对（004 R3 统一梯度裁定 2026-08-23）：关注卡底
@@ -114,11 +122,15 @@ abstract final class MajorGradients {
   );
 
   static MajorGradient byKey(String key) => switch (key) {
-        'health' => health,
-        'habit' => habit,
-        _ => goal,
-      };
+    'health' => health,
+    'habit' => habit,
+    _ => goal,
+  };
 }
+
+/// 关注卡主行动白胶囊的墨字（004 R3：白胶囊去 accent 改中性墨
+/// #1c1c1e；白底上的字色与主题无关，浅深同值——对应冻结稿 .go）。
+const Color kFocusGoInk = Color(0xFF1C1C1E);
 
 /// 头像环 8 色（004 v2：8 预设头像的装饰环色，键即持久化 avatarKey
 /// 值域——profile 专属但色值必须出自本真源文件）。浅深成对，深色
@@ -267,7 +279,11 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
       BoxShadow(offset: Offset(0, 8), blurRadius: 22, color: Color(0x243C3C43)),
     ],
     shadowHigh: [
-      BoxShadow(offset: Offset(0, 14), blurRadius: 38, color: Color(0x3D3C3C43)),
+      BoxShadow(
+        offset: Offset(0, 14),
+        blurRadius: 38,
+        color: Color(0x3D3C3C43),
+      ),
     ],
   );
 
@@ -337,32 +353,31 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     List<BoxShadow>? shadowLow,
     List<BoxShadow>? shadowMid,
     List<BoxShadow>? shadowHigh,
-  }) =>
-      TargetPalette(
-        background: background ?? this.background,
-        surface: surface ?? this.surface,
-        surfaceAlt: surfaceAlt ?? this.surfaceAlt,
-        onSurface: onSurface ?? this.onSurface,
-        onSurfaceVariant: onSurfaceVariant ?? this.onSurfaceVariant,
-        accent: accent ?? this.accent,
-        accentOn: accentOn ?? this.accentOn,
-        positive: positive ?? this.positive,
-        positiveFill: positiveFill ?? this.positiveFill,
-        positiveOn: positiveOn ?? this.positiveOn,
-        warning: warning ?? this.warning,
-        divider: divider ?? this.divider,
-        scrim: scrim ?? this.scrim,
-        badge: badge ?? this.badge,
-        badgeOn: badgeOn ?? this.badgeOn,
-        bgGrad: bgGrad ?? this.bgGrad,
-        glassShell: glassShell ?? this.glassShell,
-        glassCard: glassCard ?? this.glassCard,
-        glassBorder: glassBorder ?? this.glassBorder,
-        blur: blur ?? this.blur,
-        shadowLow: shadowLow ?? this.shadowLow,
-        shadowMid: shadowMid ?? this.shadowMid,
-        shadowHigh: shadowHigh ?? this.shadowHigh,
-      );
+  }) => TargetPalette(
+    background: background ?? this.background,
+    surface: surface ?? this.surface,
+    surfaceAlt: surfaceAlt ?? this.surfaceAlt,
+    onSurface: onSurface ?? this.onSurface,
+    onSurfaceVariant: onSurfaceVariant ?? this.onSurfaceVariant,
+    accent: accent ?? this.accent,
+    accentOn: accentOn ?? this.accentOn,
+    positive: positive ?? this.positive,
+    positiveFill: positiveFill ?? this.positiveFill,
+    positiveOn: positiveOn ?? this.positiveOn,
+    warning: warning ?? this.warning,
+    divider: divider ?? this.divider,
+    scrim: scrim ?? this.scrim,
+    badge: badge ?? this.badge,
+    badgeOn: badgeOn ?? this.badgeOn,
+    bgGrad: bgGrad ?? this.bgGrad,
+    glassShell: glassShell ?? this.glassShell,
+    glassCard: glassCard ?? this.glassCard,
+    glassBorder: glassBorder ?? this.glassBorder,
+    blur: blur ?? this.blur,
+    shadowLow: shadowLow ?? this.shadowLow,
+    shadowMid: shadowMid ?? this.shadowMid,
+    shadowHigh: shadowHigh ?? this.shadowHigh,
+  );
 
   @override
   TargetPalette lerp(TargetPalette? other, double t) {
@@ -372,8 +387,11 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
       surface: Color.lerp(surface, other.surface, t)!,
       surfaceAlt: Color.lerp(surfaceAlt, other.surfaceAlt, t)!,
       onSurface: Color.lerp(onSurface, other.onSurface, t)!,
-      onSurfaceVariant:
-          Color.lerp(onSurfaceVariant, other.onSurfaceVariant, t)!,
+      onSurfaceVariant: Color.lerp(
+        onSurfaceVariant,
+        other.onSurfaceVariant,
+        t,
+      )!,
       accent: Color.lerp(accent, other.accent, t)!,
       accentOn: Color.lerp(accentOn, other.accentOn, t)!,
       positive: Color.lerp(positive, other.positive, t)!,
@@ -392,8 +410,7 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
       glassCard: Color.lerp(glassCard, other.glassCard, t)!,
       glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
       blur: blur + (other.blur - blur) * t,
-      shadowLow:
-          BoxShadow.lerpList(shadowLow, other.shadowLow, t) ?? shadowLow,
+      shadowLow: BoxShadow.lerpList(shadowLow, other.shadowLow, t) ?? shadowLow,
       shadowMid: BoxShadow.lerpList(shadowMid, other.shadowMid, t) ?? shadowMid,
       shadowHigh:
           BoxShadow.lerpList(shadowHigh, other.shadowHigh, t) ?? shadowHigh,
@@ -512,20 +529,17 @@ abstract final class AppTheme {
       surface: p.surface,
       onSurface: p.onSurface,
       onSurfaceVariant: p.onSurfaceVariant,
-      surfaceContainerLowest:
-          brightness == Brightness.light
-              ? const Color(0xFFFFFFFF)
-              : const Color(0xFF121212),
+      surfaceContainerLowest: brightness == Brightness.light
+          ? const Color(0xFFFFFFFF)
+          : const Color(0xFF121212),
       surfaceContainerLow: p.surface,
       surfaceContainer: p.surfaceAlt,
-      surfaceContainerHigh:
-          brightness == Brightness.light
-              ? const Color(0xFFEBEBF0)
-              : const Color(0xFF252525),
-      surfaceContainerHighest:
-          brightness == Brightness.light
-              ? const Color(0xFFE3E3EA)
-              : const Color(0xFF2D2D2D),
+      surfaceContainerHigh: brightness == Brightness.light
+          ? const Color(0xFFEBEBF0)
+          : const Color(0xFF252525),
+      surfaceContainerHighest: brightness == Brightness.light
+          ? const Color(0xFFE3E3EA)
+          : const Color(0xFF2D2D2D),
       outline: brightness == Brightness.light
           ? const Color(0xFF8A8A8E)
           : const Color(0xFF8E8E93),
@@ -577,8 +591,7 @@ abstract final class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: p.surface,
-        contentTextStyle:
-            _textTheme(p).bodyM.copyWith(color: p.onSurface),
+        contentTextStyle: _textTheme(p).bodyM.copyWith(color: p.onSurface),
         actionTextColor: p.accent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -613,51 +626,112 @@ abstract final class AppTheme {
     return TextTheme(
       // display：32/28（004 v2：大标题 32）。
       displayLarge: TextStyle(
-          fontSize: 32, height: 1.25, fontWeight: FontWeight.w800,
-          letterSpacing: -0.8, color: on, fontFeatures: f),
+        fontSize: 32,
+        height: 1.25,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.8,
+        color: on,
+        fontFeatures: f,
+      ),
       displayMedium: TextStyle(
-          fontSize: 28, height: 1.25, fontWeight: FontWeight.w700,
-          color: on, fontFeatures: f),
+        fontSize: 28,
+        height: 1.25,
+        fontWeight: FontWeight.w700,
+        color: on,
+        fontFeatures: f,
+      ),
       displaySmall: TextStyle(
-          fontSize: 22, height: 1.3, fontWeight: FontWeight.w700,
-          color: on, fontFeatures: f),
+        fontSize: 22,
+        height: 1.3,
+        fontWeight: FontWeight.w700,
+        color: on,
+        fontFeatures: f,
+      ),
       // headline：22 / 18 / 16(700)。
       headlineLarge: TextStyle(
-          fontSize: 22, height: 1.3, fontWeight: FontWeight.w700,
-          color: on, fontFeatures: f),
+        fontSize: 22,
+        height: 1.3,
+        fontWeight: FontWeight.w700,
+        color: on,
+        fontFeatures: f,
+      ),
       headlineMedium: TextStyle(
-          fontSize: 18, height: 1.35, fontWeight: FontWeight.w700,
-          color: on, fontFeatures: f),
+        fontSize: 18,
+        height: 1.35,
+        fontWeight: FontWeight.w700,
+        color: on,
+        fontFeatures: f,
+      ),
       headlineSmall: TextStyle(
-          fontSize: 16, height: 1.45, fontWeight: FontWeight.w700,
-          color: on, fontFeatures: f),
+        fontSize: 16,
+        height: 1.45,
+        fontWeight: FontWeight.w700,
+        color: on,
+        fontFeatures: f,
+      ),
       // title：22 / 20(600) / 16(700)（004 v2：区块头 20/600）。
       titleLarge: TextStyle(
-          fontSize: 22, height: 1.3, fontWeight: FontWeight.w700,
-          color: on, fontFeatures: f),
+        fontSize: 22,
+        height: 1.3,
+        fontWeight: FontWeight.w700,
+        color: on,
+        fontFeatures: f,
+      ),
       titleMedium: TextStyle(
-          fontSize: 20, height: 1.35, fontWeight: FontWeight.w600,
-          color: on, fontFeatures: f),
+        fontSize: 20,
+        height: 1.35,
+        fontWeight: FontWeight.w600,
+        color: on,
+        fontFeatures: f,
+      ),
       titleSmall: TextStyle(
-          fontSize: 16, height: 1.45, fontWeight: FontWeight.w700,
-          color: on, fontFeatures: f),
+        fontSize: 16,
+        height: 1.45,
+        fontWeight: FontWeight.w700,
+        color: on,
+        fontFeatures: f,
+      ),
       // body：16 / 14 / 12（004 v2：正文 16）。
       bodyLarge: TextStyle(
-          fontSize: 16, height: 1.5, color: on, fontFeatures: f),
+        fontSize: 16,
+        height: 1.5,
+        color: on,
+        fontFeatures: f,
+      ),
       bodyMedium: TextStyle(
-          fontSize: 14, height: 1.5, color: on, fontFeatures: f),
+        fontSize: 14,
+        height: 1.5,
+        color: on,
+        fontFeatures: f,
+      ),
       bodySmall: TextStyle(
-          fontSize: 12, height: 1.4, color: variant, fontFeatures: f),
+        fontSize: 12,
+        height: 1.4,
+        color: variant,
+        fontFeatures: f,
+      ),
       // label：14 / 12 / 11（500，次级色）。
       labelLarge: TextStyle(
-          fontSize: 14, height: 1.3, fontWeight: FontWeight.w400,
-          color: variant, fontFeatures: f),
+        fontSize: 14,
+        height: 1.3,
+        fontWeight: FontWeight.w400,
+        color: variant,
+        fontFeatures: f,
+      ),
       labelMedium: TextStyle(
-          fontSize: 12, height: 1.3, fontWeight: FontWeight.w400,
-          color: variant, fontFeatures: f),
+        fontSize: 12,
+        height: 1.3,
+        fontWeight: FontWeight.w400,
+        color: variant,
+        fontFeatures: f,
+      ),
       labelSmall: TextStyle(
-          fontSize: 11, height: 1.3, fontWeight: FontWeight.w400,
-          color: variant, fontFeatures: f),
+        fontSize: 11,
+        height: 1.3,
+        fontWeight: FontWeight.w400,
+        color: variant,
+        fontFeatures: f,
+      ),
     );
   }
 }

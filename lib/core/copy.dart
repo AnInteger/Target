@@ -283,6 +283,13 @@ abstract final class Copy {
   static const todayEmptyTitle = '还没有目标';
   static const todayEmptyBody = '创建第一个目标，开始记录每一天的坚持。\n健康度将随打卡记录逐步累积。';
 
+  // ---- 关注卡轮播（004 T021，v2-today 冻结稿 .fcard .tag）----
+
+  /// 状态标签（● 前缀白字胶囊）：短期进行中 / 今日已记录 → 进行中；
+  /// 今日待记录 → 待办。
+  static const focusTagActive = '进行中';
+  static const focusTagTodo = '待办';
+
   // 成就时刻（每个目标今天都有记录）。
   static const celebrationTitle = '🎉 每个目标都有进展';
   static String celebrationNote(int n) => '今日 $n 次记录';

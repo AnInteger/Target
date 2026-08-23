@@ -3733,4 +3733,98 @@ void main() {
     expect(find.byKey(const ValueKey('notificationSheet')), findsOneWidget);
     await db.close();
   });
+
+  testWidgets('005 T009：触达 44 扫尾——铃铛/周切换/⋯ 菜单钮命中区 ≥44 且视觉零变化', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goal = await GoalRepository(db).create(
+      Goal(
+        name: '浇花',
+        goalType: GoalType.habit,
+        iconKey: 'nature',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    await seedVersion(
+      db,
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(today),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+
+    // 今日铃铛：触达槽 44×44、视觉 36 圆钮同心；T010 中线不变式复验。
+    final bell = find.byKey(const ValueKey('todayBell'));
+    expect(tester.getSize(bell), const Size(44, 44));
+    final bellVisual = find
+        .descendant(of: bell, matching: find.byType(Container))
+        .first;
+    expect(tester.getSize(bellVisual), const Size(36, 36));
+    final titleCenter = tester.getCenter(
+      find.descendant(
+        of: find.byType(TodayView),
+        matching: find.text(Copy.todayNav),
+      ),
+    );
+    expect(tester.getCenter(bell).dy, closeTo(titleCenter.dy, 0.5));
+
+    // 回顾页周切换两钮：触达 44×44、视觉 30 圆钮。
+    router.go('/review');
+    await tester.pumpAndSettle();
+    for (final k in ['weekPrev', 'weekNext']) {
+      final ink = find.byKey(ValueKey(k));
+      expect(tester.getSize(ink), const Size(44, 44));
+      expect(
+        tester.getSize(
+          find.descendant(of: ink, matching: find.byType(Container)).first,
+        ),
+        const Size(30, 30),
+      );
+    }
+    // 周切换动线回归：上一周 → weekRange 文案变化。
+    String weekRangeText() =>
+        (tester.widget(find.byKey(const ValueKey('weekRange'))) as Text)
+            .data!;
+    final before = weekRangeText();
+    await tester.tap(find.byKey(const ValueKey('weekPrev')));
+    await tester.pumpAndSettle();
+    expect(weekRangeText(), isNot(before));
+
+    // 详情 ⋯ 菜单钮：触达 44×44、视觉 38 圆钮，弹菜单回归。
+    router.go('/today');
+    await tester.pumpAndSettle();
+    await openGoalFromFocus(tester, goal.id);
+    final more = find.byKey(const ValueKey('goalMoreButton'));
+    expect(tester.getSize(more), const Size(44, 44));
+    expect(
+      tester.getSize(
+        find.descendant(of: more, matching: find.byType(Container)).first,
+      ),
+      const Size(38, 38),
+    );
+    await tester.tap(more);
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.menuPauseGoal), findsOneWidget);
+    await db.close();
+  });
 }

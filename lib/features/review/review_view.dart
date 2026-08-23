@@ -171,19 +171,26 @@ class _WeekNav extends StatelessWidget {
     final palette = TargetPalette.of(context);
     Widget btn(String key, IconData icon, VoidCallback? onTap) => Opacity(
       opacity: onTap == null ? 0.35 : 1,
-      child: InkWell(
-        key: ValueKey(key),
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 30,
-          height: 30,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: palette.surface,
-            boxShadow: palette.shadowLow,
+      child: SizedBox(
+        // 005 D6（FR-009）：触达外扩 44×44——30 视觉钮居中不变。
+        width: 44,
+        height: 44,
+        child: InkWell(
+          key: ValueKey(key),
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Center(
+            child: Container(
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: palette.surface,
+                boxShadow: palette.shadowLow,
+              ),
+              child: Icon(icon, size: 18, color: palette.onSurface),
+            ),
           ),
-          child: Icon(icon, size: 18, color: palette.onSurface),
         ),
       ),
     );

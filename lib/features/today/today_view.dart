@@ -398,7 +398,8 @@ class _TriArcPainter extends CustomPainter {
 }
 
 /// 36px 圆钮（次级形态：白面 + 发丝边 + 低投影）；铃铛带数字角标。
-/// 主形态（墨实心）随头部过渡＋ 退役（T025），仅存铃铛消费。
+/// 主形态（墨实心）随头部过渡＋ 退役（T025），仅存铃铛消费。005
+/// T009：触达外扩 44×44（SizedBox+Center），视觉 36 零变化。
 class _CircleButton extends StatelessWidget {
   const _CircleButton({
     required this.tooltip,
@@ -419,48 +420,57 @@ class _CircleButton extends StatelessWidget {
     final palette = TargetPalette.of(context);
     return Tooltip(
       message: tooltip,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.rFull,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: palette.surface,
-            border: Border.all(color: palette.divider),
-            boxShadow: palette.shadowLow,
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              Icon(icon, size: 18, color: palette.onSurface),
-              if (badge > 0)
-                Positioned(
-                  top: -5,
-                  right: -7,
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 17),
-                    height: 17,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: AppRadius.rFull,
-                      color: palette.badge,
-                      border: Border.all(color: palette.surface, width: 2),
-                    ),
-                    child: Text(
-                      '$badge',
-                      style: Theme.of(context).textTheme.labelS.copyWith(
-                        color: palette.badgeOn,
-                        fontWeight: FontWeight.w700,
-                        height: 1,
+      child: SizedBox(
+        // 005 D6（FR-009）：触达外扩 44×44——InkWell 铺满槽、内 Center
+        // 36 视觉钮（视觉零变化，命中区 ≥44）。
+        width: 44,
+        height: 44,
+        child: InkWell(
+          key: const ValueKey('todayBell'),
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: Center(
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: palette.surface,
+                border: Border.all(color: palette.divider),
+                boxShadow: palette.shadowLow,
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  Icon(icon, size: 18, color: palette.onSurface),
+                  if (badge > 0)
+                    Positioned(
+                      top: -5,
+                      right: -7,
+                      child: Container(
+                        constraints: const BoxConstraints(minWidth: 17),
+                        height: 17,
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: AppRadius.rFull,
+                          color: palette.badge,
+                          border: Border.all(color: palette.surface, width: 2),
+                        ),
+                        child: Text(
+                          '$badge',
+                          style: Theme.of(context).textTheme.labelS.copyWith(
+                            color: palette.badgeOn,
+                            fontWeight: FontWeight.w700,
+                            height: 1,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),

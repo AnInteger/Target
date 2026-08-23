@@ -341,12 +341,21 @@ class _CircleButton extends StatelessWidget {
       ),
       child: Icon(icon, size: iconSize, color: palette.onSurface),
     );
-    return InkWell(
-      onTap: onTap,
-      customBorder: const CircleBorder(),
-      child: tooltip == null
-          ? button
-          : Tooltip(message: tooltip!, child: button),
+    return SizedBox(
+      // 005 D6（FR-009）：触达外扩 44×44——38 视觉钮居中不变（T008 起
+      // 仅存 PageTopBar trailing ⋯ 菜单钮消费）。
+      width: 44,
+      height: 44,
+      child: InkWell(
+        key: const ValueKey('goalMoreButton'),
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Center(
+          child: tooltip == null
+              ? button
+              : Tooltip(message: tooltip!, child: button),
+        ),
+      ),
     );
   }
 }

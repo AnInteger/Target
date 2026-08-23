@@ -3174,4 +3174,79 @@ void main() {
     );
     await db.close();
   });
+
+  // 005 T002（US1/FR-001/002）：dock 安全区自消费——底幕背景高度
+  // 84+inset 下延至物理底边（不再被外层 SafeArea 整条抬离露底），
+  // 互动槽（页签/FAB）止于 inset 之上。dpr=1.0：物理值即逻辑值。
+  testWidgets('005 T002 dock 安全区：inset=34 底幕贴物理底边、互动槽避让', (tester) async {
+    usePhoneSurface(tester);
+    tester.view.padding = const FakeViewPadding(bottom: 34);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 底幕：贴物理底边（bottom=844），高 84+34=118（inset 区仅背景）。
+    final bar = tester.getRect(find.byKey(const ValueKey('dockBar')));
+    expect(bar.bottom, 844);
+    expect(bar.height, 84 + 34);
+
+    // 互动槽：页签与 FAB 整体止于 inset 之上（不侵入 Home 指示区）。
+    expect(
+      tester.getRect(find.byKey(const ValueKey('navTab-/today'))).bottom,
+      lessThan(844 - 34),
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey('dockFab'))).bottom,
+      lessThan(844 - 34),
+    );
+
+    // FAB 命中回归：tap 仍直达编辑器（凸出带占位不因 inset 缩水）。
+    await tester.tap(find.byKey(const ValueKey('dockFab')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
+    await db.close();
+  });
+
+  // 005 T002 续：无 inset 机型（bottomPadding=0）几何与 004 版恒等——
+  // 底条 84 高、FAB 凸出带 22、总高 106，无多余空隙。
+  testWidgets('005 T002 dock 安全区：inset=0 几何与 004 版恒等', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 底条：84 高、贴屏底；FAB 上缘恰凸出底条顶 22（旧版几何）。
+    final bar = tester.getRect(find.byKey(const ValueKey('dockBar')));
+    expect(bar.bottom, 844);
+    expect(bar.height, 84);
+    final fab = tester.getRect(find.byKey(const ValueKey('dockFab')));
+    expect(fab.top, bar.top - 22);
+    await db.close();
+  });
 }

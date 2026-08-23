@@ -131,6 +131,11 @@ const _navDests = [
 /// 屏中线；当前页签 on-surface 加粗 + 标签下 16×3 短横线（深色自动
 /// 反白，全条无彩色）；FAB 56px 中性（浅色墨底白＋/深色反白），上缘
 /// 凸出底条 22px、带 glass-card 4px 描边环；任意壳层页恒定（FR-010）。
+///
+/// 005 D1 安全区：dock 自消费 `MediaQuery.paddingOf.bottom`——底幕背景
+/// 下延至屏幕物理底边（84+inset，inset 区仅背景），页签/FAB 互动槽
+/// 整体止于 inset 之上；不再用外层 SafeArea（其会把整条含背景抬离
+/// 底边，inset 区露底色断层）。inset=0 机型几何与 004 版恒等。
 class _Dock extends StatelessWidget {
   const _Dock({required this.shell});
 
@@ -139,12 +144,13 @@ class _Dock extends StatelessWidget {
   /// FAB 上缘凸出量（冻结稿 .fab margin-top: -22px）。
   static const double _fabOverhang = 22;
 
-  /// 底条高（冻结稿 .dock height: 84px）。
+  /// 底条高（冻结稿 .dock height: 84px，不含安全区延伸）。
   static const double _barHeight = 84;
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     Widget tab(int i) => Expanded(
       child: Padding(
         // 页签起于底条顶 padding 8 之后（22 + 8 = 30）。
@@ -157,41 +163,45 @@ class _Dock extends StatelessWidget {
         ),
       ),
     );
-    return SafeArea(
-      top: false,
-      child: SizedBox(
-        // 高出底条的 22px = FAB 凸出带：视觉透明但占位命中（凸出部分
-        // 的点击须落在 dock 自身区域而非 body，才能稳定命中 FAB）。
-        height: _barHeight + _fabOverhang,
-        child: Stack(
-          children: [
-            // 底条本体：近实卡底 + 顶缘发丝线（冻结稿 .dock）。
-            Positioned(
-              top: _fabOverhang,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: DecoratedBox(
-                key: const ValueKey('dockBar'),
-                decoration: BoxDecoration(
-                  color: palette.glassCard,
-                  border: Border(top: BorderSide(color: palette.divider)),
-                ),
+    return SizedBox(
+      // 高出底条的 22px = FAB 凸出带：视觉透明但占位命中（凸出部分
+      // 的点击须落在 dock 自身区域而非 body，才能稳定命中 FAB）；
+      // 底部叠加安全区 inset——仅背景延伸，互动槽不上抬整条。
+      height: _barHeight + _fabOverhang + bottomInset,
+      child: Stack(
+        children: [
+          // 底条本体：近实卡底 + 顶缘发丝线（冻结稿 .dock）——高度
+          // 84+inset 贴至物理底边，inset 区纯背景无互动元素。
+          Positioned(
+            top: _fabOverhang,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: DecoratedBox(
+              key: const ValueKey('dockBar'),
+              decoration: BoxDecoration(
+                color: palette.glassCard,
+                border: Border(top: BorderSide(color: palette.divider)),
               ),
             ),
-            // 三槽行：FAB 起于 0（凸出 22），两页签起于 30。
-            Positioned.fill(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  tab(0),
-                  _DockFab(onTap: () => context.push('/goal-editor')),
-                  tab(1),
-                ],
-              ),
+          ),
+          // 三槽行：FAB 起于 0（凸出 22），两页签起于 30；整行止于
+          // inset 之上（Home 指示条避让，命中区不缩小）。
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: bottomInset,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                tab(0),
+                _DockFab(onTap: () => context.push('/goal-editor')),
+                tab(1),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

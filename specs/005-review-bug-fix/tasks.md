@@ -43,7 +43,9 @@ description: "Task list for 005 走查修复轮"
 
 **Independent Test**: 带底部 inset 机型断言 dockBar 底缘 = 屏底、页签不侵入 inset；inset=0 机型几何与 004 版恒等
 
-- [ ] T002 [US1] dock 安全区改造（D1）：lib/app/router.dart `_Dock` 去外层 `SafeArea(top:false)`、改自消费 `MediaQuery.paddingOf(context).bottom`——底条背景高度 84+inset 下延至物理底边（顶缘发丝线仍在条顶）、页签与 FAB 互动槽整体上移 inset；test/ 新增 inset=34 / inset=0 两组几何用例（dockBar 底=屏底、页签 bottom≥inset、inset=0 与现版恒等、dockFab 命中回归）
+- [x] T002 [US1] dock 安全区改造（D1）：lib/app/router.dart `_Dock` 去外层 `SafeArea(top:false)`、改自消费 `MediaQuery.paddingOf(context).bottom`——底条背景高度 84+inset 下延至物理底边（顶缘发丝线仍在条顶）、页签与 FAB 互动槽整体上移 inset；test/ 新增 inset=34 / inset=0 两组几何用例（dockBar 底=屏底、页签 bottom≥inset、inset=0 与现版恒等、dockFab 命中回归）
+  - ✅ 实现完成：`_Dock` 去 SafeArea 改自消费 bottomInset——SizedBox 高 84+22+inset、dockBar Positioned top:22→bottom:0（背景贴物理底边）、三槽行 Positioned(top:0,bottom:inset) 互动槽整体避让；inset=0 几何与 004 恒等
+  - ✅ 门禁通过：analyze 0 + test 163/163（新增 005 T002 两例：inset=34 底幕贴底 844/高 118/页签与 FAB 止于 inset 上+dockFab 命中回归；inset=0 底条 84 高+FAB 凸出 22 恒等）
 
 **Checkpoint**: dock 贴底达成——005 最显眼缺陷闭环，可独立交付
 

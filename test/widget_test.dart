@@ -19,6 +19,7 @@ import 'package:target/features/goals/goal_templates.dart';
 import 'package:target/features/goals/goals_all_view.dart';
 import 'package:target/features/profile/profile.dart';
 import 'package:target/features/settings/settings_view.dart';
+import 'package:target/features/today/today_view.dart';
 import 'package:target/core/backup/backup_exporter.dart';
 import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart'
@@ -3386,6 +3387,105 @@ void main() {
         AppSpace.s5,
       ),
     );
+    await db.close();
+  });
+
+  testWidgets('005 T005：轮播全出血——首/末/单卡卡缘恒贴页基准+段自包 padX+横滑回归', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    // 三习惯错日创建：卡序 = 最近互动降序 → [今日, 昨日, 前日]。
+    final goals = <Goal>[];
+    for (final (i, name) in ['晨跑', '读诗', '夜走'].indexed) {
+      final g = await repo.create(
+        Goal(
+          name: name,
+          goalType: GoalType.habit,
+          iconKey: 'directions_run',
+          colorKey: 'sage',
+          createdAt: today.addDays(-i),
+        ),
+      );
+      goals.add(g);
+      await seedVersion(
+        db,
+        g.id,
+        const DailyFrequency(1),
+        WeekStart.containing(today),
+      );
+    }
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final w = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    final padX = AppScreen.padX;
+
+    // 非轮播段自包页缘：大标题与 cap 行左缘仍 = padX（hero 24 基准）。
+    expect(
+      tester
+          .getTopLeft(
+            find.descendant(
+              of: find.byType(TodayView),
+              matching: find.text(Copy.todayNav),
+            ),
+          )
+          .dx,
+      closeTo(padX, 0.5),
+    );
+    expect(
+      tester.getTopLeft(find.text(Copy.focusSection)).dx,
+      closeTo(padX, 0.5),
+    );
+
+    // 首卡（最近互动 = 今日创建）左缘 = padX；邻卡左缘 = W−padX（peek）。
+    expect(
+      tester.getTopLeft(find.byKey(ValueKey('focusCard-${goals[0].id}'))).dx,
+      closeTo(padX, 0.5),
+    );
+    expect(
+      tester.getTopLeft(find.byKey(ValueKey('focusCard-${goals[1].id}'))).dx,
+      closeTo(w - padX, 0.5),
+    );
+
+    // 末卡：横滑两页至尾——右缘 = W−padX（padEnds 尾端同补 padX）。
+    for (var i = 0; i < 2; i++) {
+      await tester.drag(find.byType(PageView).first, const Offset(-320, 0));
+      await tester.pumpAndSettle();
+    }
+    expect(
+      tester.getTopRight(find.byKey(ValueKey('focusCard-${goals[2].id}'))).dx,
+      closeTo(w - padX, 0.5),
+    );
+
+    // 横滑回归：末卡主行动白胶囊仍可点（→ 详情），返回今日。
+    await openGoalFromFocus(tester, goals[2].id);
+    expect(find.byType(GoalDetailPage), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // 单卡退化：余卡两缘同时贴基准（净宽整卡），页点消失。
+    await repo.update(goals[1].copyWith(status: GoalStatus.paused));
+    await repo.update(goals[2].copyWith(status: GoalStatus.paused));
+    await tester.pumpAndSettle();
+    final single = find.byKey(ValueKey('focusCard-${goals[0].id}'));
+    expect(tester.getTopLeft(single).dx, closeTo(padX, 0.5));
+    expect(tester.getTopRight(single).dx, closeTo(w - padX, 0.5));
+    expect(find.byKey(const ValueKey('focusDots')), findsNothing);
     await db.close();
   });
 }

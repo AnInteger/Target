@@ -74,7 +74,9 @@ description: "Task list for 005 走查修复轮"
 
 **Independent Test**: 首卡左缘 x==padX、末卡右缘==W−padX、单卡两缘同时成立；既有双向横滑/分支状态回归
 
-- [ ] T005 [US3] 今日页结构反转+轮播全出血（D3）：lib/features/today/today_view.dart ListView 水平 padding 归 0、`_Head`/`_RingZone`/`_EmptyCTA` 等非轮播段自包 `Padding(horizontal: AppScreen.padX)`；lib/features/today/focus_carousel.dart 改 `LayoutBuilder` 全宽 W 求 `viewportFraction=(W−2·padX)/W`（PageView 自身无水平 padding）；test/ 卡缘不变式用例（首/末/单卡/peek 可见）+ 既有轮播用例回归
+- [x] T005 [US3] 今日页结构反转+轮播全出血（D3）：lib/features/today/today_view.dart ListView 水平 padding 归 0、`_Head`/`_RingZone`/`_EmptyCTA` 等非轮播段自包 `Padding(horizontal: AppScreen.padX)`；lib/features/today/focus_carousel.dart 改 `LayoutBuilder` 全宽 W 求 `viewportFraction=(W−2·padX)/W`（PageView 自身无水平 padding）；test/ 卡缘不变式用例（首/末/单卡/peek 可见）+ 既有轮播用例回归
+  - ✅ 实现完成：ListView 水平归 0，_Head/_RingZone/cap 行/_EmptyCTA 自包 padX；FocusCarousel 全出血——LayoutBuilder 求 fraction=(W−2·padX)/W（padEnds 默认 true 双端各补 padX），卡内 s2 水平内距拆除（卡占满净宽 342 槽位），controller 随宽变重建保页位
+  - ✅ 门禁通过：analyze 0 + test 166/166（新增 005 T005 一例：标题带/cap 行左缘=24、首卡左缘 24、邻卡左缘 366、末卡右缘 366、单卡两缘、页点退化、末卡主行动动线回归）
 
 **Checkpoint**: SC-003 达成——今日页最直观布局缺陷闭环
 

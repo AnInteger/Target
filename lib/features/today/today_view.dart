@@ -9,7 +9,9 @@
 /// 暂停/删除经流实时移出）。003 目标列表与今日页长按补签退役（补签
 /// 统一走详情页 14 天日历）。铃铛驻留头部（T009 冻结形态 = 通知列表
 /// 上滑入口，v2 各屏唯一入口）；头部过渡＋ 已随 T025 中央 FAB 落地
-/// 退役（新建 = dock 中央凸起圆形＋）。成就覆盖层保留。
+/// 退役（新建 = dock 中央凸起圆形＋）。成就覆盖层保留。005 D3：
+/// 页缘结构反转——ListView 水平归 0，非轮播段自包 padX、轮播全出血
+/// （首末卡缘恒贴页基准，契约 layout-metrics §3）。
 library;
 
 import 'dart:math' as math;
@@ -73,13 +75,9 @@ class TodayView extends ConsumerWidget {
             child: SafeArea(
               bottom: false,
               child: ListView(
-                // FR-008：水平 24 = 三屏标题带左缘基准。
-                padding: const EdgeInsets.fromLTRB(
-                  AppScreen.padX,
-                  0,
-                  AppScreen.padX,
-                  AppSpace.s6,
-                ),
+                // 005 D3（FR-004）：水平归 0——轮播段全出血按净宽对齐
+                // 页基准；非轮播段（头/环/空态）各自自包 padX。
+                padding: const EdgeInsets.only(bottom: AppSpace.s6),
                 children: [
                   const _Head(),
                   if (!isEmpty) ...[
@@ -121,7 +119,13 @@ class _Head extends ConsumerWidget {
     final badge = todayBadgeCount(ref.watch(notificationItemsProvider), today);
 
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.s4),
+      // 005 D3：随 ListView 水平归 0 自包页缘（hero 24 标题带基准）。
+      padding: const EdgeInsets.fromLTRB(
+        AppScreen.padX,
+        AppSpace.s4,
+        AppScreen.padX,
+        0,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -218,7 +222,13 @@ class _RingZone extends StatelessWidget {
         : scored.fold<int>(0, (s, c) => s + c.score) ~/ scored.length;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0, AppSpace.s5, 0, AppSpace.s2),
+      // 005 D3：随 ListView 水平归 0 自包页缘（hero 24）。
+      padding: const EdgeInsets.fromLTRB(
+        AppScreen.padX,
+        AppSpace.s5,
+        AppScreen.padX,
+        AppSpace.s2,
+      ),
       child: Row(
         children: [
           SizedBox(
@@ -492,7 +502,14 @@ class _CarouselSection extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.only(bottom: AppSpace.s3),
+            // 005 D3：cap 行自包页缘；轮播本体全出血（FocusCarousel
+            // 内按净宽求 fraction，首末卡缘恒贴页基准）。
+            padding: const EdgeInsets.fromLTRB(
+              AppScreen.padX,
+              0,
+              AppScreen.padX,
+              AppSpace.s3,
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
@@ -538,7 +555,13 @@ class _EmptyCTA extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.s12, bottom: AppSpace.s6),
+      // 005 D3：随 ListView 水平归 0 自包页缘（hero 24）。
+      padding: const EdgeInsets.fromLTRB(
+        AppScreen.padX,
+        AppSpace.s12,
+        AppScreen.padX,
+        AppSpace.s6,
+      ),
       child: Column(
         children: [
           Container(

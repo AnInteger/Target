@@ -71,8 +71,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     if (_isEdit) {
       // 目标流就绪后一次性回填表单（含提醒行）。
       ref.listenManual(goalsProvider, (prev, next) {
-        final goal =
-            next.value?.where((g) => g.id == widget.goalId).firstOrNull;
+        final goal = next.value
+            ?.where((g) => g.id == widget.goalId)
+            .firstOrNull;
         if (!_hydrated && goal != null) _hydrate(goal);
       }, fireImmediately: true);
     } else {
@@ -137,58 +138,67 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     Future<void> syncReminder(String goalId) async {
       final wants = _type != GoalType.shortTerm && _remindOn;
       if (wants) {
-        await reminderRepo.upsert(Reminder(
-          id: _reminderId,
-          goalId: goalId,
-          time: _remindTime,
-          isEnabled: true,
-          cadence: _cadence,
-        ));
+        await reminderRepo.upsert(
+          Reminder(
+            id: _reminderId,
+            goalId: goalId,
+            time: _remindTime,
+            isEnabled: true,
+            cadence: _cadence,
+          ),
+        );
       } else if (_reminderId != null) {
         if (_type == GoalType.shortTerm) {
           await reminderRepo.removeByGoal(goalId);
         } else {
-          await reminderRepo.upsert(Reminder(
-            id: _reminderId,
-            goalId: goalId,
-            time: _remindTime,
-            isEnabled: false,
-            cadence: _cadence,
-          ));
+          await reminderRepo.upsert(
+            Reminder(
+              id: _reminderId,
+              goalId: goalId,
+              time: _remindTime,
+              isEnabled: false,
+              cadence: _cadence,
+            ),
+          );
         }
       }
     }
 
     try {
       if (_isEdit) {
-        final goal = (ref.read(goalsProvider).value ?? [])
-            .firstWhere((g) => g.id == widget.goalId);
+        final goal = (ref.read(goalsProvider).value ?? []).firstWhere(
+          (g) => g.id == widget.goalId,
+        );
         // 编辑同构（类型锁定）：直构完整 Goal（copyWith 不支持清
         // deadline）；退役字段原值继承（FR-016 存量保全，表单无写入路径）。
-        await repo.update(Goal(
-          id: goal.id,
-          name: name,
-          goalType: _type,
-          iconKey: _iconKey,
-          colorKey: goal.colorKey,
-          status: goal.status,
-          createdAt: goal.createdAt,
-          deadline: _type == GoalType.shortTerm ? _deadline : null,
-          motivation: goal.motivation,
-          successCriterion: goal.successCriterion,
-          cueScene: goal.cueScene,
-          achievedAt: goal.achievedAt,
-        ));
+        await repo.update(
+          Goal(
+            id: goal.id,
+            name: name,
+            goalType: _type,
+            iconKey: _iconKey,
+            colorKey: goal.colorKey,
+            status: goal.status,
+            createdAt: goal.createdAt,
+            deadline: _type == GoalType.shortTerm ? _deadline : null,
+            motivation: goal.motivation,
+            successCriterion: goal.successCriterion,
+            cueScene: goal.cueScene,
+            achievedAt: goal.achievedAt,
+          ),
+        );
         await syncReminder(goal.id);
       } else {
-        final created = await repo.create(Goal(
-          name: name,
-          goalType: _type,
-          iconKey: _iconKey,
-          colorKey: 'teal', // 退役列兜底值，任何界面不再读取（FR-015/016）
-          createdAt: today,
-          deadline: _type == GoalType.shortTerm ? _deadline : null,
-        ));
+        final created = await repo.create(
+          Goal(
+            name: name,
+            goalType: _type,
+            iconKey: _iconKey,
+            colorKey: 'teal', // 退役列兜底值，任何界面不再读取（FR-015/016）
+            createdAt: today,
+            deadline: _type == GoalType.shortTerm ? _deadline : null,
+          ),
+        );
         await syncReminder(created.id);
       }
       if (mounted) Navigator.of(context).pop();
@@ -201,8 +211,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             content: const Text(Copy.focusLimitBody),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('知道了')),
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(Copy.notifAck),
+              ),
             ],
           ),
         );
@@ -213,8 +224,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   @override
   Widget build(BuildContext context) {
     if (_isEdit && !_hydrated) {
-      return const Scaffold(
-          body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -226,13 +236,19 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             // v2 push 顶栏：38 圆返回键 + 标题（新建目标/编辑目标）。
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpace.s5, AppSpace.s3, AppSpace.s5, AppSpace.s2),
+                AppSpace.s5,
+                AppSpace.s3,
+                AppSpace.s5,
+                AppSpace.s2,
+              ),
               child: Row(
                 children: [
                   _BackButton(onTap: () => Navigator.of(context).maybePop()),
                   const SizedBox(width: AppSpace.s3),
-                  Text(_isEdit ? Copy.goalEdit : Copy.editorNewGoal,
-                      style: Theme.of(context).textTheme.titleM),
+                  Text(
+                    _isEdit ? Copy.goalEdit : Copy.editorNewGoal,
+                    style: Theme.of(context).textTheme.titleM,
+                  ),
                   const Spacer(),
                 ],
               ),
@@ -240,7 +256,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(
-                    AppSpace.s5, AppSpace.s2, AppSpace.s5, AppSpace.s4),
+                  AppSpace.s5,
+                  AppSpace.s2,
+                  AppSpace.s5,
+                  AppSpace.s4,
+                ),
                 children: [
                   if (!_isEdit) ...[
                     _TemplateStrip(onTap: _applyTemplate),
@@ -249,7 +269,10 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                   _GroupCard(
                     title: Copy.editorSectionType,
                     badge: _isEdit
-                        ? const _Tag(Copy.editorTypeLockedTag, emphasized: false)
+                        ? const _Tag(
+                            Copy.editorTypeLockedTag,
+                            emphasized: false,
+                          )
                         : null,
                     child: _typeSection(),
                   ),
@@ -261,26 +284,29 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                   ),
                   const SizedBox(height: AppSpace.s4),
                   _GroupCard(
-                      title: Copy.editorSectionCategory, child: _categoryCard()),
+                    title: Copy.editorSectionCategory,
+                    child: _categoryCard(),
+                  ),
                   const SizedBox(height: AppSpace.s4),
                   if (_type == GoalType.shortTerm)
                     _GroupCard(
                       title: Copy.editorMilestoneTitle,
-                      badge: const _Tag(Copy.editorOptionalTag, emphasized: false),
+                      badge: const _Tag(
+                        Copy.editorOptionalTag,
+                        emphasized: false,
+                      ),
                       child: Text(
                         Copy.editorMilestoneHint,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyL
-                            .copyWith(
-                                color:
-                                    TargetPalette.of(context).onSurfaceVariant),
+                        style: Theme.of(context).textTheme.bodyL.copyWith(
+                          color: TargetPalette.of(context).onSurfaceVariant,
+                        ),
                       ),
                     )
                   else
                     _GroupCard(
-                        title: Copy.editorSectionReminder,
-                        child: _reminderCard()),
+                      title: Copy.editorSectionReminder,
+                      child: _reminderCard(),
+                    ),
                 ],
               ),
             ),
@@ -288,7 +314,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             // 必填未满足置灰）。
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpace.s5, AppSpace.s3, AppSpace.s5, AppSpace.s5),
+                AppSpace.s5,
+                AppSpace.s3,
+                AppSpace.s5,
+                AppSpace.s5,
+              ),
               child: _SaveButton(enabled: _canSave, onPressed: _save),
             ),
           ],
@@ -308,9 +338,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
         GoalType.habit => Copy.typeBadgeHabit,
       },
       selected: _type,
-      onSelected: _isEdit
-          ? null
-          : (t) => setState(() => _setType(t)),
+      onSelected: _isEdit ? null : (t) => setState(() => _setType(t)),
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,16 +375,22 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
               const _Tag(Copy.editorRequiredTag, emphasized: true),
               const Spacer(),
               Text(_deadline?.isoString ?? '', style: theme.textTheme.bodyL),
-              Icon(Icons.expand_more,
-                  size: 18, color: palette.onSurfaceVariant),
+              Icon(
+                Icons.expand_more,
+                size: 18,
+                color: palette.onSurfaceVariant,
+              ),
             ],
           ),
         ),
         const SizedBox(height: AppSpace.s2),
-        Text(Copy.editorCountdownPreview(days),
-            key: const ValueKey('goalCountdownPreview'),
-            style:
-                theme.textTheme.bodyS.copyWith(color: palette.onSurfaceVariant)),
+        Text(
+          Copy.editorCountdownPreview(days),
+          key: const ValueKey('goalCountdownPreview'),
+          style: theme.textTheme.bodyS.copyWith(
+            color: palette.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -380,10 +414,14 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             isDense: true,
             filled: true,
             fillColor: palette.surfaceAlt,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: AppSpace.s4, vertical: AppSpace.s3),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.s4,
+              vertical: AppSpace.s3,
+            ),
             enabledBorder: OutlineInputBorder(
-                borderRadius: AppRadius.rMd, borderSide: border),
+              borderRadius: AppRadius.rMd,
+              borderSide: border,
+            ),
             focusedBorder: OutlineInputBorder(
               borderRadius: AppRadius.rMd,
               borderSide: BorderSide(color: palette.accent),
@@ -395,8 +433,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
           alignment: Alignment.centerRight,
           child: Text(
             '${_name.text.length}/40',
-            style: theme.textTheme.bodyS
-                .copyWith(color: palette.onSurfaceVariant),
+            style: theme.textTheme.bodyS.copyWith(
+              color: palette.onSurfaceVariant,
+            ),
           ),
         ),
       ],
@@ -418,8 +457,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
     final icon = GoalIconCatalog.byKey(_iconKey);
-    final majorColor =
-        MajorColors.byKey(icon.domain.major.name).of(context);
+    final majorColor = MajorColors.byKey(icon.domain.major.name).of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -443,13 +481,17 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             Container(
               width: 8,
               height: 8,
-              decoration: BoxDecoration(color: majorColor, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: majorColor,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: AppSpace.s2),
             Text(
               '${icon.domain.zhLabel} · ${icon.domain.major.zhLabel}',
-              style: theme.textTheme.bodyS
-                  .copyWith(color: palette.onSurfaceVariant),
+              style: theme.textTheme.bodyS.copyWith(
+                color: palette.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -490,15 +532,20 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             padding: const EdgeInsets.only(top: AppSpace.s1),
             child: Text(
               Copy.editorReminderOffSub,
-              style: theme.textTheme.bodyS
-                  .copyWith(color: palette.onSurfaceVariant),
+              style: theme.textTheme.bodyS.copyWith(
+                color: palette.onSurfaceVariant,
+              ),
             ),
           )
         else ...[
           const SizedBox(height: AppSpace.s3),
-          Text(Copy.editorCadenceLabel,
-              style: theme.textTheme.labelS.copyWith(
-                  color: palette.onSurfaceVariant, letterSpacing: .8)),
+          Text(
+            Copy.editorCadenceLabel,
+            style: theme.textTheme.labelS.copyWith(
+              color: palette.onSurfaceVariant,
+              letterSpacing: .8,
+            ),
+          ),
           const SizedBox(height: AppSpace.s2),
           SegmentedPill<Cadence>(
             key: const ValueKey('goalCadenceSeg'),
@@ -520,8 +567,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                 Text(Copy.editorRemindTimeLabel, style: theme.textTheme.bodyL),
                 const Spacer(),
                 Text(_remindTime.isoString, style: theme.textTheme.bodyL),
-                Icon(Icons.expand_more,
-                    size: 18, color: palette.onSurfaceVariant),
+                Icon(
+                  Icons.expand_more,
+                  size: 18,
+                  color: palette.onSurfaceVariant,
+                ),
               ],
             ),
           ),
@@ -547,11 +597,13 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   Future<void> _pickTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay(hour: _remindTime.hour, minute: _remindTime.minute),
+      initialTime: TimeOfDay(
+        hour: _remindTime.hour,
+        minute: _remindTime.minute,
+      ),
     );
     if (picked != null) {
-      setState(
-          () => _remindTime = LocalTime(picked.hour, picked.minute));
+      setState(() => _remindTime = LocalTime(picked.hour, picked.minute));
     }
   }
 }
@@ -580,8 +632,7 @@ class _BackButton extends StatelessWidget {
             border: Border.all(color: palette.divider),
             boxShadow: palette.shadowLow,
           ),
-          child: Icon(Icons.chevron_left,
-              size: 26, color: palette.onSurface),
+          child: Icon(Icons.chevron_left, size: 26, color: palette.onSurface),
         ),
       ),
     );
@@ -612,7 +663,9 @@ class _TemplateStrip extends StatelessWidget {
                 borderRadius: AppRadius.rFull,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpace.s4, vertical: AppSpace.s2),
+                    horizontal: AppSpace.s4,
+                    vertical: AppSpace.s2,
+                  ),
                   decoration: BoxDecoration(
                     color: palette.surface,
                     borderRadius: AppRadius.rFull,
@@ -622,8 +675,7 @@ class _TemplateStrip extends StatelessWidget {
                     children: [
                       // 冻结稿 .tpl：药丸统一环徽（trip_origin 18px accent），
                       // 不逐模板取形（与常用行图标解耦，避免同名双现）。
-                      Icon(Icons.trip_origin,
-                          size: 18, color: palette.accent),
+                      Icon(Icons.trip_origin, size: 18, color: palette.accent),
                       const SizedBox(width: AppSpace.s2),
                       Text(t.name, style: theme.textTheme.bodyM),
                     ],
@@ -665,9 +717,13 @@ class _GroupCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(title,
-                    style: theme.textTheme.labelS.copyWith(
-                        color: palette.onSurfaceVariant, letterSpacing: .8)),
+                Text(
+                  title,
+                  style: theme.textTheme.labelS.copyWith(
+                    color: palette.onSurfaceVariant,
+                    letterSpacing: .8,
+                  ),
+                ),
                 if (badge != null) ...[
                   const SizedBox(width: AppSpace.s2),
                   badge!,
@@ -694,16 +750,13 @@ class _Tag extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final on = emphasized ? palette.accent : palette.surfaceAlt;
-    final fg =
-        emphasized ? palette.accentOn : palette.onSurfaceVariant;
+    final fg = emphasized ? palette.accentOn : palette.onSurfaceVariant;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpace.s2, vertical: 1),
       decoration: BoxDecoration(color: on, borderRadius: AppRadius.rFull),
       child: Text(
         text,
-        style: Theme.of(context)
-            .textTheme
-            .labelS
+        style: Theme.of(context).textTheme.labelS
             .copyWith(color: fg, letterSpacing: 0),
       ),
     );
@@ -747,13 +800,11 @@ class SegmentedPill<T> extends StatelessWidget {
                 onTap: onSelected == null ? null : () => onSelected!(v),
                 borderRadius: AppRadius.rSm,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: AppSpace.s2),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpace.s2),
                   decoration: BoxDecoration(
                     color: v == selected ? palette.surface : null,
                     borderRadius: AppRadius.rSm,
-                    boxShadow:
-                        v == selected ? palette.shadowLow : null,
+                    boxShadow: v == selected ? palette.shadowLow : null,
                   ),
                   child: Text(
                     labelOf(v),
@@ -762,8 +813,7 @@ class SegmentedPill<T> extends StatelessWidget {
                       color: v == selected
                           ? palette.onSurface
                           : palette.onSurfaceVariant,
-                      fontWeight:
-                          v == selected ? FontWeight.w700 : null,
+                      fontWeight: v == selected ? FontWeight.w700 : null,
                     ),
                   ),
                 ),
@@ -852,9 +902,11 @@ class _IconCell extends StatelessWidget {
               width: 1.5,
             ),
           ),
-          child: Icon(icon,
-              size: iconSize,
-              color: selected ? palette.accent : palette.onSurface),
+          child: Icon(
+            icon,
+            size: iconSize,
+            color: selected ? palette.accent : palette.onSurface,
+          ),
         ),
       ),
     );
@@ -886,14 +938,17 @@ class _MoreCell extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.trip_origin,
-                    size: 13, color: palette.onSurfaceVariant),
+                Icon(
+                  Icons.trip_origin,
+                  size: 13,
+                  color: palette.onSurfaceVariant,
+                ),
                 const SizedBox(height: 1),
-                Text(Copy.editorIconMoreShort,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelS
-                        .copyWith(color: palette.onSurfaceVariant)),
+                Text(
+                  Copy.editorIconMoreShort,
+                  style: Theme.of(context).textTheme.labelS
+                      .copyWith(color: palette.onSurfaceVariant),
+                ),
               ],
             ),
           ),
@@ -916,8 +971,9 @@ class _DashedBorderPainter extends CustomPainter {
       ..strokeWidth = 1
       ..color = color;
     final path = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-          Offset.zero & size, AppRadius.rMd.topLeft));
+      ..addRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, AppRadius.rMd.topLeft),
+      );
     for (final metric in path.computeMetrics()) {
       var start = 0.0;
       while (start < metric.length) {
@@ -928,8 +984,7 @@ class _DashedBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DashedBorderPainter old) =>
-      old.color != color;
+  bool shouldRepaint(covariant _DashedBorderPainter old) => old.color != color;
 }
 
 /// 分类全量上滑弹层（冻结稿板 3 .sheet）：38 枚按 10 域分组，组头
@@ -948,8 +1003,7 @@ class _IconPickerSheet extends StatelessWidget {
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius:
-            BorderRadius.vertical(top: AppRadius.rXl.topLeft),
+        borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
         boxShadow: palette.shadowHigh,
       ),
       child: Column(
@@ -959,7 +1013,10 @@ class _IconPickerSheet extends StatelessWidget {
           Container(
             width: 40,
             height: 4,
-            margin: const EdgeInsets.only(top: AppSpace.s3, bottom: AppSpace.s3),
+            margin: const EdgeInsets.only(
+              top: AppSpace.s3,
+              bottom: AppSpace.s3,
+            ),
             decoration: BoxDecoration(
               color: palette.divider,
               borderRadius: AppRadius.rFull,
@@ -967,17 +1024,27 @@ class _IconPickerSheet extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpace.s5, 0, AppSpace.s5, AppSpace.s3),
+              AppSpace.s5,
+              0,
+              AppSpace.s5,
+              AppSpace.s3,
+            ),
             child: SizedBox(
               width: double.infinity,
-              child: Text(Copy.editorPickCategoryTitle,
-                  style: theme.textTheme.titleS),
+              child: Text(
+                Copy.editorPickCategoryTitle,
+                style: theme.textTheme.titleS,
+              ),
             ),
           ),
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
-                  AppSpace.s5, 0, AppSpace.s5, AppSpace.s5),
+                AppSpace.s5,
+                0,
+                AppSpace.s5,
+                AppSpace.s5,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1001,8 +1068,9 @@ class _IconPickerSheet extends StatelessWidget {
                                   size: w,
                                   iconSize: 22,
                                   selected: c.key == selectedKey,
-                                  semanticLabel:
-                                      Copy.editorIconSemantics(c.key),
+                                  semanticLabel: Copy.editorIconSemantics(
+                                    c.key,
+                                  ),
                                   onTap: () => Navigator.of(context).pop(c.key),
                                 ),
                               ),
@@ -1042,9 +1110,7 @@ class _DomainHeader extends StatelessWidget {
         const SizedBox(width: AppSpace.s2),
         Text(
           '${domain.zhLabel} · ${domain.major.zhLabel}',
-          style: Theme.of(context)
-              .textTheme
-              .labelS
+          style: Theme.of(context).textTheme.labelS
               .copyWith(color: palette.onSurfaceVariant),
         ),
       ],

@@ -38,7 +38,8 @@ abstract final class Copy {
   static const focusLimitTitle = '先照顾好这 5 个';
   static const focusLimitBody = '目标贵在聚焦。暂停或归档一个，再放新的进来。';
 
-  // ---- 编辑器 · B 案动线（002 T014 定稿：单一概念 + 动机先行）----
+  // ---- 编辑器 · B 案动线（002 T014 定稿；004 v2 编辑器换装后界面
+  //      退役，仅存 widget_test「002 句式残留」负向哨兵引用）----
 
   static const editorFrequencyLabel = '多久做一次？';
   static const editorWhyLabel = '为什么想做？';
@@ -47,9 +48,7 @@ abstract final class Copy {
 
   // ---- 目标管理页 ----
 
-  static const goalsTitle = '目标';
   static const goalsDaysRecorded = '天有记录';
-  static const goalsPausedNote = '暂停中 · 记录保留';
   static const goalsEmptyOwn = '写一句自己的';
 
   // ---- 目标详情（T021：管理动线 + 打卡描述 + 历史记录；
@@ -130,9 +129,6 @@ abstract final class Copy {
 
   // ---- 里程碑（FR-013）----
 
-  static String milestoneProgress(int done, int total) => '$done/$total';
-  static String milestoneCountdown(int days) =>
-      days >= 0 ? '还剩 $days 天' : '过了 ${-days} 天';
   static const milestoneDone = '达成了，恭喜！';
   static const milestoneStepsHeader = '里程碑'; // 004 v2 冻结稿卡题
   static const milestoneAddStep = '添加'; // 004 v2 冻结稿 .ms-add 按钮字
@@ -152,7 +148,8 @@ abstract final class Copy {
   static const notifEnable = '开启通知';
   static const notifAck = '知道了';
 
-  // ---- 提醒场景（FR-012：编辑器 chips 与调度器共用同一套词汇）----
+  // ---- 提醒场景（FR-012：编辑器 chips 与调度器共用同一套词汇；
+  //      004 v2 编辑器场景档退役，仅存 widget_test 残留哨兵引用）----
 
   static const cueEarly = '早起后';
   static const cueMidday = '午休时';
@@ -243,7 +240,7 @@ abstract final class Copy {
   static const backfillCalendarTitle = '补一补过去两周';
   static const backfillHint = '点想补的日期，线就接回来';
   static const todayNav = '今日';
-  static const goalsNav = '目标';
+  static const goalsNav = '目标'; // 004 dock 无目标页签，存 widget_test 哨兵
   static const reviewNav = '回顾';
   static const mineNav = '我的';
 
@@ -334,7 +331,6 @@ abstract final class Copy {
   static const editorPickCategoryTitle = '选择分类';
   static const editorIconMoreLabel = '更多分类图标';
   static const editorIconMoreShort = '更多';
-  static const editorIconCloseLabel = '关闭';
   static const editorSectionReminder = '提醒';
 
   /// 图标格语义名（原型 aria-label 同款口径：键名即名）。

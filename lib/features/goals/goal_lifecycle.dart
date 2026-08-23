@@ -23,7 +23,7 @@ Future<void> showFocusLimitDialog(BuildContext context) => showDialog<void>(
     actions: [
       TextButton(
         onPressed: () => Navigator.of(context).pop(),
-        child: const Text('知道了'),
+        child: const Text(Copy.notifAck),
       ),
     ],
   ),

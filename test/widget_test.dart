@@ -1388,6 +1388,86 @@ void main() {
     await db.close();
   });
 
+  testWidgets('US4 导航与深链回归（004 T026）：映射不变、跨分支深链落详情、头像 ≤2 击达职能', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goal = await GoalRepository(db).create(
+      Goal(
+        name: '锻炼',
+        goalType: GoalType.habit,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    await seedVersion(
+      db,
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(today),
+    );
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) => {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 深链映射不变（FR-013 口径沿 003 T041）：today/review/goal/{id}，
+    // goal 无 id 兜底今日。
+    expect(mapDeepLink(Uri.parse('target://today')), '/today');
+    expect(mapDeepLink(Uri.parse('target://review')), '/review');
+    expect(
+      mapDeepLink(Uri.parse('target://goal/${goal.id}')),
+      '/goal/${goal.id}',
+    );
+    expect(mapDeepLink(Uri.parse('target://goal')), '/today');
+
+    // 第三页签清退终态：dock 恰两枚（今日/回顾），我的零上屏（我的 =
+    // 今日页头像 push）。goalsNav 哨兵不在此断言——本用例有种库，环区
+    // 图例的「目标」大类与页签同文（空库哨兵见 US1 两分支用例）。
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
+    expect(find.text(Copy.mineNav), findsNothing);
+
+    // 深链 E2E：回顾页经 widgetURL 动线 router.go(goal/{id}) 跨分支落
+    // 详情（today 分支），dock 恒定（FR-010）。
+    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go(mapDeepLink(Uri.parse('target://goal/${goal.id}'))!);
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalDetailPage), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    // 兜底深链：无 id → 今日（不落详情）。
+    router.go(mapDeepLink(Uri.parse('target://goal'))!);
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalDetailPage), findsNothing);
+
+    // 头像 → 我的页职能 ≤2 击可达（US4 验收）：1 击 push 即达职能面
+    //（资料编辑入口 meCard + 按目标提醒行 = 职能在场，无须二次导航）。
+    await tester.tap(find.byTooltip(Copy.mineNav));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screenTitle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('meCard')), findsOneWidget);
+    await scrollTo(tester, find.text(Copy.settingsGoalRemindersTitle));
+    expect(find.text(Copy.settingsGoalRemindersTitle), findsOneWidget);
+    await db.close();
+  });
+
   testWidgets('US1 编辑器/详情落 today 分支：导航不退场 + /goals 兜底（FR-010）', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());

@@ -162,7 +162,9 @@ description: "Task list for 004 UI v2 重构"
 - [x] T025 [US4] 底部导航壳重做：lib/app/router.dart _PillNav 换新语言——今日 | 中央凸起圆形＋ | 回顾，任意页面恒定，中央按钮直达 /goal-editor（depends T024）
   - ✅ 实现完成：_PillNav 悬浮胶囊退役 → _Dock 冻结稿 D2「黑色线条」定稿复刻——全宽近实卡底条（glassCard + 顶缘发丝线，84px · 顶 padding 8）三槽「今日 | 中央＋ | 回顾」（两页签 Expanded 对称、FAB 恰在屏中线）；当前页签 onSurface 加粗 w700 + 标签下 16×3 短横线 navTabMark（深色自动反白，全条无彩色）；_DockFab 56px 墨面圆 + glassCard 4px 描边环 + shadowMid，上缘凸出 22px（凸出带透明但占位命中——凸出部分点击落在 dock 区域才能稳定命中 FAB），push /goal-editor，Tooltip 沿用「新建目标」；页签字形复刻冻结稿 SVG（今日=_TodayGlyphPainter 点阵 960 画布两列 r73×3+中列 r33×2 绘入 22px；回顾=Icons.cloudy_snowing 同源）；今日页头部过渡＋退役（_CircleButton 主形态随之精简为铃铛单形态，铃铛驻留=通知列表唯一入口 T009 冻结）；T031 竖直居中锚点从页签文字顶改 dockBar 底条顶缘（dock 增高 26px，FAB 凸出带视觉透明不计入区域）；新增 T025 用例（三槽在场/短横线随选中迁移/FAB 今日·回顾两页直达编辑器/dock 恒定/全屏唯一 add 即 FAB）
   - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（151/151，新增 1 用例）
-- [ ] T026 [US4] 导航与深链回归：test/widget_test.dart 用例更新（target:// today/review/goal/{id} 映射不变；第三页签移除后旧断言清退；头像→我的页职能可达核验）（depends T024, T025）
+- [x] T026 [US4] 导航与深链回归：test/widget_test.dart 用例更新（target:// today/review/goal/{id} 映射不变；第三页签移除后旧断言清退；头像→我的页职能可达核验）（depends T024, T025）
+  - ✅ 实现完成：大头已随 T024/T025 测试迁移有机落地，本任务聚焦收口三条款——新增「US4 导航与深链回归」用例：①mapDeepLink 映射不变四断言（today/review/goal/{id} 落详情、goal 无 id 兜底 /today）；②第三页签清退终态（dock 恰两枚 key、mineNav 零上屏；goalsNav 空库哨兵保留在 US1 两分支用例——有种库时环区图例「目标」大类与页签同文，不在此断言）；③深链 E2E 补口：回顾页经 widgetURL 动线 router.go(goal/{id}) 跨分支落详情且 dock 恒定（此前仅纯函数级断言，跨分支 go 无回归）、兜底深链不落详情；④头像→我的页职能 ≤2 击可达验收：1 击 push 即达职能面（meCard 资料编辑入口 + 按目标提醒行在场）。残留清审计：mineNav×5/todayNav/reviewNav 存量位点逐点核验全部有效（负哨兵×2、头像 Tooltip×3、编辑器页唯一「今日」、回顾页签 tap×2），goalsNav 仅存空库哨兵
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（152/152，新增 1 用例）
 
 **Checkpoint**: 导航结构全局恒定，深链面零回归
 

@@ -4,10 +4,12 @@
 /// 头像入「我的」页，同一连续图层无分隔线）+ 三大类健康度环（R3
 /// 裁决案 C「单环·三段弧」：一环三色各占 1/3 槽位，弧长 = 该类分
 /// 数，中心 = 有数据类平均分；类内零活跃 = 空置段 + 图例弱化无数字；
-/// 全库零活跃环区整体让位空态新建 CTA，FR-004）。今日目标列表暂承
-/// 003 形态（T022 换装关注卡轮播）；成就覆盖层与补签长按保留。铃
-/// 铛（T009 冻结形态 = 通知列表上滑入口）与 ＋（T025 中央 FAB 落
-/// 地前的过渡新建入口）暂驻头部右侧。
+/// 全库零活跃环区整体让位空态新建 CTA，FR-004）+ 关注卡轮播（T022
+/// 挂载：cap 行「关注 / 查看全部」→ /goals-all，主行动 → /goal/{id}，
+/// 暂停/删除经流实时移出）。003 目标列表与今日页长按补签退役（补签
+/// 统一走详情页 14 天日历）。铃铛（T009 冻结形态 = 通知列表上滑入
+/// 口）与 ＋（T025 中央 FAB 落地前的过渡新建入口）暂驻头部右侧。
+/// 成就覆盖层保留。
 library;
 
 import 'dart:math' as math;
@@ -23,11 +25,11 @@ import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/goal_icon_catalog.dart';
 import '../../core/models/health_score.dart';
-import '../goals/goal_type_badge.dart';
+import '../../core/stats/stats_engine.dart';
 import '../notifications/notification_list.dart';
 import '../profile/profile.dart';
-import 'backfill_calendar.dart';
 import 'celebration.dart';
+import 'focus_carousel.dart';
 
 class TodayView extends ConsumerWidget {
   const TodayView({super.key});
@@ -82,19 +84,12 @@ class TodayView extends ConsumerWidget {
                   const _Head(),
                   if (!isEmpty) ...[
                     _RingZone(health: health),
-                    _SectionHeader(
-                      note: Copy.todayRecordedNote(doneGoals, active.length),
+                    _CarouselSection(
+                      goals: goalsAsync.value!,
+                      checkIns: checkIns,
+                      stats: stats,
+                      today: today,
                     ),
-                    for (final g in active)
-                      _GoalCard(
-                        goal: g,
-                        done: stats.dayStatusOf(g.id).done,
-                        latest: _latestLine(
-                          checkIns.where((c) => c.goalId == g.id).toList(),
-                          today,
-                        ),
-                        today: today,
-                      ),
                   ],
                   if (isEmpty)
                     _EmptyCTA(onTap: () => context.push('/goal-editor')),
@@ -108,27 +103,6 @@ class TodayView extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  /// 最新记录行（T007 R2 裁决 2）：「相对时间 - 该次描述」；
-  /// 未填描述兜底「完成打卡」（FR-019）；无任何记录 → 还没有记录。
-  String _latestLine(List<CheckIn> mine, LocalDate today) {
-    final valid = mine.where((c) => c.isValid).toList();
-    if (valid.isEmpty) return Copy.todayLatestNone;
-    valid.sort(
-      (a, b) => a.day != b.day
-          ? a.day.compareTo(b.day)
-          : a.createdAt.compareTo(b.createdAt),
-    );
-    final last = valid.last;
-    final gap = today.differenceInDays(last.day);
-    final rel = gap <= 0
-        ? Copy.todayLatestToday
-        : gap == 1
-        ? Copy.todayLatestYesterday
-        : Copy.todayLatestDaysAgo(gap);
-    final note = (last.note ?? '').trim();
-    return '$rel - ${note.isEmpty ? Copy.checkInDefaultNote : note}';
   }
 }
 
@@ -503,119 +477,61 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
-/// 节头：今日目标 + 节注「已记录 N/M」（T022 关注卡轮播换装前过渡）。
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.note});
+/// 关注卡轮播节（冻结稿 .caro）：cap 行「关注 / 查看全部 ›」（→
+/// /goals-all）+ FocusCarousel（主行动 → 该目标详情记录动线）。
+/// 暂停/删除经 goalsProvider 流实时移出（组件内过滤 active）。
+class _CarouselSection extends StatelessWidget {
+  const _CarouselSection({
+    required this.goals,
+    required this.checkIns,
+    required this.stats,
+    required this.today,
+  });
 
-  final String note;
+  final List<Goal> goals;
+  final List<CheckIn> checkIns;
+  final StatsEvaluation stats;
+  final LocalDate today;
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.s5, bottom: AppSpace.s4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+      padding: const EdgeInsets.only(top: AppSpace.s3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(Copy.todaySection, style: Theme.of(context).textTheme.titleS),
-          const Spacer(),
-          Text(
-            note,
-            style: Theme.of(context).textTheme.bodyM
-                .copyWith(color: palette.onSurfaceVariant),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 统一目标卡（三类型一卡）：图标格 + 一句话 + 类型徽章 + 最新记录行。
-/// 整卡可点进详情（卡上无按钮），长按 = 补签日历。
-class _GoalCard extends ConsumerWidget {
-  const _GoalCard({
-    required this.goal,
-    required this.done,
-    required this.latest,
-    required this.today,
-  });
-
-  final Goal goal;
-  final bool done;
-  final String latest;
-  final LocalDate today;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = TargetPalette.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpace.s4),
-      child: Material(
-        color: palette.glassCard,
-        borderRadius: AppRadius.rLg,
-        child: InkWell(
-          onTap: () => context.push('/goal/${goal.id}'),
-          onLongPress: () => showBackfillCalendar(context, ref, goal),
-          borderRadius: AppRadius.rLg,
-          child: Container(
-            padding: const EdgeInsets.all(AppSpace.s4),
-            decoration: BoxDecoration(
-              borderRadius: AppRadius.rLg,
-              border: Border.all(color: palette.divider),
-              boxShadow: palette.shadowLow,
-            ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpace.s3),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: palette.surface,
-                    borderRadius: AppRadius.rMd,
-                    border: Border.all(color: palette.divider),
-                  ),
-                  child: Icon(
-                    GoalIconCatalog.byKey(goal.iconKey).icon,
-                    size: 22,
-                    color: palette.onSurface,
-                  ),
+                Text(
+                  Copy.focusSection,
+                  style: Theme.of(context).textTheme.titleM,
                 ),
-                const SizedBox(width: AppSpace.s3),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        goal.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleS.copyWith(
-                          color: done ? palette.positive : palette.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpace.s1),
-                      GoalTypeBadge(goal: goal),
-                      const SizedBox(height: AppSpace.s1),
-                      Text(
-                        latest,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyS.copyWith(
-                          color: done
-                              ? palette.positive
-                              : palette.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                const Spacer(),
+                InkWell(
+                  onTap: () => context.push('/goals-all'),
+                  child: Text(
+                    Copy.focusSeeAll,
+                    style: Theme.of(context).textTheme.bodyM
+                        .copyWith(color: palette.accent),
                   ),
                 ),
               ],
             ),
           ),
-        ),
+          FocusCarousel(
+            goals: goals,
+            checkIns: checkIns,
+            stats: stats,
+            today: today,
+            onOpenGoal: (goal) => context.push('/goal/${goal.id}'),
+          ),
+        ],
       ),
     );
   }

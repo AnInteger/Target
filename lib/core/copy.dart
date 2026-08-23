@@ -237,8 +237,8 @@ abstract final class Copy {
 
   // ---- 今日页（FR-017/US2）----
 
-  static const backfillCalendarTitle = '补一补过去两周';
-  static const backfillHint = '点想补的日期，线就接回来';
+  // 004 T022：今日页长按补签弹层退役（backfillCalendarTitle/
+  // backfillHint 死键清扫；补签统一走详情页 14 天日历）。
   static const todayNav = '今日';
   static const goalsNav = '目标'; // 004 dock 无目标页签，存 widget_test 哨兵
   static const reviewNav = '回顾';
@@ -247,7 +247,8 @@ abstract final class Copy {
   // ---- 今日页（004 T020 v2 重做：头部日期语 + 大标题 + 三段弧环；
   //      003 头部带日期语退役）----
 
-  static const todaySection = '今日目标';
+  // 004 T022：「今日目标」节头/节注随 003 目标列表退役（todaySection/
+  // todayRecordedNote 死键清扫），列表职能换关注卡轮播。
   static const todayNewGoal = '新建目标';
   // 004 v2：打卡按钮字统一「记录打卡」（goalCheckInAction），
   // 「记录一次努力」退役。
@@ -264,9 +265,6 @@ abstract final class Copy {
 
   /// 图例无数据态占位（类内零活跃：不显示数字）。
   static const todayHealthNone = '—';
-
-  /// 节注（今日之环退役后承接进度一句话）：「已记录 2/5」。
-  static String todayRecordedNote(int done, int total) => '已记录 $done/$total';
 
   /// 最新记录行描述兜底（FR-019 未填描述时）。
   static const checkInDefaultNote = '完成打卡';
@@ -289,6 +287,13 @@ abstract final class Copy {
   /// 今日待记录 → 待办。
   static const focusTagActive = '进行中';
   static const focusTagTodo = '待办';
+
+  /// 轮播节头（.cap .t）与「查看全部」入口（.cap .see → /goals-all）。
+  static const focusSection = '关注';
+  static const focusSeeAll = '查看全部 ›';
+
+  /// 全部目标页大标题（004 T022 先立过渡页，T023 按冻结稿全量实现）。
+  static const goalsAllTitle = '全部目标';
 
   // 成就时刻（每个目标今天都有记录）。
   static const celebrationTitle = '🎉 每个目标都有进展';

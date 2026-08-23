@@ -19,6 +19,7 @@ import 'package:go_router/go_router.dart';
 import '../core/copy.dart';
 import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
+import '../features/goals/goals_all_view.dart';
 import '../features/goals/goal_templates.dart';
 import '../features/goals/onboarding.dart';
 import '../features/settings/settings_view.dart';
@@ -56,6 +57,11 @@ GoRouter _build() => GoRouter(
               path: '/goal/:id',
               builder: (_, s) =>
                   GoalDetailPage(goalId: s.pathParameters['id']!),
+            ),
+            // 全部目标（T022 过渡页可达；T023 按冻结稿全量换装）。
+            GoRoute(
+              path: '/goals-all',
+              builder: (_, _) => const GoalsAllPage(),
             ),
           ],
         ),

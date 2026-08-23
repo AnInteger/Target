@@ -112,6 +112,8 @@ class _FocusCarouselState extends State<FocusCarousel> {
           Padding(
             padding: const EdgeInsets.only(top: AppSpace.s4),
             child: Row(
+              // 004 T022：页点区挂 key——单卡退化（无页点）测试锚点。
+              key: const ValueKey('focusDots'),
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 for (final (i, _) in goals.indexed)
@@ -184,6 +186,9 @@ class _FocusCard extends StatelessWidget {
     final white = Colors.white;
 
     return SizedBox.expand(
+      // 004 T022：卡根挂 goal id key——测试翻页定位（露边轮播邻卡
+      // onstage 但不可点，须以 hitTestable 判定当前页）。
+      key: ValueKey('focusCard-${goal.id}'),
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(

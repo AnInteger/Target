@@ -16,6 +16,7 @@ import 'package:target/app/router.dart';
 import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/features/goals/goal_templates.dart';
+import 'package:target/features/goals/goals_all_view.dart';
 import 'package:target/features/profile/profile.dart';
 import 'package:target/features/settings/settings_view.dart';
 import 'package:target/core/backup/backup_exporter.dart';
@@ -166,6 +167,26 @@ void main() {
     fail('滚动后仍找不到: $f');
   }
 
+  /// 004 T022：进目标详情的今日页动线——翻到目标所在关注卡并点其
+  /// 「记录打卡」白胶囊（露边轮播邻卡 onstage 但不可点，须逐页横滑
+  /// 至 hitTestable 再点；卡序 = 最近互动降序，只会向后翻）。
+  Future<void> openGoalFromFocus(WidgetTester tester, String goalId) async {
+    final card = find.byKey(ValueKey('focusCard-$goalId'));
+    // 双向兜底：今日页重进后 PageView 保留页位，目标可能在身后。
+    for (final delta in [const Offset(-320, 0), const Offset(320, 0)]) {
+      for (var i = 0; i < 12 && card.hitTestable().evaluate().isEmpty; i++) {
+        await tester.drag(find.byType(PageView).first, delta);
+        await tester.pumpAndSettle();
+      }
+      if (card.hitTestable().evaluate().isNotEmpty) break;
+    }
+    expect(card.hitTestable(), findsOneWidget);
+    await tester.tap(
+      find.descendant(of: card, matching: find.text(Copy.goalCheckInAction)),
+    );
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('空库首启 → 引导页（SC-001）', (WidgetTester tester) async {
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
@@ -207,9 +228,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // TodayView 空态（R7）：节头隐藏 + 虚线邀请卡（正式语域）。
+    // TodayView 空态（R7）：轮播节头隐藏 + 虚线邀请卡（正式语域）。
     expect(find.text(Copy.todayEmptyTitle), findsOneWidget);
-    expect(find.text(Copy.todaySection), findsNothing);
+    expect(find.text(Copy.focusSection), findsNothing);
     expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
     await db.close();
   });
@@ -251,11 +272,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // R7 统一卡：整卡可点进详情，卡上无打卡钮。
-    expect(find.text(Copy.todayRecordedNote(0, 1)), findsOneWidget);
-    expect(find.bySemanticsLabel(Copy.goalCheckInAction), findsNothing);
-    await tester.tap(find.text('锻炼'));
-    await tester.pumpAndSettle();
+    // v2 关注卡（003「整卡可点/卡上无钮」裁决退役）：cap 行在场 +
+    // 白胶囊主行动在卡上 + 状态标签待办（今日未记录）。
+    expect(find.text(Copy.focusSection), findsOneWidget);
+    // 单目标：卡上白胶囊即全场唯一「记录打卡」（旧断言语义面在
+    // 003 卡上无钮，v2 直接以文本面断言在场）。
+    expect(find.text(Copy.goalCheckInAction), findsOneWidget);
+    expect(find.text('● ${Copy.focusTagTodo}'), findsOneWidget);
+    await openGoalFromFocus(tester, goal.id);
     expect(find.byType(GoalDetailPage), findsOneWidget);
 
     // 详情页打卡（T017 保障段动线）→ toast + 落库。
@@ -267,16 +291,16 @@ void main() {
       hasLength(1),
     );
 
-    // 返回今日 → 节注刷新 + 全完成绽放（单目标）。
+    // 返回今日 → 状态标签转「进行中」+ 全完成绽放（单目标）。
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text(Copy.todayRecordedNote(1, 1)), findsOneWidget);
+    expect(find.text('● ${Copy.focusTagActive}'), findsOneWidget);
     expect(find.text(Copy.celebrationTitle), findsOneWidget);
 
     // 撤销（toast 在根 ScaffoldMessenger，跨路由存活）→ 统计即时回退。
     await tester.tap(find.text(Copy.undoCheckIn));
     await tester.pumpAndSettle();
-    expect(find.text(Copy.todayRecordedNote(0, 1)), findsOneWidget);
+    expect(find.text('● ${Copy.focusTagTodo}'), findsOneWidget);
     await db.close();
   });
 
@@ -286,6 +310,9 @@ void main() {
     final gateway = FakeNotificationGateway();
     final today = LocalDate.fromDateTime(DateTime.now());
     final repo = GoalRepository(db);
+    // 004 T022：今日列表换关注卡轮播，动线经卡上「记录打卡」——
+    // 持 id 供 openGoalFromFocus 定位（名字 tap 不再导航）。
+    final ids = <String>[];
     for (final (name, icon, color) in [
       ('锻炼', 'fitness', 'sage'),
       ('阅读', 'read', 'teal'),
@@ -299,6 +326,7 @@ void main() {
           createdAt: today,
         ),
       );
+      ids.add(g.id);
       await seedVersion(
         db,
         g.id,
@@ -322,24 +350,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // R7 动线：整卡进详情打卡。先只记锻炼 → 部分进展，不绽放。
-    await tester.tap(find.text('锻炼'));
-    await tester.pumpAndSettle();
+    // v2 动线：关注卡「记录打卡」进详情打卡。先只记锻炼 → 部分进
+    // 展，不绽放（露边邻卡 onstage → 标签断言用 findsWidgets）。
+    await openGoalFromFocus(tester, ids[0]);
     await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text(Copy.todayRecordedNote(1, 2)), findsOneWidget);
+    expect(find.text('● ${Copy.focusTagActive}'), findsWidgets);
     expect(find.text(Copy.celebrationTitle), findsNothing);
 
     // 补上阅读 → 上升沿，全屏成就时刻。
-    await tester.tap(find.text('阅读'));
-    await tester.pumpAndSettle();
+    await openGoalFromFocus(tester, ids[1]);
     await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text(Copy.todayRecordedNote(2, 2)), findsOneWidget);
+    expect(find.text('● ${Copy.focusTagActive}'), findsWidgets);
     expect(find.text(Copy.celebrationTitle), findsOneWidget);
 
     // 点按屏幕中央 → 退场（淡出后内容摘树）。
@@ -351,13 +378,87 @@ void main() {
     // 态（重臂）→ 再进详情记一笔 → 再次绽放。
     await tester.tap(find.text(Copy.undoCheckIn));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('阅读'));
-    await tester.pumpAndSettle();
+    await openGoalFromFocus(tester, ids[1]);
     await tester.tap(find.text(Copy.goalCheckInAction));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.text(Copy.celebrationTitle), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('004 T022：轮播挂载——cap/查看全部/主行动动线/暂停经流移出+单卡退化', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goals = <Goal>[];
+    for (final (name, icon) in [
+      ('读诗', 'menu_book'),
+      ('夜跑', 'directions_run'),
+    ]) {
+      final g = await repo.create(
+        Goal(
+          name: name,
+          goalType: GoalType.habit,
+          iconKey: icon,
+          colorKey: 'sage',
+          createdAt: today,
+        ),
+      );
+      goals.add(g);
+      await seedVersion(
+        db,
+        g.id,
+        const DailyFrequency(1),
+        WeekStart.containing(today),
+      );
+    }
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // cap 行 + 双卡页点。
+    expect(find.text(Copy.focusSection), findsOneWidget);
+    expect(find.text(Copy.focusSeeAll), findsOneWidget);
+    expect(find.byKey(const ValueKey('focusDots')), findsOneWidget);
+
+    // 「查看全部」→ /goals-all 过渡页（行可达 → 详情），返回今日。
+    await tester.tap(find.text(Copy.focusSeeAll));
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalsAllPage), findsOneWidget);
+    expect(find.byKey(ValueKey('goalsAllRow-${goals[0].id}')), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // 主行动白胶囊 → 该目标详情记录动线（次卡在页 2，helper 横滑）。
+    await openGoalFromFocus(tester, goals[1].id);
+    expect(find.byType(GoalDetailPage), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // 暂停经 goalsProvider 流实时移出；余单卡 → 页点退化消失。
+    await repo.update(goals[1].copyWith(status: GoalStatus.paused));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('focusCard-${goals[1].id}')), findsNothing);
+    expect(find.byKey(const ValueKey('focusDots')), findsNothing);
+    expect(
+      find.byKey(ValueKey('focusCard-${goals[0].id}')).hitTestable(),
+      findsOneWidget,
+    );
     await db.close();
   });
 
@@ -2085,75 +2186,6 @@ void main() {
     await db.close();
   });
 
-  testWidgets('V5：长按目标行 → 补签日历 → 补昨日 → 带"补"标记入库（FR-004/R6）', (tester) async {
-    usePhoneSurface(tester);
-    final db = AppDatabase(NativeDatabase.memory());
-    final gateway = FakeNotificationGateway();
-    final today = LocalDate.fromDateTime(DateTime.now());
-    final repo = GoalRepository(db);
-    final goal = await repo.create(
-      Goal(
-        name: '好好吃饭',
-        goalType: GoalType.habit,
-        iconKey: 'meal',
-        colorKey: 'coral',
-        createdAt: today,
-      ),
-    );
-    await seedVersion(
-      db,
-      goal.id,
-      const DailyFrequency(1),
-      WeekStart.containing(today),
-    );
-    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
-      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          dbProvider.overrideWithValue(db),
-          notificationGatewayProvider.overrideWithValue(gateway),
-          dayTickerProvider.overrideWith((ref) {}),
-        ],
-        child: const TargetApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // 长按目标卡 → 弹出补签日历（过去两周）。R7 统一卡不含图标中文名，
-    // 目标名在今日页唯一。
-    await tester.longPress(find.text('好好吃饭'));
-    await tester.pumpAndSettle();
-    expect(find.text(Copy.backfillCalendarTitle), findsOneWidget);
-
-    // 点昨天的格子 → 生成 isBackfill=true 的打卡，toast 确认。
-    final yesterday = today.addDays(-1);
-    final yesterdayCell = find.descendant(
-      of: find.widgetWithText(GestureDetector, '周${yesterday.weekday.zhLabel}'),
-      matching: find.text('${yesterday.day}'),
-    );
-    await tester.tap(yesterdayCell.first);
-    await tester.pumpAndSettle();
-
-    expect(find.text(Copy.backfillDone(yesterday.isoString)), findsOneWidget);
-    final saved = await CheckInRepository(db).all();
-    expect(
-      saved.where((c) => c.day == yesterday && c.isValid && c.isBackfill),
-      isNotEmpty,
-    );
-
-    // 同一天已有有效打卡 → 格子不可重复补。
-    await tester.tap(yesterdayCell.first);
-    await tester.pump();
-    expect(
-      (await CheckInRepository(db).all()).where((c) => c.isValid),
-      hasLength(1),
-    );
-    await db.close();
-  });
-
   testWidgets('T021 周回顾 R3：纯回看语言——周摘要/图例/节奏条/观察语，无决策控件', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
@@ -2415,15 +2447,23 @@ void main() {
 
     // 今日 Tab：目标名上屏（映射后的新形态），直进主界面。
     expect(find.text('好好吃饭'), findsWidgets);
-    // 短期目标卡在折叠线下：先滚到构建，终查才覆盖得到它的卡面。
-    await scrollTo(tester, find.text('冈仁波齐徒步'));
+    // 004 T022：列表换轮播——末卡（短期）横滑到页才构建，终查覆盖
+    // 得到卡面；一句话描述 = 怎样算做到/为什么（v2 合法内容，
+    // 八分饱/亲眼移出旧字段哨兵）。
+    final lastCard = find.byKey(const ValueKey('focusCard-gs'));
+    for (var i = 0; i < 12 && lastCard.hitTestable().evaluate().isEmpty; i++) {
+      await tester.drag(find.byType(PageView).first, const Offset(-320, 0));
+      await tester.pumpAndSettle();
+    }
+    expect(lastCard.hitTestable(), findsOneWidget);
     expect(find.text('冈仁波齐徒步'), findsOneWidget);
 
-    // 旧字段零上屏：envelope（为什么/怎样算/场景）+ 频率版本（每周档）
-    // + 旧图标域键名（meal/fitness/travel 已换域，键名不得漏出）。
+    // 旧字段零上屏：被压制的 envelope 面（为什么/场景——怎样算做到
+    // 已成卡面描述合法源）+ 频率版本（每周档）+ 旧图标域键名
+    // （meal/fitness/travel 已换域，键名不得漏出）。
     final leaked = find.textContaining(
       RegExp(
-        '胃胀|八分饱|晚饭后|亲眼|每周|timesPerWeek|targetPerDay|'
+        '胃胀|晚饭后|每周|timesPerWeek|targetPerDay|'
         'meal|fitness|travel|cue_scene|colorKey',
       ),
     );
@@ -2438,12 +2478,10 @@ void main() {
     await scrollTo(tester, find.text(Copy.settingsGoalRemindersTitle));
     expect(leaked, findsNothing);
 
-    // 目标详情：点开 gd 卡 → 详情页同口径（为什么/怎样算不得回潮）。
+    // 目标详情：点开 gd 关注卡 → 详情页同口径（为什么/怎样算不得回潮）。
     await tester.tap(find.text(Copy.todayNav));
     await tester.pumpAndSettle();
-    await scrollTo(tester, find.text('好好吃饭').first);
-    await tester.tap(find.text('好好吃饭').first);
-    await tester.pumpAndSettle();
+    await openGoalFromFocus(tester, 'gd');
     expect(find.text('好好吃饭'), findsWidgets); // 详情页标题
     // 提醒真源 = 迁移补档后的 Reminders 行（daily 08:30 原样续用；
     // 004 v2 习惯目标 meta 胶囊「每天 · 08:30 提醒」）。
@@ -2518,8 +2556,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 场景 2：每日 3 次频率档 → 习惯徽章（「习惯 · 旅行 · 目标」）。
+    // 场景 2：每日 3 次频率档 → 习惯徽章（详情 hero 组合式
+    // 「习惯 · 旅行 · 目标」；004 T022 起今日卡无徽章，断言移详情）。
     expect(find.text('练声'), findsWidgets);
+    await openGoalFromFocus(tester, 'g3');
+    expect(find.text('练声'), findsWidgets); // 详情标题
     expect(
       find.text(
         '${Copy.typeBadgeHabit} · ${GoalIconDomain.travel.zhLabel}'
@@ -2528,8 +2569,9 @@ void main() {
       findsOneWidget,
     );
     // 场景 3：带截止 → 短期徽章（v2 组合式，倒计时移交详情 meta 行）。
-    await scrollTo(tester, find.text('考认证'));
-    expect(find.text('考认证'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await openGoalFromFocus(tester, 'gdl');
     expect(
       find.text(
         '${Copy.typeBadgeShortTerm} · ${GoalIconDomain.travel.zhLabel}'

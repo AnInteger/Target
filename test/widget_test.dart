@@ -3249,4 +3249,74 @@ void main() {
     expect(fab.top, bar.top - 22);
     await db.close();
   });
+
+  // 005 T003（US2/FR-003）：次级档页缘=16（分层基准，hero 两屏 24）——
+  // 全部目标页顶栏/筛选行/列表卡三段左缘同线 s4；我的页列表同档。
+  testWidgets('005 T003 次级档页缘：全部目标+我的 页级水平=16 同线', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goal = await GoalRepository(db).create(
+      Goal(
+        name: '锻炼',
+        goalType: GoalType.habit,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 全部目标页：列表页缘不变式 + 顶栏起线 + 筛选行首 chip 同线 s4。
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/goals-all');
+    await tester.pumpAndSettle();
+    final list = tester.widget<ListView>(
+      find.byKey(const ValueKey('goalsAllList')),
+    );
+    expect(
+      list.padding,
+      const EdgeInsets.fromLTRB(AppSpace.s4, 0, AppSpace.s4, AppSpace.s6),
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey('goalsAllFilter-all'))).left,
+      AppSpace.s4,
+    );
+    expect(
+      tester.getRect(find.byKey(ValueKey('goalsAllRow-${goal.id}'))).left,
+      AppSpace.s4,
+    );
+
+    // 我的页：列表同档（顶栏返回钮起线亦=16，组件断言留 T008 同构用例）。
+    router.go('/settings');
+    await tester.pumpAndSettle();
+    final sList = tester.widget<ListView>(find.byType(ListView).first);
+    expect(
+      sList.padding,
+      const EdgeInsets.fromLTRB(
+        AppSpace.s4,
+        AppSpace.s2,
+        AppSpace.s4,
+        AppSpace.s8,
+      ),
+    );
+    await db.close();
+  });
 }

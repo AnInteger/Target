@@ -80,10 +80,11 @@ class _GoalsAllPageState extends ConsumerState<GoalsAllPage> {
               // 行 + 纵向列表），测试滚动需按 key 定位纵向 ListView。
               child: ListView(
                 key: const ValueKey('goalsAllList'),
+                // 005 D2：页缘=列表档 s4(16)（hero 两屏 24，分层基准）。
                 padding: const EdgeInsets.fromLTRB(
-                  AppSpace.s5,
+                  AppSpace.s4,
                   0,
-                  AppSpace.s5,
+                  AppSpace.s4,
                   AppSpace.s6,
                 ),
                 children: [
@@ -174,10 +175,11 @@ class _TopBar extends StatelessWidget {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
     return Padding(
+      // 005 D2：水平随页缘列表档 16（垂直节奏不动）。
       padding: const EdgeInsets.fromLTRB(
-        AppSpace.s5,
+        AppSpace.s4,
         AppSpace.s3,
-        AppSpace.s5,
+        AppSpace.s4,
         AppSpace.s2,
       ),
       child: Row(
@@ -286,9 +288,9 @@ class _FilterRow extends StatelessWidget {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(
-        AppSpace.s5,
+        AppSpace.s4,
         AppSpace.s1,
-        AppSpace.s5,
+        AppSpace.s4,
         AppSpace.s3,
       ),
       child: Row(

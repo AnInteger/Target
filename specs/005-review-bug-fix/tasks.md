@@ -88,7 +88,9 @@ description: "Task list for 005 走查修复轮"
 
 **Independent Test**: 切页有 250ms 双段过渡、终态与所点页签一致；快速连点不错页；既有 navTab/深链用例零回归
 
-- [ ] T006 [US4] _FadeThrough 分支转场（D4）：lib/app/router.dart `_AppShell` 内新增 `_FadeThrough` StatefulWidget 包 `navigationShell`——`didUpdateWidget` 检测 `shell.currentIndex` 变化驱动 `AnimationController(AppMotion.base, AppMotion.easeStandard)` 双段透明度（前半 1→0 后半 0→1，IndexedStack 瞬切落于视觉最暗帧）；不换子树 Key（保 T022 分支状态）；push 页维持平台默认；test/ 转场终态+快速连点+分支状态保留用例
+- [x] T006 [US4] _FadeThrough 分支转场（D4）：lib/app/router.dart `_AppShell` 内新增 `_FadeThrough` StatefulWidget 包 `navigationShell`——`didUpdateWidget` 检测 `shell.currentIndex` 变化驱动 `AnimationController(AppMotion.base, AppMotion.easeStandard)` 双段透明度（前半 1→0 后半 0→1，IndexedStack 瞬切落于视觉最暗帧）；不换子树 Key（保 T022 分支状态）；push 页维持平台默认；test/ 转场终态+快速连点+分支状态保留用例
+  - ✅ 实现完成：`_FadeThrough`（TweenSequence 双段 1→0→0→1 各段 easeStandard · AppMotion.base 250ms）包 shell body，索引变即 forward；不换子树 Key/不重建分支；dock 在转场件外连点照常；push 页不经此件；FadeTransition 挂 shellFade key
+  - ✅ 门禁通过：analyze 0 + test 167/167（新增 005 T006 一例：首帧 1/中点≈0/末帧 1 双段、终态页签一致、连点 ×3 不错页、weekRange 周锚往返保留）。顺手修 T029 日期脆弱：真实现于周一必炸，「周一 partial/今日 full」几何改 FixedDateProvider 锚 2026-08-19（周三）定死
 
 **Checkpoint**: SC-004 达成——切换生硬闭环；「粘连」待 D4 后复核（T012）
 

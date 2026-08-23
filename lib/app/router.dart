@@ -101,9 +101,86 @@ class _AppShell extends StatelessWidget {
             colors: palette.bgGrad,
           ),
         ),
-        child: navigationShell,
+        // 005 D4：分支切换 fade-through 包 shell（push 页不经此件）。
+        child: _FadeThrough(
+          index: navigationShell.currentIndex,
+          child: navigationShell,
+        ),
       ),
       bottomNavigationBar: _Dock(shell: navigationShell),
+    );
+  }
+}
+
+/// 005 D4（FR-005/006）：分支切换 fade-through。go_router 的
+/// StatefulShellRoute.indexedStack 无内建分支转场——本件以双段透明度
+/// 近似：索引变即 base 250ms（AppMotion.base · easeStandard）前半
+/// 1→0、后半 0→1，中点最暗帧回壳层底幕，旧新内容交换叠在亮度连续的
+/// 渐暗渐亮上，视觉等效 fade-through 且无残影。不换子树 Key/不重建
+/// 分支——「分支状态保留」语义零改动；dock 在 FadeTransition 外，
+/// 快速连点 goBranch 照常、终态由 IndexedStack 决定（不错页）。
+class _FadeThrough extends StatefulWidget {
+  const _FadeThrough({required this.index, required this.child});
+
+  /// 监听的分支索引（shell.currentIndex）——变化即触发一轮过渡。
+  final int index;
+
+  /// 过渡本体（navigationShell；同一子树身份，仅内部 IndexedStack 翻页）。
+  final Widget child;
+
+  @override
+  State<_FadeThrough> createState() => _FadeThroughState();
+}
+
+class _FadeThroughState extends State<_FadeThrough>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    duration: AppMotion.base,
+    vsync: this,
+  );
+
+  /// 双段透明度：前半 1→0（渐暗）、后半 0→1（渐亮），各段 easeStandard。
+  late final Animation<double> _opacity = _controller.drive(
+    TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1,
+          end: 0,
+        ).chain(CurveTween(curve: AppMotion.easeStandard)),
+        weight: 50,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 0,
+          end: 1,
+        ).chain(CurveTween(curve: AppMotion.easeStandard)),
+        weight: 50,
+      ),
+    ]),
+  );
+
+  @override
+  void didUpdateWidget(_FadeThrough oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 仅分支切换触发（初始 build 不播，停留态恒透明度 1）。
+    if (oldWidget.index != widget.index) {
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      // 005 T006：转场件挂 key——双段透明度/终态测试锚点。
+      key: const ValueKey('shellFade'),
+      opacity: _opacity,
+      child: widget.child,
     );
   }
 }

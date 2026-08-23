@@ -18,6 +18,7 @@ import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/features/goals/goal_templates.dart';
 import 'package:target/features/goals/goals_all_view.dart';
 import 'package:target/features/profile/profile.dart';
+import 'package:target/features/review/review_view.dart';
 import 'package:target/features/settings/settings_view.dart';
 import 'package:target/features/today/today_view.dart';
 import 'package:target/core/backup/backup_exporter.dart';
@@ -26,6 +27,7 @@ import 'package:target/core/db/app_database.dart'
     show AppDatabase, SettingsRowsCompanion;
 import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
+import 'package:target/core/models/date_provider.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/frequency_pattern.dart';
 import 'package:target/core/models/goal_icon_catalog.dart';
@@ -2623,7 +2625,11 @@ void main() {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
-    final today = LocalDate.fromDateTime(DateTime.now());
+    // 005 T006 顺手修：固定时钟锚周三——本用例「周一 partial/今日
+    // full/未来日 ·」几何只在今日处周中时成立，原 DateTime.now() 在
+    // 真实周一跑必炸（日期脆弱），改注入 FixedDateProvider 定死。
+    final fixedNow = DateTime(2026, 8, 19, 9);
+    final today = LocalDate.fromDateTime(fixedNow);
     final thisWeek = today.weekStart;
     final repo = GoalRepository(db);
     final checkIns = CheckInRepository(db);
@@ -2646,8 +2652,8 @@ void main() {
       const DailyFrequency(1),
       WeekStart.containing(createdAt),
     );
-    await checkIns.add(goal.id, thisWeek.monday, DateTime.now());
-    await checkIns.add(goal.id, today, DateTime.now());
+    await checkIns.add(goal.id, thisWeek.monday, fixedNow);
+    await checkIns.add(goal.id, today, fixedNow);
     final goal2 = await repo.create(
       Goal(
         name: '读书',
@@ -2663,7 +2669,7 @@ void main() {
       const DailyFrequency(1),
       WeekStart.containing(createdAt),
     );
-    await checkIns.add(goal2.id, today, DateTime.now());
+    await checkIns.add(goal2.id, today, fixedNow);
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
       const SettingsRowsCompanion(onboardingCompleted: Value(true)),
     );
@@ -2674,6 +2680,9 @@ void main() {
           dbProvider.overrideWithValue(db),
           notificationGatewayProvider.overrideWithValue(gateway),
           dayTickerProvider.overrideWith((ref) {}),
+          dateProviderProvider.overrideWith(
+            (ref) => FixedDateProvider(fixedNow),
+          ),
         ],
         child: const TargetApp(),
       ),
@@ -3486,6 +3495,76 @@ void main() {
     expect(tester.getTopLeft(single).dx, closeTo(padX, 0.5));
     expect(tester.getTopRight(single).dx, closeTo(w - padX, 0.5));
     expect(find.byKey(const ValueKey('focusDots')), findsNothing);
+    await db.close();
+  });
+
+  testWidgets('005 T006：分支转场 fade-through——双段透明度+终态页签+快速连点+分支状态保留', (
+    tester,
+  ) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    FadeTransition shellFade() =>
+        tester.widget<FadeTransition>(find.byKey(const ValueKey('shellFade')));
+
+    // 停留态无过渡：透明度恒 1。
+    expect(shellFade().opacity.value, 1.0);
+
+    // 切回顾：双段——首帧 1（渐暗起点）→ 中点最暗 ≈ 0 → 末帧回 1；
+    // 终态页签与所点一致（FR-005 AppMotion 单值 250ms）。
+    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
+    await tester.pump();
+    expect(shellFade().opacity.value, 1.0);
+    await tester.pump(const Duration(milliseconds: 125));
+    expect(shellFade().opacity.value, lessThan(0.05));
+    await tester.pump(const Duration(milliseconds: 125));
+    await tester.pumpAndSettle();
+    expect(shellFade().opacity.value, 1.0);
+    expect(find.byKey(const ValueKey('navTabMark-/review')), findsOneWidget);
+    expect(find.byType(ReviewView), findsOneWidget);
+
+    // 快速连点（今日↔回顾交替 ×2，不 settle）：终态 = 末次所点，不错页。
+    for (final loc in ['/today', '/review', '/today']) {
+      await tester.tap(find.byKey(ValueKey('navTab-$loc')));
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+    expect(shellFade().opacity.value, 1.0);
+    expect(find.byKey(const ValueKey('navTabMark-/today')), findsOneWidget);
+    expect(find.byType(TodayView), findsOneWidget);
+
+    // 分支状态保留：回顾周锚切上一周 → 今日 → 回顾，weekRange 不复位。
+    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('weekPrev')));
+    await tester.pumpAndSettle();
+    final weekRange = tester
+        .widget<Text>(find.byKey(const ValueKey('weekRange')))
+        .data;
+    await tester.tap(find.byKey(const ValueKey('navTab-/today')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('weekRange'))).data,
+      weekRange,
+    );
     await db.close();
   });
 }

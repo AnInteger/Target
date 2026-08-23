@@ -111,9 +111,9 @@ class TodayView extends ConsumerWidget {
     final last = valid.last;
     final gap = today.differenceInDays(last.day);
     final rel = gap <= 0
-        ? Copy.notifDayToday
+        ? Copy.todayLatestToday
         : gap == 1
-            ? Copy.notifDayYesterday
+            ? Copy.todayLatestYesterday
             : Copy.todayLatestDaysAgo(gap);
     final note = (last.note ?? '').trim();
     return '$rel - ${note.isEmpty ? Copy.checkInDefaultNote : note}';

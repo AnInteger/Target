@@ -4,7 +4,15 @@
 /// 即当前 pending 通知的镜像，今日/明日两档）② 近 7 天成就（目标
 /// 达成事件 + 全完成日）③ streak 里程碑（总连击命中的档位）
 /// ④ 短期目标到期询问（deadline ≤ 今天且未达成）。
-/// 时间倒序、按天分组、无已读态、不持久化；tap → /goal/:id。
+/// 时间倒序、无已读态、不持久化；tap → /goal/:id。
+///
+/// 004 T015 按冻结稿 v2-notifications 换装：分组头退役 → 行尾相对
+/// 时刻（[notificationRelTime]）；行 = 38px rMd 语义色格图标（蓝=
+/// 提醒 / 青柠=达成·全部完成 / 琥珀=连续·临近截止，图标形状+色格
+/// 双通道辨识 FR-013）+ 标题/副题 + 时刻，行间 1px 分隔；空态 =
+/// 88px 圆环图形 + 标题 + 一句引导。原型「未读点/全部已读」为演示
+/// 交互（需已读持久化），不在任务域（倒序/类型图标/空态），D6
+/// 推导式无已读态保留。
 library;
 
 import 'package:flutter/material.dart';
@@ -79,13 +87,15 @@ List<NotificationItem> deriveNotifications({
         ? Copy.notifSubBrief
         : Copy.notifSubGoalReminder;
     for (final day in [today, today.addDays(1)]) {
-      items.add(NotificationItem(
-        kind: NotificationKind.reminder,
-        at: p.time.on(day),
-        title: p.title,
-        subtitle: subtitle,
-        goalId: goalId,
-      ));
+      items.add(
+        NotificationItem(
+          kind: NotificationKind.reminder,
+          at: p.time.on(day),
+          title: p.title,
+          subtitle: subtitle,
+          goalId: goalId,
+        ),
+      );
     }
   }
 
@@ -95,49 +105,58 @@ List<NotificationItem> deriveNotifications({
     final day = today.addDays(-i);
     // 全完成日：当日已存在的全部活跃目标均留痕。
     final active = goals
-        .where((g) =>
-            g.status == GoalStatus.active && !g.createdAt.isAfter(day))
+        .where(
+          (g) => g.status == GoalStatus.active && !g.createdAt.isAfter(day),
+        )
         .toList();
     if (active.isNotEmpty &&
         active.every((g) => stats.dayStatusOf(g.id, day).done)) {
-      items.add(NotificationItem(
-        kind: NotificationKind.allDone,
-        at: _at(day, 21, 0),
-        title: Copy.notifAllDoneDay,
-        subtitle: Copy.notifSubAchievement,
-      ));
+      items.add(
+        NotificationItem(
+          kind: NotificationKind.allDone,
+          at: _at(day, 21, 0),
+          title: Copy.notifAllDoneDay,
+          subtitle: Copy.notifSubAchievement,
+        ),
+      );
     }
     // 达成事件（achievedAt 按本地日归属）。
     for (final g in goals) {
       final achievedAt = g.achievedAt;
       if (achievedAt == null) continue;
       if (LocalDate.fromDateTime(achievedAt) != day) continue;
-      items.add(NotificationItem(
-        kind: NotificationKind.achieved,
-        at: achievedAt,
-        title: Copy.notifAchieved(g.name),
-        subtitle: Copy.notifSubAchievement,
-        goalId: g.id,
-      ));
+      items.add(
+        NotificationItem(
+          kind: NotificationKind.achieved,
+          at: achievedAt,
+          title: Copy.notifAchieved(g.name),
+          subtitle: Copy.notifSubAchievement,
+          goalId: g.id,
+        ),
+      );
     }
   }
 
   // ---- ③ streak 里程碑：总连击命中的最大档位 ----
 
   final streak = stats.totalStreak;
-  final hitMilestone = kStreakMilestones
-      .lastWhere((m) => streak >= m, orElse: () => -1);
+  final hitMilestone = kStreakMilestones.lastWhere(
+    (m) => streak >= m,
+    orElse: () => -1,
+  );
   if (hitMilestone > 0) {
     // 锚定末日：今日已有任一留痕则含今日，否则自昨天回溯。
     final anyToday = checkIns.any((c) => c.isValid && c.day == today);
     final endDay = anyToday ? today : today.addDays(-1);
     final reachDay = endDay.addDays(-(streak - hitMilestone));
-    items.add(NotificationItem(
-      kind: NotificationKind.streak,
-      at: _at(reachDay, 21, 0),
-      title: Copy.notifStreak(hitMilestone),
-      subtitle: Copy.notifSubMilestone,
-    ));
+    items.add(
+      NotificationItem(
+        kind: NotificationKind.streak,
+        at: _at(reachDay, 21, 0),
+        title: Copy.notifStreak(hitMilestone),
+        subtitle: Copy.notifSubMilestone,
+      ),
+    );
   }
 
   // ---- ④ 短期到期询问（deadline ≤ 今天且未处理，D4：只提醒不判决）----
@@ -150,29 +169,43 @@ List<NotificationItem> deriveNotifications({
         deadline.isAfter(today)) {
       continue;
     }
-    items.add(NotificationItem(
-      kind: NotificationKind.due,
-      at: _at(deadline, 9, 0),
-      title: Copy.notifDueTitle(g.name),
-      subtitle: Copy.notifDueSub(today.differenceInDays(deadline)),
-      goalId: g.id,
-    ));
+    items.add(
+      NotificationItem(
+        kind: NotificationKind.due,
+        at: _at(deadline, 9, 0),
+        title: Copy.notifDueTitle(g.name),
+        subtitle: Copy.notifDueSub(today.differenceInDays(deadline)),
+        goalId: g.id,
+      ),
+    );
   }
 
   items.sort((a, b) => b.at.compareTo(a.at));
   return items;
 }
 
-/// 分组头：今天/昨天/明天，更早按「M月d日」。
-String notificationDayLabel(LocalDate day, LocalDate today) {
-  final diff = today.differenceInDays(day);
-  if (diff == 0) return Copy.notifDayToday;
-  if (diff == 1) return Copy.notifDayYesterday;
-  if (diff == -1) return Copy.notifDayTomorrow;
-  return Copy.notifDayDate(day.month, day.day);
+/// 行尾相对时刻（冻结稿 .tm）：日桶优先——当日内按 刚刚 → N 分钟前
+/// → N 小时前 收敛（未到时刻报「今天 HH:mm」），跨日给 昨天/明天 +
+/// HH:mm，2–6 天前只报天数，更远报「M月d日」；未来仅今日/明日两档
+/// （提醒时刻表窗口之外不会出现，兜底同走日期语）。
+String notificationRelTime(DateTime at, LocalDate today, LocalTime now) {
+  final hm = notificationTimeLabel(at);
+  final day = LocalDate.fromDateTime(at);
+  final diffDays = today.differenceInDays(day); // >0 过去，<0 未来
+  if (diffDays == 0) {
+    final delta = now.sinceMidnight - LocalTime.fromDateTime(at).sinceMidnight;
+    if (delta.isNegative) return Copy.notifTodayAt(hm); // 今日未到
+    if (delta.inMinutes < 1) return Copy.notifJustNow;
+    if (delta.inMinutes < 60) return Copy.notifMinutesAgo(delta.inMinutes);
+    return Copy.notifHoursAgo(delta.inHours);
+  }
+  if (diffDays == 1) return Copy.notifYesterdayAt(hm);
+  if (diffDays == -1) return Copy.notifTomorrowAt(hm);
+  if (diffDays > 1 && diffDays <= 6) return Copy.notifDaysAgo(diffDays);
+  return Copy.notifDateAt(day.month, day.day);
 }
 
-/// 行尾时刻：HH:mm（与分组头互补——相对语在组头，行内给具体时刻）。
+/// 具体时刻：HH:mm（相对桶语的补充段）。
 String notificationTimeLabel(DateTime at) =>
     '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
 
@@ -208,167 +241,227 @@ final notificationItemsProvider = Provider<List<NotificationItem>>((ref) {
 
 /// 今日日期归属条目数（铃铛角标，T020 消费；推导式列表无已读态）。
 int todayBadgeCount(List<NotificationItem> items, LocalDate today) =>
-    items
-        .where((i) => LocalDate.fromDateTime(i.at) == today)
-        .length;
+    items.where((i) => LocalDate.fromDateTime(i.at) == today).length;
 
-/// 弹起通知列表 sheet（今日页铃铛，不遮底部导航）。
+/// 弹起通知列表 sheet（今日页铃铛，不遮底部导航；冻结稿 .sheet =
+/// surface 圆角顶 + 抓手条 + 72% 屏高上限）。
 Future<void> showNotificationSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => const _NotificationSheet(),
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      final palette = TargetPalette.of(sheetContext);
+      return ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
+        ),
+        child: Container(
+          key: const ValueKey('notificationSheet'),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
+            boxShadow: palette.shadowHigh,
+          ),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpace.s5,
+            AppSpace.s3,
+            AppSpace.s5,
+            AppSpace.s5 + 8,
+          ),
+          child: const _NotificationBody(),
+        ),
+      );
+    },
   );
 }
 
-class _NotificationSheet extends ConsumerWidget {
-  const _NotificationSheet();
+class _NotificationBody extends ConsumerWidget {
+  const _NotificationBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
     final items = ref.watch(notificationItemsProvider);
-    final today =
-        ref.watch(todayProvider);
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: AppSpace.s2),
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: palette.divider,
-                borderRadius: BorderRadius.circular(9999),
-              ),
-            ),
+    final today = ref.watch(todayProvider);
+    final now = LocalTime.fromDateTime(ref.watch(dateProviderProvider).now());
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 抓手条（冻结稿 .grab）。
+        Container(
+          width: 40,
+          height: 4,
+          margin: const EdgeInsets.only(bottom: AppSpace.s3),
+          decoration: BoxDecoration(
+            color: palette.divider,
+            borderRadius: AppRadius.rFull,
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpace.s6, AppSpace.s4, AppSpace.s6, 0),
-            child: Text(Copy.notificationTitle,
-                style: Theme.of(context).textTheme.titleM),
-          ),
-          Flexible(
-            child: items.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: AppSpace.s8),
-                    child: Text(
-                      Copy.notificationEmptyHint,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyM
-                          .copyWith(color: palette.onSurfaceVariant),
-                    ),
-                  )
-                : ListView(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpace.s6, 0, AppSpace.s6, AppSpace.s6),
-                    children: [
-                      for (final widget in _groupByDay(context, items, today))
-                        widget,
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpace.s2),
+          child: Text(Copy.notificationTitle, style: theme.textTheme.titleM),
+        ),
+        Flexible(
+          child: items.isEmpty
+              ? _EmptyState()
+              : ListView(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  children: [
+                    for (final (i, item) in items.indexed) ...[
+                      if (i > 0)
+                        Container(
+                          height: 1,
+                          width: double.infinity,
+                          color: palette.divider,
+                        ),
+                      _NotificationRow(item: item, today: today, now: now),
                     ],
-                  ),
-          ),
-        ],
-      ),
+                  ],
+                ),
+        ),
+      ],
     );
-  }
-
-  /// 按天分组（已倒序）：组头 + 行。
-  List<Widget> _groupByDay(
-      BuildContext context, List<NotificationItem> items, LocalDate today) {
-    final widgets = <Widget>[];
-    LocalDate? current;
-    for (final item in items) {
-      final day = LocalDate.fromDateTime(item.at);
-      if (day != current) {
-        current = day;
-        widgets.add(Padding(
-          padding: const EdgeInsets.only(top: AppSpace.s3, bottom: AppSpace.s1),
-          child: Text(
-            notificationDayLabel(day, today),
-            style: Theme.of(context)
-                .textTheme
-                .labelS
-                .copyWith(color: TargetPalette.of(context).onSurfaceVariant),
-          ),
-        ));
-      }
-      widgets.add(_NotificationRow(item: item));
-    }
-    return widgets;
   }
 }
 
-/// 行：图标圆底 + 标题/副题 + 时刻（原型 .nt-item 三段式）。
+/// 空态（冻结稿 .empty）：88px 圆环图形 + 标题 + 一句引导，非空白。
+class _EmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: AppSpace.s12),
+        Container(
+          width: 88,
+          height: 88,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: palette.surfaceAlt,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.history_rounded,
+            size: 38,
+            color: palette.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: AppSpace.s3),
+        Text(
+          Copy.notifEmptyTitle,
+          style: theme.textTheme.titleM.copyWith(color: palette.onSurface),
+        ),
+        const SizedBox(height: AppSpace.s1),
+        Text(
+          Copy.notificationEmptyHint,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodyM.copyWith(
+            color: palette.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: AppSpace.s8),
+      ],
+    );
+  }
+}
+
+/// 行（冻结稿 .nrow）：38px rMd 语义色格 + 标题/副题 + 相对时刻。
 class _NotificationRow extends StatelessWidget {
-  const _NotificationRow({required this.item});
+  const _NotificationRow({
+    required this.item,
+    required this.today,
+    required this.now,
+  });
 
   final NotificationItem item;
+  final LocalDate today;
+  final LocalTime now;
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    final (color, icon) = _kindStyle(palette, item.kind);
     return InkWell(
-      onTap: item.goalId == null ? null : () => context.go('/goal/${item.goalId}'),
+      onTap: item.goalId == null
+          ? null
+          : () => context.go('/goal/${item.goalId}'),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 32,
-              height: 32,
+              width: 38,
+              height: 38,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: palette.surfaceAlt,
-                shape: BoxShape.circle,
-                border: Border.all(color: palette.divider),
+                borderRadius: AppRadius.rMd,
               ),
-              child: Icon(_iconOf(item.kind),
-                  size: 16, color: palette.onSurfaceVariant),
+              child: Icon(icon, size: 19, color: color),
             ),
             const SizedBox(width: AppSpace.s3),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(item.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyM
-                          .copyWith(color: palette.onSurface)),
-                  Text(item.subtitle,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyS
-                          .copyWith(color: palette.onSurfaceVariant)),
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyL.copyWith(
+                      color: palette.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyS.copyWith(
+                      color: palette.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Text(notificationTimeLabel(item.at),
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyS
-                    .copyWith(color: palette.onSurfaceVariant)),
+            const SizedBox(width: AppSpace.s2),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                notificationRelTime(item.at, today, now),
+                style: theme.textTheme.bodyS.copyWith(
+                  color: palette.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // 图标三枚对齐原型 NT_ICONS（铃铛/问询/庆祝）。
-  static IconData _iconOf(NotificationKind kind) => switch (kind) {
-        NotificationKind.reminder => Icons.notifications_rounded,
-        NotificationKind.due => Icons.help_rounded,
-        _ => Icons.celebration_rounded,
-      };
+  /// 五类类型色格（冻结稿 .k：蓝=提醒 / 青柠=达成·全部完成 /
+  /// 琥珀=连续·临近截止；图标形状 + 色相双通道辨识 FR-013）。
+  static (Color, IconData) _kindStyle(
+    TargetPalette palette,
+    NotificationKind kind,
+  ) => switch (kind) {
+    NotificationKind.reminder => (palette.accent, Icons.event_rounded),
+    NotificationKind.allDone => (palette.positive, Icons.check_circle_rounded),
+    NotificationKind.achieved => (palette.positive, Icons.verified_rounded),
+    NotificationKind.streak => (
+      palette.warning,
+      Icons.local_fire_department_rounded,
+    ),
+    NotificationKind.due => (palette.warning, Icons.alarm_rounded),
+  };
 }

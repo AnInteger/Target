@@ -599,8 +599,8 @@ String _latestLabel(List<CheckIn> mine, LocalDate today) {
       ? a.day.compareTo(b.day)
       : a.createdAt.compareTo(b.createdAt));
   final gap = today.differenceInDays(valid.last.day);
-  if (gap <= 0) return Copy.notifDayToday;
-  if (gap == 1) return Copy.notifDayYesterday;
+  if (gap <= 0) return Copy.todayLatestToday;
+  if (gap == 1) return Copy.todayLatestYesterday;
   return Copy.todayLatestDaysAgo(gap);
 }
 

@@ -11,7 +11,8 @@ import 'package:target/app/design_tokens.dart';
 import 'package:target/app/providers.dart';
 import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart' show AppDatabase;
-import 'package:target/core/db/repositories.dart' show ReminderRepository;
+import 'package:target/core/db/repositories.dart'
+    show GoalRepository, ReminderRepository;
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/stats/stats_engine.dart';
@@ -23,11 +24,13 @@ LocalDate _date(int y, int m, int d) => LocalDate(y, m, d);
 final LocalDate _today = _date(2026, 8, 19);
 const _brief = LocalTime(8, 0);
 
-Goal _habit(String id,
-    {String name = '散步',
-    String? cueScene,
-    GoalStatus status = GoalStatus.active,
-    LocalDate? createdAt}) {
+Goal _habit(
+  String id, {
+  String name = '散步',
+  String? cueScene,
+  GoalStatus status = GoalStatus.active,
+  LocalDate? createdAt,
+}) {
   return Goal(
     id: id,
     name: name,
@@ -40,8 +43,11 @@ Goal _habit(String id,
   );
 }
 
-Goal _shortTerm(String id,
-    {required LocalDate deadline, GoalStatus status = GoalStatus.active}) {
+Goal _shortTerm(
+  String id, {
+  required LocalDate deadline,
+  GoalStatus status = GoalStatus.active,
+}) {
   return Goal(
     id: id,
     name: 'OW 潜水证',
@@ -55,38 +61,49 @@ Goal _shortTerm(String id,
 }
 
 void _checkIn(List<CheckIn> sink, String goalId, LocalDate day) {
-  sink.add(CheckIn(goalId: goalId, day: day, createdAt: DateTime(2026, 8, 19, 10)));
+  sink.add(
+    CheckIn(goalId: goalId, day: day, createdAt: DateTime(2026, 8, 19, 10)),
+  );
 }
 
-List<NotificationItem> _derive(List<Goal> goals, List<CheckIn> checkIns,
-        {List<Reminder> reminders = const []}) =>
-    deriveNotifications(
-      goals: goals,
-      checkIns: checkIns,
-      reminders: reminders,
-      stats: StatsEngine.evaluate(
-          goals: goals, busySessions: const [], checkIns: checkIns, today: _today),
-      today: _today,
-      nowTime: const LocalTime(12, 0),
-      defaultBriefTime: _brief,
-    );
+List<NotificationItem> _derive(
+  List<Goal> goals,
+  List<CheckIn> checkIns, {
+  List<Reminder> reminders = const [],
+}) => deriveNotifications(
+  goals: goals,
+  checkIns: checkIns,
+  reminders: reminders,
+  stats: StatsEngine.evaluate(
+    goals: goals,
+    busySessions: const [],
+    checkIns: checkIns,
+    today: _today,
+  ),
+  today: _today,
+  nowTime: const LocalTime(12, 0),
+  defaultBriefTime: _brief,
+);
 
 void main() {
   group('① 提醒时刻表（与 planReminders 同源 · 003 行=唯一真源）', () {
-    Reminder row(String goalId,
-            {LocalTime time = const LocalTime(20, 0),
-            bool enabled = true}) =>
-        Reminder(
-            id: 'r-$goalId',
-            goalId: goalId,
-            time: time,
-            isEnabled: enabled,
-            cadence: Cadence.daily);
+    Reminder row(
+      String goalId, {
+      LocalTime time = const LocalTime(20, 0),
+      bool enabled = true,
+    }) => Reminder(
+      id: 'r-$goalId',
+      goalId: goalId,
+      time: time,
+      isEnabled: enabled,
+      cadence: Cadence.daily,
+    );
 
     test('有 Reminders 行：brief+行提醒今日明日各两条，单目标可跳转', () {
       final items = _derive([_habit('g1')], [], reminders: [row('g1')]);
-      final reminders =
-          items.where((i) => i.kind == NotificationKind.reminder).toList();
+      final reminders = items
+          .where((i) => i.kind == NotificationKind.reminder)
+          .toList();
       // brief（08:00，无跳转）+ 行提醒（20:00，g1）× 今明两天。
       expect(reminders.length, 4);
       final cue = reminders
@@ -105,25 +122,29 @@ void main() {
 
     test('无行 → 无逐目标提醒（003：Reminders 行 = 唯一真源）', () {
       final items = _derive([_habit('g1')], const []);
-      expect(items.where((i) => i.subtitle == Copy.notifSubGoalReminder),
-          isEmpty);
       expect(
-          items.where((i) => i.subtitle == Copy.notifSubBrief).length, 2);
+        items.where((i) => i.subtitle == Copy.notifSubGoalReminder),
+        isEmpty,
+      );
+      expect(items.where((i) => i.subtitle == Copy.notifSubBrief).length, 2);
     });
 
     test('当日已留痕：行提醒条目消失（推导式实时性）', () {
       final checks = <CheckIn>[];
       _checkIn(checks, 'g1', _today);
-      final items =
-          _derive([_habit('g1')], checks, reminders: [row('g1')]);
+      final items = _derive([_habit('g1')], checks, reminders: [row('g1')]);
       expect(
-          items.where((i) => i.subtitle == Copy.notifSubGoalReminder),
-          isEmpty);
+        items.where((i) => i.subtitle == Copy.notifSubGoalReminder),
+        isEmpty,
+      );
     });
 
     test('brief 禁用 + 无目标：空列表（sheet 空态源）', () {
-      final items = _derive(const [], const [],
-          reminders: [Reminder(time: _brief, isEnabled: false)]);
+      final items = _derive(
+        const [],
+        const [],
+        reminders: [Reminder(time: _brief, isEnabled: false)],
+      );
       expect(items, isEmpty);
     });
   });
@@ -172,8 +193,7 @@ void main() {
       _checkIn(checks, 'g1', _today.addDays(-1));
       final items = _derive(goals, checks);
       // 昨日只有 g1 存在且留痕 → 全完成日成立。
-      expect(
-          items.where((i) => i.kind == NotificationKind.allDone).length, 1);
+      expect(items.where((i) => i.kind == NotificationKind.allDone).length, 1);
     });
   });
 
@@ -233,16 +253,22 @@ void main() {
     });
 
     test('deadline 过去 2 天：副题带天数', () {
-      final items = _derive(
-          [_shortTerm('s1', deadline: _today.addDays(-2))], const []);
-      expect(items.where((i) => i.kind == NotificationKind.due).first.subtitle,
-          '短期目标 · 2 天前');
+      final items = _derive([
+        _shortTerm('s1', deadline: _today.addDays(-2)),
+      ], const []);
+      expect(
+        items.where((i) => i.kind == NotificationKind.due).first.subtitle,
+        '短期目标 · 2 天前',
+      );
     });
 
     test('已达成/未到期的目标不询问', () {
       final items = _derive([
-        _shortTerm('s1', deadline: _today.addDays(-1),
-            status: GoalStatus.achieved),
+        _shortTerm(
+          's1',
+          deadline: _today.addDays(-1),
+          status: GoalStatus.achieved,
+        ),
         _shortTerm('s2', deadline: _today.addDays(3)),
       ], const []);
       expect(items.where((i) => i.kind == NotificationKind.due), isEmpty);
@@ -262,15 +288,15 @@ void main() {
       final items = _derive(goals, checks);
       // 降序断言（允许同刻并列）。
       for (var i = 1; i < items.length; i++) {
-        expect(items[i - 1].at.isAfter(items[i].at) ||
-            items[i - 1].at.isAtSameMomentAs(items[i].at),
-            isTrue);
+        expect(
+          items[i - 1].at.isAfter(items[i].at) ||
+              items[i - 1].at.isAtSameMomentAs(items[i].at),
+          isTrue,
+        );
       }
       // 唯一的明日条目 = 明日提醒（g1 今日已留痕 → cue 档整体不排；
       // 明日仅剩 brief 镜像）。时间倒序 = 未来最前。
-      final tomorrow = items
-          .where((i) => i.at.day == 20)
-          .toList();
+      final tomorrow = items.where((i) => i.at.day == 20).toList();
       expect(tomorrow.length, 1);
       expect(items.first.at.day, 20); // 明日组居首
       expect(items.last.at.day, 18); // 昨日到期垫底
@@ -279,13 +305,43 @@ void main() {
       expect(todayBadgeCount(items, _today), 2);
     });
 
-    test('notificationDayLabel：今天/昨天/明天/日期', () {
-      expect(notificationDayLabel(_today, _today), Copy.notifDayToday);
-      expect(notificationDayLabel(_today.addDays(-1), _today),
-          Copy.notifDayYesterday);
-      expect(notificationDayLabel(_today.addDays(1), _today),
-          Copy.notifDayTomorrow);
-      expect(notificationDayLabel(_date(2026, 8, 1), _today), '8月1日');
+    test('notificationRelTime：日内粒度 + 跨日桶语（冻结稿 .tm）', () {
+      // 日内已过：刚刚 → N 分钟前 → N 小时前。
+      final now = const LocalTime(14, 0);
+      expect(
+        notificationRelTime(DateTime(2026, 8, 19, 14, 0), _today, now),
+        Copy.notifJustNow,
+      );
+      expect(
+        notificationRelTime(DateTime(2026, 8, 19, 13, 30), _today, now),
+        Copy.notifMinutesAgo(30),
+      );
+      expect(
+        notificationRelTime(DateTime(2026, 8, 19, 11, 0), _today, now),
+        Copy.notifHoursAgo(3),
+      );
+      // 日内未到：今天 HH:mm（时刻表语义）。
+      expect(
+        notificationRelTime(DateTime(2026, 8, 19, 20, 0), _today, now),
+        Copy.notifTodayAt('20:00'),
+      );
+      // 跨日：昨天/明天带时刻；2–6 天前只报天数；更远报 M月d日。
+      expect(
+        notificationRelTime(DateTime(2026, 8, 18, 21, 4), _today, now),
+        Copy.notifYesterdayAt('21:04'),
+      );
+      expect(
+        notificationRelTime(DateTime(2026, 8, 20, 8, 0), _today, now),
+        Copy.notifTomorrowAt('08:00'),
+      );
+      expect(
+        notificationRelTime(DateTime(2026, 8, 16, 9, 0), _today, now),
+        Copy.notifDaysAgo(3),
+      );
+      expect(
+        notificationRelTime(DateTime(2026, 8, 12, 9, 0), _today, now),
+        Copy.notifDateAt(8, 12),
+      );
     });
   });
 
@@ -319,7 +375,63 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
       expect(find.text(Copy.notificationTitle), findsOneWidget);
+      expect(find.text(Copy.notifEmptyTitle), findsOneWidget);
       expect(find.text(Copy.notificationEmptyHint), findsOneWidget);
+      await db.close();
+    });
+
+    testWidgets('行形态：38px 语义色格图标 + 行尾相对时刻（T015）', (tester) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      final goal = await GoalRepository(db).create(
+        Goal(
+          name: '睡前拉伸',
+          goalType: GoalType.habit,
+          iconKey: 'self_improvement',
+          colorKey: 'teal',
+          createdAt: LocalDate.fromDateTime(DateTime.now()),
+        ),
+      );
+      await ReminderRepository(db).upsert(
+        Reminder(
+          id: 'r-${goal.id}',
+          goalId: goal.id,
+          time: const LocalTime(9, 0),
+        ),
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [dbProvider.overrideWithValue(db)],
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: Scaffold(
+              body: Center(
+                child: Builder(
+                  builder: (context) => FilledButton(
+                    onPressed: () => showNotificationSheet(context),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      // 提醒类 = 蓝格日历图标；brief + 行提醒 × 今明两天 = 4 行同格。
+      expect(find.byIcon(Icons.event_rounded), findsNWidgets(4));
+      expect(find.text('睡前拉伸'), findsNWidgets(2));
+      expect(find.text(Copy.notifSubBrief), findsNWidgets(2));
+      // 行尾相对时刻在场：明日镜像 = 「明天 09:00」。
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('notificationSheet')),
+          matching: find.text(Copy.notifTomorrowAt('09:00')),
+        ),
+        findsOneWidget,
+      );
       await db.close();
     });
   });

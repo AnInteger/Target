@@ -267,6 +267,11 @@ abstract final class Copy {
   static const todayLatestNone = '还没有记录';
   static String todayLatestDaysAgo(int n) => '$n 天前';
 
+  /// 最新记录行日桶语（今日/回顾两屏同源口径；004 T015 通知组头
+  /// 退役后自键，不再借用通知块词汇）。
+  static const todayLatestToday = '今天';
+  static const todayLatestYesterday = '昨天';
+
   // 空态邀请卡（R3 裁决 3：正式语域）。
   static const todayEmptyTitle = '还没有目标';
   static const todayEmptyBody = '点击右上角 ＋ 创建第一个目标';
@@ -284,15 +289,22 @@ abstract final class Copy {
   static const profileAvatarLabel = '选择头像';
   static const profileDone = '完成';
 
-  // 通知列表（sheet，推导式 D6：无已读态，空态一句话）。
-  static const notificationEmptyHint = '这里会出现你的提醒和值得记下的时刻';
+  // 通知列表（sheet，推导式 D6：无已读态；004 T015 按冻结稿换装——
+  // 分组头退役，行尾相对时刻 + 语义色格图标 + 图形化空态）。
   static const notificationTitle = '通知';
+  static const notifEmptyTitle = '暂无通知';
+  static const notificationEmptyHint = '有新的提醒与达成记录时会显示在这里';
 
-  // 分组头（今天/昨天/明天；更早按日期）。
-  static const notifDayToday = '今天';
-  static const notifDayTomorrow = '明天';
-  static const notifDayYesterday = '昨天';
-  static String notifDayDate(int month, int day) => '$month月$day日';
+  // 行尾相对时刻（冻结稿 .tm）：当日内按粒度收敛，跨日报桶语 + 时刻；
+  // 推导列表的未来仅今日+明日两档（时刻表窗口）。
+  static const notifJustNow = '刚刚';
+  static String notifMinutesAgo(int n) => '$n 分钟前';
+  static String notifHoursAgo(int n) => '$n 小时前';
+  static String notifDaysAgo(int n) => '$n 天前';
+  static String notifTodayAt(String time) => '今天 $time';
+  static String notifYesterdayAt(String time) => '昨天 $time';
+  static String notifTomorrowAt(String time) => '明天 $time';
+  static String notifDateAt(int month, int day) => '$month月$day日';
 
   // 四源条目文案（行 = 图标 + 标题 + 副题 + 时刻）。
   static const notifSubGoalReminder = '目标提醒';

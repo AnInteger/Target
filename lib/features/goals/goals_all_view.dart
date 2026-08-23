@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
+import '../../app/page_top_bar.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
@@ -67,9 +68,18 @@ class _GoalsAllPageState extends ConsumerState<GoalsAllPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _TopBar(
-              count: shown.length,
-              onNew: () => context.push('/goal-editor'),
+            // 005 T008：共享次级顶栏（原手写 _TopBar 退役，D5 同构）。
+            PageTopBar(
+              title: Copy.goalsAllTitle,
+              titleAccessory: Text(
+                '${shown.length}',
+                key: const ValueKey('goalsAllCount'),
+                style: Theme.of(context).textTheme.bodyS.copyWith(
+                  color: TargetPalette.of(context).onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              trailing: _NewCapsule(onTap: () => context.push('/goal-editor')),
             ),
             _FilterRow(
               selected: _filter,
@@ -158,81 +168,9 @@ class _GoalsAllPageState extends ConsumerState<GoalsAllPage> {
   }
 }
 
+// 顶栏（005 T008 起共享 PageTopBar：返回 44 触达 + 标题 + 计数 +
+// 新建胶囊；冻结稿 .ga-top 几何见 lib/app/page_top_bar.dart）。
 // ---------------------------------------------------------------------------
-// 顶栏（冻结稿 .ga-top）：38px 返回圆钮（同详情 .dt-btn）+ 标题 + 计数
-// + 新建胶囊（surface 底 + divider 描边 + accent 加号）。
-// ---------------------------------------------------------------------------
-
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.count, required this.onNew});
-
-  /// 当前筛选下的目标数（计数随筛选联动，冻结稿板 2）。
-  final int count;
-  final VoidCallback onNew;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    final theme = Theme.of(context);
-    return Padding(
-      // 005 D2：水平随页缘列表档 16（垂直节奏不动）。
-      padding: const EdgeInsets.fromLTRB(
-        AppSpace.s4,
-        AppSpace.s3,
-        AppSpace.s4,
-        AppSpace.s2,
-      ),
-      child: Row(
-        children: [
-          const _BackButton(),
-          const SizedBox(width: AppSpace.s3),
-          Text(Copy.goalsAllTitle, style: theme.textTheme.titleM),
-          const SizedBox(width: AppSpace.s1),
-          // 004 T023：计数挂 key（纯数字文本 find.text 易撞车）。
-          Text(
-            '$count',
-            key: const ValueKey('goalsAllCount'),
-            style: theme.textTheme.bodyS.copyWith(
-              color: palette.onSurfaceVariant,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          const Spacer(),
-          _NewCapsule(onTap: onNew),
-        ],
-      ),
-    );
-  }
-}
-
-/// 38px 返回圆钮（冻结稿 .ga-btn）：surface 底 + divider 描边 + 低影。
-class _BackButton extends StatelessWidget {
-  const _BackButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    final button = Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: palette.surface,
-        border: Border.all(color: palette.divider),
-        boxShadow: palette.shadowLow,
-      ),
-      child: Icon(Icons.chevron_left, size: 24, color: palette.onSurface),
-    );
-    return InkWell(
-      onTap: () => Navigator.of(context).maybePop(),
-      customBorder: const CircleBorder(),
-      child: Tooltip(
-        message: MaterialLocalizations.of(context).backButtonTooltip,
-        child: button,
-      ),
-    );
-  }
-}
 
 /// 新建胶囊（冻结稿 .new）：surface 底 + divider 描边 + accent 加号
 /// → /goal-editor。

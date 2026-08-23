@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/design_tokens.dart';
+import '../../app/page_top_bar.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/db/repositories.dart';
@@ -233,27 +234,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // v2 push 顶栏：38 圆返回键 + 标题（新建目标/编辑目标）。
-            Padding(
-              // 005 D2：水平随页缘列表档 16（垂直节奏不动）。
-              padding: const EdgeInsets.fromLTRB(
-                AppSpace.s4,
-                AppSpace.s3,
-                AppSpace.s4,
-                AppSpace.s2,
-              ),
-              child: Row(
-                children: [
-                  _BackButton(onTap: () => Navigator.of(context).maybePop()),
-                  const SizedBox(width: AppSpace.s3),
-                  Text(
-                    _isEdit ? Copy.goalEdit : Copy.editorNewGoal,
-                    style: Theme.of(context).textTheme.titleM,
-                  ),
-                  const Spacer(),
-                ],
-              ),
-            ),
+            // 005 T008：共享次级顶栏（原手写行退役，D5 同构；默认
+            // onBack 即 Navigator.maybePop，语义零变化）。
+            PageTopBar(title: _isEdit ? Copy.goalEdit : Copy.editorNewGoal),
             Expanded(
               child: ListView(
                 // 005 D2：页缘=列表档 s4(16)（hero 两屏 24，分层基准）。
@@ -608,37 +591,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     if (picked != null) {
       setState(() => _remindTime = LocalTime(picked.hour, picked.minute));
     }
-  }
-}
-
-/// push 顶栏返回键（v2 .ed-back）：38 圆 surface 底 + 细边 + 低影。
-class _BackButton extends StatelessWidget {
-  const _BackButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return Semantics(
-      button: true,
-      label: '返回',
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: palette.surface,
-            shape: BoxShape.circle,
-            border: Border.all(color: palette.divider),
-            boxShadow: palette.shadowLow,
-          ),
-          child: Icon(Icons.chevron_left, size: 26, color: palette.onSurface),
-        ),
-      ),
-    );
   }
 }
 

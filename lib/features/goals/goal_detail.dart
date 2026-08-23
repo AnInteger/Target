@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
+import '../../app/page_top_bar.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
@@ -61,7 +62,17 @@ class GoalDetailPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _TopBar(onMenu: () => _showMenu(context, ref, goal)),
+            // 005 T008：共享次级顶栏（原手写 _TopBar 退役，D5 同构；
+            // ⋯ 菜单钮入 trailing 槽）。
+            PageTopBar(
+              title: Copy.goalDetailTitle,
+              trailing: _CircleButton(
+                icon: Icons.more_vert,
+                iconSize: 20,
+                tooltip: Copy.goalMoreActions,
+                onTap: () => _showMenu(context, ref, goal),
+              ),
+            ),
             Expanded(
               child: ListView(
                 // 005 D2：页缘=列表档 s4(16) 对称（原左 s2/右 s5 偏离
@@ -299,50 +310,6 @@ class GoalDetailPage extends ConsumerWidget {
     if (yes != true) return;
     await ref.read(goalRepoProvider).deleteGoal(goal.id);
     if (context.mounted) Navigator.of(context).pop();
-  }
-}
-
-// ---------------------------------------------------------------------------
-// 顶栏（冻结稿 .dt-top）：返回圆钮 + 标题 + 「⋯」。
-// ---------------------------------------------------------------------------
-
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.onMenu});
-
-  final VoidCallback onMenu;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      // 005 D2：水平随页缘列表档 16（垂直节奏不动）。
-      padding: const EdgeInsets.fromLTRB(
-        AppSpace.s4,
-        AppSpace.s3,
-        AppSpace.s4,
-        AppSpace.s2,
-      ),
-      child: Row(
-        children: [
-          _CircleButton(
-            icon: Icons.chevron_left,
-            iconSize: 24,
-            // 无障碍语义与 AppBar 返回钮同源（pageBack/读屏可寻）。
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-            onTap: () => Navigator.of(context).maybePop(),
-          ),
-          const SizedBox(width: AppSpace.s3),
-          Text(Copy.goalDetailTitle, style: theme.textTheme.titleM),
-          const Spacer(),
-          _CircleButton(
-            icon: Icons.more_vert,
-            iconSize: 20,
-            tooltip: Copy.goalMoreActions,
-            onTap: onMenu,
-          ),
-        ],
-      ),
-    );
   }
 }
 

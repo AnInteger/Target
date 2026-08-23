@@ -17,6 +17,7 @@ class PageTopBar extends StatelessWidget {
   const PageTopBar({
     super.key,
     required this.title,
+    this.titleKey,
     this.titleAccessory,
     this.trailing,
     this.onBack,
@@ -24,6 +25,9 @@ class PageTopBar extends StatelessWidget {
 
   /// 标题（titleM；四页标题皆短，不做溢出处理）。
   final String title;
+
+  /// 标题挂 key（我的页 screenTitle 测试锚点沿用）。
+  final Key? titleKey;
 
   /// 紧随标题的配件（全部目标页计数胶囊；其余页空）。
   final Widget? titleAccessory;
@@ -57,15 +61,16 @@ class PageTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // D6 触达 44：44×44 槽内居中 38 视觉钮（命中区外扩、视觉零变化）。
+          // D6 触达 44：InkWell 铺满 44×44 槽、内 Center 38 视觉钮
+          // （命中区 ≥44、视觉零变化）。
           SizedBox(
             width: 44,
             height: 44,
-            child: Center(
-              child: InkWell(
-                key: const ValueKey('pageTopBarBack'),
-                onTap: onBack ?? () => Navigator.of(context).maybePop(),
-                customBorder: const CircleBorder(),
+            child: InkWell(
+              key: const ValueKey('pageTopBarBack'),
+              onTap: onBack ?? () => Navigator.of(context).maybePop(),
+              customBorder: const CircleBorder(),
+              child: Center(
                 child: Tooltip(
                   // 无障碍语义与 AppBar 返回钮同源（读屏可寻）。
                   message: MaterialLocalizations.of(context).backButtonTooltip,
@@ -75,7 +80,7 @@ class PageTopBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpace.s3),
-          Text(title, style: Theme.of(context).textTheme.titleM),
+          Text(title, key: titleKey, style: Theme.of(context).textTheme.titleM),
           if (titleAccessory != null) ...[
             const SizedBox(width: AppSpace.s1),
             titleAccessory!,

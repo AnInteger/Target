@@ -583,8 +583,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('goalsAllEmptyCta')));
     await tester.pumpAndSettle();
     expect(find.byType(GoalEditorPage), findsOneWidget);
-    // 编辑器返回键 = chevron 圆钮（Semantics「返回」无 Tooltip，pageBack
-    // 的 Tooltip 探测不覆盖，按图标定位；下方 goals-all 已 offstage 不扰）。
+    // 编辑器返回键（005 T008 起 PageTopBar：chevron 24 + 返回 Tooltip；
+    // 下方 goals-all 已 offstage 不扰，仍按图标定位）。
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
 
@@ -3565,6 +3565,110 @@ void main() {
       tester.widget<Text>(find.byKey(const ValueKey('weekRange'))).data,
       weekRange,
     );
+    await db.close();
+  });
+
+  testWidgets('005 T008：四页顶栏同构 PageTopBar——44 触达+38 视觉+标题左缘同线+详情返回弹栈', (
+    tester,
+  ) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final goal = await GoalRepository(db).create(
+      Goal(
+        name: '读诗',
+        goalType: GoalType.habit,
+        iconKey: 'favorite',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    await seedVersion(
+      db,
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(today),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+
+    // 同构不变式（契约 §2）：返回触达槽 44×44 贴 s4 页缘、内嵌 38
+    // 视觉钮与槽同心、标题左缘 = s4+44+s3（四页叠加同线零漂移）。
+    void expectIsomorphic() {
+      final slot = tester.renderObject<RenderBox>(
+        find.byKey(const ValueKey('pageTopBarBack')),
+      );
+      final slotDx = slot.localToGlobal(Offset.zero).dx;
+      expect(slot.size, const Size(44, 44));
+      expect(slotDx, closeTo(AppSpace.s4, 0.01));
+      final visual = tester.renderObject<RenderBox>(
+        find
+            .descendant(
+              of: find.byKey(const ValueKey('pageTopBarBack')),
+              matching: find.byType(Container),
+            )
+            .first,
+      );
+      expect(visual.size, const Size(38, 38));
+      expect(
+        visual.localToGlobal(Offset.zero).dx + 19,
+        closeTo(slotDx + 22, 0.5),
+      );
+    }
+
+    double titleLeft(Finder f) =>
+        tester.renderObject<RenderBox>(f).localToGlobal(Offset.zero).dx;
+    const titleDx = AppSpace.s4 + 44 + AppSpace.s3;
+
+    // ④ 先走真实动线：今日关注卡 → 详情（push），⋯ 菜单钮在位，
+    // 返回键弹栈回今日。
+    await openGoalFromFocus(tester, goal.id);
+    expectIsomorphic();
+    expect(titleLeft(find.text(Copy.goalDetailTitle)), closeTo(titleDx, 0.5));
+    expect(find.byIcon(Icons.more_vert), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+
+    // ① 全部目标：计数配件 + 新建胶囊在位。
+    router.go('/goals-all');
+    await tester.pumpAndSettle();
+    expectIsomorphic();
+    expect(titleLeft(find.text(Copy.goalsAllTitle)), closeTo(titleDx, 0.5));
+    expect(find.byKey(const ValueKey('goalsAllCount')), findsOneWidget);
+    expect(find.byKey(const ValueKey('goalsAllNew')), findsOneWidget);
+
+    // ② 我的：screenTitle 测试锚沿 titleKey 存续。
+    router.go('/settings');
+    await tester.pumpAndSettle();
+    expectIsomorphic();
+    expect(
+      titleLeft(find.byKey(const ValueKey('screenTitle'))),
+      closeTo(titleDx, 0.5),
+    );
+
+    // ③ 编辑器（新建态标题）。
+    router.go('/goal-editor');
+    await tester.pumpAndSettle();
+    expectIsomorphic();
+    expect(titleLeft(find.text(Copy.editorNewGoal)), closeTo(titleDx, 0.5));
     await db.close();
   });
 }

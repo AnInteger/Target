@@ -105,7 +105,9 @@ description: "Task list for 005 走查修复轮"
 - [x] T007 [US5] 新建共享顶栏 lib/app/page_top_bar.dart（D5+D6）：返回圆钮视觉 38px/触达 44×44（SizedBox+Center 模式）+ 标题 titleM + trailing 槽；水平 padding=AppSpace.s4(16)（次级页列表档，契约 §2）、栏内垂直 s3/s2；hero 两屏不套用
   - ✅ 实现完成：`PageTopBar`——38 视觉圆钮（chevron 24，冻结稿 .ga-btn/.dt-btn 几何）外套 44×44 触达槽 + titleM 标题 + titleAccessory 紧邻配件（计数）+ trailing 右槽 + onBack 可注入（默认 Navigator.maybePop）；水平 s4 / 垂直 s3·s2；返回钮挂 pageTopBarBack key
   - ✅ 门禁通过：analyze 0 + test 167/167（本任务仅立件不接线，同构断言随 T008）
-- [ ] T008 [US5] 四页顶栏替换（D5，依赖 T007）：goals_all_view（trailing=计数+新建胶囊）、settings_view（无 trailing）、goal_editor（保留 Navigator.maybePop 语义）、goal_detail（trailing=⋯菜单钮）各自手写顶栏退役换 PageTopBar；test/ 四顶栏几何同构断言 + 既有返回/菜单动线用例回归
+- [x] T008 [US5] 四页顶栏替换（D5，依赖 T007）：goals_all_view（trailing=计数+新建胶囊）、settings_view（无 trailing）、goal_editor（保留 Navigator.maybePop 语义）、goal_detail（trailing=⋯菜单钮）各自手写顶栏退役换 PageTopBar；test/ 四顶栏几何同构断言 + 既有返回/菜单动线用例回归
+  - ✅ 实现完成：goals_all（计数配件+新建胶囊）/settings（titleKey 锚+canPop 兜底回今日）/editor（默认 onBack=maybePop 语义零变化）/detail（⋯ 菜单钮入 trailing）四页手写顶栏全退役换 PageTopBar；icon 26→24 对齐冻结稿 .ga-btn/.dt-btn 几何；三处 _BackButton/_TopBar 类删除
+  - ✅ 门禁通过：analyze 0 + 新增 005 T008 一例绿（44 触达/38 视觉同心/标题左缘 72 四页同线/详情返回弹栈）；全量回归按用户裁定延至 T011 统一跑
 - [ ] T009 [P] [US5] 触达 44 扫尾（D6）：lib/features/today/today_view.dart `_CircleButton`（铃铛 36 视觉→44 触达）、lib/features/review/review_view.dart 日历钮、goal_detail ⋯ 若独立于 PageTopBar 的残余小钮——统一 SizedBox(44)+Center 外扩，视觉尺寸零变化；test/ 触达区断言
 - [ ] T010 [P] [US5] 今日头部两行重构（D7）：lib/features/today/today_view.dart `_Head` 改「日期行 + 标题行（标题+铃铛+头像 CrossAxisAlignment.center）」——铃铛/头像视觉中线恒与大标题中线重合；与冻结稿整块居中的 4–6px 有意偏差于 T012 留档；test/ 中线对齐断言 + 头像/铃铛动线回归
 

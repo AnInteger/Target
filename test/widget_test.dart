@@ -1729,13 +1729,11 @@ void main() {
       find.byKey(const ValueKey('screenTitle')),
     );
 
-    // 回顾标题带左缘 ≥ padX；今日屏头像与其同带竖直相容。
+    // 回顾标题带左缘 ≥ padX（hero 24 横向基准）。005 D7 解除 003
+    // 「同带竖直相容」：今日头部改两行后头像/铃铛随标题行下移一
+    // 日期行（冻结稿 .head 本就如此），竖直中线不变式由 005 T010
+    // 用例持有（铃铛/头像中线恒与大标题中线重合）。
     expect(reviewTitle.left, greaterThanOrEqualTo(24));
-    expect(
-      (avatar.top - reviewTitle.top).abs(),
-      lessThan(16),
-      reason: '今日屏头部带与标题带应竖直相容',
-    );
 
     // 004 v2（T012）：我的页改 push 顶栏（返回键 + 我的），退出 003 三屏
     // 标题带约束——在场性与形态断言（T036 深色态用例另有覆盖）。

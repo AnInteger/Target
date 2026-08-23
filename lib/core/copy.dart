@@ -295,6 +295,23 @@ abstract final class Copy {
   /// 全部目标页大标题（004 T022 先立过渡页，T023 按冻结稿全量实现）。
   static const goalsAllTitle = '全部目标';
 
+  // ---- 全部目标页（004 T023，v2-goals-all 冻结稿）----
+
+  /// 筛选 chips（单选：全部 + 十小类）与顶栏新建胶囊（.new）。
+  static const goalsFilterAll = '全部';
+  static const goalsNewCapsule = '新建';
+
+  /// 筛选空态（.fempty）：分类名明示 + 新建 CTA（复用 todayNewGoal）。
+  static const goalsFilterEmptyTitle = '该分类暂无目标';
+  static String goalsFilterEmptyBody(String name) => '「$name」分类下还没有目标';
+
+  /// 卡摘要行（.r2 口径同详情 meta 胶囊的延展）：
+  /// 达成 = 完成日照面；今日已记录但连击未起算的习惯兜底；
+  /// 短期 = 倒计时 · 里程碑完成百分比（配 .prog 进度条）。
+  static String goalAchievedMeta(String day) => '$day 标记达成';
+  static const goalRecordedTodayMeta = '今天已记录';
+  static String shortTermProgressMeta(int percent) => '已完成 $percent%';
+
   // 成就时刻（每个目标今天都有记录）。
   static const celebrationTitle = '🎉 每个目标都有进展';
   static String celebrationNote(int n) => '今日 $n 次记录';

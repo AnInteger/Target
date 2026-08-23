@@ -462,6 +462,168 @@ void main() {
     await db.close();
   });
 
+  testWidgets('004 T023：全部目标页——筛选单选/计数联动/分组/筛选空态/长按管理全动线', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    // 两习惯跨两大类：夜跑（运动→健康）/ 读诗（学习→目标）。
+    final nightRun = await repo.create(
+      Goal(
+        name: '夜跑',
+        goalType: GoalType.habit,
+        iconKey: 'directions_run',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    final poem = await repo.create(
+      Goal(
+        name: '读诗',
+        goalType: GoalType.habit,
+        iconKey: 'menu_book',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    for (final g in [nightRun, poem]) {
+      await seedVersion(
+        db,
+        g.id,
+        const DailyFrequency(1),
+        WeekStart.containing(today),
+      );
+    }
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 筛选行横向滚动（11 chips 超宽）：把目标 chip 拖到可点为止。
+    Future<void> scrollFiltersTo(WidgetTester tester, Finder chip) async {
+      for (final delta in [const Offset(-240, 0), const Offset(240, 0)]) {
+        for (var i = 0; i < 6 && chip.hitTestable().evaluate().isEmpty; i++) {
+          await tester.drag(find.byType(SingleChildScrollView), delta);
+          await tester.pumpAndSettle();
+        }
+        if (chip.hitTestable().evaluate().isNotEmpty) return;
+      }
+      expect(chip.hitTestable(), findsOneWidget);
+    }
+
+    String countText() =>
+        tester.widget<Text>(find.byKey(const ValueKey('goalsAllCount'))).data!;
+
+    // 组头断言限定在列表内（「健康」也出现在筛选 chip 上，全树
+    // find.text 会撞车）。
+    Finder groupHead(String label) => find.descendant(
+      of: find.byKey(const ValueKey('goalsAllList')),
+      matching: find.text(label),
+    );
+
+    // 「查看全部」→ 全部目标页：三大类分组 + 计数 + 习惯徽章。
+    await tester.tap(find.text(Copy.focusSeeAll));
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalsAllPage), findsOneWidget);
+    expect(groupHead(MajorCategory.health.zhLabel), findsOneWidget);
+    expect(groupHead(MajorCategory.goal.zhLabel), findsOneWidget);
+    expect(find.byKey(ValueKey('goalsAllRow-${nightRun.id}')), findsOneWidget);
+    expect(find.byKey(ValueKey('goalsAllRow-${poem.id}')), findsOneWidget);
+    expect(countText(), '2');
+    expect(find.text(Copy.typeBadgeHabit), findsNWidgets(2));
+
+    // 筛选单选（运动）：仅夜跑、计数联动 1、组头退场（平铺）。
+    await scrollFiltersTo(
+      tester,
+      find.byKey(const ValueKey('goalsAllFilter-fitness')),
+    );
+    await tester.tap(find.byKey(const ValueKey('goalsAllFilter-fitness')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('goalsAllRow-${nightRun.id}')), findsOneWidget);
+    expect(find.byKey(ValueKey('goalsAllRow-${poem.id}')), findsNothing);
+    expect(countText(), '1');
+    expect(groupHead(MajorCategory.health.zhLabel), findsNothing);
+
+    // 筛选空态（冥想无目标）：分类名明示 + 新建 CTA → 编辑器。
+    await scrollFiltersTo(
+      tester,
+      find.byKey(const ValueKey('goalsAllFilter-mind')),
+    );
+    await tester.tap(find.byKey(const ValueKey('goalsAllFilter-mind')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('goalsAllRow-${nightRun.id}')), findsNothing);
+    expect(find.text(Copy.goalsFilterEmptyTitle), findsOneWidget);
+    expect(
+      find.text(Copy.goalsFilterEmptyBody(GoalIconDomain.mind.zhLabel)),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('goalsAllEmptyCta')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalEditorPage), findsOneWidget);
+    // 编辑器返回键 = chevron 圆钮（Semantics「返回」无 Tooltip，pageBack
+    // 的 Tooltip 探测不覆盖，按图标定位；下方 goals-all 已 offstage 不扰）。
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pumpAndSettle();
+
+    // 回「全部」恢复全量；整卡进详情。
+    await scrollFiltersTo(
+      tester,
+      find.byKey(const ValueKey('goalsAllFilter-all')),
+    );
+    await tester.tap(find.byKey(const ValueKey('goalsAllFilter-all')));
+    await tester.pumpAndSettle();
+    expect(countText(), '2');
+    await tester.tap(find.byKey(ValueKey('goalsAllRow-${poem.id}')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalDetailPage), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // 长按管理：暂停 → 已暂停徽章 + 历史条数摘要；恢复 → 回习惯徽章。
+    final nightRunRow = find.byKey(ValueKey('goalsAllRow-${nightRun.id}'));
+    await tester.longPress(nightRunRow);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalsAllManageSheet')), findsOneWidget);
+    expect(find.text(Copy.menuPauseGoal), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('goalsAllMenu-pause')));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.goalStatusPausedSuffix), findsOneWidget);
+    expect(find.text(Copy.historyCountMeta(0)), findsOneWidget);
+
+    await tester.longPress(nightRunRow);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalsAllMenu-resume')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('goalsAllMenu-resume')));
+    await tester.pumpAndSettle();
+    expect(find.text(Copy.goalStatusPausedSuffix), findsNothing);
+    expect(find.text(Copy.typeBadgeHabit), findsNWidgets(2));
+
+    // 删除动线：长按 → 二次确认 → 物理级联移出列表。
+    await tester.longPress(nightRunRow);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalsAllMenu-delete')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalDeleteDialog')), findsOneWidget);
+    await tester.tap(find.text(Copy.deleteConfirmYes));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('goalsAllRow-${nightRun.id}')), findsNothing);
+    expect(find.byKey(ValueKey('goalsAllRow-${poem.id}')), findsOneWidget);
+    expect(countText(), '1');
+    await db.close();
+  });
+
   testWidgets('T023 骨架：分组平铺+保存常驻+改型联动显隐+零行为说明句（FR-011/014/021）', (
     tester,
   ) async {

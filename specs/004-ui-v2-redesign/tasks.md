@@ -212,7 +212,9 @@ description: "Task list for 004 UI v2 重构"
 - [x] T032 双主题全页走查与图表可辨核验：系统深浅各一轮全部页面（quickstart 阶段 B/E；FR-013 完成态与未完成态不单靠色相；SC-001/SC-002/SC-003 逐条核），问题项修复后复走查
   - ✅ 实现完成：走查=对比度矩阵（tool/contrast_audit.dart 可复现）+ 深色四页身份冒烟（新用例，逐页 identical(palette,dark) 断言令牌全链安装）+ FR-013 逐元素代码核验（环=弧长+数字+图例「—」/点阵=对勾·描边圈·灰底形状三态/进度=长度/环比=↑↓字符，四类均非单色相）+ SC-002 骨架对账（头部/环/轮播/查看全部/dock 五块带测试锚点）+ SC-003（T012 三档即时+持久）。问题项修复四枚可读性令牌（三端同步，色相族/构造不变）：浅 accent 2196F3→1565C0（正文链接+按钮标签 3.12→≥5.06）、浅 variant 6E6E73→6A6A70（渐变暗端 4.46→4.73）、浅 warning B26100→9A5700（↓胶囊 4.09→5.04）、深 accentOn 白→00263B 深墨（亮蓝实底 2.43→6.46 与 positiveOn 同构）；tokens.css ?v=0823b→0823c 九稿重载。复走查：正文级双主题 0 FAIL。留档（冻结设计固有待设计轮裁定）：关注卡白字×渐变 a 端 2.12–3.12、大类图标×浅灰 1.93–2.80、divider 装饰发丝线。审计条目落 reviews.md「实现审计」
   - ✅ 门禁通过：flutter analyze 0 issues；flutter test 全量 161/161 通过（含新增 T032 双主题走查用例；format 仅点名 widget_test/design_tokens/contrast_audit）
-- [ ] T033 全量回归收口：flutter analyze 0 + flutter test 全绿（既有 128 项零回归 + 004 新增用例全量）；SC-004/SC-005/SC-006 对账结论落 quickstart「完成口径」
+- [x] T033 全量回归收口：flutter analyze 0 + flutter test 全绿（既有 128 项零回归 + 004 新增用例全量）；SC-004/SC-005/SC-006 对账结论落 quickstart「完成口径」
+  - ✅ 实现完成：quickstart 阶段 B–F 全部 19 项体验清单勾结（阶段 C 数字框 2.–5. 四项含 97/100/无数据态、即时回升、全暂停空态）；「完成口径」一节落档——SC-001…SC-006 六条对账表（SC-001→T032 矩阵+四令牌修复、SC-002→T032 骨架映射、SC-003→T012 三档、SC-004→T027 33例+T018 口径+T021/T029 回升、SC-005→T030 冷启动用例、SC-006→T031 十五项映射），格式沿用 003 quickstart 完成口径先例；收口态标注 analyze 0 + 161/161
+  - ✅ 门禁通过：flutter analyze 0 issues；flutter test 全量 161/161 通过（既有 003 基线 160 零回归 + T032 新增 1 例；本轮纯文档收口无代码改动）
 - [ ] T034 文档收口：design/reviews.md 004 实现审计条目齐、spec.md Status: Complete、specs/004-ui-v2-redesign/tasks.md 全勾无留口
 
 ---

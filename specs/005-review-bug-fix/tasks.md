@@ -129,7 +129,9 @@ description: "Task list for 005 走查修复轮"
 - [x] T012 FR-010 复核留档 + reviews.md 续录：模拟器复核「切换粘连」（T006 转场上线后复测）与「今日页大块空白」（对照 24 设计值）——复现则修复补档、未复现记录裁定依据；D7 头部中线与 D2 次级页 20→16 两处冻结稿有意偏差留档；真机项标注沿用 003 T043 合并窗口；design/reviews.md 续「实现审计」条目（T002–T010 各任务结论）
   - ✅ 实现完成：D4 转场上线后「切换粘连」代码层不复现（IndexedStack 同帧换子+_FadeThrough 透明度包壳，旧新页无双绘；模拟器/真机面沿 003 T043 合并窗口待复测）；「今日页大块空白」核 TodayView 垂直节奏 s5/s2/s3 未动、无异常Spacer，裁定为轮播卡内容高度自然留白；D7 头部中线与 D2 次级 20→16 两处冻结稿有意偏差随 reviews.md 留档
   - ✅ 门禁通过：design/reviews.md 续「005 实现审计」条目（T002–T010 逐任务结论+两偏差留档）落库
-- [ ] T013 文档收口：spec.md Status: Draft→Complete 附收口摘要（四属实全修/两不属实留档/两复核结论）；tasks.md 全勾核对；memory 终态更新
+- [x] T013 文档收口：spec.md Status: Draft→Complete 附收口摘要（四属实全修/两不属实留档/两复核结论）；tasks.md 全勾核对；memory 终态更新
+  - ✅ 实现完成：spec.md Status Draft→Complete 附收口摘要（四属实全修/两不属实留档/两复核结论+门禁数字）；tasks.md T001–T013 全勾核对；memory 终态更新（005 完结、留口=真机侧载轮）
+  - ✅ 门禁通过：收口前门禁沿 T011 统一门禁（analyze 0 + test 170/170），本轮零代码改动
 
 ---
 

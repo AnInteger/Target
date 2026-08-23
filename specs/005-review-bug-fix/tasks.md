@@ -1,0 +1,153 @@
+---
+description: "Task list for 005 走查修复轮"
+---
+
+# Tasks: 005 走查修复轮——布局度量统一 · 安全区 · 转场 · 触达
+
+**Input**: Design documents from `/specs/005-review-bug-fix/`（spec.md 五故事 + 核验结论表 / plan.md / research.md D1–D8 / data-model.md 零变更 / contracts/layout-metrics.md 七节 / quickstart.md 阶段 A–F）
+
+**Prerequisites**: 全部就绪（004 完结态基线：analyze 0 / test 161 绿 / schema v5 / 分支 005-review-bug-fix 已立、spec+plan 已入库）
+
+**Tests**: plan.md Testing 已声明（inset 几何 / 页缘单值 / 轮播卡缘 / 转场终态 / 触达 44）——用例随对应任务同 commit；本轮无独立测试先行任务（修复型任务用例与实现同批）。
+
+**Organization**: 按用户故事分相（US1 安全区 → US2 页缘 → US3 轮播 → US4 转场 → US5 顶栏/触达/头部 → 收口）；无 Foundational 相——零数据变更、零新令牌、无跨故事地基（data-model.md 结论），Phase 1 基线核验后直入故事。
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: 可并行（不同文件、无未完成前置）
+- **[Story]**: 归属用户故事（US1–US5）
+- 每条任务带精确文件路径
+
+## 硬口径（沿 003/004，每任务必过）
+
+- 每任务 `flutter analyze` 0 issue + `flutter test` 全绿（161 基线零回归 + 本轮新增），一任务一 commit：`005 T0XX: 中文标题`，`--author="sunxing <sunxing@users.noreply.github.com>"`
+- tasks.md 勾选时任务行下附 ✅ 双子行（✅ 实现完成 / ✅ 门禁通过）
+- 度量值只出自 lib/app/design_tokens.dart 既有刻度（本轮零新令牌、零裸数值）；dart format 只点名本任务文件（仓库教训：整树 format 会 churn）
+- 004 冻结语言不动（hero 两屏头部结构 / 配色 / 深色禁重阴影 / 既有 Copy 键 / 测试 key：navTab-*、dockBar、dockFab、goalsAllRow-* 等）
+
+---
+
+## Phase 1: Setup
+
+**Purpose**: 基线核验与执行口径落档
+
+- [ ] T001 核验实现基线：`flutter analyze` 0 issue + `flutter test` 161/161 绿（004 收口态复验），在 specs/005-review-bug-fix/tasks.md 顶部确认执行口径生效（commit 格式与 ✅ 双子行约定）
+
+---
+
+## Phase 2: User Story 1 - dock 贴底与安全区 (Priority: P1) 🎯 MVP
+
+**Goal**: dock 底幕延伸至屏幕物理底边，全面屏无断层；互动元素避让 Home 指示区（FR-001/002，research D1）
+
+**Independent Test**: 带底部 inset 机型断言 dockBar 底缘 = 屏底、页签不侵入 inset；inset=0 机型几何与 004 版恒等
+
+- [ ] T002 [US1] dock 安全区改造（D1）：lib/app/router.dart `_Dock` 去外层 `SafeArea(top:false)`、改自消费 `MediaQuery.paddingOf(context).bottom`——底条背景高度 84+inset 下延至物理底边（顶缘发丝线仍在条顶）、页签与 FAB 互动槽整体上移 inset；test/ 新增 inset=34 / inset=0 两组几何用例（dockBar 底=屏底、页签 bottom≥inset、inset=0 与现版恒等、dockFab 命中回归）
+
+**Checkpoint**: dock 贴底达成——005 最显眼缺陷闭环，可独立交付
+
+---
+
+## Phase 3: User Story 2 - 页缘单值对齐 24 (Priority: P1)
+
+**Goal**: 全部页面内容左右缘统一 AppScreen.padX(24)，跨屏无左右跳动（FR-003，research D2）
+
+**Independent Test**: 各页根容器水平 padding 断言 = padX；四屏左缘叠加一致（深浅双主题）
+
+- [ ] T003 [P] [US2] 全部目标页+我的页页缘收敛：lib/features/goals/goals_all_view.dart 与 lib/features/settings/settings_view.dart 页级水平 `AppSpace.s5`(20)→`AppScreen.padX`(24)（顶栏/筛选行/列表/正文区水平值；卡片内距与垂直节奏不动）+ test/ 页缘断言用例
+- [ ] T004 [P] [US2] 编辑器+详情页页缘收敛：lib/features/goals/goal_editor.dart 与 lib/features/goals/goal_detail.dart 同口径 s5→padX（含正文可滚区；`AppSpace.s5+8` 类垂直裸算式顺手留档说明不强行刻度化）+ test/ 四屏（+编辑器/详情）左缘一致用例
+
+**Checkpoint**: SC-001 页缘单值达成（六屏叠加同线）
+
+---
+
+## Phase 4: User Story 3 - 轮播首末卡对齐页基准 (Priority: P2)
+
+**Goal**: 今日页关注轮播首卡左缘/末卡右缘 = 页基准，保留对称 peek（FR-004，research D3）
+
+**Independent Test**: 首卡左缘 x==padX、末卡右缘==W−padX、单卡两缘同时成立；既有双向横滑/分支状态回归
+
+- [ ] T005 [US3] 今日页结构反转+轮播全出血（D3）：lib/features/today/today_view.dart ListView 水平 padding 归 0、`_Head`/`_RingZone`/`_EmptyCTA` 等非轮播段自包 `Padding(horizontal: AppScreen.padX)`；lib/features/today/focus_carousel.dart 改 `LayoutBuilder` 全宽 W 求 `viewportFraction=(W−2·padX)/W`（PageView 自身无水平 padding）；test/ 卡缘不变式用例（首/末/单卡/peek 可见）+ 既有轮播用例回归
+
+**Checkpoint**: SC-003 达成——今日页最直观布局缺陷闭环
+
+---
+
+## Phase 5: User Story 4 - 分支切换统一转场 (Priority: P2)
+
+**Goal**: dock 今日↔回顾切换 fade-through（250ms easeStandard 单值），无残影、不错页、保分支状态（FR-005/006，research D4）
+
+**Independent Test**: 切页有 250ms 双段过渡、终态与所点页签一致；快速连点不错页；既有 navTab/深链用例零回归
+
+- [ ] T006 [US4] _FadeThrough 分支转场（D4）：lib/app/router.dart `_AppShell` 内新增 `_FadeThrough` StatefulWidget 包 `navigationShell`——`didUpdateWidget` 检测 `shell.currentIndex` 变化驱动 `AnimationController(AppMotion.base, AppMotion.easeStandard)` 双段透明度（前半 1→0 后半 0→1，IndexedStack 瞬切落于视觉最暗帧）；不换子树 Key（保 T022 分支状态）；push 页维持平台默认；test/ 转场终态+快速连点+分支状态保留用例
+
+**Checkpoint**: SC-004 达成——切换生硬闭环；「粘连」待 D4 后复核（T012）
+
+---
+
+## Phase 6: User Story 5 - 顶栏同构 · 触达 44 · 头部对齐 (Priority: P3)
+
+**Goal**: 四个次级 push 页顶栏同构一组件；小图标触达 ≥44；今日铃铛/头像与标题共中线（FR-007/008/009，research D5/D6/D7）
+
+**Independent Test**: 四页顶栏几何叠加一致断言；触达区逐钮 ≥44 断言；头部中线对齐断言
+
+- [ ] T007 [US5] 新建共享顶栏 lib/app/page_top_bar.dart（D5+D6）：返回圆钮视觉 38px/触达 44×44（SizedBox+Center 模式）+ 标题 titleM + trailing 槽；水平 padding=AppScreen.padX、栏内垂直 s3/s2；hero 两屏不套用
+- [ ] T008 [US5] 四页顶栏替换（D5，依赖 T007）：goals_all_view（trailing=计数+新建胶囊）、settings_view（无 trailing）、goal_editor（保留 Navigator.maybePop 语义）、goal_detail（trailing=⋯菜单钮）各自手写顶栏退役换 PageTopBar；test/ 四顶栏几何同构断言 + 既有返回/菜单动线用例回归
+- [ ] T009 [P] [US5] 触达 44 扫尾（D6）：lib/features/today/today_view.dart `_CircleButton`（铃铛 36 视觉→44 触达）、lib/features/review/review_view.dart 日历钮、goal_detail ⋯ 若独立于 PageTopBar 的残余小钮——统一 SizedBox(44)+Center 外扩，视觉尺寸零变化；test/ 触达区断言
+- [ ] T010 [P] [US5] 今日头部两行重构（D7）：lib/features/today/today_view.dart `_Head` 改「日期行 + 标题行（标题+铃铛+头像 CrossAxisAlignment.center）」——铃铛/头像视觉中线恒与大标题中线重合；与冻结稿整块居中的 4–6px 有意偏差于 T012 留档；test/ 中线对齐断言 + 头像/铃铛动线回归
+
+**Checkpoint**: SC-005 达成——次级页一致性收尾
+
+---
+
+## Phase 7: Polish & Cross-Cutting Concerns
+
+**Purpose**: 回归、复核留档与文档收口
+
+- [ ] T011 全量回归+quickstart 代码层走查：跑 specs/005-review-bug-fix/quickstart.md 阶段 A–D（深浅双主题逐项）+ 阶段 F 门禁（analyze 0 + 全量绿，既有 161 零回归确认）；FR-009a 抽查（创建/打卡/编辑/暂停恢复删除/通知/资料/备份往返）
+- [ ] T012 FR-010 复核留档 + reviews.md 续录：模拟器复核「切换粘连」（T006 转场上线后复测）与「今日页大块空白」（对照 24 设计值）——复现则修复补档、未复现记录裁定依据；D7 冻结稿偏差留档；真机项标注沿用 003 T043 合并窗口；design/reviews.md 续「实现审计」条目（T002–T010 各任务结论）
+- [ ] T013 文档收口：spec.md Status: Draft→Complete 附收口摘要（四属实全修/两不属实留档/两复核结论）；tasks.md 全勾核对；memory 终态更新
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Phase 1（基线）**: 无依赖，先行
+- **Phase 2–6（US1→US5）**: 按优先级顺序执行（US1/US2 同为 P1，先 US1——单文件 router.dart 且为最高优缺陷；US2 两任务 [P] 可并行；US3/US4 相互独立；US5 内 T007→T008 串行、T009/T010 与 T008 不同文件可并行）
+- **Phase 7（收口）**: 依赖全部故事完成
+
+### User Story Dependencies
+
+- **US1 (dock)**: 独立（router.dart 单文件）
+- **US2 (页缘)**: 独立；与 US5 T008 顶栏替换同文件先后——US2 先行改数值、US5 再换组件（避免双改冲突）
+- **US3 (轮播)**: 独立（today_view + focus_carousel；与 US5 T010 同文件不同区，顺序执行）
+- **US4 (转场)**: 独立（router.dart；与 US1 T002 同文件——T002 先行）
+- **US5 (顶栏/触达/头部)**: T008 依赖 T007；其余独立
+
+### Parallel Opportunities
+
+- T003 ∥ T004（不同 feature 文件，可真并行）
+- T009、T010 各自与 T008 并行（不同文件），但 **T009 与 T010 共享 today_view.dart 不可互并行**——顺序执行 T010 → T009
+- 多人场景：US1+US4（router.dart）与 US2（四 feature 文件）与 US3（today 两文件）可三线并行（US4 让 US1 先）
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 Only)
+
+1. Phase 1 基线 → 2. Phase 2 US1 dock 贴底 → **STOP 可交付**（最显眼缺陷闭环）
+3. Incremental: US2 页缘 → US3 轮播 → US4 转场 → US5 顶栏/触达 → Phase 7 收口
+
+### 每任务节奏
+
+实现（含用例）→ `flutter analyze` 0 + `flutter test` 全绿 → tasks.md 勾选附 ✅ 双子行 → commit `005 T0XX: 中文标题`
+
+---
+
+## Notes
+
+- 修复型任务用例与实现同批提交（无 TDD 先行批）；用例优先断言「不变式」而非像素（契约 layout-metrics.md §1–6 即断言清单）
+- 冻结稿偏差仅 D7 一处（4–6px 有意），T012 留档；其余全部为对齐冻结稿意图的修复
+- 真机侧载轮沿用 003 T043 合并窗口（本轮 quickstart 阶段 E 两项 + FR-010 真机面）

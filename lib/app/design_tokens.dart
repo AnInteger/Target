@@ -251,13 +251,17 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     surface: Color(0xFFFFFFFF),
     surfaceAlt: Color(0xFFF2F2F7),
     onSurface: Color(0xFF1C1C1E),
-    onSurfaceVariant: Color(0xFF6E6E73),
-    accent: Color(0xFF2196F3),
+    // T032 对比度合规（SC-001）：variant 6E6E73→6A6A70（压渐变暗端
+    // 4.46→4.73）；accent 2196F3→1565C0（蓝 800，同族加深——作正文
+    // 链接/白字按钮标签 3.12→≥5.06 全配对达标）。
+    onSurfaceVariant: Color(0xFF6A6A70),
+    accent: Color(0xFF1565C0),
     accentOn: Color(0xFFFFFFFF),
     positive: Color(0xFF188038),
     positiveFill: Color(0xFF34C759),
     positiveOn: Color(0xFF0A3D1D),
-    warning: Color(0xFFB26100),
+    // T032：warning B26100→9A5700（↓环比胶囊压 surfaceAlt 4.09→5.04）。
+    warning: Color(0xFF9A5700),
     divider: Color(0xFFE5E5EA),
     scrim: Color(0x591C1C1E),
     badge: Color(0xFFFF3B30),
@@ -296,7 +300,9 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     onSurface: Color(0xFFFFFFFF),
     onSurfaceVariant: Color(0xFFB3B3B3),
     accent: Color(0xFF00B0FF),
-    accentOn: Color(0xFFFFFFFF),
+    // T032：深色 accentOn 白→深墨 00263B（亮蓝实底白字 2.43→6.46；
+    // 与 positiveOn 深墨同构——亮填充配深墨字）。
+    accentOn: Color(0xFF00263B),
     positive: Color(0xFF4ADE80),
     positiveFill: Color(0xFF4ADE80),
     positiveOn: Color(0xFF062B15),

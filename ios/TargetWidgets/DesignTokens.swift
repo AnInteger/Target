@@ -37,11 +37,11 @@ struct WidgetPalette {
         surface: Color(hex: 0xFFFFFF),
         surfaceAlt: Color(hex: 0xF2F2F7),
         onSurface: Color(hex: 0x1C1C1E),
-        onSurfaceVariant: Color(hex: 0x6E6E73),
-        accent: Color(hex: 0x2196F3),
+        onSurfaceVariant: Color(hex: 0x6A6A70),
+        accent: Color(hex: 0x1565C0),
         positive: Color(hex: 0x188038),
         positiveFill: Color(hex: 0x34C759),
-        warning: Color(hex: 0xB26100),
+        warning: Color(hex: 0x9A5700),
         divider: Color(hex: 0xE5E5EA))
 
     /// 深色 · v2（同步自 tokens.css dark 块；#121212 底 + 深灰卡 + 亮蓝强调）。

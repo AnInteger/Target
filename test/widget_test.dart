@@ -3075,4 +3075,103 @@ void main() {
     expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
     await db.close();
   });
+
+  // 004 T032（SC-001/SC-002）：深色全页走查——themeMode=dark 下今日/
+  // 回顾/全部目标/详情四页逐页渲染，palette 身份断言（= TargetPalette.dark）
+  // 证全链深色令牌安装无泄漏；关注卡/三区块/分组头身份 key 在场即
+  // 「无残留旧风格组件」（token 契约禁字面色 → 主题切换全链自动生效）。
+  testWidgets('T032 双主题走查：深色档四页身份渲染 + 深色令牌全链安装', (tester) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final repo = GoalRepository(db);
+    final goal = await repo.create(
+      Goal(
+        name: '锻炼',
+        goalType: GoalType.habit,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: today,
+      ),
+    );
+    await seedVersion(
+      db,
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(today),
+    );
+    await CheckInRepository(db).add(goal.id, today, DateTime.now());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(
+        onboardingCompleted: Value(true),
+        themeMode: Value('dark'),
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 今日页：头部大标题 + 单环区 + 关注卡（深 palette 已安装）。
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    expect(
+      identical(
+        TargetPalette.of(tester.element(find.text(Copy.todayNav).first)),
+        TargetPalette.dark,
+      ),
+      isTrue,
+    );
+    expect(find.text('锻炼'), findsWidgets); // 关注卡在轮播
+    expect(find.byKey(const ValueKey('dockBar')), findsOneWidget);
+
+    // 回顾页：三区块身份（概览/每日活动/本周目标）逐块渲染。
+    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('weekAvgNum')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dayCol-0')), findsOneWidget);
+    expect(find.byKey(ValueKey('reviewGoal-${goal.id}')), findsOneWidget);
+    expect(
+      identical(
+        TargetPalette.of(
+          tester.element(find.byKey(const ValueKey('weekAvgNum'))),
+        ),
+        TargetPalette.dark,
+      ),
+      isTrue,
+    );
+
+    // 全部目标页 + 详情页（「查看全部」tap 动线已由 T022/T029 覆盖，
+    // 此处 router 直达，聚焦深色渲染身份）。
+    final router = ProviderScope.containerOf(
+      tester.element(find.byType(TargetApp)),
+      listen: false,
+    ).read(routerProvider);
+    router.go('/goals-all');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalsAllList')), findsOneWidget);
+    expect(find.byKey(ValueKey('goalsAllRow-${goal.id}')), findsOneWidget);
+
+    // 详情页：hero/近 7 天点阵渲染（深 palette 至末页）。
+    await tester.tap(find.byKey(ValueKey('goalsAllRow-${goal.id}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('detailWeekDots')), findsOneWidget);
+    expect(
+      identical(
+        TargetPalette.of(
+          tester.element(find.byKey(const ValueKey('detailWeekDots'))),
+        ),
+        TargetPalette.dark,
+      ),
+      isTrue,
+    );
+    await db.close();
+  });
 }

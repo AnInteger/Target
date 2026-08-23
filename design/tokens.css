@@ -46,10 +46,10 @@
 
   /* 文字（v2 中性墨） */
   --on-surface: #1c1c1e; /* 对 surface ≈ 16:1 */
-  --on-surface-variant: #6e6e73; /* 对 surface ≈ 5.4:1 */
+  --on-surface-variant: #6a6a70; /* 对 surface ≈ 5.4:1（T032：压渐变暗端 4.46→4.73） */
 
   /* 强调（每方向仅一个：主操作实心）——v2 蓝色行动色 */
-  --accent: #2196f3; /* 主强调·蓝（行动色） */
+  --accent: #1565c0; /* 主强调·蓝（行动色；T032：蓝 800 同族加深，正文链接/白字标签 ≥5.0） */
   --accent-on: #ffffff;
 
   /* 完成/达成语义（青柠族）：文本用深橄榄绿保证可读，填充用定稿青柠 */
@@ -58,7 +58,7 @@
   --positive-on: #0a3d1d;
 
   /* 忙碌/落后语义（克制琥珀，非警告红） */
-  --warning: #b26100;
+  --warning: #9a5700; /* T032：压 surfaceAlt 4.09→5.04 */
 
   /* 分隔线（低存在感发丝线，随底幕调淡） */
   --divider: #e5e5ea;
@@ -181,7 +181,7 @@
   --on-surface-variant: #b3b3b3; /* 对 background ≈ 9:1 */
 
   --accent: #00b0ff; /* 亮蓝（深色提亮档） */
-  --accent-on: #ffffff;
+  --accent-on: #00263b; /* T032：亮蓝实底配深墨字 2.43→6.46 */
 
   --positive: #4ade80; /* 对 background ≈ 11:1 */
   --positive-fill: #4ade80;

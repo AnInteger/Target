@@ -1,10 +1,13 @@
-/// 周回顾页 v2（004 US5 · v2-review.html 冻结稿）。
+/// 周回顾页 v2（004 US5 · v2-review.html 冻结稿，三区块全量）。
 ///
-/// 纯回看实时派生（不读 WeeklyReviews 快照，T027 引擎三法）：本周概览
-/// = 周平均完成率（活跃池 Σ留痕日/Σ应记日）+ 上周环比 + 72px 均分环；
+/// 纯回看实时派生（不读 WeeklyReviews 快照，T027 引擎三法）：①本周
+/// 概览 = 周平均完成率（活跃池 Σ留痕日/Σ应记日）+ 上周环比 + 72px
+/// 均分环；②每日活动七天点阵（full=实底对勾 / partial=描边圈 /
+/// plain=灰底 + 下标打卡数，FR-013 双编码不单靠色相）；③本周目标
+/// 卡（大类色图标 + weekRateOf 线性进度 x/y → 详情）+「查看全部›」。
 /// 顶部 ‹ 周 › 切换（前瞻钳制在包含今日的周——未来周无可回看）；
-/// 右上日历钮为「选择周期」占位（后续版本）。每日活动七天点阵与
-/// 本周目标卡随 T029 落地；空周引导暂沿 003 形态（T029 换 v2 画板）。
+/// 右上日历钮为「选择周期」占位（后续版本）。零应记周：概览整卡
+/// 「—」+ 点阵全灰 + 空周引导（CTA 直达编辑器，FR-007 ≤1 交互）。
 /// 003 卡片轮播/三态图例/四周走势/观察语语言全数退役。
 library;
 
@@ -19,6 +22,7 @@ import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
+import '../../core/models/goal_icon_catalog.dart';
 import '../../core/stats/stats_engine.dart';
 
 class ReviewView extends ConsumerStatefulWidget {
@@ -53,11 +57,11 @@ class _ReviewViewState extends ConsumerState<ReviewView> {
       );
     }
 
-    // 该周存在应记目标（守护面）→ 概览出数；否则让位空态引导
-    //（003 形态过渡，T029 换 v2 空周画板）。
-    final hasGuarded = goals.any(
-      (g) => stats.weekRateOf(g.id, week).expectedDays > 0,
-    );
+    // 该周存在应记目标（守护面）→ 本周目标区出卡；否则概览「—」+
+    // 点阵全灰 + 空周引导（冻结稿画板③）。
+    final guarded = goals
+        .where((g) => stats.weekRateOf(g.id, week).expectedDays > 0)
+        .toList();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -80,12 +84,19 @@ class _ReviewViewState extends ConsumerState<ReviewView> {
             ),
             const SizedBox(height: AppSpace.s1),
             _OverviewCard(overview: stats.weekOverview(week)),
-            if (!hasGuarded)
+            const SizedBox(height: AppSpace.s4),
+            _DaysCard(activities: stats.dayActivities(week), today: today),
+            if (guarded.isEmpty)
               Padding(
-                padding: const EdgeInsets.only(top: AppSpace.s8),
+                padding: const EdgeInsets.only(top: AppSpace.s4),
                 child: _EmptyState(
                   onCreate: () => context.push('/goal-editor'),
                 ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpace.s4),
+                child: _GoalsSection(goals: guarded, stats: stats, week: week),
               ),
           ],
         ),
@@ -396,9 +407,246 @@ class _RingPainter extends CustomPainter {
       old.sweep != sweep || old.track != track || old.arc != arc;
 }
 
-/// 空态（003 形态过渡，T029 换 v2 空周画板）：七格空圈节奏条
-///（末格虚线 accent = 将开始的那天）+ 引导文案 + 「新建目标」CTA
-/// 直达编辑器（≤1 交互，today 分支页签不退场）。
+/// 区块 2 · 每日活动（.days）：周一→周日 7 列（lbl 星期简称 / 36px
+/// 点 / 下标打卡数 n）。着色三档（引擎 fill）：full=positiveFill 实底
+/// + 对勾 16、partial=surfaceAlt 底 + 3px positiveFill 描边圈、
+/// none=surfaceAlt 灰底（FR-013 对勾/描边双编码，不单靠色相）；今日
+/// lbl accent 加粗；n=当日全量打卡次数（0 → 「·」；未来日引擎恒零
+/// ——着色与计数永不落在未到的日子）。
+class _DaysCard extends StatelessWidget {
+  const _DaysCard({required this.activities, required this.today});
+
+  final List<DayActivity> activities;
+
+  final LocalDate today;
+
+  static const List<String> _labels = ['一', '二', '三', '四', '五', '六', '日'];
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(Copy.reviewDaysTitle, style: Theme.of(context).textTheme.titleS),
+        const SizedBox(height: AppSpace.s2),
+        Container(
+          padding: const EdgeInsets.all(AppSpace.s5),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: palette.shadowLow,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (var i = 0; i < activities.length; i++)
+                _DayCol(
+                  key: ValueKey('dayCol-$i'),
+                  activity: activities[i],
+                  label: _labels[i],
+                  isToday: activities[i].day == today,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DayCol extends StatelessWidget {
+  const _DayCol({
+    super.key,
+    required this.activity,
+    required this.label,
+    required this.isToday,
+  });
+
+  final DayActivity activity;
+
+  final String label;
+
+  final bool isToday;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    final lblStyle = isToday
+        ? theme.textTheme.labelS.copyWith(
+            color: palette.accent,
+            fontWeight: FontWeight.w700,
+          )
+        : theme.textTheme.labelS.copyWith(color: palette.onSurfaceVariant);
+    return SizedBox(
+      width: 36,
+      child: Column(
+        children: [
+          Text(label, style: lblStyle),
+          const SizedBox(height: AppSpace.s2),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: activity.fill == DayFill.full
+                  ? palette.positiveFill
+                  : palette.surfaceAlt,
+              border: activity.fill == DayFill.partial
+                  ? Border.all(color: palette.positiveFill, width: 3)
+                  : null,
+            ),
+            child: activity.fill == DayFill.full
+                ? Icon(Icons.check, size: 16, color: palette.positiveOn)
+                : null,
+          ),
+          const SizedBox(height: AppSpace.s2),
+          Text(
+            activity.checks == 0 ? '·' : '${activity.checks}',
+            style: theme.textTheme.labelS.copyWith(
+              color: palette.onSurfaceVariant,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 区块 3 · 本周目标（.sec-t + .gcard×N）：题款行带「查看全部 ›」
+///（→ /goals-all）；卡 = 42px 大类色图标格 + bodyL 目标名 + 6px 大类
+/// 色线性进度（weekRateOf.fraction）+ x/y（bodyS tabular）+ chev，
+/// 整卡 → /goal/{id}。只列该周有应记的目标（状态不滤，回看口径）。
+class _GoalsSection extends StatelessWidget {
+  const _GoalsSection({
+    required this.goals,
+    required this.stats,
+    required this.week,
+  });
+
+  final List<Goal> goals;
+
+  final StatsEvaluation stats;
+
+  final WeekStart week;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              Copy.reviewGoalsTitle,
+              style: Theme.of(context).textTheme.titleS,
+            ),
+            const Spacer(),
+            InkWell(
+              onTap: () => context.push('/goals-all'),
+              child: Text(
+                Copy.focusSeeAll,
+                style: Theme.of(context).textTheme.bodyM
+                    .copyWith(color: palette.accent),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpace.s2),
+        for (var i = 0; i < goals.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpace.s3),
+          _GoalWeekCard(
+            key: ValueKey('reviewGoal-${goals[i].id}'),
+            goal: goals[i],
+            rate: stats.weekRateOf(goals[i].id, week),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _GoalWeekCard extends StatelessWidget {
+  const _GoalWeekCard({super.key, required this.goal, required this.rate});
+
+  final Goal goal;
+
+  final GoalWeekRate rate;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    final majorColor = MajorColors.byKey(goal.major.name).of(context);
+    final icon = GoalIconCatalog.byKey(goal.iconKey).icon;
+    return InkWell(
+      onTap: () => context.push('/goal/${goal.id}'),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpace.s4),
+        decoration: BoxDecoration(
+          color: palette.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: palette.shadowLow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: palette.surfaceAlt,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(icon, size: 22, color: majorColor),
+            ),
+            const SizedBox(width: AppSpace.s3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(goal.name, style: theme.textTheme.bodyL),
+                  const SizedBox(height: AppSpace.s2),
+                  Container(
+                    height: 6,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: palette.surfaceAlt,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: rate.fraction ?? 0,
+                      child: Container(color: majorColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpace.s3),
+            Text(
+              '${rate.metDays}/${rate.expectedDays}',
+              style: theme.textTheme.bodyS.copyWith(
+                color: palette.onSurfaceVariant,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: palette.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 空周引导（冻结稿画板③ .empty）：96px surfaceAlt 圆底图形 + 标题
+/// + 双行引导语；叠加「新建目标」CTA 直达编辑器（FR-007/SC-004
+/// ≤1 交互——冻结稿文案不带钮，验收契约要求保留动线）。
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onCreate});
 
@@ -411,33 +659,23 @@ class _EmptyState extends StatelessWidget {
       key: const ValueKey('reviewEmptyState'),
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var i = 0; i < 7; i++)
-              Padding(
-                padding: EdgeInsets.only(left: i == 0 ? 0 : AppSpace.s2),
-                child: i == 6
-                    ? CustomPaint(
-                        foregroundPainter: _DashedCirclePainter(
-                          color: palette.accent,
-                        ),
-                        child: const SizedBox(width: 22, height: 22),
-                      )
-                    : Container(
-                        width: 22,
-                        height: 22,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: palette.divider, width: 2),
-                        ),
-                      ),
-              ),
-          ],
+        const SizedBox(height: AppSpace.s8),
+        Container(
+          width: 96,
+          height: 96,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: palette.surfaceAlt,
+          ),
+          child: Icon(
+            Icons.history_edu,
+            size: 40,
+            color: palette.onSurfaceVariant,
+          ),
         ),
-        const SizedBox(height: AppSpace.s6),
-        Text(Copy.reviewEmptyTitle, style: Theme.of(context).textTheme.titleL),
-        const SizedBox(height: AppSpace.s2),
+        const SizedBox(height: AppSpace.s3),
+        Text(Copy.reviewEmptyTitle, style: Theme.of(context).textTheme.titleM),
+        const SizedBox(height: AppSpace.s3),
         Text(
           Copy.reviewEmptySub,
           textAlign: TextAlign.center,
@@ -466,41 +704,4 @@ class _EmptyState extends StatelessWidget {
       ],
     );
   }
-}
-
-/// 虚线圆描边（空态末格「将开始的那天」，accent 提示而非实体）。
-class _DashedCirclePainter extends CustomPainter {
-  _DashedCirclePainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const strokeWidth = 2.0;
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-    final path = Path()
-      ..addOval(
-        Rect.fromCircle(
-          center: size.center(Offset.zero),
-          radius: size.width / 2 - strokeWidth / 2,
-        ),
-      );
-    const dash = 5.0, gap = 4.0;
-    for (final metric in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < metric.length) {
-        canvas.drawPath(
-          metric.extractPath(d, math.min(d + dash, metric.length)),
-          paint,
-        );
-        d += dash + gap;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedCirclePainter old) => old.color != color;
 }

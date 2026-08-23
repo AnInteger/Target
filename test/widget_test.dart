@@ -2565,6 +2565,14 @@ void main() {
     expect(find.text('0%'), findsOneWidget);
     expect(find.text('↓ 36%'), findsOneWidget);
     expect(find.text(Copy.reviewAvgSub(36)), findsOneWidget);
+    // 三区块齐题（004 T029）+ 点阵本周零留痕（七格全「·」无对勾）+
+    // 本周目标卡在场（两目标本周有应记；pc 分母随今日星期不写死）。
+    expect(find.text(Copy.reviewDaysTitle), findsOneWidget);
+    expect(find.text(Copy.reviewGoalsTitle), findsOneWidget);
+    expect(find.text('·'), findsNWidgets(7));
+    expect(find.byIcon(Icons.check), findsNothing);
+    expect(find.text('锻炼'), findsOneWidget);
+    expect(find.text('读书'), findsOneWidget);
     // 纯回看（R3 沿革）：决策动线不上屏。
     expect(find.textContaining('下周怎么走'), findsNothing);
     expect(find.textContaining('记下这一周'), findsNothing);
@@ -2577,6 +2585,12 @@ void main() {
     expect(find.text('↑ 36%'), findsOneWidget);
     expect(find.text('36'), findsOneWidget); // 环心均分
     expect(find.text(Copy.reviewAvgSub(0)), findsOneWidget);
+    // 上周点阵：留痕日 5（三/日为「·」），全部 partial（1/2）无 full 对勾；
+    // 本周目标卡 x/y 与手工核算一致（4/7、1/7）。
+    expect(find.text('·'), findsNWidgets(2));
+    expect(find.byIcon(Icons.check), findsNothing);
+    expect(find.text('4/7'), findsOneWidget);
+    expect(find.text('1/7'), findsOneWidget);
 
     // › 回本周；已在本周时 › 置灰（前瞻钳制，点了不动）。
     await tester.tap(find.byKey(const ValueKey('weekNext')));
@@ -2585,6 +2599,99 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('weekNext')));
     await tester.pumpAndSettle();
     expect(find.text(rangeText(today.weekStart)), findsOneWidget);
+    await db.close();
+  });
+
+  testWidgets('T029 每日活动点阵与本周目标卡：三档双编码/今日高亮/卡片与查看全部动线（004 US5）', (
+    tester,
+  ) async {
+    usePhoneSurface(tester);
+    final db = AppDatabase(NativeDatabase.memory());
+    final gateway = FakeNotificationGateway();
+    final today = LocalDate.fromDateTime(DateTime.now());
+    final thisWeek = today.weekStart;
+    final repo = GoalRepository(db);
+    final checkIns = CheckInRepository(db);
+
+    // 两目标三周前立：周一仅锻炼留痕（partial 1/2，描边圈无对勾）；
+    // 今日双目标齐留痕（full → 实底对勾）；未来日本就零计数。
+    final createdAt = today.addDays(-21);
+    final goal = await repo.create(
+      Goal(
+        name: '锻炼',
+        goalType: GoalType.habit,
+        iconKey: 'fitness',
+        colorKey: 'sage',
+        createdAt: createdAt,
+      ),
+    );
+    await seedVersion(
+      db,
+      goal.id,
+      const DailyFrequency(1),
+      WeekStart.containing(createdAt),
+    );
+    await checkIns.add(goal.id, thisWeek.monday, DateTime.now());
+    await checkIns.add(goal.id, today, DateTime.now());
+    final goal2 = await repo.create(
+      Goal(
+        name: '读书',
+        goalType: GoalType.habit,
+        iconKey: 'book',
+        colorKey: 'teal',
+        createdAt: createdAt,
+      ),
+    );
+    await seedVersion(
+      db,
+      goal2.id,
+      const DailyFrequency(1),
+      WeekStart.containing(createdAt),
+    );
+    await checkIns.add(goal2.id, today, DateTime.now());
+    await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
+      const SettingsRowsCompanion(onboardingCompleted: Value(true)),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(gateway),
+          dayTickerProvider.overrideWith((ref) {}),
+        ],
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
+    await tester.pumpAndSettle();
+
+    // 点阵：唯一 full（今日）出对勾（FR-013 图形双编码——partial 只描
+    // 边圈不靠色相）；下标 n = 当日全量打卡数（周一 1、今日 2），零记
+    // 录日「·」×5；今日星期简称 accent 加粗（列首 Text w700）。
+    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(find.text('1'), findsOneWidget); // 周一 n
+    expect(find.text('2'), findsOneWidget); // 今日 n
+    expect(find.text('·'), findsNWidgets(5));
+    final todayCol = find.byKey(ValueKey('dayCol-${today.weekdayIso - 1}'));
+    final todayLbl = tester.widget<Text>(
+      find.descendant(of: todayCol, matching: find.byType(Text)).first,
+    );
+    expect(todayLbl.style?.fontWeight, FontWeight.w700);
+
+    // 本周目标卡 → 详情（周完成度卡整击）；返回后「查看全部 ›」→
+    // /goals-all（today 分片子路由，dock 恒定两页签在场）。
+    await tester.tap(find.byKey(ValueKey('reviewGoal-${goal.id}')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalDetailPage), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(Copy.focusSeeAll));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goalsAllList')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
     await db.close();
   });
 

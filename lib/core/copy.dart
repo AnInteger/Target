@@ -29,8 +29,12 @@ abstract final class Copy {
   /// 右上日历钮占位提示（选择周期交互后续版本，Tooltip 明示无动作）。
   static const reviewPickWeek = '选择周期';
 
-  static const reviewEmptyTitle = '还没有可回看的一周';
-  static const reviewEmptySub = '先建一个目标、留下几次记录，\n这里会把那一周替你收好。';
+  /// 区块 2/3 题款（选中周非必为本周，语言不写死）。
+  static const reviewDaysTitle = '每日活动';
+  static const reviewGoalsTitle = '本周目标';
+
+  static const reviewEmptyTitle = '这一周还没有记录';
+  static const reviewEmptySub = '切到有打卡记录的周即可查看统计，\n或回到「今日」继续记录。';
 
   // ---- 目标创建 / 编辑（FR-001/011/012）----
 

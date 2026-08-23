@@ -202,8 +202,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // v2 品牌屏：主张 + 单一主行动（无模板/跳过/条款/社交证明）。
     expect(find.text(Copy.onboardingTitle), findsOneWidget);
-    expect(find.text(Copy.onboardingSkip), findsOneWidget);
+    expect(find.text(Copy.onboardingSubtitle), findsOneWidget);
+    expect(find.byKey(const ValueKey('onboardingStart')), findsOneWidget);
+
+    // 「开始使用」即完成引导 → 今日页（SC-005 ≤1 击）。
+    await tester.tap(find.byKey(const ValueKey('onboardingStart')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    expect((await SettingsRepository(db).get()).onboardingCompleted, true);
     await db.close();
   });
 
@@ -2445,7 +2453,7 @@ void main() {
     await db.close();
   });
 
-  testWidgets('T019 V1 创建双路径：引导选模板 → 编辑器预填 → 落库 + 今日可见', (tester) async {
+  testWidgets('T019 V1 创建双路径：品牌屏开始 → 编辑器模板预填 → 落库 + 今日可见', (tester) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     final gateway = FakeNotificationGateway();
@@ -2462,7 +2470,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(Copy.onboardingTitle), findsOneWidget);
 
-    // 模板路径：引导页选「饭后散步 20 分钟」→ 统一编辑器预填名称（自定义路径即不选模板直接写）。
+    // v2 品牌屏主行动 → 今日页；创建入口随 004 移至 dock FAB。
+    await tester.tap(find.byKey(const ValueKey('onboardingStart')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('dockFab')));
+    await tester.pumpAndSettle();
+
+    // 模板路径：编辑器模板条选「饭后散步 20 分钟」→ 预填名称（自定义路径即不选模板直接写）。
     await tester.tap(find.text('饭后散步 20 分钟'));
     await tester.pumpAndSettle();
     final nameField = find.byKey(const ValueKey('goalNameField'));
@@ -2475,7 +2489,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
     await tester.pumpAndSettle();
 
-    // 引导视为完成 → 今日页出现该目标（V1：模板+确认即首个目标）。
+    // 今日页出现该目标（V1：模板+确认即首个目标）。
     final goals = await GoalRepository(db).getGoals();
     expect(goals.single.name, '饭后散步 20 分钟');
     expect(goals.single.goalType, GoalType.habit);

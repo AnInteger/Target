@@ -196,7 +196,9 @@ description: "Task list for 004 UI v2 重构"
 
 **Independent Test**: 清数据冷启动 → 品牌图形+中文主张+主按钮 → 今日页；再次启动不再出现（quickstart 阶段 E）
 
-- [ ] T030 [US6] 初始屏视觉重做：lib/features/goals/onboarding.dart（纯深底+品牌图形+一句中文主张+「开始使用」主按钮；onboardingCompleted 判定机制不变；无注册/登录/条款/社交证明）（depends T002）
+- [x] T030 [US6] 初始屏视觉重做：lib/features/goals/onboarding.dart（纯深底+品牌图形+一句中文主张+「开始使用」主按钮；onboardingCompleted 判定机制不变；无注册/登录/条款/社交证明）（depends T002）
+  - ✅ 实现完成：onboarding.dart 全文件重写为 v2 品牌屏（基准图 03 纯黑极简）——`Theme(data: AppTheme.dark())` 恒深底覆写（品牌屏不随系统主题）；左上 s12 后 56px accent 圆内嵌 30px 点阵字形（TodayGlyphPainter 提为 lib/app/brand_glyph.dart 公共唯一源，dock 今日页签同源复刻，墨色取 palette.background）；Spacer → displayM 中文主张「把在意的事，一天一天守好。」+ bodyL onSurfaceVariant 副文「记录每一天的坚持，回看每一周的变化。」→ Spacer → 整宽 FilledButton「开始使用」（onSurface 底/background 字 Stadium，key onboardingStart）→ _start() 写 onboardingCompleted + go /today（SC-005 ≤1 击；判定机制不动，app.dart 空库且未完成仍 redirect）。模板 chip/跳过/自定义三动线随屏退役（模板入口驻留编辑器 _TemplateStrip）；基准图英文主张/条款/社交证明 MUST NOT 未引入。copy：onboardingTitle/Subtitle 改版 + 新 onboardingStart − 退役 onboardingSkip/goalsEmptyOwn。测试：SC-001 重写（主张/副文/主钮在场 + tap → navTab-/today + 落库 true）；T019 重写（品牌屏开始 → dockFab → 编辑器模板条预填 → 落库 + 今日可见）
+  - ✅ 门禁通过：flutter analyze 0 issues；flutter test 全量 160/160 通过（format 仅点名五文件 brand_glyph/router/onboarding/copy/widget_test）
 
 ---
 

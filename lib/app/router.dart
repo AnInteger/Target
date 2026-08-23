@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/copy.dart';
+import 'brand_glyph.dart';
 import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
 import '../features/goals/goals_all_view.dart';
@@ -250,7 +251,7 @@ class _NavTab extends StatelessWidget {
       // 今日：手绘点阵字形（两列各三枚大点 + 中列上段两枚小点）。
       _DockGlyph.todayDots => CustomPaint(
         size: const Size.square(22),
-        painter: _TodayGlyphPainter(color: color),
+        painter: TodayGlyphPainter(color: color),
       ),
       // 回顾：云雪字形（Material Symbols cloudy_snowing 同源）。
       _DockGlyph.cloudSnow => Icon(
@@ -297,33 +298,6 @@ class _NavTab extends StatelessWidget {
       ),
     );
   }
-}
-
-/// 今日页签点阵字形（v2 冻结稿 dock SVG 同形复刻）：960 画布，两列
-/// （x 233/730）各三枚 r73 大点（y 153/480/807）+ 中列（x 480）上段
-/// 两枚 r33 小点（y 226/387），绘制到 22px 槽。
-class _TodayGlyphPainter extends CustomPainter {
-  const _TodayGlyphPainter({required this.color});
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = size.width / 960;
-    final paint = Paint()..color = color;
-    void dot(double x, double y, double r) =>
-        canvas.drawCircle(Offset(x * scale, y * scale), r * scale, paint);
-    for (final x in [233.0, 730.0]) {
-      for (final y in [153.0, 480.0, 807.0]) {
-        dot(x, y, 73);
-      }
-    }
-    dot(480, 226, 33);
-    dot(480, 387, 33);
-  }
-
-  @override
-  bool shouldRepaint(_TodayGlyphPainter old) => old.color != color;
 }
 
 /// 深链 target:// → 内部路由。

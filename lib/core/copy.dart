@@ -55,7 +55,6 @@ abstract final class Copy {
   // ---- 目标管理页 ----
 
   static const goalsDaysRecorded = '天有记录';
-  static const goalsEmptyOwn = '写一句自己的';
 
   // ---- 目标详情（T021：管理动线 + 打卡描述 + 历史记录；
   //      004 T014 按冻结稿 v2-goal-detail 换装）----
@@ -127,11 +126,11 @@ abstract final class Copy {
   /// 续期行副题（冻结稿板 2 .sub）。
   static const renewHint = '续期后倒计时重置，已有记录保留';
 
-  // ---- 首启引导（SC-001）----
+  // ---- 首启引导（SC-001 · 004 v2 品牌屏：一句中文主张 + 开始使用）----
 
-  static const onboardingTitle = '先照顾好一件小事';
-  static const onboardingSubtitle = '选一个想守护的习惯，30 秒就能开始';
-  static const onboardingSkip = '先随便看看';
+  static const onboardingTitle = '把在意的事，一天一天守好。';
+  static const onboardingSubtitle = '记录每一天的坚持，回看每一周的变化。';
+  static const onboardingStart = '开始使用';
 
   // ---- 里程碑（FR-013）----
 

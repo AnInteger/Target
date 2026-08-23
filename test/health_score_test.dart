@@ -3,9 +3,14 @@
 /// 滚动 7 天；补签同计；撤销行不计；暂停不参与；类内零活跃 = 无数据。
 library;
 
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:target/app/providers.dart';
 import 'package:target/core/models/calendar_types.dart';
+import 'package:target/core/models/date_provider.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/goal_icon_catalog.dart';
 import 'package:target/core/models/health_score.dart';
@@ -218,6 +223,70 @@ void main() {
         );
         expect(s.byCategory[MajorCategory.health]!.score, 97);
       }
+    });
+  });
+
+  group('⑦ healthScoreProvider（T019 接线：流变化失效重算 + 跨天联动）', () {
+    test('未就绪 null → 到齐出分 → 打卡回流即回升 → 跨天窗口右移', () async {
+      final goals = StreamController<List<Goal>>.broadcast(sync: true);
+      final checks = StreamController<List<CheckIn>>.broadcast(sync: true);
+      final container = ProviderContainer(
+        overrides: [
+          goalsProvider.overrideWith((ref) => goals.stream),
+          checkInsProvider.overrideWith((ref) => checks.stream),
+          // 时钟锚到测试日期（SystemDateProvider 会读到真实系统日，窗口错位）。
+          dateProviderProvider.overrideWith(
+            (ref) => FixedDateProvider(
+              _today.atStartOfDay.add(const Duration(hours: 8)),
+            ),
+          ),
+        ],
+      );
+      addTearDown(() {
+        container.dispose();
+        goals.close();
+        checks.close();
+      });
+
+      // 两流任一未就绪 → null（三环加载态）。
+      expect(container.read(healthScoreProvider), isNull);
+      goals.add([_goal('h1', iconKey: 'directions_run')]);
+      await pumpEventQueue();
+      expect(container.read(healthScoreProvider), isNull); // checkIns 仍缺
+      checks.add(const <CheckIn>[]); // 流就绪但零记录 → 97（100−3×1）
+      await pumpEventQueue();
+      expect(
+        container
+            .read(healthScoreProvider)!
+            .byCategory[MajorCategory.health]!
+            .score,
+        97,
+      );
+
+      // checkIns 流变化（新打卡行替换全表）→ 失效重算：扣分目标回升。
+      checks.add([_check('h1', _today.addDays(-6))]); // 恰在窗口左缘
+      await pumpEventQueue();
+      expect(
+        container
+            .read(healthScoreProvider)!
+            .byCategory[MajorCategory.health]!
+            .score,
+        100,
+      );
+
+      // dayTicker 语义：dateProvider 切换 → todayProvider 变化 → 窗口
+      // 整体右移，原左缘记录移出 → 类分回落。
+      container.read(dateProviderProvider.notifier).state = FixedDateProvider(
+        _today.addDays(1).atStartOfDay.add(const Duration(hours: 8)),
+      );
+      await pumpEventQueue();
+      expect(
+        container
+            .read(healthScoreProvider)!
+            .byCategory[MajorCategory.health]!
+            .score,
+        97,
+      );
     });
   });
 }

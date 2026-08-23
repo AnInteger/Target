@@ -15,6 +15,7 @@ import '../core/db/repositories.dart';
 import '../core/models/calendar_types.dart';
 import '../core/models/date_provider.dart';
 import '../core/models/entities.dart';
+import '../core/models/health_score.dart';
 import '../core/platform/file_pick_gateway.dart';
 import '../core/platform/gateways.dart';
 import '../core/platform/notification_gateway.dart';
@@ -28,8 +29,9 @@ import '../features/settings/reminder_service.dart';
 
 /// 注入时钟（research D6）；Debug 时钟菜单（T049）运行时切换实现
 /// （StateProvider：debug 菜单换 FixedDateProvider 后 invalidate today/stats）。
-final dateProviderProvider =
-    StateProvider<DateProvider>((ref) => const SystemDateProvider());
+final dateProviderProvider = StateProvider<DateProvider>(
+  (ref) => const SystemDateProvider(),
+);
 
 final dbProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase(openConnection());
@@ -37,38 +39,54 @@ final dbProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-final goalRepoProvider = Provider((ref) => GoalRepository(ref.watch(dbProvider)));
-final checkInRepoProvider =
-    Provider((ref) => CheckInRepository(ref.watch(dbProvider)));
+final goalRepoProvider = Provider(
+  (ref) => GoalRepository(ref.watch(dbProvider)),
+);
+final checkInRepoProvider = Provider(
+  (ref) => CheckInRepository(ref.watch(dbProvider)),
+);
 
 /// 打卡服务（T025）：统一注入时钟入口。
 final checkInServiceProvider = Provider(
-    (ref) => CheckInService(ref.watch(checkInRepoProvider), ref.watch(dateProviderProvider)));
-final reminderRepoProvider =
-    Provider((ref) => ReminderRepository(ref.watch(dbProvider)));
-final reviewRepoProvider =
-    Provider((ref) => ReviewRepository(ref.watch(dbProvider)));
+  (ref) => CheckInService(
+    ref.watch(checkInRepoProvider),
+    ref.watch(dateProviderProvider),
+  ),
+);
+final reminderRepoProvider = Provider(
+  (ref) => ReminderRepository(ref.watch(dbProvider)),
+);
+final reviewRepoProvider = Provider(
+  (ref) => ReviewRepository(ref.watch(dbProvider)),
+);
 
 /// 周回顾流（回顾页 + 结算幂等查询）。
 final reviewsProvider = StreamProvider<List<WeeklyReview>>(
-    (ref) => ref.watch(reviewRepoProvider).watchAll());
+  (ref) => ref.watch(reviewRepoProvider).watchAll(),
+);
 
 /// 周结算（US4）：启动/数据变化时幂等结算上一周。
-final settlementServiceProvider = Provider((ref) => WeeklySettlementService(
+final settlementServiceProvider = Provider(
+  (ref) => WeeklySettlementService(
     ref.watch(goalRepoProvider),
     ref.watch(checkInRepoProvider),
-    ref.watch(reviewRepoProvider)));
+    ref.watch(reviewRepoProvider),
+  ),
+);
 
 /// 忙碌收尾（2026-08-21 裁决：忙碌态全 App 移除）：入口与视图已删，
 /// 服务仅用于 App 启动时自动收尾升级前遗留的活跃降档会话（见 app.dart）。
-final busyModeServiceProvider =
-    Provider((ref) => BusyModeService(ref.watch(goalRepoProvider)));
-final settingsRepoProvider =
-    Provider((ref) => SettingsRepository(ref.watch(dbProvider)));
+final busyModeServiceProvider = Provider(
+  (ref) => BusyModeService(ref.watch(goalRepoProvider)),
+);
+final settingsRepoProvider = Provider(
+  (ref) => SettingsRepository(ref.watch(dbProvider)),
+);
 
 /// Settings 单例行流（今日占位/各页共用）。
 final settingsProvider = StreamProvider<Settings>(
-    (ref) => ref.watch(settingsRepoProvider).watch());
+  (ref) => ref.watch(settingsRepoProvider).watch(),
+);
 
 /// 004 T004（research D2）：主题偏好三档注入 MaterialApp.themeMode。
 /// 未加载/NULL → system（= 003 完结态行为，存量用户零感知）；
@@ -85,39 +103,51 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
 /// 账号资料流（003 T018：nickname/avatarKey 两列，今日账号区与
 /// 我的页账号卡同源 watch）。
 final profileProvider = StreamProvider<Profile>(
-    (ref) => ref.watch(settingsRepoProvider).watchProfile());
+  (ref) => ref.watch(settingsRepoProvider).watchProfile(),
+);
 
 /// 提醒行流（设置页展示 + app 层 replan 触发）。
 final remindersProvider = StreamProvider<List<Reminder>>(
-    (ref) => ref.watch(reminderRepoProvider).watchAll());
+  (ref) => ref.watch(reminderRepoProvider).watchAll(),
+);
 
 /// 提醒调度（US3）：数据/设置变化后全量重建 pending 通知。
-final reminderServiceProvider = Provider((ref) => ReminderService(
-    ref.watch(notificationGatewayProvider), ref.watch(reminderRepoProvider)));
+final reminderServiceProvider = Provider(
+  (ref) => ReminderService(
+    ref.watch(notificationGatewayProvider),
+    ref.watch(reminderRepoProvider),
+  ),
+);
 
 // ---------------------------------------------------------------------------
 // 领域数据流 → 统计引擎（research D13：仓储转发重算，UI 只读结果）
 // ---------------------------------------------------------------------------
 
-final goalsProvider =
-    StreamProvider<List<Goal>>((ref) => ref.watch(goalRepoProvider).watchGoals());
+final goalsProvider = StreamProvider<List<Goal>>(
+  (ref) => ref.watch(goalRepoProvider).watchGoals(),
+);
 
 final versionsProvider = StreamProvider<List<FrequencyVersion>>(
-    (ref) => ref.watch(goalRepoProvider).watchAllVersions());
+  (ref) => ref.watch(goalRepoProvider).watchAllVersions(),
+);
 
 final checkInsProvider = StreamProvider<List<CheckIn>>(
-    (ref) => ref.watch(checkInRepoProvider).watchAll());
+  (ref) => ref.watch(checkInRepoProvider).watchAll(),
+);
 
 final busySessionsProvider = StreamProvider<List<BusyModeSession>>(
-    (ref) => ref.watch(goalRepoProvider).watchSessions());
+  (ref) => ref.watch(goalRepoProvider).watchSessions(),
+);
 
 /// 里程碑步骤流（目标卡片/里程碑详情共用）。
 final stepsProvider = StreamProvider.family<List<MilestoneStep>, String>(
-    (ref, goalId) => ref.watch(goalRepoProvider).watchStepsOf(goalId));
+  (ref, goalId) => ref.watch(goalRepoProvider).watchStepsOf(goalId),
+);
 
 /// 注入时钟的"今天"（自然日，本地时区）。
 final todayProvider = Provider<LocalDate>(
-    (ref) => ref.watch(dateProviderProvider).today);
+  (ref) => ref.watch(dateProviderProvider).today,
+);
 
 /// 跨天 0 点 ticker（research D13）：到点 invalidate todayProvider →
 /// statsProvider 重算 → app 层快照监听器重写小组件快照。
@@ -132,6 +162,7 @@ final dayTickerProvider = Provider<void>((ref) {
       schedule();
     });
   }
+
   schedule();
   ref.onDispose(() => timer?.cancel());
 });
@@ -154,14 +185,31 @@ final statsProvider = Provider<StatsEvaluation?>((ref) {
   );
 });
 
-final notificationGatewayProvider =
-    Provider<NotificationGateway>((ref) => createNotificationGateway());
+/// 三大类健康度（004 US2 · T019，口径 = T018 纯函数）：goals/checkIns
+/// 任一流变化（打卡/补签/暂停恢复/删除/新建）失效重算；dayTicker 跨天
+/// → todayProvider 变化 → 窗口整体右移。数据未就绪为 null（三环加载态）。
+final healthScoreProvider = Provider<HealthSnapshot?>((ref) {
+  final goals = ref.watch(goalsProvider).value;
+  final checkIns = ref.watch(checkInsProvider).value;
+  final today = ref.watch(todayProvider);
+  if (goals == null || checkIns == null) {
+    return null;
+  }
+  return evaluateHealth(goals: goals, checkIns: checkIns, today: today);
+});
 
-final widgetGatewayProvider =
-    Provider<WidgetGateway>((ref) => createWidgetGateway());
+final notificationGatewayProvider = Provider<NotificationGateway>(
+  (ref) => createNotificationGateway(),
+);
 
-final shareGatewayProvider =
-    Provider<ShareGateway>((ref) => createShareGateway());
+final widgetGatewayProvider = Provider<WidgetGateway>(
+  (ref) => createWidgetGateway(),
+);
 
-final filePickGatewayProvider =
-    Provider<FilePickGateway>((ref) => createFilePickGateway());
+final shareGatewayProvider = Provider<ShareGateway>(
+  (ref) => createShareGateway(),
+);
+
+final filePickGatewayProvider = Provider<FilePickGateway>(
+  (ref) => createFilePickGateway(),
+);

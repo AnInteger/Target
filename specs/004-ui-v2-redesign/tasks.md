@@ -119,7 +119,9 @@ description: "Task list for 004 UI v2 重构"
 - [x] T018 [P] [US2] HealthScore 纯函数：lib/core/models/health_score.dart（新文件，口径=contracts/health-score.md：100−3×近 7 天零记录活跃目标数，clamp(0,100)；窗口含今日滚动 7 天；补签同计；暂停不参与；类内零活跃=无数据态）+ test/health_score_test.dart 全量对账（含跨天窗口右移、穿底夹 0）
   - ✅ 实现完成：evaluateHealth 纯函数（goals/checkIns/today 注入）——窗口 W=[today−6,today] 一次预聚合 recorded 集合（isValid 过滤撤销行 + 日界双闭），三分桶循环 MajorCategory.values 全键产出 CategoryHealth（activeGoals/zeroRecordGoals 计数，score=clamp(100−3N,0,100) 为派生 getter，hasData=activeGoals>0）；HealthSnapshot.byCategory 三键全量 + isEmpty=全类无数据（全库零活跃 → 环区让位空态）；目标→大类经 GoalIconCatalog.byKey(iconKey).domain.major 派生（FR-014），零 DB/零 provider 依赖，T019 直接挂流
   - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（148 = 137+11：六组对账——①契约验收造数（97/100/无数据+打卡即清零）②窗口边界 t-6/t-7+补签同计+撤销不计③阶梯 100−3N 与 34 个穿底夹 0④暂停/归档/达成不参与+恢复即现环 97⑤十领域分桶 5/1/4 及全零分 85/97/88⑥跨天窗口右移（左缘记录跨天移出回落 97、长期零记录不自动回升））
-- [ ] T019 [US2] healthScoreProvider：lib/app/providers.dart（goals/checkIns/today 任一流变化失效重算，dayTicker 跨天联动窗口右移）（depends T005, T018）
+- [x] T019 [US2] healthScoreProvider：lib/app/providers.dart（goals/checkIns/today 任一流变化失效重算，dayTicker 跨天联动窗口右移）（depends T005, T018）
+  - ✅ 实现完成：healthScoreProvider = Provider<HealthSnapshot?> 挂在 statsProvider 同族模板上——watch goalsProvider/checkInsProvider（.value 任一 null → null 三环加载态）+ todayProvider（dateProviderProvider 派生，dayTicker 跨天 invalidate 自动联动窗口右移），就绪即委托 T018 evaluateHealth 纯函数；流式失效重算无需自建监听（riverpod watch 链：打卡/补签/暂停恢复/删除/新建任一 DB 变更经 watchAll 流回放触发）
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（149 = 148+1：⑦容器级接线测试——goals/checkIns 双 broadcast 流 override + dateProviderProvider 锚 FixedDateProvider（SystemDateProvider 读真实系统日会窗口错位），全序列 null→97（流就绪零记录）→100（checkIns 流替换左缘补卡失效重算）→97（dateProvider 切 t+1 窗口右移左缘记录出窗））
 - [ ] T020 [US2] 今日页头部与三环：lib/features/today/today_view.dart 重做——中文「星期, 日期」行 + 大标题「今日」+ 右上头像入口（同一连续图层无分隔线）+ 三环同心嵌套组件（三类各一色、独立计分无综合分、无数据态、全库零活跃环区让位空态新建 CTA）（depends T002, T019）
 
 **Checkpoint**: 今日页骨架与基准图 01/02 头部+环区对应，健康度与手工核算一致

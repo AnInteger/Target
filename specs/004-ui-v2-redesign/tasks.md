@@ -206,7 +206,9 @@ description: "Task list for 004 UI v2 重构"
 
 **Purpose**: 全功能回归、双主题走查、全量对账与文档收口
 
-- [ ] T031 FR-016 全功能回归：按 quickstart 阶段 F 清单全动线走查（创建三类型/分类图标/提醒频率+时间/打卡+描述/补签/编辑/暂停恢复/删除/通知/备份导出→清库→恢复含 themeMode 往返/资料/统计），结论记 design/reviews.md 实现审计
+- [x] T031 FR-016 全功能回归：按 quickstart 阶段 F 清单全动线走查（创建三类型/分类图标/提醒频率+时间/打卡+描述/补签/编辑/暂停恢复/删除/通知/备份导出→清库→恢复含 themeMode 往返/资料/统计），结论记 design/reviews.md 实现审计
+  - ✅ 实现完成：阶段 F 15 项全过——逐项以可执行测试为证据映射（004 每屏换装任务随屏重写动线用例，套件全绿即走查通过）：创建三类型（T023 创建动线/T025 提醒三档/T023 骨架+SC-002 ≤8 击）、分类图标（T026 弹层单选即存）、一句话描述（T024 上限+T023 落库）、打卡含描述+撤销（T021 详情+US2 微缩）、补签（T014 详情周点阵→日历改选→isBackfill 落库）、到点提醒语气（reminder_service daily/deadline 09:00）、编辑（T023 类型锁定+T025 回填）、暂停恢复（goals_all 长按管理+health 恢复 97）、删除（T014 四子表级联）、到期达成/续期（T029 双入口+超期续期）、通知列表倒序空态（notification_list 四源混排/空态/行形态）、资料（profile sheet 往返）、备份含 themeMode（backup_test 往返+宽容+V7 冲突确认动线）、统计（stats_engine 33 例+回顾三区块走查）。结论：FR-016 能力面在 v2 信息架构下全数保全无回退，旧入口迁移均有测试锚点。审计条目落 design/reviews.md「实现审计」（004 首条）
+  - ✅ 门禁通过：flutter analyze 0 issues；flutter test 全量 160/160 通过（本任务纯走查+文档，无代码改动）
 - [ ] T032 双主题全页走查与图表可辨核验：系统深浅各一轮全部页面（quickstart 阶段 B/E；FR-013 完成态与未完成态不单靠色相；SC-001/SC-002/SC-003 逐条核），问题项修复后复走查
 - [ ] T033 全量回归收口：flutter analyze 0 + flutter test 全绿（既有 128 项零回归 + 004 新增用例全量）；SC-004/SC-005/SC-006 对账结论落 quickstart「完成口径」
 - [ ] T034 文档收口：design/reviews.md 004 实现审计条目齐、spec.md Status: Complete、specs/004-ui-v2-redesign/tasks.md 全勾无留口

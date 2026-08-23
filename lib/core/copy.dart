@@ -282,12 +282,11 @@ abstract final class Copy {
 
   // ---- 003 文案层（T014：三 Tab / 编辑器分组 / 通知列表 / 类型徽章）----
 
-  // 账号资料（FR-004：未填写不强迫，默认头像 + 默认昵称）。
+  // 账号资料（FR-004：未填写不强迫，默认头像 + 默认昵称；004 板 4
+  // 冻结稿：sheet 无节标签，保存 = 全宽胶囊主按钮）。
   static const profileDefaultNickname = '我';
   static const profileSheetTitle = '编辑资料';
-  static const profileNicknameLabel = '昵称';
-  static const profileAvatarLabel = '选择头像';
-  static const profileDone = '完成';
+  static const profileDone = '保存';
 
   // 通知列表（sheet，推导式 D6：无已读态；004 T015 按冻结稿换装——
   // 分组头退役，行尾相对时刻 + 语义色格图标 + 图形化空态）。

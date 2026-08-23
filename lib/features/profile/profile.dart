@@ -1,6 +1,11 @@
 /// 账号资料（003 T018 · research D7 / ui-contract.md）：
 /// 编辑 bottom sheet + 同源头像渲染（今日页账号区与我的页账号卡共用，
 /// 未填写 = 渐变默认头像 + 昵称兜底「我」）。
+///
+/// 004 T016 按冻结稿 v2-settings 板 4 换装：头部内联「完成」与预览行
+/// 退役 → 全宽昵称输入（surfaceAlt 底 + 1px divider 边，与编辑器输入
+/// 同语言）+ 4 列 56px 头像格（surfaceAlt 底 + 26px 环色图标，选中 =
+/// 2.5px 环色描边，替代 accent 双环）+ 底部全宽胶囊主按钮「保存」。
 library;
 
 import 'package:flutter/material.dart';
@@ -29,7 +34,7 @@ class ProfileAvatar extends StatelessWidget {
 
   final Profile? profile;
 
-  /// 直径（今日账号区 44 / sheet 预览 56 / 我的页账号卡 52）。
+  /// 直径（今日账号区 44 / 我的页账号卡 52）。
   final double size;
 
   @override
@@ -44,17 +49,16 @@ class ProfileAvatar extends StatelessWidget {
         alignment: Alignment.center,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [kAvatarGradA, kAvatarGradB]),
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [kAvatarGradA, kAvatarGradB],
+          ),
           shape: BoxShape.circle,
         ),
         child: Text(
           profileNicknameOf(profile).characters.first,
           // 白字 + height 1：与我的页账号卡现有头像惯例一致。
-          style: Theme.of(context)
-              .textTheme
-              .titleM
+          style: Theme.of(context).textTheme.titleM
               .copyWith(color: Colors.white, height: 1),
         ),
       );
@@ -69,18 +73,46 @@ class ProfileAvatar extends StatelessWidget {
         color: Color.lerp(palette.surface, ringColor, 0.22),
         shape: BoxShape.circle,
       ),
-      child: Icon(GoalIconCatalog.byKey(profile?.avatarKey).icon,
-          size: size * 0.5, color: ringColor),
+      child: Icon(
+        GoalIconCatalog.byKey(profile?.avatarKey).icon,
+        size: size * 0.5,
+        color: ringColor,
+      ),
     );
   }
 }
 
-/// 弹起资料编辑 sheet（今日页账号区 / 我的页账号卡共用入口）。
+/// 弹起资料编辑 sheet（今日页账号区 / 我的页账号卡共用入口；
+/// 冻结稿 .sheet = surface 圆角顶 + 抓手条 + 高投影）。
 Future<void> showProfileSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => const _ProfileSheet(),
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      final palette = TargetPalette.of(sheetContext);
+      return Padding(
+        // 键盘弹起时 sheet 随之上移（viewInsets），内容贴底。
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: Container(
+          key: const ValueKey('profileSheet'),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
+            boxShadow: palette.shadowHigh,
+          ),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpace.s5,
+            AppSpace.s3,
+            AppSpace.s5,
+            AppSpace.s5 + 8,
+          ),
+          child: const _ProfileSheet(),
+        ),
+      );
+    },
   );
 }
 
@@ -140,112 +172,118 @@ class _ProfileSheetState extends ConsumerState<_ProfileSheet> {
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
-    return Padding(
-      // 键盘弹起时 sheet 随之上移（viewInsets），内容贴底。
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: AppSpace.s2),
-          // 抓手条。
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: palette.divider,
-                borderRadius: BorderRadius.circular(9999),
-              ),
+    final theme = Theme.of(context);
+    final cells = <Widget>[
+      for (final entry in kAvatarRingByKey.entries)
+        _AvatarCell(
+          entry: entry,
+          selected: _avatarKey == entry.key,
+          onTap: () => setState(
+            // 再点一次 = 回默认枚（原型同款交互）。
+            () => _avatarKey = _avatarKey == entry.key ? null : entry.key,
+          ),
+        ),
+    ];
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 抓手条（冻结稿 .grab）。
+        Container(
+          width: 40,
+          height: 4,
+          margin: const EdgeInsets.only(bottom: AppSpace.s3),
+          decoration: BoxDecoration(
+            color: palette.divider,
+            borderRadius: AppRadius.rFull,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpace.s3),
+          child: Text(Copy.profileSheetTitle, style: theme.textTheme.titleS),
+        ),
+        // 全宽昵称输入（冻结稿 .input：surfaceAlt 底 + 1px divider 边，
+        // rMd、bodyL、内垫 s4/s3——与编辑器输入同语言）。
+        TextField(
+          key: const ValueKey('profileNickField'),
+          controller: _nick,
+          maxLength: 12,
+          style: theme.textTheme.bodyL,
+          decoration: InputDecoration(
+            counterText: '',
+            isDense: true,
+            filled: true,
+            fillColor: palette.surfaceAlt,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpace.s4,
+              vertical: AppSpace.s3,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: AppRadius.rMd,
+              borderSide: BorderSide(color: palette.divider),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: AppRadius.rMd,
+              borderSide: BorderSide(color: palette.accent),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpace.s6, AppSpace.s4, AppSpace.s5, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(Copy.profileSheetTitle,
-                      style: Theme.of(context).textTheme.titleM),
-                ),
-                FilledButton(
-                  onPressed: _save,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: palette.accent,
-                    foregroundColor: palette.accentOn,
-                  ),
-                  child: const Text(Copy.profileDone),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpace.s6, AppSpace.s4, AppSpace.s6, 0),
-            child: Row(
-              children: [
-                // 预览随输入即时刷新（昵称首字/所选头像）。
-                ProfileAvatar(profile: _draft, size: 56),
-                const SizedBox(width: AppSpace.s4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        // 头像格（冻结稿 .avgrid：4 等分列 gap s4，格内居中；两行间
+        // 距 s4、组竖向 margin s4）。
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpace.s4),
+          child: Column(
+            children: [
+              for (var r = 0; r < cells.length; r += 4)
+                Padding(
+                  padding: EdgeInsets.only(top: r == 0 ? 0 : AppSpace.s4),
+                  child: Row(
                     children: [
-                      Text(Copy.profileNicknameLabel,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelS
-                              .copyWith(color: palette.onSurfaceVariant)),
-                      TextField(
-                        key: const ValueKey('profileNickField'),
-                        controller: _nick,
-                        maxLength: 12,
-                        onChanged: (_) => setState(() {}),
-                        decoration: const InputDecoration(
-                            isDense: true, counterText: ''),
-                      ),
+                      for (final cell in cells.sublist(
+                        r,
+                        r + 4 > cells.length ? cells.length : r + 4,
+                      ))
+                        Expanded(child: Center(child: cell)),
                     ],
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpace.s6, AppSpace.s4, AppSpace.s6, AppSpace.s2),
-            child: Text(Copy.profileAvatarLabel,
-                style: Theme.of(context)
-                    .textTheme
-                    .labelS
-                    .copyWith(color: palette.onSurfaceVariant)),
+        ),
+        // 全宽胶囊主按钮（冻结稿 .btn-primary：accent 底 + accentOn
+        // titleS + 中投影，与详情页 _PillButton 同族）。
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.rFull,
+            boxShadow: palette.shadowMid,
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-                AppSpace.s6, 0, AppSpace.s6, AppSpace.s6),
-            child: Wrap(
-              spacing: AppSpace.s3,
-              runSpacing: AppSpace.s3,
-              children: [
-                for (final entry in kAvatarRingByKey.entries)
-                  _AvatarCell(
-                    entry: entry,
-                    selected: _avatarKey == entry.key,
-                    onTap: () => setState(() =>
-                        // 再点一次 = 回默认枚（原型同款交互）。
-                        _avatarKey = _avatarKey == entry.key ? null : entry.key),
+          child: Material(
+            color: palette.accent,
+            borderRadius: AppRadius.rFull,
+            child: InkWell(
+              onTap: _save,
+              borderRadius: AppRadius.rFull,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpace.s4),
+                child: Center(
+                  child: Text(
+                    Copy.profileDone,
+                    style: theme.textTheme.titleS.copyWith(
+                      color: palette.accentOn,
+                    ),
                   ),
-              ],
+                ),
+              ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// 预设头像格：环色 22% 底 + 同色图标；选中 = 表面留缝 + accent 双环
-/// （原型 .av.sel 的 box-shadow 双环语义）。
+/// 预设头像格（冻结稿 .avp）：56px 圆 + surfaceAlt 底 + 26px 环色
+/// 图标；选中 = 2.5px 环色描边（transparent → ring，150ms 过渡）。
 class _AvatarCell extends StatelessWidget {
   const _AvatarCell({
     required this.entry,
@@ -261,44 +299,35 @@ class _AvatarCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final ring = entry.value.of(context);
-    final cell = Container(
-      width: 64,
-      height: 64,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Color.lerp(palette.surface, ring, 0.22),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(GoalIconCatalog.byKey(entry.key).icon,
-          size: 26, color: ring),
-    );
     return Semantics(
       button: true,
       selected: selected,
-      // 004：环色退役 zhLabel，无障碍名取图标所属领域（如「运动」）。
-      label:
-          '${Copy.profileAvatarLabel} ${GoalIconCatalog.byKey(entry.key).domain.zhLabel}',
+      // 无障碍名取图标所属领域（如「运动」）。
+      label: GoalIconCatalog.byKey(entry.key).domain.zhLabel,
       child: InkWell(
         key: ValueKey('avatarCell-${entry.key}'),
         onTap: onTap,
         customBorder: const CircleBorder(),
-        child: selected
-            ? Container(
-                padding: const EdgeInsets.all(2), // 表面留缝宽。
-                decoration: BoxDecoration(
-                  color: palette.accent,
-                  shape: BoxShape.circle,
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: palette.surface,
-                    shape: BoxShape.circle,
-                  ),
-                  child: cell,
-                ),
-              )
-            : cell,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          width: 56,
+          height: 56,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: palette.surfaceAlt,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: selected ? ring : Colors.transparent,
+              width: 2.5,
+            ),
+          ),
+          child: Icon(
+            GoalIconCatalog.byKey(entry.key).icon,
+            size: 26,
+            color: ring,
+          ),
+        ),
       ),
     );
   }

@@ -16,14 +16,14 @@ import 'package:target/features/profile/profile.dart';
 
 /// 独立宿主：组件不依赖完整 App（TargetPalette 经 AppTheme 注入）。
 Widget _host({Widget? child, VoidCallback? onOpen}) => MaterialApp(
-      theme: AppTheme.light(),
-      home: Scaffold(
-        body: Center(
-          child:
-              child ?? FilledButton(onPressed: onOpen, child: const Text('open')),
-        ),
-      ),
-    );
+  theme: AppTheme.light(),
+  home: Scaffold(
+    body: Center(
+      child:
+          child ?? FilledButton(onPressed: onOpen, child: const Text('open')),
+    ),
+  ),
+);
 
 Future<AppDatabase> _db({Profile? seed}) async {
   final db = AppDatabase(NativeDatabase.memory());
@@ -35,8 +35,10 @@ void main() {
   group('profileNicknameOf（FR-004 兜底）', () {
     test('未填/空白 → 默认「我」', () {
       expect(profileNicknameOf(null), Copy.profileDefaultNickname);
-      expect(profileNicknameOf(const Profile(nickname: '  ')),
-          Copy.profileDefaultNickname);
+      expect(
+        profileNicknameOf(const Profile(nickname: '  ')),
+        Copy.profileDefaultNickname,
+      );
     });
 
     test('有昵称 → 去首尾空白原值', () {
@@ -46,20 +48,29 @@ void main() {
 
   testWidgets('ProfileAvatar 默认枚：渐变底 + 首字兜底「我」', (tester) async {
     await tester.pumpWidget(
-        _host(child: const ProfileAvatar(profile: Profile.empty)));
+      _host(child: const ProfileAvatar(profile: Profile.empty)),
+    );
     expect(find.text(Copy.profileDefaultNickname), findsOneWidget);
   });
 
   testWidgets('ProfileAvatar 有昵称：首字取昵称', (tester) async {
-    await tester.pumpWidget(_host(
-        child: const ProfileAvatar(profile: Profile(nickname: '阿星'))));
+    await tester.pumpWidget(
+      _host(
+        child: const ProfileAvatar(profile: Profile(nickname: '阿星')),
+      ),
+    );
     expect(find.text('阿'), findsOneWidget);
   });
 
   testWidgets('ProfileAvatar 预设头像：环色底 + 图标，无首字', (tester) async {
-    await tester.pumpWidget(_host(
+    await tester.pumpWidget(
+      _host(
         child: const ProfileAvatar(
-            profile: Profile(avatarKey: 'favorite'), size: 56)));
+          profile: Profile(avatarKey: 'favorite'),
+          size: 56,
+        ),
+      ),
+    );
     expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
     expect(find.text(Copy.profileDefaultNickname), findsNothing);
   });
@@ -69,8 +80,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
-        child:
-            _host(onOpen: () => showProfileSheet(tester.element(find.text('open')))),
+        child: _host(
+          onOpen: () => showProfileSheet(tester.element(find.text('open'))),
+        ),
       ),
     );
     await tester.tap(find.text('open'));
@@ -79,8 +91,11 @@ void main() {
 
     await tester.enterText(find.byType(TextField), '阿星');
     await tester.pump();
-    // 预览即时跟随首字。
-    expect(find.text('阿'), findsOneWidget);
+    // 输入框持有草稿（预览行已随 004 板 4 冻结稿退役）。
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      '阿星',
+    );
 
     await tester.tap(find.byKey(const ValueKey('avatarCell-favorite')));
     await tester.pump();
@@ -102,12 +117,14 @@ void main() {
 
   testWidgets('sheet：再点选中格 = 回默认枚；空白昵称落 NULL', (tester) async {
     final db = await _db(
-        seed: const Profile(nickname: '阿星', avatarKey: 'favorite'));
+      seed: const Profile(nickname: '阿星', avatarKey: 'favorite'),
+    );
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
-        child:
-            _host(onOpen: () => showProfileSheet(tester.element(find.text('open')))),
+        child: _host(
+          onOpen: () => showProfileSheet(tester.element(find.text('open'))),
+        ),
       ),
     );
     await tester.tap(find.text('open'));
@@ -134,8 +151,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [dbProvider.overrideWithValue(db)],
-        child:
-            _host(onOpen: () => showProfileSheet(tester.element(find.text('open')))),
+        child: _host(
+          onOpen: () => showProfileSheet(tester.element(find.text('open'))),
+        ),
       ),
     );
     await tester.tap(find.text('open'));

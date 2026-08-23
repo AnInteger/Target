@@ -156,7 +156,9 @@ description: "Task list for 004 UI v2 重构"
 
 **Independent Test**: 任意页面底部恒为「今日 | 中央＋ | 回顾」；中央按钮 ≤1 交互直达编辑器；头像进我的页职能 ≤2 击可达（quickstart 阶段 D）
 
-- [ ] T024 [US4] 路由两分支改造：lib/app/router.dart StatefulShellRoute 3→2 分支（today/review）；/settings 改 today 分支全屏 push 子路由；/goal-editor 保持 today 子路由；/goals 兜底 /today 核验
+- [x] T024 [US4] 路由两分支改造：lib/app/router.dart StatefulShellRoute 3→2 分支（today/review）；/settings 改 today 分支全屏 push 子路由；/goal-editor 保持 today 子路由；/goals 兜底 /today 核验
+  - ✅ 实现完成：router.dart StatefulShellRoute 3→2 分支（settings 分支退役）——/settings 迁根级 GoRoute 全屏 push 子路由（覆盖壳层 dock：opaque 页压顶，shell 不再构建 → navTab finder 找不到，页签自然退场；今日页头像 go→push，T012 过渡式返回钮 canPop?pop:go('/today') 自然成立）；/goal-editor、/goal/:id、/goals-all 保持 today 分支子路由（dock 恒定 FR-010/D5）；_navDests 收两枚（today/review）；today_view _AvatarEntry 文档更新。测试迁移七处：US1 两分支用例重写（页签恰两枚 key 断言 + mineNav/goalsNav 文本零上屏 + 头像 push→screenTitle/dock 退场→chevron 返回复原）；US1 编辑器用例 mineNav 断言换 navTab 两 key；T030/T033/T026(avatar 入口 byTooltip)/T041（页签不退场改 navTab 两 key）/T038（回顾终查后回今日再头像 push、chevron 返回后进 gd 卡——mineNav 页签 tap 动线退役）逐点清退；router.go('/settings') 存量用例全部自然兼容（断言均 Scoped 在 SettingsView 内）
+  - ✅ flutter analyze → "No issues found!"；flutter test → "All tests passed!"（150/150；US1 两分支/编辑器/深链、T026/T032/T033/T038/T041 全量绿）
 - [ ] T025 [US4] 底部导航壳重做：lib/app/router.dart _PillNav 换新语言——今日 | 中央凸起圆形＋ | 回顾，任意页面恒定，中央按钮直达 /goal-editor（depends T024）
 - [ ] T026 [US4] 导航与深链回归：test/widget_test.dart 用例更新（target:// today/review/goal/{id} 映射不变；第三页签移除后旧断言清退；头像→我的页职能可达核验）（depends T024, T025）
 

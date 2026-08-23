@@ -1293,7 +1293,9 @@ void main() {
     }
   });
 
-  testWidgets('US1 路由三分支：页签恰三枚、目标页签退役（FR-001）', (tester) async {
+  testWidgets('US1 路由两分支（004 T024）：页签恰两枚、我的改头像 push、目标页签退役（FR-001）', (
+    tester,
+  ) async {
     usePhoneSurface(tester);
     final db = AppDatabase(NativeDatabase.memory());
     await (db.update(db.settingsRows)..where((t) => t.id.equals(1))).write(
@@ -1313,11 +1315,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 三页签恰三枚：今日/回顾/我的；目标页签不再存在。
+    // 004 T024 两分支：页签恰两枚（今日/回顾），我的页签退役（改
+    // 今日页头像 → /settings 全屏 push）；目标页签仍不存在。
     expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
-    expect(find.text(Copy.reviewNav), findsOneWidget);
-    expect(find.text(Copy.mineNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
+    expect(find.text(Copy.mineNav), findsNothing);
     expect(find.text(Copy.goalsNav), findsNothing);
+
+    // 头像入口 → 我的页全屏 push：dock 退场（根级路由覆盖壳层），
+    // 返回键 pop 回今日。
+    await tester.tap(find.byTooltip(Copy.mineNav));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('screenTitle')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsNothing);
+    // 我的页返回键 = chevron 圆钮（Semantics「返回」无 Tooltip）。
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
     await db.close();
   });
 
@@ -1347,10 +1361,12 @@ void main() {
     ).read(routerProvider);
     router.go('/goal-editor');
     await tester.pumpAndSettle();
-    // 编辑器整页在场而底部三页签仍可见（today 分支子页，非根路由全屏）。
+    // 编辑器整页在场而底部两页签仍可见（today 分支子页，非根路由全屏；
+    // 004 T024 我的页签退役，dock = 今日/回顾）。
     expect(find.byKey(const ValueKey('goalNameField')), findsOneWidget);
-    expect(find.text(Copy.todayNav), findsOneWidget);
-    expect(find.text(Copy.mineNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
+    expect(find.text(Copy.mineNav), findsNothing);
 
     // 存量 /goals 入口兜底落回今日（redirect）。
     router.go('/goals');
@@ -1396,8 +1412,7 @@ void main() {
         findsOneWidget,
         reason: '底部页签应全程可见',
       );
-      expect(find.text(Copy.reviewNav), findsOneWidget);
-      expect(find.text(Copy.mineNav), findsOneWidget);
+      expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
     }
 
     var taps = 0;
@@ -1614,11 +1629,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 今日：空态邀请卡在场（todayEmptyTitle），三页签齐。
+    // 今日：空态邀请卡在场（todayEmptyTitle），两页签齐（T024）。
     expect(find.text(Copy.todayEmptyTitle), findsOneWidget);
     expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
-    expect(find.text(Copy.reviewNav), findsOneWidget);
-    expect(find.text(Copy.mineNav), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
 
     final router = ProviderScope.containerOf(
       tester.element(find.byType(TargetApp)),
@@ -2485,7 +2499,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text(Copy.mineNav));
+      // 004 T024：我的页不再是页签——今日页头像（Tooltip「我的」）push 进。
+      await tester.tap(find.byTooltip(Copy.mineNav));
       await tester.pumpAndSettle();
 
       // R2 骨架 → T034 四分组：账号卡（真资料昵称兜底「我」+ 编辑入口）
@@ -2631,17 +2646,20 @@ void main() {
     );
     expect(leaked, findsNothing, reason: '旧字段不得在任何已构建分支上屏');
 
-    // 回顾 Tab + 我的 Tab（含滚动到底）同口径终查。
+    // 回顾 Tab + 我的页（004 T024 头像 push，含滚动到底）同口径终查。
     await tester.tap(find.text(Copy.reviewNav));
     await tester.pumpAndSettle();
     expect(leaked, findsNothing);
-    await tester.tap(find.text(Copy.mineNav));
+    await tester.tap(find.byKey(const ValueKey('navTab-/today')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(Copy.mineNav));
     await tester.pumpAndSettle();
     await scrollTo(tester, find.text(Copy.settingsGoalRemindersTitle));
     expect(leaked, findsNothing);
 
     // 目标详情：点开 gd 关注卡 → 详情页同口径（为什么/怎样算不得回潮）。
-    await tester.tap(find.text(Copy.todayNav));
+    // 我的页已是全屏 push（dock 退场），chevron 返回今日后再进卡。
+    await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pumpAndSettle();
     await openGoalFromFocus(tester, 'gd');
     expect(find.text('好好吃饭'), findsWidgets); // 详情页标题
@@ -2794,8 +2812,9 @@ void main() {
     await tester.tap(sheetEntries.first);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('checkInNoteField')), findsOneWidget);
-    expect(find.text(Copy.todayNav), findsOneWidget);
-    expect(find.text(Copy.mineNav), findsOneWidget);
+    // 页签不退场（004 T024 两分支：今日/回顾 dock 恒定，我的已非页签）。
+    expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/review')), findsOneWidget);
     await db.close();
   });
 }

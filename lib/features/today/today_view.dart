@@ -169,7 +169,8 @@ class _Head extends ConsumerWidget {
 }
 
 /// 头像入口：36px 头像 + surface 双层描边环成 44px 视觉（冻结稿
-/// .avatar 2px surface 边 + 低投影），tap → /settings（「我的」页）。
+/// .avatar 2px surface 边 + 低投影），tap → push /settings（「我的」页
+/// 根级全屏子路由，004 T024 两分支改造落地——dock 被覆盖、pop 回今日）。
 class _AvatarEntry extends StatelessWidget {
   const _AvatarEntry({required this.profile});
 
@@ -181,7 +182,7 @@ class _AvatarEntry extends StatelessWidget {
     return Tooltip(
       message: Copy.mineNav,
       child: InkWell(
-        onTap: () => context.go('/settings'),
+        onTap: () => context.push('/settings'),
         borderRadius: AppRadius.rFull,
         child: Padding(
           padding: const EdgeInsets.all(2),

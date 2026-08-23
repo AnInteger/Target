@@ -1,10 +1,13 @@
-/// go_router 路由表（003 三 Tab 收敛，ui-contract.md：主栈 Today / Review / Mine；
-/// Editor 与 GoalDetail 为 today 分支子页——底部胶囊全程可见可点（FR-010，
-/// research D5）；深链 target://today|review|goal/{id}，goal 无 id 兜底 /today）。
+/// go_router 路由表（004 T024 两分支改造：主栈 Today / Review 两分支，
+/// ui-contract v2——我的页不再是页签，改根级全屏 push 子路由（今日页
+/// 头像入口 push 进出，壳层 dock 被覆盖）；Editor / GoalDetail /
+/// GoalsAll 仍为 today 分支子页——底部导航全程可见可点（FR-010，
+/// research D5）；深链 target://today|review|goal/{id}，goal 无 id 兜底
+/// /today）。
 ///
 /// 导航壳层按今日屏 R7 定稿（screen-today.html）：底部白色悬浮全圆角胶囊条，
-/// 三页签（今日/回顾/我的），选中 = 墨色胶囊内图标上文字下；
-/// 壳层画四段底幕渐变，今日页透明叠在其上。
+/// 选中 = 墨色胶囊内图标上文字下；壳层画四段底幕渐变，今日页透明叠在其上。
+/// （T025 将按 v2 冻结稿重做 dock：今日 | 中央凸起＋ | 回顾。）
 ///
 /// /goals 页签与路由退役（目标页职能并入今日卡与详情，T015/T016）——
 /// 存量入口（今日页旧「查看全部」、书签深链）经 redirect 落 /today。
@@ -35,11 +38,14 @@ GoRouter _build() => GoRouter(
   redirect: (context, state) => state.uri.path == '/goals' ? '/today' : null,
   routes: [
     GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingPage()),
+    // 我的页（004 T024）：根级全屏 push 子路由——壳层 dock 被覆盖，
+    // 今日页头像 push 进 / pop 回（不再是页签分支）。
+    GoRoute(path: '/settings', builder: (_, _) => const SettingsView()),
     StatefulShellRoute.indexedStack(
       builder: (_, _, shell) => _AppShell(navigationShell: shell),
       branches: [
-        // today 分支：今日页 + 编辑器/详情子页（D5：挂分支内而非根路由，
-        // 进入创建/详情动线时导航壳层不退场，FR-010 根因修复）。
+        // today 分支：今日页 + 编辑器/详情/全部目标子页（D5：挂分支内
+        // 而非根路由，进入创建/详情动线时导航壳层不退场，FR-010 根因修复）。
         StatefulShellBranch(
           routes: [
             GoRoute(path: '/today', builder: (_, _) => const TodayView()),
@@ -58,7 +64,7 @@ GoRouter _build() => GoRouter(
               builder: (_, s) =>
                   GoalDetailPage(goalId: s.pathParameters['id']!),
             ),
-            // 全部目标（T022 过渡页可达；T023 按冻结稿全量换装）。
+            // 全部目标（T023 冻结稿全量换装：筛选/分组/长按管理）。
             GoRoute(
               path: '/goals-all',
               builder: (_, _) => const GoalsAllPage(),
@@ -68,11 +74,6 @@ GoRouter _build() => GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(path: '/review', builder: (_, _) => const ReviewView()),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(path: '/settings', builder: (_, _) => const SettingsView()),
           ],
         ),
       ],
@@ -119,7 +120,6 @@ class _NavDest {
 const _navDests = [
   _NavDest('/today', Copy.todayNav, Icons.home_outlined, Icons.home_rounded),
   _NavDest('/review', Copy.reviewNav, Icons.insights_outlined, Icons.insights),
-  _NavDest('/settings', Copy.mineNav, Icons.person_outline, Icons.person),
 ];
 
 /// 悬浮全圆角胶囊导航条：navwrap inset 与内容列对齐（space-6），

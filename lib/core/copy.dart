@@ -196,7 +196,8 @@ abstract final class Copy {
   // ---- 设置 / 其他（004 v2 冻结稿 v2-settings.html：账号卡 + 外观/通知/
   // 目标/数据/关于分组，行 = 图标 + 标题 + 行尾值|开关|箭头|对勾）----
 
-  static const settingsTitle = '我的';
+  static const profileTitle = '我的';
+  static const settingsTitle = '设置';
 
   static const settingsMeSub = '编辑资料';
   static const settingsSectionAppearance = '外观';
@@ -368,7 +369,7 @@ abstract final class Copy {
 
   // 编辑器分组标题（004 v2 冻结稿组序：类型→一句话描述→分类→提醒/里程碑）。
   static const editorSectionCategory = '分类';
-  static const editorSectionBasics = '一句话描述';
+  static const editorSectionBasics = '目标名称';
   static const editorSectionType = '类型';
 
   // 分类图标（T026：常用行 + 「更多」弹窗全量，R2 裁决 1）。

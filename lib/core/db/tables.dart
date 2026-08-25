@@ -24,9 +24,10 @@ class _EnumText<T extends Enum> extends TypeConverter<T, String> {
   final List<T> values;
 
   @override
-  T fromSql(String fromDb) =>
-      values.firstWhere((v) => v.name == fromDb,
-          orElse: () => throw FormatException('未知枚举值 "$fromDb"'));
+  T fromSql(String fromDb) => values.firstWhere(
+    (v) => v.name == fromDb,
+    orElse: () => throw FormatException('未知枚举值 "$fromDb"'),
+  );
 
   @override
   String toSql(T value) => value.name;
@@ -36,8 +37,9 @@ class _EnumText<T extends Enum> extends TypeConverter<T, String> {
 const goalTypeConverter = _EnumText<GoalType>(GoalType.values);
 const cadenceConverter = _EnumText<Cadence>(Cadence.values);
 const goalStatusConverter = _EnumText<GoalStatus>(GoalStatus.values);
-const frequencySourceConverter =
-    _EnumText<FrequencySource>(FrequencySource.values);
+const frequencySourceConverter = _EnumText<FrequencySource>(
+  FrequencySource.values,
+);
 const checkInStatusConverter = _EnumText<CheckInStatus>(CheckInStatus.values);
 
 class LocalDateText extends TypeConverter<LocalDate, String> {
@@ -102,6 +104,10 @@ class Goals extends Table {
   // 003 v3：kind 重映射为三类型域（v2→v3 迁移见 app_database.dart）。
   TextColumn get goalType => text().map(goalTypeConverter)();
   TextColumn get iconKey => text()();
+  IntColumn get progressCadenceDays => integer().nullable()();
+  TextColumn get categoryOverride => text().nullable()();
+  TextColumn get targetDate => text().nullable().map(const LocalDateText())();
+  IntColumn get habitTargetPerWeek => integer().nullable()();
   // 003 v3 退役：可空化 + 存量置 NULL（零丢失惯例：只藏不删，不上界面）。
   TextColumn get colorKey => text().nullable()();
   TextColumn get status => text().map(goalStatusConverter)();
@@ -137,8 +143,7 @@ class BusyModeSessions extends Table {
   TextColumn get id => text()();
   TextColumn get weekStart => text().map(const WeekStartText())();
   TextColumn get startedAt => text().map(const IsoDateTimeText())();
-  TextColumn get endedAt =>
-      text().nullable().map(const IsoDateTimeText())();
+  TextColumn get endedAt => text().nullable().map(const IsoDateTimeText())();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -175,6 +180,7 @@ class MilestoneSteps extends Table {
   TextColumn get id => text()();
   TextColumn get goalId => text().references(Goals, #id)();
   TextColumn get title => text()();
+  IntColumn get position => integer().withDefault(const Constant(0))();
   BoolColumn get isDone => boolean()();
   TextColumn get doneAt => text().nullable().map(const IsoDateTimeText())();
 
@@ -222,6 +228,10 @@ class SettingsRows extends Table {
   // 004 v5 新增（research D2）：主题偏好 TEXT 枚举
   // （system|light|dark），NULL = 跟随系统（003 完结态行为）。
   TextColumn get themeMode => text().nullable()();
+  IntColumn get defaultShortCadenceDays => integer().nullable()();
+  IntColumn get defaultLongCadenceDays => integer().nullable()();
+  TextColumn get scoreAlgorithmStartedOn =>
+      text().nullable().map(const LocalDateText())();
 
   @override
   Set<Column> get primaryKey => {id};

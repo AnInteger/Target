@@ -12,6 +12,7 @@ import '../db/app_database.dart' as db;
 import '../models/calendar_types.dart';
 import '../models/entities.dart';
 import '../models/frequency_pattern.dart';
+import '../models/goal_icon_catalog.dart' show GoalIconDomain;
 import 'backup_exporter.dart' show kBackupFormat, kBackupVersion;
 
 class BackupFormatException implements Exception {
@@ -104,8 +105,7 @@ class BackupImporter {
       final v = d[k];
       if (v is! List) _fail('data.$k 缺失（文件损坏）');
       lists[k] = [
-        for (var i = 0; i < v.length; i++)
-          _asMap(v[i], 'data.$k[$i]'),
+        for (var i = 0; i < v.length; i++) _asMap(v[i], 'data.$k[$i]'),
       ];
     }
     final settingsRaw = d['settings'];
@@ -119,8 +119,11 @@ class BackupImporter {
       _str(g, 'name', 'goals[$i].name');
       // goalType（v4）与 kind（v1）二选一：新键优先，旧键两值。
       if (g['goalType'] != null) {
-        _oneOf(g, 'goalType',
-            const ['longTerm', 'shortTerm', 'habit'], 'goals[$i].goalType');
+        _oneOf(g, 'goalType', const [
+          'longTerm',
+          'shortTerm',
+          'habit',
+        ], 'goals[$i].goalType');
       } else {
         _oneOf(g, 'kind', const ['habit', 'milestone'], 'goals[$i].kind');
       }
@@ -131,6 +134,33 @@ class BackupImporter {
       _date(g, 'createdAt', 'goals[$i].createdAt');
       _dateOpt(g, 'deadline', 'goals[$i].deadline');
       _instantOpt(g, 'achievedAt', 'goals[$i].achievedAt');
+      if (g['progressCadenceDays'] != null) {
+        _intRange(
+          g,
+          'progressCadenceDays',
+          1,
+          365,
+          'goals[$i].progressCadenceDays',
+        );
+      }
+      if (g['categoryOverride'] != null) {
+        _oneOf(
+          g,
+          'categoryOverride',
+          GoalIconDomain.values.map((e) => e.name).toList(),
+          'goals[$i].categoryOverride',
+        );
+      }
+      _dateOpt(g, 'targetDate', 'goals[$i].targetDate');
+      if (g['habitTargetPerWeek'] != null) {
+        _intRange(
+          g,
+          'habitTargetPerWeek',
+          1,
+          7,
+          'goals[$i].habitTargetPerWeek',
+        );
+      }
     }
     for (var i = 0; i < lists['frequencyVersions']!.length; i++) {
       final v = lists['frequencyVersions']![i];
@@ -138,8 +168,12 @@ class BackupImporter {
       _str(v, 'goalId', 'frequencyVersions[$i].goalId');
       _week(v, 'effectiveFromWeek', 'frequencyVersions[$i].effectiveFromWeek');
       _pattern(v, 'pattern', 'frequencyVersions[$i].pattern');
-      _enum<FrequencySource>(v, 'source', FrequencySource.values,
-          'frequencyVersions[$i].source');
+      _enum<FrequencySource>(
+        v,
+        'source',
+        FrequencySource.values,
+        'frequencyVersions[$i].source',
+      );
     }
     for (var i = 0; i < lists['busySessions']!.length; i++) {
       final s = lists['busySessions']![i];
@@ -148,7 +182,9 @@ class BackupImporter {
       _instant(s, 'startedAt', 'busySessions[$i].startedAt');
       _instantOpt(s, 'endedAt', 'busySessions[$i].endedAt');
       final entries = s['entries'];
-      if (entries is! List || entries.isEmpty) _fail('busySessions[$i].entries');
+      if (entries is! List || entries.isEmpty) {
+        _fail('busySessions[$i].entries');
+      }
       for (var j = 0; j < entries.length; j++) {
         final e = _asMap(entries[j], 'busySessions[$i].entries[$j]');
         _str(e, 'goalId', 'busySessions[$i].entries[$j].goalId');
@@ -163,7 +199,11 @@ class BackupImporter {
       _instant(c, 'createdAt', 'checkIns[$i].createdAt');
       _bool(c, 'isBackfill', 'checkIns[$i].isBackfill');
       _enum<CheckInStatus>(
-          c, 'status', CheckInStatus.values, 'checkIns[$i].status');
+        c,
+        'status',
+        CheckInStatus.values,
+        'checkIns[$i].status',
+      );
     }
     for (var i = 0; i < lists['milestoneSteps']!.length; i++) {
       final s = lists['milestoneSteps']![i];
@@ -172,6 +212,9 @@ class BackupImporter {
       _str(s, 'title', 'milestoneSteps[$i].title');
       _bool(s, 'isDone', 'milestoneSteps[$i].isDone');
       _instantOpt(s, 'doneAt', 'milestoneSteps[$i].doneAt');
+      if (s['position'] != null) {
+        _intRange(s, 'position', 0, 1000000, 'milestoneSteps[$i].position');
+      }
     }
     for (var i = 0; i < lists['reminders']!.length; i++) {
       final r = lists['reminders']![i];
@@ -181,8 +224,11 @@ class BackupImporter {
       _bool(r, 'isEnabled', 'reminders[$i].isEnabled');
       // v4 频率档可选：缺失/NULL = daily（契约宽容规则）。
       if (r['cadence'] != null) {
-        _oneOf(r, 'cadence',
-            const ['daily', 'threeDay', 'weekly'], 'reminders[$i].cadence');
+        _oneOf(r, 'cadence', const [
+          'daily',
+          'threeDay',
+          'weekly',
+        ], 'reminders[$i].cadence');
       }
     }
     for (var i = 0; i < lists['weeklyReviews']!.length; i++) {
@@ -204,8 +250,7 @@ class BackupImporter {
         if (row['totalChecks'] != null && row['totalChecks'] is! int) {
           _fail('weeklyReviews[$i].snapshot[$j].totalChecks 类型错误');
         }
-        if (row['completionRate'] != null &&
-            row['completionRate'] is! num) {
+        if (row['completionRate'] != null && row['completionRate'] is! num) {
           _fail('weeklyReviews[$i].snapshot[$j].completionRate 类型错误');
         }
         _int(row, 'backfillCount', 'weeklyReviews[$i].snapshot[$j]');
@@ -218,8 +263,11 @@ class BackupImporter {
     }
     _time(settings, 'dailyBriefTime', 'settings.dailyBriefTime');
     _bool(settings, 'onboardingCompleted', 'settings.onboardingCompleted');
-    _bool(settings, 'notificationDeniedAcknowledged',
-        'settings.notificationDeniedAcknowledged');
+    _bool(
+      settings,
+      'notificationDeniedAcknowledged',
+      'settings.notificationDeniedAcknowledged',
+    );
     // v3 账号资料可选：旧文件缺键 → NULL。
     if (settings['nickname'] != null) {
       _str(settings, 'nickname', 'settings.nickname');
@@ -232,6 +280,29 @@ class BackupImporter {
     if (settings['avatarKey'] != null) {
       _str(settings, 'avatarKey', 'settings.avatarKey');
     }
+    if (settings['defaultShortCadenceDays'] != null) {
+      _intRange(
+        settings,
+        'defaultShortCadenceDays',
+        1,
+        365,
+        'settings.defaultShortCadenceDays',
+      );
+    }
+    if (settings['defaultLongCadenceDays'] != null) {
+      _intRange(
+        settings,
+        'defaultLongCadenceDays',
+        1,
+        365,
+        'settings.defaultLongCadenceDays',
+      );
+    }
+    _dateOpt(
+      settings,
+      'scoreAlgorithmStartedOn',
+      'settings.scoreAlgorithmStartedOn',
+    );
 
     return BackupData(
       goals: lists['goals']!,
@@ -264,8 +335,10 @@ class BackupImporter {
   }
 
   /// 原子替换整个 store：单事务先清后写；失败整体回滚。
-  Future<ImportSummary> apply(BackupData data,
-      {required bool overwriteLocal}) async {
+  Future<ImportSummary> apply(
+    BackupData data, {
+    required bool overwriteLocal,
+  }) async {
     if (!overwriteLocal && await hasLocalData()) {
       throw const BackupConflictException();
     }
@@ -282,141 +355,203 @@ class BackupImporter {
       await _db.delete(_db.goals).go();
 
       for (final g in data.goals) {
-        await _db.into(_db.goals).insert(db.GoalsCompanion.insert(
-              id: g['id']! as String,
-              name: g['name']! as String,
-              // v4 文件直取 goalType；v1 文件 kind 两值 → D3 映射
-              // （habit→habit；milestone+deadline→shortTerm；余→longTerm）。
-              goalType: _goalTypeOf(g),
-              iconKey: g['iconKey']! as String,
-              colorKey: Value(g['colorKey'] as String?),
-              status: GoalStatus.values.byName(g['status']! as String),
-              createdAt: LocalDate.parse(g['createdAt']! as String),
-              deadline: Value(g['deadline'] == null
-                  ? null
-                  : LocalDate.parse(g['deadline']! as String)),
-              // 短期达成时刻（D4）：可选键，缺键/NULL → NULL。
-              achievedAt: Value(g['achievedAt'] == null
-                  ? null
-                  : DateTime.parse(g['achievedAt']! as String)),
-              // 002 B 案 envelope（T016）：可选键，缺键（001 备份）→ NULL。
-              motivation: Value(g['motivation'] as String?),
-              successCriterion: Value(g['successCriterion'] as String?),
-              cueScene: Value(g['cueScene'] as String?),
-            ));
+        await _db
+            .into(_db.goals)
+            .insert(
+              db.GoalsCompanion.insert(
+                id: g['id']! as String,
+                name: g['name']! as String,
+                // v4 文件直取 goalType；v1 文件 kind 两值 → D3 映射
+                // （habit→habit；milestone+deadline→shortTerm；余→longTerm）。
+                goalType: _goalTypeOf(g),
+                iconKey: g['iconKey']! as String,
+                colorKey: Value(g['colorKey'] as String?),
+                status: GoalStatus.values.byName(g['status']! as String),
+                createdAt: LocalDate.parse(g['createdAt']! as String),
+                deadline: Value(
+                  g['deadline'] == null
+                      ? null
+                      : LocalDate.parse(g['deadline']! as String),
+                ),
+                // 短期达成时刻（D4）：可选键，缺键/NULL → NULL。
+                achievedAt: Value(
+                  g['achievedAt'] == null
+                      ? null
+                      : DateTime.parse(g['achievedAt']! as String),
+                ),
+                // 002 B 案 envelope（T016）：可选键，缺键（001 备份）→ NULL。
+                motivation: Value(g['motivation'] as String?),
+                successCriterion: Value(g['successCriterion'] as String?),
+                cueScene: Value(g['cueScene'] as String?),
+                progressCadenceDays: Value(
+                  g['progressCadenceDays'] as int? ??
+                      (_goalTypeOf(g) == GoalType.longTerm ? 14 : 7),
+                ),
+                categoryOverride: Value(g['categoryOverride'] as String?),
+                targetDate: Value(
+                  g['targetDate'] == null
+                      ? null
+                      : LocalDate.parse(g['targetDate']! as String),
+                ),
+                habitTargetPerWeek: Value(g['habitTargetPerWeek'] as int?),
+              ),
+            );
       }
       counts['goals'] = data.goals.length;
 
       for (final v in data.frequencyVersions) {
-        await _db.into(_db.frequencyVersions).insert(
-            db.FrequencyVersionsCompanion.insert(
-              id: v['id']! as String,
-              goalId: v['goalId']! as String,
-              effectiveFromWeek: WeekStart.parse(v['effectiveFromWeek']! as String),
-              pattern: _patternOf(v, 'pattern'),
-              source:
-                  FrequencySource.values.byName(v['source']! as String),
-            ));
+        await _db
+            .into(_db.frequencyVersions)
+            .insert(
+              db.FrequencyVersionsCompanion.insert(
+                id: v['id']! as String,
+                goalId: v['goalId']! as String,
+                effectiveFromWeek: WeekStart.parse(
+                  v['effectiveFromWeek']! as String,
+                ),
+                pattern: _patternOf(v, 'pattern'),
+                source: FrequencySource.values.byName(v['source']! as String),
+              ),
+            );
       }
       counts['frequencyVersions'] = data.frequencyVersions.length;
 
       for (final s in data.busySessions) {
-        await _db.into(_db.busyModeSessions).insert(
-            db.BusyModeSessionsCompanion.insert(
-              id: s['id']! as String,
-              weekStart: WeekStart.parse(s['weekStart']! as String),
-              startedAt: DateTime.parse(s['startedAt']! as String),
-              endedAt: Value(s['endedAt'] == null
-                  ? null
-                  : DateTime.parse(s['endedAt']! as String)),
-            ));
+        await _db
+            .into(_db.busyModeSessions)
+            .insert(
+              db.BusyModeSessionsCompanion.insert(
+                id: s['id']! as String,
+                weekStart: WeekStart.parse(s['weekStart']! as String),
+                startedAt: DateTime.parse(s['startedAt']! as String),
+                endedAt: Value(
+                  s['endedAt'] == null
+                      ? null
+                      : DateTime.parse(s['endedAt']! as String),
+                ),
+              ),
+            );
         for (final e in (s['entries']! as List)) {
           final em = Map<String, Object?>.from(e as Map);
-          await _db.into(_db.busyModeEntries).insert(
-              db.BusyModeEntriesCompanion.insert(
-                id: newId(),
-                sessionId: s['id']! as String,
-                goalId: em['goalId']! as String,
-                downgraded: _patternOf(em, 'downgraded'),
-              ));
+          await _db
+              .into(_db.busyModeEntries)
+              .insert(
+                db.BusyModeEntriesCompanion.insert(
+                  id: newId(),
+                  sessionId: s['id']! as String,
+                  goalId: em['goalId']! as String,
+                  downgraded: _patternOf(em, 'downgraded'),
+                ),
+              );
         }
       }
       counts['busySessions'] = data.busySessions.length;
 
       for (final c in data.checkIns) {
-        await _db.into(_db.checkIns).insert(db.CheckInsCompanion.insert(
-              id: c['id']! as String,
-              goalId: c['goalId']! as String,
-              day: LocalDate.parse(c['day']! as String),
-              createdAt: DateTime.parse(c['createdAt']! as String),
-              isBackfill: c['isBackfill']! as bool,
-              status:
-                  CheckInStatus.values.byName(c['status']! as String),
-              // note 可选键（FR-019，v4）：旧备份缺失 → NULL，显示层兜底。
-              note: Value(c['note'] as String?),
-            ));
+        await _db
+            .into(_db.checkIns)
+            .insert(
+              db.CheckInsCompanion.insert(
+                id: c['id']! as String,
+                goalId: c['goalId']! as String,
+                day: LocalDate.parse(c['day']! as String),
+                createdAt: DateTime.parse(c['createdAt']! as String),
+                isBackfill: c['isBackfill']! as bool,
+                status: CheckInStatus.values.byName(c['status']! as String),
+                // note 可选键（FR-019，v4）：旧备份缺失 → NULL，显示层兜底。
+                note: Value(c['note'] as String?),
+              ),
+            );
       }
       counts['checkIns'] = data.checkIns.length;
 
       for (final s in data.milestoneSteps) {
-        await _db.into(_db.milestoneSteps).insert(
-            db.MilestoneStepsCompanion.insert(
-              id: s['id']! as String,
-              goalId: s['goalId']! as String,
-              title: s['title']! as String,
-              isDone: s['isDone']! as bool,
-              doneAt: Value(s['doneAt'] == null
-                  ? null
-                  : DateTime.parse(s['doneAt']! as String)),
-            ));
+        await _db
+            .into(_db.milestoneSteps)
+            .insert(
+              db.MilestoneStepsCompanion.insert(
+                id: s['id']! as String,
+                goalId: s['goalId']! as String,
+                title: s['title']! as String,
+                isDone: s['isDone']! as bool,
+                doneAt: Value(
+                  s['doneAt'] == null
+                      ? null
+                      : DateTime.parse(s['doneAt']! as String),
+                ),
+                position: Value(s['position'] as int? ?? 0),
+              ),
+            );
       }
       counts['milestoneSteps'] = data.milestoneSteps.length;
 
       for (final r in data.reminders) {
-        await _db.into(_db.reminders).insert(db.RemindersCompanion.insert(
-              id: r['id']! as String,
-              goalId: Value(r['goalId'] as String?),
-              time: LocalTime.parse(r['time']! as String),
-              isEnabled: r['isEnabled']! as bool,
-              // v4 频率档可选：缺键 → NULL（effectiveCadence 视为 daily）。
-              cadence: Value(r['cadence'] == null
-                  ? null
-                  : Cadence.values.byName(r['cadence']! as String)),
-            ));
+        await _db
+            .into(_db.reminders)
+            .insert(
+              db.RemindersCompanion.insert(
+                id: r['id']! as String,
+                goalId: Value(r['goalId'] as String?),
+                time: LocalTime.parse(r['time']! as String),
+                isEnabled: r['isEnabled']! as bool,
+                // v4 频率档可选：缺键 → NULL（effectiveCadence 视为 daily）。
+                cadence: Value(
+                  r['cadence'] == null
+                      ? null
+                      : Cadence.values.byName(r['cadence']! as String),
+                ),
+              ),
+            );
       }
       counts['reminders'] = data.reminders.length;
 
       for (final r in data.weeklyReviews) {
-        await _db.into(_db.weeklyReviews).insert(
-            db.WeeklyReviewsCompanion.insert(
-              id: r['id']! as String,
-              weekStart: WeekStart.parse(r['weekStart']! as String),
-              settledAt: DateTime.parse(r['settledAt']! as String),
-              snapshotJson: jsonEncode(r['snapshot']),
-              decisionJson: jsonEncode(r['decision']),
-              note: Value(r['note'] as String?),
-            ),
-            mode: InsertMode.insertOrReplace);
+        await _db
+            .into(_db.weeklyReviews)
+            .insert(
+              db.WeeklyReviewsCompanion.insert(
+                id: r['id']! as String,
+                weekStart: WeekStart.parse(r['weekStart']! as String),
+                settledAt: DateTime.parse(r['settledAt']! as String),
+                snapshotJson: jsonEncode(r['snapshot']),
+                decisionJson: jsonEncode(r['decision']),
+                note: Value(r['note'] as String?),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
       }
       counts['weeklyReviews'] = data.weeklyReviews.length;
 
       // Settings：单例行整体替换（id=1 固定）。
       final s = data.settings;
-      await (_db.delete(_db.settingsRows)
-            ..where((t) => t.id.equals(1)))
-          .go();
-      await _db.into(_db.settingsRows).insert(
-          db.SettingsRowsCompanion.insert(
-            dailyBriefTime: LocalTime.parse(s['dailyBriefTime']! as String),
-            onboardingCompleted: Value(s['onboardingCompleted']! as bool),
-            notificationDeniedAcknowledged:
-                Value(s['notificationDeniedAcknowledged']! as bool),
-            // v3 账号资料（D7）：可选键，缺键 → NULL。
-            nickname: Value(s['nickname'] as String?),
-            avatarKey: Value(s['avatarKey'] as String?),
-            // 004 v5（D2）：可选键，缺键/未知值 → NULL（= system）。
-            themeMode: Value(_normThemeMode(s['themeMode'])),
-          ));
+      await (_db.delete(_db.settingsRows)..where((t) => t.id.equals(1))).go();
+      await _db
+          .into(_db.settingsRows)
+          .insert(
+            db.SettingsRowsCompanion.insert(
+              dailyBriefTime: LocalTime.parse(s['dailyBriefTime']! as String),
+              onboardingCompleted: Value(s['onboardingCompleted']! as bool),
+              notificationDeniedAcknowledged: Value(
+                s['notificationDeniedAcknowledged']! as bool,
+              ),
+              // v3 账号资料（D7）：可选键，缺键 → NULL。
+              nickname: Value(s['nickname'] as String?),
+              avatarKey: Value(s['avatarKey'] as String?),
+              // 004 v5（D2）：可选键，缺键/未知值 → NULL（= system）。
+              themeMode: Value(_normThemeMode(s['themeMode'])),
+              defaultShortCadenceDays: Value(
+                s['defaultShortCadenceDays'] as int? ?? 7,
+              ),
+              defaultLongCadenceDays: Value(
+                s['defaultLongCadenceDays'] as int? ?? 14,
+              ),
+              scoreAlgorithmStartedOn: Value(
+                s['scoreAlgorithmStartedOn'] == null
+                    ? null
+                    : LocalDate.parse(s['scoreAlgorithmStartedOn']! as String),
+              ),
+            ),
+          );
     });
     return ImportSummary(counts);
   }
@@ -446,6 +581,17 @@ class BackupImporter {
 
   static void _int(Map<String, Object?> m, String key, String where) {
     if (m[key] is! int) _fail(where);
+  }
+
+  static void _intRange(
+    Map<String, Object?> m,
+    String key,
+    int min,
+    int max,
+    String where,
+  ) {
+    final value = m[key];
+    if (value is! int || value < min || value > max) _fail(where);
   }
 
   static void _bool(Map<String, Object?> m, String key, String where) {
@@ -503,13 +649,21 @@ class BackupImporter {
   }
 
   static void _oneOf(
-      Map<String, Object?> m, String key, List<String> allowed, String where) {
+    Map<String, Object?> m,
+    String key,
+    List<String> allowed,
+    String where,
+  ) {
     final v = m[key];
     if (v is! String || !allowed.contains(v)) _fail(where);
   }
 
   static void _enum<T extends Enum>(
-      Map<String, Object?> m, String key, List<T> values, String where) {
+    Map<String, Object?> m,
+    String key,
+    List<T> values,
+    String where,
+  ) {
     final v = m[key];
     if (v is! String || !values.any((e) => e.name == v)) _fail(where);
   }

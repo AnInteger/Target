@@ -16,8 +16,8 @@ const String kBackupFormat = 'target-backup';
 /// 备份格式版本（003 T037 · contracts/backup-format.md 定稿 v4）：
 /// v1 = 001/002 形态（kind 两值）；v4 = goals +goalType/+achievedAt、
 /// reminders +cadence、settings +nickname/avatarKey、checkIns +note、
-/// colorKey 导出 null（列退役）。v2/v3 未单独发版（R2 评审 note 并档直升 4）。
-const int kBackupVersion = 4;
+/// colorKey 导出 null；v5 增目标规划、里程碑排序与评分算法边界。
+const int kBackupVersion = 5;
 
 /// 文件名：`Target-备份-YYYYMMDD.targetbackup`。
 String backupFileName(DateTime now) =>
@@ -64,10 +64,7 @@ class BackupExporter {
                 'endedAt': s.endedAt!.toUtc().toIso8601String(),
               'entries': [
                 for (final e in entries.where((e) => e.sessionId == s.id))
-                  {
-                    'goalId': e.goalId,
-                    'downgraded': e.downgraded.toJson(),
-                  },
+                  {'goalId': e.goalId, 'downgraded': e.downgraded.toJson()},
               ],
             },
         ],
@@ -85,80 +82,87 @@ class BackupExporter {
   // ---- 行 → JSON（键与 data-model.md 实体字段一一对应）----
 
   static Map<String, Object?> _goalJson(db.Goal g) => {
-        'id': g.id,
-        'name': g.name,
-        // v4：goalType 三值替代 v1 kind 两值（旧 App 读 v4 按 001 宽容
-        // 策略忽略未知字段；导入侧 v1 文件走 D3 映射，见 importer）。
-        'goalType': g.goalType.name,
-        'iconKey': g.iconKey,
-        // colorKey 列退役（003 契约）：恒导 null；v1 文件里的存量值导入侧照存。
-        'colorKey': null,
-        'status': g.status.name,
-        'createdAt': g.createdAt.isoString,
-        if (g.deadline != null) 'deadline': g.deadline!.isoString,
-        // 短期达成时刻（D4）：恒导键，null = 未达成。
-        'achievedAt':
-            g.achievedAt?.toUtc().toIso8601String(),
-        // 002 B 案 envelope（T016）：可选键，NULL 不导出——001 备份缺键可导回。
-        if (g.motivation != null) 'motivation': g.motivation,
-        if (g.successCriterion != null) 'successCriterion': g.successCriterion,
-        if (g.cueScene != null) 'cueScene': g.cueScene,
-      };
+    'id': g.id,
+    'name': g.name,
+    // v4：goalType 三值替代 v1 kind 两值（旧 App 读 v4 按 001 宽容
+    // 策略忽略未知字段；导入侧 v1 文件走 D3 映射，见 importer）。
+    'goalType': g.goalType.name,
+    'iconKey': g.iconKey,
+    // colorKey 列退役（003 契约）：恒导 null；v1 文件里的存量值导入侧照存。
+    'colorKey': null,
+    'status': g.status.name,
+    'createdAt': g.createdAt.isoString,
+    if (g.deadline != null) 'deadline': g.deadline!.isoString,
+    // 短期达成时刻（D4）：恒导键，null = 未达成。
+    'achievedAt': g.achievedAt?.toUtc().toIso8601String(),
+    // 002 B 案 envelope（T016）：可选键，NULL 不导出——001 备份缺键可导回。
+    if (g.motivation != null) 'motivation': g.motivation,
+    if (g.successCriterion != null) 'successCriterion': g.successCriterion,
+    if (g.cueScene != null) 'cueScene': g.cueScene,
+    'progressCadenceDays': g.progressCadenceDays,
+    if (g.categoryOverride != null) 'categoryOverride': g.categoryOverride,
+    if (g.targetDate != null) 'targetDate': g.targetDate!.isoString,
+    if (g.habitTargetPerWeek != null)
+      'habitTargetPerWeek': g.habitTargetPerWeek,
+  };
 
   static Map<String, Object?> _versionJson(db.FrequencyVersion v) => {
-        'id': v.id,
-        'goalId': v.goalId,
-        'effectiveFromWeek': v.effectiveFromWeek.isoString,
-        'pattern': v.pattern.toJson(),
-        'source': v.source.name,
-      };
+    'id': v.id,
+    'goalId': v.goalId,
+    'effectiveFromWeek': v.effectiveFromWeek.isoString,
+    'pattern': v.pattern.toJson(),
+    'source': v.source.name,
+  };
 
   static Map<String, Object?> _checkInJson(db.CheckIn c) => {
-        'id': c.id,
-        'goalId': c.goalId,
-        'day': c.day.isoString,
-        'createdAt': c.createdAt.toUtc().toIso8601String(),
-        'isBackfill': c.isBackfill,
-        'status': c.status.name,
-        // 一句话描述（FR-019，schema v4）：可选键，NULL 不导出——
-        // 旧版备份缺键可导回（全量 v4 格式升版在 US5 T037）。
-        if (c.note != null) 'note': c.note,
-      };
+    'id': c.id,
+    'goalId': c.goalId,
+    'day': c.day.isoString,
+    'createdAt': c.createdAt.toUtc().toIso8601String(),
+    'isBackfill': c.isBackfill,
+    'status': c.status.name,
+    // 一句话描述（FR-019，schema v4）：可选键，NULL 不导出——
+    // 旧版备份缺键可导回（全量 v4 格式升版在 US5 T037）。
+    if (c.note != null) 'note': c.note,
+  };
 
   static Map<String, Object?> _stepJson(db.MilestoneStep s) => {
-        'id': s.id,
-        'goalId': s.goalId,
-        'title': s.title,
-        'isDone': s.isDone,
-        if (s.doneAt != null) 'doneAt': s.doneAt!.toUtc().toIso8601String(),
-      };
+    'id': s.id,
+    'goalId': s.goalId,
+    'title': s.title,
+    'isDone': s.isDone,
+    'position': s.position,
+    if (s.doneAt != null) 'doneAt': s.doneAt!.toUtc().toIso8601String(),
+  };
 
   static Map<String, Object?> _reminderJson(db.Reminder r) => {
-        'id': r.id,
-        'goalId': r.goalId,
-        'time': r.time.isoString,
-        'isEnabled': r.isEnabled,
-        // v4 提醒频率档（FR-013）：NULL = daily，不导键。
-        if (r.cadence != null) 'cadence': r.cadence!.name,
-      };
+    'id': r.id,
+    'goalId': r.goalId,
+    'time': r.time.isoString,
+    'isEnabled': r.isEnabled,
+    // v4 提醒频率档（FR-013）：NULL = daily，不导键。
+    if (r.cadence != null) 'cadence': r.cadence!.name,
+  };
 
   static Map<String, Object?> _reviewJson(db.WeeklyReview r) => {
-        'id': r.id,
-        'weekStart': r.weekStart.isoString,
-        'settledAt': r.settledAt.toUtc().toIso8601String(),
-        // snapshot/decision 键格式与 ReviewRepository 的行内 JSON 同源。
-        'snapshot': ReviewRepository.decodeSnapshot(r.snapshotJson)
-            .map((s) => {
-                  'goalId': s.goalId,
-                  'metDays': s.metDays,
-                  'totalChecks': s.totalChecks,
-                  'backfillCount': s.backfillCount,
-                  'busyModeApplied': s.busyModeApplied,
-                })
-            .toList(),
-        'decision': _decisionJson(r.decisionJson),
-        if (r.note != null) 'note': r.note,
-      };
+    'id': r.id,
+    'weekStart': r.weekStart.isoString,
+    'settledAt': r.settledAt.toUtc().toIso8601String(),
+    // snapshot/decision 键格式与 ReviewRepository 的行内 JSON 同源。
+    'snapshot': ReviewRepository.decodeSnapshot(r.snapshotJson)
+        .map(
+          (s) => {
+            'goalId': s.goalId,
+            'metDays': s.metDays,
+            'totalChecks': s.totalChecks,
+            'backfillCount': s.backfillCount,
+            'busyModeApplied': s.busyModeApplied,
+          },
+        )
+        .toList(),
+    'decision': _decisionJson(r.decisionJson),
+    if (r.note != null) 'note': r.note,
+  };
 
   static Map<String, Object?> _decisionJson(String decisionJson) {
     final m = Map<String, Object?>.from(jsonDecode(decisionJson) as Map);
@@ -169,15 +173,19 @@ class BackupExporter {
   }
 
   static Map<String, Object?> _settingsJson(db.SettingsRow? r) => {
-        'dailyBriefTime': (r?.dailyBriefTime ?? const LocalTime(8, 0)).isoString,
-        'onboardingCompleted': r?.onboardingCompleted ?? false,
-        'notificationDeniedAcknowledged':
-            r?.notificationDeniedAcknowledged ?? false,
-        // v3 账号资料（D7）：可选键，NULL 不导出——旧文件缺键导回为 NULL。
-        if (r?.nickname != null) 'nickname': r!.nickname,
-        if (r?.avatarKey != null) 'avatarKey': r!.avatarKey,
-        // 004 v5（D2）：主题偏好可选键，NULL（=system）不导出——
-        // 旧文件缺键导回 NULL，双向宽容沿 T044 note 先例。
-        if (r?.themeMode != null) 'themeMode': r!.themeMode,
-      };
+    'dailyBriefTime': (r?.dailyBriefTime ?? const LocalTime(8, 0)).isoString,
+    'onboardingCompleted': r?.onboardingCompleted ?? false,
+    'notificationDeniedAcknowledged':
+        r?.notificationDeniedAcknowledged ?? false,
+    // v3 账号资料（D7）：可选键，NULL 不导出——旧文件缺键导回为 NULL。
+    if (r?.nickname != null) 'nickname': r!.nickname,
+    if (r?.avatarKey != null) 'avatarKey': r!.avatarKey,
+    // 004 v5（D2）：主题偏好可选键，NULL（=system）不导出——
+    // 旧文件缺键导回 NULL，双向宽容沿 T044 note 先例。
+    if (r?.themeMode != null) 'themeMode': r!.themeMode,
+    'defaultShortCadenceDays': r?.defaultShortCadenceDays ?? 7,
+    'defaultLongCadenceDays': r?.defaultLongCadenceDays ?? 14,
+    if (r?.scoreAlgorithmStartedOn != null)
+      'scoreAlgorithmStartedOn': r!.scoreAlgorithmStartedOn!.isoString,
+  };
 }

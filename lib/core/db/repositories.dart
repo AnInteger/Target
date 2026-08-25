@@ -12,6 +12,7 @@ import 'package:drift/drift.dart';
 import '../models/calendar_types.dart';
 import '../models/entities.dart';
 import '../models/frequency_pattern.dart';
+import '../models/goal_icon_catalog.dart';
 import 'app_database.dart' as db;
 
 /// 活跃目标已达上限（FR-011，UI 捕获后触发聚焦引导）。
@@ -106,9 +107,18 @@ class GoalRepository {
     iconKey: r.iconKey,
     // colorKey 003 退役：库 NULL ⇔ 实体 ''（只藏不删）。
     colorKey: r.colorKey ?? '',
+    categoryOverride: r.categoryOverride == null
+        ? null
+        : GoalIconDomain.values.firstWhere(
+            (domain) => domain.name == r.categoryOverride,
+            orElse: () => GoalIconDomain.travel,
+          ),
+    progressCadenceDays: r.progressCadenceDays,
     status: r.status,
     createdAt: r.createdAt,
     deadline: r.deadline,
+    targetDate: r.targetDate,
+    habitTargetPerWeek: r.habitTargetPerWeek,
     achievedAt: r.achievedAt,
     motivation: r.motivation,
     successCriterion: r.successCriterion,
@@ -120,6 +130,10 @@ class GoalRepository {
     name: g.name,
     goalType: g.goalType,
     iconKey: g.iconKey,
+    progressCadenceDays: Value(g.progressCadenceDays),
+    categoryOverride: Value(g.categoryOverride?.name),
+    targetDate: Value(g.targetDate),
+    habitTargetPerWeek: Value(g.habitTargetPerWeek),
     colorKey: Value(g.colorKey.isEmpty ? null : g.colorKey),
     status: g.status,
     createdAt: g.createdAt,
@@ -160,13 +174,36 @@ class GoalRepository {
 
   // ---- MilestoneStep ----
 
-  Stream<List<MilestoneStep>> watchStepsOf(String goalId) => (_db.select(
-    _db.milestoneSteps,
-  )..where((t) => t.goalId.equals(goalId))).map(_toStep).watch();
+  Stream<List<MilestoneStep>> watchStepsOf(String goalId) =>
+      (_db.select(_db.milestoneSteps)
+            ..where((t) => t.goalId.equals(goalId))
+            ..orderBy([
+              (t) => OrderingTerm.asc(t.position),
+              (t) => OrderingTerm.asc(t.id),
+            ]))
+          .map(_toStep)
+          .watch();
 
-  Future<List<MilestoneStep>> stepsOf(String goalId) => (_db.select(
-    _db.milestoneSteps,
-  )..where((t) => t.goalId.equals(goalId))).map(_toStep).get();
+  /// 全量里程碑流。评分引擎一次性按 goalId 分组，避免在 Provider 中动态
+  /// watch family 导致订阅数量和目标列表互相耦合。
+  Stream<List<MilestoneStep>> watchAllSteps() =>
+      (_db.select(_db.milestoneSteps)..orderBy([
+            (t) => OrderingTerm.asc(t.goalId),
+            (t) => OrderingTerm.asc(t.position),
+            (t) => OrderingTerm.asc(t.id),
+          ]))
+          .map(_toStep)
+          .watch();
+
+  Future<List<MilestoneStep>> stepsOf(String goalId) =>
+      (_db.select(_db.milestoneSteps)
+            ..where((t) => t.goalId.equals(goalId))
+            ..orderBy([
+              (t) => OrderingTerm.asc(t.position),
+              (t) => OrderingTerm.asc(t.id),
+            ]))
+          .map(_toStep)
+          .get();
 
   Future<MilestoneStep> addStep(MilestoneStep s) async {
     await _db
@@ -175,6 +212,7 @@ class GoalRepository {
           db.MilestoneStepsCompanion.insert(
             goalId: s.goalId,
             title: s.title,
+            position: Value(s.position),
             isDone: s.isDone,
             doneAt: Value(s.doneAt),
             id: s.id,
@@ -187,6 +225,7 @@ class GoalRepository {
       (_db.update(_db.milestoneSteps)..where((t) => t.id.equals(s.id))).write(
         db.MilestoneStepsCompanion(
           title: Value(s.title),
+          position: Value(s.position),
           isDone: Value(s.isDone),
           doneAt: Value(s.doneAt),
         ),
@@ -199,6 +238,7 @@ class GoalRepository {
     id: r.id,
     goalId: r.goalId,
     title: r.title,
+    position: r.position,
     isDone: r.isDone,
     doneAt: r.doneAt,
   );
@@ -511,6 +551,9 @@ class SettingsRepository {
           ),
           // 004 v5（D2）：NULL 与 'system' 等价，统一落 .name。
           themeMode: Value(s.themeMode.name),
+          defaultShortCadenceDays: Value(s.defaultShortCadenceDays),
+          defaultLongCadenceDays: Value(s.defaultLongCadenceDays),
+          scoreAlgorithmStartedOn: Value(s.scoreAlgorithmStartedOn),
         ),
       );
 
@@ -519,6 +562,9 @@ class SettingsRepository {
     onboardingCompleted: r.onboardingCompleted,
     notificationDeniedAcknowledged: r.notificationDeniedAcknowledged,
     themeMode: AppThemeMode.parse(r.themeMode),
+    defaultShortCadenceDays: r.defaultShortCadenceDays ?? 7,
+    defaultLongCadenceDays: r.defaultLongCadenceDays ?? 14,
+    scoreAlgorithmStartedOn: r.scoreAlgorithmStartedOn,
   );
 
   /// 003 v3 账号资料（D7：单例行 nickname/avatar_key 两列）。

@@ -21,8 +21,8 @@ import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/goal_icon_catalog.dart';
-import '../today/undo_toast.dart';
 import 'goal_lifecycle.dart';
+import 'progress_record_sheet.dart';
 import 'goal_type_badge.dart';
 
 class GoalDetailPage extends ConsumerWidget {
@@ -99,7 +99,14 @@ class GoalDetailPage extends ConsumerWidget {
                   ),
                   if (active) ...[
                     const SizedBox(height: AppSpace.s4),
-                    _TodayCard(goalId: goal.id, mine: mine, today: today),
+                    _TodayCard(
+                      goal: goal,
+                      currentStep: steps
+                          .where((step) => !step.isDone)
+                          .firstOrNull,
+                      mine: mine,
+                      today: today,
+                    ),
                   ],
                   if (goal.isShortTerm) ...[
                     const SizedBox(height: AppSpace.s4),
@@ -608,12 +615,14 @@ class _MetaPill extends StatelessWidget {
 
 class _TodayCard extends ConsumerStatefulWidget {
   const _TodayCard({
-    required this.goalId,
+    required this.goal,
+    required this.currentStep,
     required this.mine,
     required this.today,
   });
 
-  final String goalId;
+  final Goal goal;
+  final MilestoneStep? currentStep;
   final List<CheckIn> mine;
   final LocalDate today;
 
@@ -622,21 +631,16 @@ class _TodayCard extends ConsumerStatefulWidget {
 }
 
 class _TodayCardState extends ConsumerState<_TodayCard> {
-  final _note = TextEditingController();
-
-  @override
-  void dispose() {
-    _note.dispose();
-    super.dispose();
-  }
-
-  Future<void> _checkIn() async {
-    final text = _note.text.trim();
-    final ci = await ref
-        .read(checkInServiceProvider)
-        .checkInToday(widget.goalId, note: text.isEmpty ? null : text);
-    _note.clear();
-    if (mounted) showCheckInToast(context, ref, ci);
+  Future<void> _recordProgress() async {
+    final saved = await showProgressRecordSheet(
+      context,
+      goal: widget.goal,
+      currentStep: widget.currentStep,
+    );
+    if (saved == true && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('进展已记录')));
+    }
   }
 
   Future<void> _openBackfill([LocalDate? initial]) async {
@@ -654,7 +658,7 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
       ),
     );
     if (picked == null) return;
-    await ref.read(checkInServiceProvider).backfill(widget.goalId, picked);
+    await ref.read(checkInServiceProvider).backfill(widget.goal.id, picked);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(Copy.backfillDone(picked.isoString))),
@@ -684,40 +688,37 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
             ),
           ),
           const SizedBox(height: AppSpace.s3),
-          TextFormField(
-            key: const ValueKey('checkInNoteField'),
-            controller: _note,
-            maxLength: 40,
-            style: theme.textTheme.bodyL,
-            decoration: InputDecoration(
-              hintText: Copy.checkInNoteHint,
-              counterText: '',
-              isDense: true,
-              filled: true,
-              fillColor: palette.surfaceAlt,
-              border: OutlineInputBorder(
-                borderRadius: AppRadius.rMd,
-                borderSide: BorderSide(color: palette.divider),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: AppRadius.rMd,
-                borderSide: BorderSide(color: palette.divider),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppSpace.s4,
-                vertical: AppSpace.s3,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpace.s3),
+            decoration: BoxDecoration(
+              color: palette.surfaceAlt,
+              borderRadius: AppRadius.rMd,
+            ),
+            child: Text(
+              widget.currentStep == null
+                  ? '记录这次做了什么，并为目标补充下一步计划。'
+                  : '当前里程碑：${widget.currentStep!.title}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyM.copyWith(
+                color: palette.onSurfaceVariant,
               ),
             ),
-            onFieldSubmitted: (_) => _checkIn(),
           ),
           const SizedBox(height: AppSpace.s2),
           _PillButton(
-            label: Copy.goalCheckInAction,
-            leading: Icon(Icons.check, size: 18, color: palette.accentOn),
+            key: const ValueKey('recordProgressButton'),
+            label: '记录进展',
+            leading: Icon(
+              Icons.edit_rounded,
+              size: 18,
+              color: palette.accentOn,
+            ),
             background: palette.accent,
             foreground: palette.accentOn,
             shadow: true,
-            onTap: _checkIn,
+            onTap: _recordProgress,
           ),
           const SizedBox(height: AppSpace.s3),
           _WeekDots(

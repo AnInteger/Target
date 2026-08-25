@@ -6,7 +6,7 @@
 /// （v2：goals 增 B 案 envelope 三可空列；v3：003 三类型/提醒档/
 /// 资料列 + 存量重映射，见 _migrateV3；v4：check_ins 增 note 可空列，
 /// 纯 ADD COLUMN，FR-019；v5：004 settings 增 themeMode 可空列，
-/// 纯 ADD COLUMN，research D2）。
+/// 纯 ADD COLUMN，research D2；v6：目标推进规划与评分算法边界字段）。
 library;
 
 import 'package:drift/drift.dart';
@@ -20,54 +20,106 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [
-  Goals,
-  FrequencyVersions,
-  BusyModeSessions,
-  BusyModeEntries,
-  CheckIns,
-  MilestoneSteps,
-  Reminders,
-  WeeklyReviews,
-  SettingsRows,
-])
+@DriftDatabase(
+  tables: [
+    Goals,
+    FrequencyVersions,
+    BusyModeSessions,
+    BusyModeEntries,
+    CheckIns,
+    MilestoneSteps,
+    Reminders,
+    WeeklyReviews,
+    SettingsRows,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async {
-          await m.createAll();
-          // Settings 单例行（默认 08:00 每日概要）。
-          await into(settingsRows).insert(SettingsRowsCompanion.insert(
-            dailyBriefTime: const LocalTime(8, 0),
-          ));
-        },
-        onUpgrade: (m, from, to) async {
-          // v1 → v2（002 US3，B 案 envelope）：三个可空列，旧数据零丢失。
-          if (from < 2) {
-            await m.addColumn(goals, goals.motivation);
-            await m.addColumn(goals, goals.successCriterion);
-            await m.addColumn(goals, goals.cueScene);
-          }
-          // v2 → v3（003 T009，research D3 一次性重映射）。
-          if (from < 3) {
-            await _migrateV3();
-          }
-          // v3 → v4（003 T044，FR-019）：打卡一句话描述，纯 ADD COLUMN。
-          if (from < 4) {
-            await m.addColumn(checkIns, checkIns.note);
-          }
-          // v4 → v5（004 T003，research D2）：主题偏好可空列，
-          // NULL = 跟随系统，纯 ADD COLUMN。
-          if (from < 5) {
-            await m.addColumn(settingsRows, settingsRows.themeMode);
-          }
-        },
+    onCreate: (m) async {
+      await m.createAll();
+      // Settings 单例行（默认 08:00 每日概要）。
+      await into(settingsRows).insert(
+        SettingsRowsCompanion.insert(dailyBriefTime: const LocalTime(8, 0)),
       );
+    },
+    onUpgrade: (m, from, to) async {
+      // v1 → v2（002 US3，B 案 envelope）：三个可空列，旧数据零丢失。
+      if (from < 2) {
+        await m.addColumn(goals, goals.motivation);
+        await m.addColumn(goals, goals.successCriterion);
+        await m.addColumn(goals, goals.cueScene);
+      }
+      // v2 → v3（003 T009，research D3 一次性重映射）。
+      if (from < 3) {
+        await _migrateV3();
+      }
+      // v3 → v4（003 T044，FR-019）：打卡一句话描述，纯 ADD COLUMN。
+      if (from < 4) {
+        await m.addColumn(checkIns, checkIns.note);
+      }
+      // v4 → v5（004 T003，research D2）：主题偏好可空列，
+      // NULL = 跟随系统，纯 ADD COLUMN。
+      if (from < 5) {
+        await m.addColumn(settingsRows, settingsRows.themeMode);
+      }
+      if (from < 6) {
+        await _migrateV6(m);
+      }
+    },
+  );
+
+  Future<void> _migrateV6(Migrator m) async {
+    await m.addColumn(goals, goals.progressCadenceDays);
+    await m.addColumn(goals, goals.categoryOverride);
+    await m.addColumn(goals, goals.targetDate);
+    await m.addColumn(goals, goals.habitTargetPerWeek);
+    await m.addColumn(milestoneSteps, milestoneSteps.position);
+    await m.addColumn(settingsRows, settingsRows.defaultShortCadenceDays);
+    await m.addColumn(settingsRows, settingsRows.defaultLongCadenceDays);
+    await m.addColumn(settingsRows, settingsRows.scoreAlgorithmStartedOn);
+
+    await customUpdate(
+      "UPDATE goals SET progress_cadence_days = CASE "
+      "WHEN goal_type = 'longTerm' THEN 14 ELSE 7 END "
+      'WHERE progress_cadence_days IS NULL',
+      updates: {goals},
+    );
+    await customUpdate(
+      "UPDATE goals SET habit_target_per_week = 5 "
+      "WHERE goal_type = 'habit' AND habit_target_per_week IS NULL",
+      updates: {goals},
+    );
+    await customUpdate(
+      'UPDATE settings_rows SET '
+      'default_short_cadence_days = 7, '
+      'default_long_cadence_days = 14, '
+      "score_algorithm_started_on = date('now', 'localtime') "
+      'WHERE id = 1',
+      updates: {settingsRows},
+    );
+
+    final rows = await customSelect(
+      'SELECT id, goal_id FROM milestone_steps ORDER BY goal_id, rowid',
+      readsFrom: {milestoneSteps},
+    ).get();
+    final nextPosition = <String, int>{};
+    for (final row in rows) {
+      final goalId = row.read<String>('goal_id');
+      final position = nextPosition[goalId] ?? 0;
+      await customUpdate(
+        'UPDATE milestone_steps SET position = ? WHERE id = ?',
+        variables: [Variable(position), Variable(row.read<String>('id'))],
+        updates: {milestoneSteps},
+      );
+      nextPosition[goalId] = position + 1;
+    }
+  }
 
   /// v2 → v3 一次性迁移（003 T009 · research D3 / data-model.md）。
   ///
@@ -90,10 +142,10 @@ class AppDatabase extends _$AppDatabase {
     await customStatement('ALTER TABLE goals RENAME COLUMN kind TO goal_type');
     await customStatement('ALTER TABLE goals ADD COLUMN achieved_at TEXT');
     await customStatement('ALTER TABLE reminders ADD COLUMN cadence TEXT');
+    await customStatement('ALTER TABLE settings_rows ADD COLUMN nickname TEXT');
     await customStatement(
-        'ALTER TABLE settings_rows ADD COLUMN nickname TEXT');
-    await customStatement(
-        'ALTER TABLE settings_rows ADD COLUMN avatar_key TEXT');
+      'ALTER TABLE settings_rows ADD COLUMN avatar_key TEXT',
+    );
 
     // ---- 2) goalType 重映射（先读裸行再改写）----
     final rawGoals = await customSelect(
@@ -102,8 +154,9 @@ class AppDatabase extends _$AppDatabase {
     ).get();
     final freqTypes = <String, Set<String>>{};
     for (final v in await select(frequencyVersions).get()) {
-      freqTypes.putIfAbsent(v.goalId, () => {}).add(
-          v.pattern.toJson()['type'] as String? ?? '');
+      freqTypes
+          .putIfAbsent(v.goalId, () => {})
+          .add(v.pattern.toJson()['type'] as String? ?? '');
     }
 
     String goalTypeOf(String rawKind, String? deadline, Set<String> types) {
@@ -137,32 +190,34 @@ class AppDatabase extends _$AppDatabase {
         .join(' ');
     await customUpdate(
       "UPDATE goals SET icon_key = CASE icon_key $iconCases ELSE 'explore' END",
-        variables: [],
-        updates: {goals},
+      variables: [],
+      updates: {goals},
     );
     // v3 DDL 与 tables.dart Goals 列一一对应；color_key 可空、存量置 NULL。
     // 子表 REFERENCES goals (id) 按名解析，重命名后自动指回。
     await customStatement(
-        'CREATE TABLE goals_rebuild ('
-        '"id" TEXT NOT NULL PRIMARY KEY, '
-        '"name" TEXT NOT NULL, '
-        '"goal_type" TEXT NOT NULL, '
-        '"icon_key" TEXT NOT NULL, '
-        '"color_key" TEXT NULL, '
-        '"status" TEXT NOT NULL, '
-        '"created_at" TEXT NOT NULL, '
-        '"deadline" TEXT NULL, '
-        '"achieved_at" TEXT NULL, '
-        '"motivation" TEXT NULL, '
-        '"success_criterion" TEXT NULL, '
-        '"cue_scene" TEXT NULL)');
+      'CREATE TABLE goals_rebuild ('
+      '"id" TEXT NOT NULL PRIMARY KEY, '
+      '"name" TEXT NOT NULL, '
+      '"goal_type" TEXT NOT NULL, '
+      '"icon_key" TEXT NOT NULL, '
+      '"color_key" TEXT NULL, '
+      '"status" TEXT NOT NULL, '
+      '"created_at" TEXT NOT NULL, '
+      '"deadline" TEXT NULL, '
+      '"achieved_at" TEXT NULL, '
+      '"motivation" TEXT NULL, '
+      '"success_criterion" TEXT NULL, '
+      '"cue_scene" TEXT NULL)',
+    );
     await customStatement(
-        'INSERT INTO goals_rebuild (id, name, goal_type, icon_key, color_key, '
-        'status, created_at, deadline, achieved_at, motivation, '
-        'success_criterion, cue_scene) '
-        'SELECT id, name, goal_type, icon_key, NULL, status, created_at, '
-        'deadline, achieved_at, motivation, success_criterion, cue_scene '
-        'FROM goals');
+      'INSERT INTO goals_rebuild (id, name, goal_type, icon_key, color_key, '
+      'status, created_at, deadline, achieved_at, motivation, '
+      'success_criterion, cue_scene) '
+      'SELECT id, name, goal_type, icon_key, NULL, status, created_at, '
+      'deadline, achieved_at, motivation, success_criterion, cue_scene '
+      'FROM goals',
+    );
     await customStatement('DROP TABLE goals');
     await customStatement('ALTER TABLE goals_rebuild RENAME TO goals');
 
@@ -171,8 +226,9 @@ class AppDatabase extends _$AppDatabase {
       'SELECT goal_id FROM reminders WHERE goal_id IS NOT NULL',
       readsFrom: {reminders},
     ).get();
-    final reminderGoalIds =
-        rawReminders.map((r) => r.read<String>('goal_id')).toSet();
+    final reminderGoalIds = rawReminders
+        .map((r) => r.read<String>('goal_id'))
+        .toSet();
     for (final entry in habitGoals.entries) {
       final cadence = entry.value ? Cadence.weekly.name : Cadence.daily.name;
       if (reminderGoalIds.contains(entry.key)) {

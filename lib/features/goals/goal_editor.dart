@@ -12,6 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
 import '../../app/page_top_bar.dart';
@@ -22,6 +23,7 @@ import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/goal_icon_catalog.dart';
 import 'goal_templates.dart';
+import 'goal_icon_picker.dart';
 
 class GoalEditorPage extends ConsumerStatefulWidget {
   const GoalEditorPage({super.key, this.goalId, this.template});
@@ -38,6 +40,9 @@ class GoalEditorPage extends ConsumerStatefulWidget {
 
 class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   final _name = TextEditingController();
+  final _firstPlans = <GoalType, TextEditingController>{
+    for (final type in GoalType.values) type: TextEditingController(),
+  };
 
   /// 类型默认短期（冻结稿板 2：新目标默认落短期，截止必填）。
   GoalType _type = GoalType.shortTerm;
@@ -45,6 +50,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
 
   /// 短期截止日：默认 today+39（冻结稿同款），切离短期不写库。
   LocalDate? _deadline;
+  LocalDate? _targetDate;
+  int _shortCadenceDays = 7;
+  int _longCadenceDays = 14;
+  int _habitTargetPerWeek = 5;
+  GoalIconDomain? _categoryOverride;
 
   /// 提醒开关（习惯/长期共用区）：切型时重置——习惯默认开、长期默认关。
   bool _remindOn = false;
@@ -80,7 +90,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     } else {
       final today = ref.read(todayProvider);
       _deadline = today.addDays(39);
-      _remindOn = _type == GoalType.habit;
+      _remindOn = false;
       if (widget.template != null) _applyTemplate(widget.template!);
     }
   }
@@ -95,6 +105,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       _name.text = goal.name;
       _iconKey = goal.iconKey;
       _deadline = goal.deadline ?? ref.read(todayProvider).addDays(39);
+      _targetDate = goal.targetDate;
+      if (goal.isShortTerm) _shortCadenceDays = goal.progressCadenceDays;
+      if (goal.isLongTerm) _longCadenceDays = goal.progressCadenceDays;
+      _habitTargetPerWeek = goal.habitTargetPerWeek ?? 5;
+      _categoryOverride = goal.categoryOverride;
       _remindOn = mine?.isEnabled ?? false;
       _cadence = mine?.effectiveCadence ?? Cadence.daily;
       _remindTime = mine?.time ?? const LocalTime(9, 0);
@@ -105,6 +120,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   @override
   void dispose() {
     _name.dispose();
+    for (final controller in _firstPlans.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -119,7 +137,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   /// 切型（仅创建态可达）：提醒语义随型重置，截止日兜底。
   void _setType(GoalType t) {
     _type = t;
-    _remindOn = t == GoalType.habit;
+    _remindOn = false;
     if (t == GoalType.shortTerm && _deadline == null) {
       _deadline = ref.read(todayProvider).addDays(39);
     }
@@ -178,10 +196,18 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             name: name,
             goalType: _type,
             iconKey: _iconKey,
+            categoryOverride: _categoryOverride,
+            progressCadenceDays: _type == GoalType.longTerm
+                ? _longCadenceDays
+                : _shortCadenceDays,
             colorKey: goal.colorKey,
             status: goal.status,
             createdAt: goal.createdAt,
             deadline: _type == GoalType.shortTerm ? _deadline : null,
+            targetDate: _type == GoalType.longTerm ? _targetDate : null,
+            habitTargetPerWeek: _type == GoalType.habit
+                ? _habitTargetPerWeek
+                : null,
             motivation: goal.motivation,
             successCriterion: goal.successCriterion,
             cueScene: goal.cueScene,
@@ -195,14 +221,34 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             name: name,
             goalType: _type,
             iconKey: _iconKey,
+            categoryOverride: _categoryOverride,
+            progressCadenceDays: _type == GoalType.longTerm
+                ? _longCadenceDays
+                : _shortCadenceDays,
             colorKey: 'teal', // 退役列兜底值，任何界面不再读取（FR-015/016）
             createdAt: today,
             deadline: _type == GoalType.shortTerm ? _deadline : null,
+            targetDate: _type == GoalType.longTerm ? _targetDate : null,
+            habitTargetPerWeek: _type == GoalType.habit
+                ? _habitTargetPerWeek
+                : null,
           ),
         );
-        await syncReminder(created.id);
+        final firstPlan = _firstPlans[_type]!.text.trim();
+        if (firstPlan.isNotEmpty) {
+          await repo.addStep(
+            MilestoneStep(goalId: created.id, title: firstPlan, position: 0),
+          );
+        }
       }
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.pop();
+        } else {
+          GoRouter.maybeOf(context)?.go('/today');
+        }
+      }
     } on ActiveGoalLimitException {
       if (mounted) {
         await showDialog<void>(
@@ -247,10 +293,12 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                   AppSpace.s4,
                 ),
                 children: [
-                  if (!_isEdit) ...[
-                    _TemplateStrip(onTap: _applyTemplate),
-                    const SizedBox(height: AppSpace.s4),
-                  ],
+                  _GroupCard(
+                    title: '目标名称',
+                    badge: const _Tag(Copy.editorRequiredTag, emphasized: true),
+                    child: _nameField(),
+                  ),
+                  const SizedBox(height: AppSpace.s4),
                   _GroupCard(
                     title: Copy.editorSectionType,
                     badge: _isEdit
@@ -262,36 +310,18 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                     child: _typeSection(),
                   ),
                   const SizedBox(height: AppSpace.s4),
-                  _GroupCard(
-                    title: Copy.editorSectionBasics,
-                    badge: const _Tag(Copy.editorRequiredTag, emphasized: true),
-                    child: _nameField(),
-                  ),
+                  _GroupCard(title: '图标与分类', child: _categoryCard()),
+                  const SizedBox(height: AppSpace.s4),
+                  _GroupCard(title: '计划设置', child: _planningSection()),
                   const SizedBox(height: AppSpace.s4),
                   _GroupCard(
-                    title: Copy.editorSectionCategory,
-                    child: _categoryCard(),
-                  ),
-                  const SizedBox(height: AppSpace.s4),
-                  if (_type == GoalType.shortTerm)
-                    _GroupCard(
-                      title: Copy.editorMilestoneTitle,
-                      badge: const _Tag(
-                        Copy.editorOptionalTag,
-                        emphasized: false,
-                      ),
-                      child: Text(
-                        Copy.editorMilestoneHint,
-                        style: Theme.of(context).textTheme.bodyL.copyWith(
-                          color: TargetPalette.of(context).onSurfaceVariant,
-                        ),
-                      ),
-                    )
-                  else
-                    _GroupCard(
-                      title: Copy.editorSectionReminder,
-                      child: _reminderCard(),
+                    title: _type == GoalType.habit ? '第一次行动' : '第一项里程碑',
+                    badge: const _Tag(
+                      Copy.editorOptionalTag,
+                      emphasized: false,
                     ),
+                    child: _firstPlanField(),
+                  ),
                 ],
               ),
             ),
@@ -334,10 +364,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
           opacity: _isEdit ? .55 : 1,
           child: IgnorePointer(ignoring: _isEdit, child: seg),
         ),
-        if (_type == GoalType.shortTerm) ...[
-          const SizedBox(height: AppSpace.s3),
-          _deadlineRow(),
-        ],
       ],
     );
   }
@@ -392,10 +418,10 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
         TextField(
           key: const ValueKey('goalNameField'),
           controller: _name,
-          maxLength: 40,
+          maxLength: 30,
           style: theme.textTheme.bodyL,
           decoration: InputDecoration(
-            hintText: Copy.editorNameHint,
+            hintText: '例如：拿到 OW 潜水证',
             counterText: '',
             isDense: true,
             filled: true,
@@ -418,7 +444,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
         Align(
           alignment: Alignment.centerRight,
           child: Text(
-            '${_name.text.length}/40',
+            '${_name.text.length}/30',
             style: theme.textTheme.bodyS.copyWith(
               color: palette.onSurfaceVariant,
             ),
@@ -443,20 +469,25 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
     final icon = GoalIconCatalog.byKey(_iconKey);
-    final majorColor = MajorColors.byKey(icon.domain.major.name).of(context);
+    final domain = _categoryOverride ?? icon.domain;
+    final majorColor = MajorColors.byKey(domain.major.name).of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: AppSpace.s2,
+          runSpacing: AppSpace.s2,
           children: [
             for (final c in _commonIcons) ...[
               _IconCell(
                 icon: c.icon,
                 selected: _iconKey == c.key,
-                semanticLabel: Copy.editorIconSemantics(c.key),
-                onTap: () => setState(() => _iconKey = c.key),
+                semanticLabel: goalIconLabel(c),
+                onTap: () => setState(() {
+                  _iconKey = c.key;
+                  _categoryOverride = null;
+                }),
               ),
-              const SizedBox(width: AppSpace.s2),
             ],
             _MoreCell(onTap: _openPicker),
           ],
@@ -474,11 +505,14 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             ),
             const SizedBox(width: AppSpace.s2),
             Text(
-              '${icon.domain.zhLabel} · ${icon.domain.major.zhLabel}',
+              '${_categoryOverride == null ? '自动分类' : '已更正'}：'
+              '${domain.zhLabel} · ${domain.major.zhLabel}',
               style: theme.textTheme.bodyS.copyWith(
                 color: palette.onSurfaceVariant,
               ),
             ),
+            const Spacer(),
+            TextButton(onPressed: _correctCategory, child: const Text('更正')),
           ],
         ),
       ],
@@ -486,83 +520,219 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   }
 
   Future<void> _openPicker() async {
-    final picked = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _IconPickerSheet(selectedKey: _iconKey),
-    );
-    if (picked != null) setState(() => _iconKey = picked);
+    final picked = await showGoalIconPicker(context, selectedKey: _iconKey);
+    if (picked != null) {
+      setState(() {
+        _iconKey = picked.key;
+        _categoryOverride = null;
+      });
+    }
   }
 
-  /// 提醒区（习惯/长期）：开关 →（开）频率三档 + 提醒时间行。
-  Widget _reminderCard() {
+  Future<void> _correctCategory() async {
+    final picked = await showModalBottomSheet<GoalIconDomain>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final palette = TargetPalette.of(context);
+        return Container(
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('更正分类', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 6),
+              Text(
+                '分类用于首页分数和筛选，不会改变你选择的图标。',
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: palette.onSurfaceVariant),
+              ),
+              const SizedBox(height: 14),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final domain in GoalIconDomain.values)
+                      ListTile(
+                        leading: Icon(
+                          GoalIconCatalog.byDomain[domain]!.first.icon,
+                          color: MajorColors.byKey(domain.major.name)
+                              .of(context),
+                        ),
+                        title: Text(domain.zhLabel),
+                        subtitle: Text(domain.major.zhLabel),
+                        trailing:
+                            domain ==
+                                (_categoryOverride ??
+                                    GoalIconCatalog.byKey(_iconKey).domain)
+                            ? Icon(Icons.check_rounded, color: palette.accent)
+                            : null,
+                        onTap: () => Navigator.of(context).pop(domain),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (picked != null) setState(() => _categoryOverride = picked);
+  }
+
+  Widget _planningSection() {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(Copy.editorReminderSwitch, style: theme.textTheme.bodyL),
-            const Spacer(),
-            Switch(
-              key: const ValueKey('goalRemindSwitch'),
-              value: _remindOn,
-              onChanged: (v) => setState(() => _remindOn = v),
+    if (_type == GoalType.habit) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('执行频率', style: theme.textTheme.bodyL),
+          const SizedBox(height: AppSpace.s2),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpace.s3),
+            decoration: BoxDecoration(
+              color: palette.surfaceAlt,
+              borderRadius: AppRadius.rMd,
             ),
-          ],
-        ),
-        if (!_remindOn)
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpace.s1),
-            child: Text(
-              Copy.editorReminderOffSub,
-              style: theme.textTheme.bodyS.copyWith(
-                color: palette.onSurfaceVariant,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<int>(
+                key: const ValueKey('habitFrequencyField'),
+                value: _habitTargetPerWeek,
+                isExpanded: true,
+                items: [
+                  for (var count = 1; count <= 7; count++)
+                    DropdownMenuItem(value: count, child: Text('每周 $count 次')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _habitTargetPerWeek = value);
+                  }
+                },
               ),
-            ),
-          )
-        else ...[
-          const SizedBox(height: AppSpace.s3),
-          Text(
-            Copy.editorCadenceLabel,
-            style: theme.textTheme.labelS.copyWith(
-              color: palette.onSurfaceVariant,
-              letterSpacing: .8,
             ),
           ),
           const SizedBox(height: AppSpace.s2),
-          SegmentedPill<Cadence>(
-            key: const ValueKey('goalCadenceSeg'),
-            values: Cadence.values,
-            labelOf: (c) => switch (c) {
-              Cadence.daily => Copy.cadenceDaily,
-              Cadence.threeDay => Copy.cadenceThreeDay,
-              Cadence.weekly => Copy.cadenceWeekly,
-            },
-            selected: _cadence,
-            onSelected: (c) => setState(() => _cadence = c),
-          ),
-          const SizedBox(height: AppSpace.s3),
-          InkWell(
-            key: const ValueKey('goalRemindTimeField'),
-            onTap: _pickTime,
-            child: Row(
-              children: [
-                Text(Copy.editorRemindTimeLabel, style: theme.textTheme.bodyL),
-                const Spacer(),
-                Text(_remindTime.isoString, style: theme.textTheme.bodyL),
-                Icon(
-                  Icons.expand_more,
-                  size: 18,
-                  color: palette.onSurfaceVariant,
-                ),
-              ],
+          Text(
+            '频率用于计算最近七天的执行完成度，之后可以随实际节奏调整。',
+            style: theme.textTheme.bodyS.copyWith(
+              color: palette.onSurfaceVariant,
             ),
           ),
         ],
+      );
+    }
+
+    final cadence = _type == GoalType.longTerm
+        ? _longCadenceDays
+        : _shortCadenceDays;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_type == GoalType.shortTerm) _deadlineRow() else _targetDateRow(),
+        const SizedBox(height: AppSpace.s4),
+        Text('推进周期', style: theme.textTheme.bodyL),
+        const SizedBox(height: AppSpace.s2),
+        Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpace.s3,
+            vertical: AppSpace.s2,
+          ),
+          decoration: BoxDecoration(
+            color: palette.surfaceAlt,
+            borderRadius: AppRadius.rMd,
+          ),
+          child: Row(
+            children: [
+              Expanded(child: Text('每 $cadence 天检查一次进展')),
+              IconButton(
+                tooltip: '减少推进周期',
+                onPressed: cadence <= 1
+                    ? null
+                    : () => setState(() {
+                        if (_type == GoalType.longTerm) {
+                          _longCadenceDays--;
+                        } else {
+                          _shortCadenceDays--;
+                        }
+                      }),
+                icon: const Icon(Icons.remove_circle_outline_rounded),
+              ),
+              IconButton(
+                tooltip: '增加推进周期',
+                onPressed: cadence >= 365
+                    ? null
+                    : () => setState(() {
+                        if (_type == GoalType.longTerm) {
+                          _longCadenceDays++;
+                        } else {
+                          _shortCadenceDays++;
+                        }
+                      }),
+                icon: const Icon(Icons.add_circle_outline_rounded),
+              ),
+            ],
+          ),
+        ),
       ],
+    );
+  }
+
+  Widget _targetDateRow() {
+    final palette = TargetPalette.of(context);
+    return InkWell(
+      key: const ValueKey('goalTargetDateField'),
+      onTap: _pickTargetDate,
+      borderRadius: AppRadius.rMd,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpace.s2),
+        child: Row(
+          children: [
+            Text('目标日期', style: Theme.of(context).textTheme.bodyL),
+            const SizedBox(width: AppSpace.s2),
+            const _Tag(Copy.editorOptionalTag, emphasized: false),
+            const Spacer(),
+            Text(
+              _targetDate?.isoString ?? '未设置',
+              style: Theme.of(context).textTheme.bodyM.copyWith(
+                color: _targetDate == null
+                    ? palette.onSurfaceVariant
+                    : palette.onSurface,
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: palette.onSurfaceVariant),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _firstPlanField() {
+    final palette = TargetPalette.of(context);
+    return TextField(
+      key: const ValueKey('firstPlanField'),
+      controller: _firstPlans[_type],
+      maxLength: 50,
+      decoration: InputDecoration(
+        hintText: _type == GoalType.habit
+            ? '例如：明天晚饭后散步 20 分钟'
+            : '例如：完成 DSD 体验潜水',
+        filled: true,
+        fillColor: palette.surfaceAlt,
+        border: OutlineInputBorder(
+          borderRadius: AppRadius.rMd,
+          borderSide: BorderSide(color: palette.divider),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: AppRadius.rMd,
+          borderSide: BorderSide(color: palette.divider),
+        ),
+      ),
     );
   }
 
@@ -580,67 +750,17 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     }
   }
 
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
+  Future<void> _pickTargetDate() async {
+    final today = ref.read(todayProvider);
+    final picked = await showDatePicker(
       context: context,
-      initialTime: TimeOfDay(
-        hour: _remindTime.hour,
-        minute: _remindTime.minute,
-      ),
+      firstDate: today.atStartOfDay,
+      lastDate: DateTime(today.year + 10, 12, 31),
+      initialDate: (_targetDate ?? today.addDays(90)).atStartOfDay,
     );
     if (picked != null) {
-      setState(() => _remindTime = LocalTime(picked.hour, picked.minute));
+      setState(() => _targetDate = LocalDate.fromDateTime(picked));
     }
-  }
-}
-
-/// 模板快捷条（冻结稿板 1 .tpl-row）：横滑胶囊，点击回填名称/类型/图标。
-class _TemplateStrip extends StatelessWidget {
-  const _TemplateStrip({required this.onTap});
-
-  final ValueChanged<GoalTemplate> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    final theme = Theme.of(context);
-    return SizedBox(
-      height: 40,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        children: [
-          for (final t in kHabitTemplates)
-            Padding(
-              padding: const EdgeInsets.only(right: AppSpace.s2),
-              child: InkWell(
-                onTap: () => onTap(t),
-                borderRadius: AppRadius.rFull,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpace.s4,
-                    vertical: AppSpace.s2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: palette.surface,
-                    borderRadius: AppRadius.rFull,
-                    border: Border.all(color: palette.divider),
-                  ),
-                  child: Row(
-                    children: [
-                      // 冻结稿 .tpl：药丸统一环徽（trip_origin 18px accent），
-                      // 不逐模板取形（与常用行图标解耦，避免同名双现）。
-                      Icon(Icons.trip_origin, size: 18, color: palette.accent),
-                      const SizedBox(width: AppSpace.s2),
-                      Text(t.name, style: theme.textTheme.bodyM),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 }
 
@@ -824,16 +944,12 @@ class _IconCell extends StatelessWidget {
     required this.selected,
     required this.semanticLabel,
     required this.onTap,
-    this.size = 38,
-    this.iconSize = 22,
   });
 
   final IconData icon;
   final bool selected;
   final String semanticLabel;
   final VoidCallback onTap;
-  final double size;
-  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -846,8 +962,8 @@ class _IconCell extends StatelessWidget {
         onTap: onTap,
         borderRadius: AppRadius.rMd,
         child: Container(
-          width: size,
-          height: size,
+          width: 38,
+          height: 38,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: palette.surfaceAlt,
@@ -859,7 +975,7 @@ class _IconCell extends StatelessWidget {
           ),
           child: Icon(
             icon,
-            size: iconSize,
+            size: 22,
             color: selected ? palette.accent : palette.onSurface,
           ),
         ),
@@ -940,135 +1056,4 @@ class _DashedBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DashedBorderPainter old) => old.color != color;
-}
-
-/// 分类全量上滑弹层（冻结稿板 3 .sheet）：38 枚按 10 域分组，组头
-/// 带三大类色点；6 列方格；点选即关（pop key）；scrim 点外关闭。
-class _IconPickerSheet extends StatelessWidget {
-  const _IconPickerSheet({required this.selectedKey});
-
-  final String selectedKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    final theme = Theme.of(context);
-    final maxHeight = MediaQuery.of(context).size.height * .78;
-    return Container(
-      constraints: BoxConstraints(maxHeight: maxHeight),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
-        boxShadow: palette.shadowHigh,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // 抓手条（冻结稿 .grab）。
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(
-              top: AppSpace.s3,
-              bottom: AppSpace.s3,
-            ),
-            decoration: BoxDecoration(
-              color: palette.divider,
-              borderRadius: AppRadius.rFull,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpace.s5,
-              0,
-              AppSpace.s5,
-              AppSpace.s3,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: Text(
-                Copy.editorPickCategoryTitle,
-                style: theme.textTheme.titleS,
-              ),
-            ),
-          ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpace.s5,
-                0,
-                AppSpace.s5,
-                AppSpace.s5,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final entry in GoalIconCatalog.byDomain.entries) ...[
-                    _DomainHeader(domain: entry.key),
-                    const SizedBox(height: AppSpace.s2),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        const gap = AppSpace.s2;
-                        final w = (constraints.maxWidth - 5 * gap) / 6;
-                        return Wrap(
-                          spacing: gap,
-                          runSpacing: gap,
-                          children: [
-                            for (final c in entry.value)
-                              SizedBox(
-                                width: w,
-                                height: w,
-                                child: _IconCell(
-                                  icon: c.icon,
-                                  size: w,
-                                  iconSize: 22,
-                                  selected: c.key == selectedKey,
-                                  semanticLabel: Copy.editorIconSemantics(
-                                    c.key,
-                                  ),
-                                  onTap: () => Navigator.of(context).pop(c.key),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: AppSpace.s4),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 弹层域组头（冻结稿 .dh）：大类色点 + 「域 · 大类」。
-class _DomainHeader extends StatelessWidget {
-  const _DomainHeader({required this.domain});
-
-  final GoalIconDomain domain;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    final color = MajorColors.byKey(domain.major.name).of(context);
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: AppSpace.s2),
-        Text(
-          '${domain.zhLabel} · ${domain.major.zhLabel}',
-          style: Theme.of(context).textTheme.labelS
-              .copyWith(color: palette.onSurfaceVariant),
-        ),
-      ],
-    );
-  }
 }

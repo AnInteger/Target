@@ -9,7 +9,8 @@ import 'dart:math';
 
 import 'calendar_types.dart';
 import 'frequency_pattern.dart';
-import 'goal_icon_catalog.dart' show GoalIconCatalog, MajorCategory;
+import 'goal_icon_catalog.dart'
+    show GoalIconCatalog, GoalIconDomain, MajorCategory;
 
 /// 生成 UUID v4（实体主键）。无 uuid 依赖，Random.secure 足够。
 String newId() {
@@ -46,32 +47,57 @@ class Goal {
     required this.goalType,
     required this.iconKey,
     required this.colorKey,
+    this.categoryOverride,
+    int? progressCadenceDays,
     this.status = GoalStatus.active,
     required this.createdAt,
     this.deadline,
+    this.targetDate,
+    this.habitTargetPerWeek,
     this.motivation,
     this.successCriterion,
     this.cueScene,
     this.achievedAt,
-  })  : id = id ?? newId(),
-        assert(name.trim().isNotEmpty && name.length <= 30, '目标名 1–30 字'),
-        assert(goalType == GoalType.shortTerm || deadline == null,
-            '仅短期目标可有截止日期'),
-        assert(goalType != GoalType.shortTerm || deadline != null,
-            '短期目标必填截止日期'),
-        assert(
-            motivation == null ||
-                (motivation.trim().isNotEmpty && motivation.length <= 60),
-            '动机 1–60 字'),
-        assert(
-            successCriterion == null ||
-                (successCriterion.trim().isNotEmpty &&
-                    successCriterion.length <= 60),
-            '成功标准 1–60 字'),
-        assert(
-            cueScene == null ||
-                (cueScene.trim().isNotEmpty && cueScene.length <= 40),
-            '提醒场景 1–40 字');
+  }) : id = id ?? newId(),
+       progressCadenceDays = progressCadenceDays ?? defaultCadenceFor(goalType),
+       assert(name.trim().isNotEmpty && name.length <= 30, '目标名 1–30 字'),
+       assert(
+         progressCadenceDays == null ||
+             (progressCadenceDays >= 1 && progressCadenceDays <= 365),
+         '推进周期 1–365 天',
+       ),
+       assert(
+         goalType == GoalType.shortTerm || deadline == null,
+         '仅短期目标可有截止日期',
+       ),
+       assert(goalType != GoalType.shortTerm || deadline != null, '短期目标必填截止日期'),
+       assert(
+         targetDate == null || goalType == GoalType.longTerm,
+         '仅长期目标可有目标日期',
+       ),
+       assert(
+         habitTargetPerWeek == null ||
+             (goalType == GoalType.habit &&
+                 habitTargetPerWeek >= 1 &&
+                 habitTargetPerWeek <= 7),
+         '习惯周频率须为 1–7',
+       ),
+       assert(
+         motivation == null ||
+             (motivation.trim().isNotEmpty && motivation.length <= 60),
+         '动机 1–60 字',
+       ),
+       assert(
+         successCriterion == null ||
+             (successCriterion.trim().isNotEmpty &&
+                 successCriterion.length <= 60),
+         '成功标准 1–60 字',
+       ),
+       assert(
+         cueScene == null ||
+             (cueScene.trim().isNotEmpty && cueScene.length <= 40),
+         '提醒场景 1–40 字',
+       );
 
   final String id;
   final String name;
@@ -82,12 +108,25 @@ class Goal {
   /// 设计令牌表内置键（iconKey/colorKey 枚举集合见 lib/core/design/tokens.dart）。
   final String iconKey;
   final String colorKey;
+
+  /// 图标会推断领域；用户手动更正后以覆盖值为准。
+  final GoalIconDomain? categoryOverride;
+
+  /// 记录推进节奏的检查周期。短期默认 7 天，长期默认 14 天；习惯
+  /// 仍以频率完成度为主，但保留 7 天周期作为无记录提醒窗口。
+  final int progressCadenceDays;
   final GoalStatus status;
   final LocalDate createdAt;
 
   /// 仅 shortTerm 有值；倒计时 = deadline − 今天（FR-013）。
   /// 改 deadline = 续期（D4：倒计时重置，不写 achievedAt）。
   final LocalDate? deadline;
+
+  /// 长期目标的可选目标日期；与短期目标的强制截止日期语义分离。
+  final LocalDate? targetDate;
+
+  /// 习惯每周计划完成次数；旧目标迁移时回填，非习惯保持 null。
+  final int? habitTargetPerWeek;
 
   /// 003 v3 手动达成时刻（D4；NULL=未达成）。shortTerm/longTerm 可手动
   /// 标记达成；habit 持续型不完结。
@@ -108,10 +147,16 @@ class Goal {
   bool get isShortTerm => goalType == GoalType.shortTerm;
   bool get isLongTerm => goalType == GoalType.longTerm;
 
+  static int defaultCadenceFor(GoalType type) =>
+      type == GoalType.longTerm ? 14 : 7;
+
+  GoalIconDomain get effectiveDomain =>
+      categoryOverride ?? GoalIconCatalog.byKey(iconKey).domain;
+
   /// 三大类派生（004 T005 · data-model.md 的 majorOf）：iconKey →
   /// 领域 → 大类，零落库；未匹配键兜底 explore（travel 域 → 目标
   /// 大类，沿 byKey 兜底，结论与 data-model 一致）。
-  MajorCategory get major => GoalIconCatalog.byKey(iconKey).domain.major;
+  MajorCategory get major => effectiveDomain.major;
 
   /// 状态机（003 D4）：active ⇄ paused；active → achieved（habit 持续型
   /// 不可达成）；active/paused → archived（终态）。创建后类型不可变更。
@@ -134,26 +179,33 @@ class Goal {
     GoalStatus? status,
     String? iconKey,
     String? colorKey,
+    GoalIconDomain? categoryOverride,
+    int? progressCadenceDays,
     LocalDate? deadline,
+    LocalDate? targetDate,
+    int? habitTargetPerWeek,
     String? motivation,
     String? successCriterion,
     String? cueScene,
     DateTime? achievedAt,
-  }) =>
-      Goal(
-        id: id,
-        name: name ?? this.name,
-        goalType: goalType,
-        iconKey: iconKey ?? this.iconKey,
-        colorKey: colorKey ?? this.colorKey,
-        status: status ?? this.status,
-        createdAt: createdAt,
-        deadline: deadline ?? this.deadline,
-        motivation: motivation ?? this.motivation,
-        successCriterion: successCriterion ?? this.successCriterion,
-        cueScene: cueScene ?? this.cueScene,
-        achievedAt: achievedAt ?? this.achievedAt,
-      );
+  }) => Goal(
+    id: id,
+    name: name ?? this.name,
+    goalType: goalType,
+    iconKey: iconKey ?? this.iconKey,
+    colorKey: colorKey ?? this.colorKey,
+    categoryOverride: categoryOverride ?? this.categoryOverride,
+    progressCadenceDays: progressCadenceDays ?? this.progressCadenceDays,
+    status: status ?? this.status,
+    createdAt: createdAt,
+    deadline: deadline ?? this.deadline,
+    targetDate: targetDate ?? this.targetDate,
+    habitTargetPerWeek: habitTargetPerWeek ?? this.habitTargetPerWeek,
+    motivation: motivation ?? this.motivation,
+    successCriterion: successCriterion ?? this.successCriterion,
+    cueScene: cueScene ?? this.cueScene,
+    achievedAt: achievedAt ?? this.achievedAt,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -163,18 +215,37 @@ class Goal {
       other.goalType == goalType &&
       other.iconKey == iconKey &&
       other.colorKey == colorKey &&
+      other.categoryOverride == categoryOverride &&
+      other.progressCadenceDays == progressCadenceDays &&
       other.status == status &&
       other.createdAt == createdAt &&
       other.deadline == deadline &&
+      other.targetDate == targetDate &&
+      other.habitTargetPerWeek == habitTargetPerWeek &&
       other.motivation == motivation &&
       other.successCriterion == successCriterion &&
       other.cueScene == cueScene &&
       other.achievedAt == achievedAt;
 
   @override
-  int get hashCode => Object.hash(id, name, goalType, iconKey, colorKey,
-      status, createdAt, deadline, motivation, successCriterion, cueScene,
-      achievedAt);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    goalType,
+    iconKey,
+    colorKey,
+    categoryOverride,
+    progressCadenceDays,
+    status,
+    createdAt,
+    deadline,
+    targetDate,
+    habitTargetPerWeek,
+    motivation,
+    successCriterion,
+    cueScene,
+    achievedAt,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -201,8 +272,7 @@ class FrequencyVersion {
   final FrequencySource source;
 
   /// [day] 的有效频率判定：本版本生效周 ≤ 该日所在周（取最大者，由调用方排序）。
-  bool covers(LocalDate day) =>
-      !effectiveFromWeek.isAfterWeekOf(day);
+  bool covers(LocalDate day) => !effectiveFromWeek.isAfterWeekOf(day);
 
   @override
   bool operator ==(Object other) =>
@@ -246,8 +316,8 @@ class BusyModeSession {
     required this.entries,
     required this.startedAt,
     this.endedAt,
-  })  : id = id ?? newId(),
-        assert(entries.isNotEmpty, '忙碌会话至少含 1 个降档目标');
+  }) : id = id ?? newId(),
+       assert(entries.isNotEmpty, '忙碌会话至少含 1 个降档目标');
 
   final String id;
   final WeekStart weekStart;
@@ -260,12 +330,12 @@ class BusyModeSession {
   bool get isActive => endedAt == null;
 
   BusyModeSession copyWith({DateTime? endedAt}) => BusyModeSession(
-        id: id,
-        weekStart: weekStart,
-        entries: entries,
-        startedAt: startedAt,
-        endedAt: endedAt ?? this.endedAt,
-      );
+    id: id,
+    weekStart: weekStart,
+    entries: entries,
+    startedAt: startedAt,
+    endedAt: endedAt ?? this.endedAt,
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -293,10 +363,9 @@ class CheckIn {
     required this.createdAt,
     this.status = CheckInStatus.valid,
     this.note,
-  })  : id = id ?? newId(),
-        // day < 操作日 → 必为补签（不变量，构造时自动判定，恢复自备份同样成立）。
-        isBackfill =
-            day.isBefore(LocalDate.fromDateTime(createdAt.toLocal()));
+  }) : id = id ?? newId(),
+       // day < 操作日 → 必为补签（不变量，构造时自动判定，恢复自备份同样成立）。
+       isBackfill = day.isBefore(LocalDate.fromDateTime(createdAt.toLocal()));
 
   final String id;
   final String goalId;
@@ -314,13 +383,13 @@ class CheckIn {
 
   /// 撤销 = 置 revoked，不物理删除（统计即时回退，SC-003）。
   CheckIn revoked() => CheckIn(
-        id: id,
-        goalId: goalId,
-        day: day,
-        createdAt: createdAt,
-        status: CheckInStatus.revoked,
-        note: note,
-      );
+    id: id,
+    goalId: goalId,
+    day: day,
+    createdAt: createdAt,
+    status: CheckInStatus.revoked,
+    note: note,
+  );
 
   bool get isValid => status == CheckInStatus.valid;
 
@@ -336,7 +405,8 @@ class CheckIn {
       other.note == note;
 
   @override
-  int get hashCode => Object.hash(id, goalId, day, createdAt, isBackfill, status, note);
+  int get hashCode =>
+      Object.hash(id, goalId, day, createdAt, isBackfill, status, note);
 }
 
 // ---------------------------------------------------------------------------
@@ -348,15 +418,17 @@ class MilestoneStep {
     String? id,
     required this.goalId,
     required this.title,
+    this.position = 0,
     this.isDone = false,
     this.doneAt,
-  })  : id = id ?? newId(),
-        assert(title.trim().isNotEmpty && title.length <= 50, '步骤名 1–50 字'),
-        assert(!isDone || doneAt != null, '完成步骤须带完成时刻');
+  }) : id = id ?? newId(),
+       assert(title.trim().isNotEmpty && title.length <= 50, '步骤名 1–50 字'),
+       assert(!isDone || doneAt != null, '完成步骤须带完成时刻');
 
   final String id;
   final String goalId;
   final String title;
+  final int position;
   final bool isDone;
 
   /// UTC 完成时刻；可回退（误点）→ 置回 null。
@@ -368,6 +440,7 @@ class MilestoneStep {
         id: id,
         goalId: goalId,
         title: title,
+        position: position,
         isDone: done,
         doneAt: done ? (doneAt ?? now) : null,
       );
@@ -378,11 +451,12 @@ class MilestoneStep {
       other.id == id &&
       other.goalId == goalId &&
       other.title == title &&
+      other.position == position &&
       other.isDone == isDone &&
       other.doneAt == doneAt;
 
   @override
-  int get hashCode => Object.hash(id, goalId, title, isDone, doneAt);
+  int get hashCode => Object.hash(id, goalId, title, position, isDone, doneAt);
 }
 
 // ---------------------------------------------------------------------------
@@ -549,8 +623,10 @@ enum AppThemeMode {
   light,
   dark;
 
-  static AppThemeMode parse(String? raw) => values
-      .firstWhere((m) => m.name == raw, orElse: () => AppThemeMode.system);
+  static AppThemeMode parse(String? raw) => values.firstWhere(
+    (m) => m.name == raw,
+    orElse: () => AppThemeMode.system,
+  );
 }
 
 class Settings {
@@ -559,6 +635,9 @@ class Settings {
     this.onboardingCompleted = false,
     this.notificationDeniedAcknowledged = false,
     this.themeMode = AppThemeMode.system,
+    this.defaultShortCadenceDays = 7,
+    this.defaultLongCadenceDays = 14,
+    this.scoreAlgorithmStartedOn,
   });
 
   final LocalTime dailyBriefTime;
@@ -568,19 +647,31 @@ class Settings {
   /// 主题偏好（004 v5）：DB NULL 与 'system' 等价，实体侧统一非空枚举。
   final AppThemeMode themeMode;
 
+  final int defaultShortCadenceDays;
+  final int defaultLongCadenceDays;
+  final LocalDate? scoreAlgorithmStartedOn;
+
   Settings copyWith({
     LocalTime? dailyBriefTime,
     bool? onboardingCompleted,
     bool? notificationDeniedAcknowledged,
     AppThemeMode? themeMode,
-  }) =>
-      Settings(
-        dailyBriefTime: dailyBriefTime ?? this.dailyBriefTime,
-        onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
-        notificationDeniedAcknowledged:
-            notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
-        themeMode: themeMode ?? this.themeMode,
-      );
+    int? defaultShortCadenceDays,
+    int? defaultLongCadenceDays,
+    LocalDate? scoreAlgorithmStartedOn,
+  }) => Settings(
+    dailyBriefTime: dailyBriefTime ?? this.dailyBriefTime,
+    onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+    notificationDeniedAcknowledged:
+        notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
+    themeMode: themeMode ?? this.themeMode,
+    defaultShortCadenceDays:
+        defaultShortCadenceDays ?? this.defaultShortCadenceDays,
+    defaultLongCadenceDays:
+        defaultLongCadenceDays ?? this.defaultLongCadenceDays,
+    scoreAlgorithmStartedOn:
+        scoreAlgorithmStartedOn ?? this.scoreAlgorithmStartedOn,
+  );
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 # Target 进展页、导航与核心闭环设计规格
 
 日期：2026-08-25  
-状态：设计已确认，等待书面规格审核
+状态：已实现并验证
 
 ## 1. 背景与目标
 
@@ -238,3 +238,14 @@ Goal / CheckIn / Milestone Drift streams
 7. iOS/Android 使用新的白底目标轨迹图标。
 8. 遗留测试删除后，核心测试数量可以下降，但四条应用旅程全部通过。
 9. `flutter analyze`、完整 `flutter test` 和 `flutter build web --release` 通过。
+
+## 12. 实现验证记录
+
+2026-08-25 完成最终回归：
+
+- `flutter analyze`：无诊断。
+- `flutter test --reporter expanded`：148 项全部通过；测试总数低于改造前的 162 项，是因为旧健康分与周回顾运行链测试按规格退役，同时新增了 4 条核心应用旅程和响应式/无障碍矩阵。
+- 4 条应用旅程覆盖三类型新建、进展记录与下一里程碑、分数和趋势刷新、历史日期补签，以及编辑、暂停、恢复、达成和删除。
+- 今日、进展、目标详情在 320/375/430dp、浅色/深色共 18 个页面组合下无布局异常；dock、建议、日期、日历、我的和查看全部入口具备明确语义与至少 44dp 触达。
+- `flutter build web --release`：成功生成 `build/web`，Wasm dry run 同步通过。
+- 旧 `ReviewView`、`healthScoreProvider`、结算 Provider、旧 `/review` 路由与周回顾通知标识扫描无运行时残留。

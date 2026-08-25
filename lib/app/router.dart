@@ -380,35 +380,39 @@ class _NavTab extends StatelessWidget {
       button: true,
       selected: selected,
       label: dest.label,
+      excludeSemantics: true,
       child: InkWell(
         // 004 T020：今日页大标题与页签同文「今日」，测试以 key 定位页签。
         key: ValueKey('navTab-${dest.location}'),
         onTap: onTap,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            icon,
-            const SizedBox(height: 3),
-            Text(
-              dest.label,
-              style: Theme.of(context).textTheme.labelS.copyWith(
-                color: color,
-                fontWeight: selected ? FontWeight.w700 : null,
-              ),
-            ),
-            if (selected) ...[
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              icon,
               const SizedBox(height: 3),
-              Container(
-                key: ValueKey('navTabMark-${dest.location}'),
-                width: 16,
-                height: 3,
-                decoration: BoxDecoration(
-                  color: palette.onSurface,
-                  borderRadius: AppRadius.rFull,
+              Text(
+                dest.label,
+                style: Theme.of(context).textTheme.labelS.copyWith(
+                  color: color,
+                  fontWeight: selected ? FontWeight.w700 : null,
                 ),
               ),
+              if (selected) ...[
+                const SizedBox(height: 3),
+                Container(
+                  key: ValueKey('navTabMark-${dest.location}'),
+                  width: 16,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: palette.onSurface,
+                    borderRadius: AppRadius.rFull,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

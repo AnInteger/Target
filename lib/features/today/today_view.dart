@@ -156,17 +156,23 @@ class _Head extends ConsumerWidget {
                 tooltip: '通知',
               ),
               const SizedBox(width: 10),
-              InkWell(
-                onTap: () => context.push('/profile'),
-                borderRadius: BorderRadius.circular(999),
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    color: palette.surface,
-                    shape: BoxShape.circle,
-                    boxShadow: palette.shadowLow,
+              Semantics(
+                key: const ValueKey('profileButton'),
+                button: true,
+                label: '我的',
+                excludeSemantics: true,
+                child: InkWell(
+                  onTap: () => context.push('/profile'),
+                  borderRadius: BorderRadius.circular(999),
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: palette.surface,
+                      shape: BoxShape.circle,
+                      boxShadow: palette.shadowLow,
+                    ),
+                    child: ProfileAvatar(profile: profile, size: 38),
                   ),
-                  child: ProfileAvatar(profile: profile, size: 38),
                 ),
               ),
             ],
@@ -398,7 +404,11 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(title, style: Theme.of(context).textTheme.titleLarge),
         const Spacer(),
-        TextButton(onPressed: () => context.push(route), child: Text(trailing)),
+        TextButton(
+          key: const ValueKey('todayViewAllGoals'),
+          onPressed: () => context.push(route),
+          child: Text(trailing),
+        ),
       ],
     ),
   );

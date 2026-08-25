@@ -867,6 +867,7 @@ class _WeekDots extends StatelessWidget {
     return Semantics(
       button: !isToday,
       label: '星期${day.weekday.zhLabel}，${day.month}月${day.day}日，$state',
+      excludeSemantics: true,
       child: InkWell(
         key: ValueKey('detailDay-${day.isoString}'),
         onTap: isToday

@@ -119,6 +119,7 @@ class _AdviceSection extends StatelessWidget {
             button: true,
             expanded: expanded,
             label: '$title建议',
+            excludeSemantics: true,
             child: InkWell(
               key: ValueKey('adviceToggle-${advice.dimension.name}'),
               onTap: onToggle,

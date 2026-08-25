@@ -1,9 +1,6 @@
-/// go_router 路由表（004 T024 两分支改造：主栈 Today / Review 两分支，
-/// ui-contract v2——我的页不再是页签，改根级全屏 push 子路由（今日页
-/// 头像入口 push 进出，壳层 dock 被覆盖）；Editor / GoalDetail /
-/// GoalsAll 仍为 today 分支子页——底部导航全程可见可点（FR-010，
-/// research D5）；深链 target://today|review|goal/{id}，goal 无 id 兜底
-/// /today）。
+/// go_router 路由表：Today / Progress 两个壳层分支；我的、设置和全部目标
+/// 走同一根级全屏 push，进入后隐藏 dock。深链支持
+/// target://today|progress|goal/{id}，goal 无 id 兜底 /today。
 ///
 /// 导航壳层按 v2-today 冻结稿（004 T025 重做，R3 裁决 D2「黑色线条」）：
 /// 底部全宽 dock = 今日 | 中央凸起圆形＋ | 回顾，当前页签黑字加粗 +
@@ -20,15 +17,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/copy.dart';
-import 'brand_glyph.dart';
+import 'dock_glyphs.dart';
 import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
 import '../features/goals/goals_all_view.dart';
 import '../features/goals/goal_templates.dart';
 import '../features/goals/onboarding.dart';
 import '../features/profile/profile_hub.dart';
+import '../features/progress/progress_view.dart';
 import '../features/settings/settings_view.dart';
-import '../features/review/review_view.dart';
 import '../features/today/today_view.dart';
 import 'design_tokens.dart';
 
@@ -40,10 +37,19 @@ GoRouter _build() => GoRouter(
   redirect: (context, state) => state.uri.path == '/goals' ? '/today' : null,
   routes: [
     GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingPage()),
-    // 我的页（004 T024）：根级全屏 push 子路由——壳层 dock 被覆盖，
-    // 今日页头像 push 进 / pop 回（不再是页签分支）。
-    GoRoute(path: '/profile', builder: (_, _) => const ProfileHubPage()),
-    GoRoute(path: '/settings', builder: (_, _) => const SettingsView()),
+    GoRoute(
+      path: '/profile',
+      pageBuilder: (_, state) =>
+          buildRootPushPage(state, const ProfileHubPage()),
+    ),
+    GoRoute(
+      path: '/settings',
+      pageBuilder: (_, state) => buildRootPushPage(state, const SettingsView()),
+    ),
+    GoRoute(
+      path: '/goals-all',
+      pageBuilder: (_, state) => buildRootPushPage(state, const GoalsAllPage()),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (_, _, shell) => _AppShell(navigationShell: shell),
       branches: [
@@ -67,21 +73,43 @@ GoRouter _build() => GoRouter(
               builder: (_, s) =>
                   GoalDetailPage(goalId: s.pathParameters['id']!),
             ),
-            // 全部目标（T023 冻结稿全量换装：筛选/分组/长按管理）。
-            GoRoute(
-              path: '/goals-all',
-              builder: (_, _) => const GoalsAllPage(),
-            ),
           ],
         ),
         StatefulShellBranch(
           routes: [
-            GoRoute(path: '/review', builder: (_, _) => const ReviewView()),
+            GoRoute(path: '/progress', builder: (_, _) => const ProgressView()),
           ],
         ),
       ],
     ),
   ],
+);
+
+CustomTransitionPage<void> buildRootPushPage(
+  GoRouterState state,
+  Widget child,
+) => CustomTransitionPage<void>(
+  key: state.pageKey,
+  transitionDuration: AppMotion.base,
+  reverseTransitionDuration: AppMotion.base,
+  child: child,
+  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: AppMotion.easeStandard,
+      reverseCurve: AppMotion.easeStandard,
+    );
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(.08, 0),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
+    );
+  },
 );
 
 /// 导航壳层：底幕渐变画布 + 底部 dock（004 T025 重做，D2 定稿几何）。
@@ -197,11 +225,11 @@ class _NavDest {
 }
 
 /// 页签字形（v2 冻结稿 dock 内嵌 SVG；今日为手绘点阵，非 Icons 字形）。
-enum _DockGlyph { todayDots, cloudSnow }
+enum _DockGlyph { targetRing, progressTrend }
 
 const _navDests = [
-  _NavDest('/today', Copy.todayNav, _DockGlyph.todayDots),
-  _NavDest('/review', Copy.reviewNav, _DockGlyph.cloudSnow),
+  _NavDest('/today', Copy.todayNav, _DockGlyph.targetRing),
+  _NavDest('/progress', Copy.progressNav, _DockGlyph.progressTrend),
 ];
 
 /// 底部 dock（004 T025 重做，v2-today 冻结稿 D2「黑色线条」定稿）：
@@ -223,8 +251,8 @@ class _Dock extends StatelessWidget {
   /// FAB 上缘凸出量（冻结稿 .fab margin-top: -22px）。
   static const double _fabOverhang = 22;
 
-  /// 底条高（冻结稿 .dock height: 84px，不含安全区延伸）。
-  static const double _barHeight = 84;
+  /// 互动内容区高度；系统底部 inset 仅在其外延伸背景。
+  static const double _barHeight = 68;
 
   @override
   Widget build(BuildContext context) {
@@ -338,15 +366,13 @@ class _NavTab extends StatelessWidget {
     final color = selected ? palette.onSurface : palette.onSurfaceVariant;
     final Widget icon = switch (dest.glyph) {
       // 今日：手绘点阵字形（两列各三枚大点 + 中列上段两枚小点）。
-      _DockGlyph.todayDots => CustomPaint(
+      _DockGlyph.targetRing => CustomPaint(
         size: const Size.square(22),
-        painter: TodayGlyphPainter(color: color),
+        painter: TargetRingGlyphPainter(color: color),
       ),
-      // 回顾：云雪字形（Material Symbols cloudy_snowing 同源）。
-      _DockGlyph.cloudSnow => Icon(
-        Icons.cloudy_snowing,
-        size: 22,
-        color: color,
+      _DockGlyph.progressTrend => CustomPaint(
+        size: const Size.square(22),
+        painter: ProgressTrendGlyphPainter(color: color),
       ),
     };
 
@@ -394,8 +420,8 @@ String? mapDeepLink(Uri uri) {
   switch (uri.host.isEmpty ? uri.path : uri.host) {
     case 'today':
       return '/today';
-    case 'review':
-      return '/review';
+    case 'progress':
+      return '/progress';
     case 'goal':
       // 小组件侧 widgetURL 形如 target://goal/{id}（host=goal，首段即 id）；
       // query id 仅作兜底；两处皆无 → 落今日（003 T015：原 '/goals' 退役）。

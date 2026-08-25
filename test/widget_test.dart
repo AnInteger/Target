@@ -18,7 +18,7 @@ import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/features/profile/profile.dart';
 import 'package:target/features/profile/profile_hub.dart';
-import 'package:target/features/review/review_view.dart';
+import 'package:target/features/progress/progress_view.dart';
 import 'package:target/features/settings/settings_view.dart';
 import 'package:target/features/today/today_view.dart';
 
@@ -201,13 +201,13 @@ void main() {
     await _disposeTarget(tester, db);
   });
 
-  testWidgets('回顾仍是独立分支，空态不影响今日页状态', (tester) async {
+  testWidgets('进展是独立分支并可返回今日', (tester) async {
     final db = await _pumpTarget(tester);
 
-    await tester.tap(find.byKey(const ValueKey('navTab-/review')));
+    await tester.tap(find.byKey(const ValueKey('navTab-/progress')));
     await tester.pumpAndSettle();
-    expect(find.byType(ReviewView), findsOneWidget);
-    expect(find.byKey(const ValueKey('reviewEmptyState')), findsOneWidget);
+    expect(find.byType(ProgressView), findsOneWidget);
+    expect(find.byKey(const ValueKey('progressNoTrend')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('navTab-/today')));
     await tester.pumpAndSettle();

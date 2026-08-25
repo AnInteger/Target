@@ -247,7 +247,7 @@ abstract final class Copy {
   // backfillHint 死键清扫；补签统一走详情页 14 天日历）。
   static const todayNav = '今日';
   static const goalsNav = '目标'; // 004 dock 无目标页签，存 widget_test 哨兵
-  static const reviewNav = '回顾';
+  static const progressNav = '进展';
   static const mineNav = '我的';
 
   // ---- 今日页（004 T020 v2 重做：头部日期语 + 大标题 + 三段弧环；

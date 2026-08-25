@@ -73,23 +73,15 @@ Future<AppDatabase> pumpToday(WidgetTester tester, {Size? size}) async {
 }
 
 void main() {
-  testWidgets('home orders status, focus, progress and attention', (
+  testWidgets('today keeps status and focus while insights live elsewhere', (
     tester,
   ) async {
     final db = await pumpToday(tester);
     addTearDown(db.close);
     expect(find.byKey(const ValueKey('goalStatusCard')), findsOneWidget);
     expect(find.text('关注'), findsOneWidget);
-    expect(find.text('进展'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('需要关注'),
-      240,
-      scrollable: find.byWidgetPredicate(
-        (widget) =>
-            widget is Scrollable && widget.axisDirection == AxisDirection.down,
-      ),
-    );
-    expect(find.text('需要关注'), findsOneWidget);
+    expect(find.byKey(const ValueKey('progressTrendCard')), findsNothing);
+    expect(find.text('需要关注'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle(const Duration(milliseconds: 1));
   });

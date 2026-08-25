@@ -368,7 +368,7 @@ abstract final class Copy {
 
   // 编辑器分组标题（004 v2 冻结稿组序：类型→一句话描述→分类→提醒/里程碑）。
   static const editorSectionCategory = '分类';
-  static const editorSectionBasics = '一句话描述';
+  static const editorSectionBasics = '目标名称';
   static const editorSectionType = '类型';
 
   // 分类图标（T026：常用行 + 「更多」弹窗全量，R2 裁决 1）。

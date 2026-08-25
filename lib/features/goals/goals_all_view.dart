@@ -43,7 +43,7 @@ class _GoalsAllPageState extends ConsumerState<GoalsAllPage> {
     final stats = ref.watch(statsProvider);
     if (!goalsAsync.hasValue || stats == null) {
       return Scaffold(
-        backgroundColor: Colors.transparent,
+        backgroundColor: palette.background,
         body: Center(child: CircularProgressIndicator(color: palette.accent)),
       );
     }
@@ -64,7 +64,10 @@ class _GoalsAllPageState extends ConsumerState<GoalsAllPage> {
               .toList();
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      // root 级 push 页：转场结束后下层 shell 路由不再绘制，透明底会
+      // 露出原始画布（iOS 黑屏感）——按「我的/设置」同口径铺实底
+      // （2026-08-25 修复「查看全部大面积黑色」）。
+      backgroundColor: palette.background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -460,11 +463,12 @@ class _GoalCard extends ConsumerWidget {
           borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
           boxShadow: palette.shadowHigh,
         ),
-        padding: const EdgeInsets.fromLTRB(
+        // 本页为 root 级 push（无 dock）：底距 s4 + 真实安全区。
+        padding: EdgeInsets.fromLTRB(
           AppSpace.s5,
           AppSpace.s3,
           AppSpace.s5,
-          AppSpace.s5 + 8,
+          AppSpace.s4 + MediaQuery.paddingOf(sheetContext).bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

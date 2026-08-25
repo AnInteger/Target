@@ -12,6 +12,8 @@
 /// Provider 形式：每个 ProviderScope（测试/应用）独立实例，避免跨用例状态残留。
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -60,18 +62,27 @@ GoRouter _build() => GoRouter(
             GoRoute(path: '/today', builder: (_, _) => const TodayView()),
             GoRoute(
               path: '/goal-editor',
-              builder: (_, s) => GoalEditorPage(
-                goalId: s.uri.queryParameters['id'],
-                template: s.extra is GoalTemplate
-                    ? s.extra as GoalTemplate
-                    : null,
+              // 2026-08-25：创建/详情动线与根级 push 页（我的/全部目标）
+              // 同款 fade+slide 转场——此前分支路由吃平台缺省转场
+              //（iOS 右滑入），与「我的」观感不一致；仍挂分支内，
+              // 导航壳层不退场（D5/FR-010 语义不变）。
+              pageBuilder: (context, s) => buildFadeSlidePage(
+                s,
+                GoalEditorPage(
+                  goalId: s.uri.queryParameters['id'],
+                  template: s.extra is GoalTemplate
+                      ? s.extra as GoalTemplate
+                      : null,
+                ),
               ),
             ),
             // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。
             GoRoute(
               path: '/goal/:id',
-              builder: (_, s) =>
-                  GoalDetailPage(goalId: s.pathParameters['id']!),
+              pageBuilder: (context, s) => buildFadeSlidePage(
+                s,
+                GoalDetailPage(goalId: s.pathParameters['id']!),
+              ),
             ),
           ],
         ),
@@ -86,6 +97,14 @@ GoRouter _build() => GoRouter(
 );
 
 CustomTransitionPage<void> buildRootPushPage(
+  GoRouterState state,
+  Widget child,
+) => buildFadeSlidePage(state, child);
+
+/// 全站统一 push 转场（005 基准 · AppMotion.base 250ms · easeStandard）：
+/// 淡入 + 8% 横向滑入。根级页（我的/设置/全部目标）与分支内页
+///（编辑器/详情）共用——用户感知到的「同类动线同款动效」契约锚点。
+CustomTransitionPage<void> buildFadeSlidePage(
   GoRouterState state,
   Widget child,
 ) => CustomTransitionPage<void>(
@@ -239,10 +258,13 @@ const _navDests = [
 /// 反白，全条无彩色）；FAB 56px 中性（浅色墨底白＋/深色反白），上缘
 /// 凸出底条 22px、带 glass-card 4px 描边环；任意壳层页恒定（FR-010）。
 ///
-/// 005 D1 安全区：dock 自消费 `MediaQuery.paddingOf.bottom`——底幕背景
-/// 下延至屏幕物理底边（84+inset，inset 区仅背景），页签/FAB 互动槽
-/// 整体止于 inset 之上；不再用外层 SafeArea（其会把整条含背景抬离
-/// 底边，inset 区露底色断层）。inset=0 机型几何与 004 版恒等。
+/// 安全区几何（005 D1 → 2026-08-25 收敛）：底条恒取冻结稿 84px
+///（= 顶垫 8 + 页签带 ~45 + 底部设计余量 31），系统 Home 指示条
+/// inset 优先由这 31px 余量吸收——仅当 inset 大到吞尽余量
+///（8+45+inset > 84）时底条才等量加高。如此页签标签始终贴近
+/// 安全区边界（原生 TabBar 观感），不再出现「标签下方 49px 空带」
+///（旧算法 68+inset 全额叠加所致）。底幕背景仍下延至屏幕物理底边，
+/// 页签/FAB 互动槽整体止于 inset 之上；inset=0 机型与冻结稿恒等。
 class _Dock extends StatelessWidget {
   const _Dock({required this.shell});
 
@@ -251,13 +273,25 @@ class _Dock extends StatelessWidget {
   /// FAB 上缘凸出量（冻结稿 .fab margin-top: -22px）。
   static const double _fabOverhang = 22;
 
-  /// 互动内容区高度；系统底部 inset 仅在其外延伸背景。
-  static const double _barHeight = 68;
+  /// 底条冻结高度（.dock 84px）。
+  static const double _barHeight = 84;
+
+  /// 底条顶垫（冻结稿 dock padding-top 8）。
+  static const double _barTopPad = 8;
+
+  /// 页签带高度估值（图标 22 + 缝 3 + 标签/短横线 ~20）。
+  static const double _tabBand = 45;
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // 底条实际高度：84 冻结值与「顶垫+页签带+inset」取大——inset 31
+    // 以内被设计余量吸收，超出才加高（iPhone 34 → 87 而非旧算法 102）。
+    final barExtent = math.max(
+      _barHeight,
+      _barTopPad + _tabBand + bottomInset,
+    );
     Widget tab(int i) => Expanded(
       child: Padding(
         // 页签起于底条顶 padding 8 之后（22 + 8 = 30）。
@@ -272,13 +306,12 @@ class _Dock extends StatelessWidget {
     );
     return SizedBox(
       // 高出底条的 22px = FAB 凸出带：视觉透明但占位命中（凸出部分
-      // 的点击须落在 dock 自身区域而非 body，才能稳定命中 FAB）；
-      // 底部叠加安全区 inset——仅背景延伸，互动槽不上抬整条。
-      height: _barHeight + _fabOverhang + bottomInset,
+      // 的点击须落在 dock 自身区域而非 body，才能稳定命中 FAB）。
+      height: barExtent + _fabOverhang,
       child: Stack(
         children: [
-          // 底条本体：近实卡底 + 顶缘发丝线（冻结稿 .dock）——高度
-          // 84+inset 贴至物理底边，inset 区纯背景无互动元素。
+          // 底条本体：近实卡底 + 顶缘发丝线（冻结稿 .dock）——贴至
+          // 物理底边，inset 区纯背景无互动元素。
           Positioned(
             top: _fabOverhang,
             left: 0,

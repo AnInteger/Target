@@ -103,11 +103,12 @@ Future<void> showProfileSheet(BuildContext context) {
             borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
             boxShadow: palette.shadowHigh,
           ),
-          padding: const EdgeInsets.fromLTRB(
+          // 我的页为 root 级 push（无 dock）：底距 s4 + 真实安全区。
+          padding: EdgeInsets.fromLTRB(
             AppSpace.s5,
             AppSpace.s3,
             AppSpace.s5,
-            AppSpace.s5 + 8,
+            AppSpace.s4 + MediaQuery.paddingOf(sheetContext).bottom,
           ),
           child: const _ProfileSheet(),
         ),

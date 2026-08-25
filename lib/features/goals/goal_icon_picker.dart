@@ -14,6 +14,8 @@ Future<GoalIconCatalog?> showGoalIconPicker(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    // 编辑器为壳层分支页：弹层止于 dock 之上。
+    useRootNavigator: false,
     backgroundColor: Colors.transparent,
     barrierColor: palette.scrim,
     builder: (_) => _GoalIconPicker(selectedKey: selectedKey),

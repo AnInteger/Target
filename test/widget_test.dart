@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target/app/app.dart';
+import 'package:target/app/design_tokens.dart';
 import 'package:target/app/providers.dart';
+import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart'
     show AppDatabase, SettingsRowsCompanion;
 import 'package:target/core/db/repositories.dart';
@@ -117,6 +119,37 @@ void main() {
     expect(find.byType(TodayView), findsOneWidget);
     expect(find.byKey(const ValueKey('goalStatusCard')), findsOneWidget);
     expect((await SettingsRepository(db).get()).onboardingCompleted, true);
+    await _disposeTarget(tester, db);
+  });
+
+  testWidgets('首屏引导随浅色主题且主按钮文字可见', (tester) async {
+    // 2026-08-25 回归：004 T030 曾强制深底品牌屏（浅色系统下首屏突转
+    // 深色）+ 按钮白底白字（titleM 缺省 onSurface 字色覆盖前景色）。
+    final db = await _pumpTarget(tester, onboardingCompleted: false);
+
+    // 随应用主题（测试缺省浅色）：无深色覆写，底色 = palette.background。
+    final onboarding = tester.element(
+      find.byKey(const ValueKey('onboardingStart')),
+    );
+    expect(Theme.of(onboarding).brightness, Brightness.light);
+    expect(
+      Theme.of(onboarding).scaffoldBackgroundColor,
+      TargetPalette.light.background,
+    );
+
+    // 主按钮：onSurface 底 + background 字——与底色严格反色可辨。
+    final button = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('onboardingStart')),
+    );
+    final palette = TargetPalette.light;
+    expect(button.style?.backgroundColor?.resolve({}), palette.onSurface);
+    final label = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const ValueKey('onboardingStart')),
+        matching: find.text(Copy.onboardingStart),
+      ),
+    );
+    expect(label.style?.color, palette.background);
     await _disposeTarget(tester, db);
   });
 

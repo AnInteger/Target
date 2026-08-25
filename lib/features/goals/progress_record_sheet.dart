@@ -18,6 +18,8 @@ Future<bool?> showProgressRecordSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    // 今日/详情均为壳层分支页：弹层挂分支导航器，止于 dock 之上。
+    useRootNavigator: false,
     backgroundColor: Colors.transparent,
     barrierColor: palette.scrim,
     builder: (_) => _ProgressRecordSheet(goal: goal, currentStep: currentStep),

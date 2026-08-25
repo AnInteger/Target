@@ -220,6 +220,9 @@ class GoalDetailPage extends ConsumerWidget {
     ];
     await showModalBottomSheet<void>(
       context: context,
+      // 2026-08-25：详情为壳层分支页，弹层挂分支导航器——呈现于
+      // 壳层 body 内、止于 dock 之上（不再整屏盖住导航条）。
+      useRootNavigator: false,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => Container(
         key: const ValueKey('goalMenuSheet'),
@@ -228,13 +231,13 @@ class GoalDetailPage extends ConsumerWidget {
           borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
           boxShadow: palette.shadowHigh,
         ),
-        // 005 留档：底距 s5+8 为弹层 home 避让裸算式（垂直底距非
-        // 本轮页缘口径，不强行刻度化）。
-        padding: const EdgeInsets.fromLTRB(
+        // 底距 s4 + 安全区：分支内 inset 恒 0（dock 已占位）→ 紧贴
+        // dock 顶；若经 root 上下文复用则自动吃 Home 指示条避让。
+        padding: EdgeInsets.fromLTRB(
           AppSpace.s5,
           AppSpace.s3,
           AppSpace.s5,
-          AppSpace.s5 + 8,
+          AppSpace.s4 + MediaQuery.paddingOf(sheetContext).bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -658,6 +661,8 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
     final picked = await showModalBottomSheet<LocalDate>(
       context: context,
       isScrollControlled: true,
+      // 同 ⋯ 菜单：分支内呈现，止于 dock 之上。
+      useRootNavigator: false,
       backgroundColor: Colors.transparent,
       builder: (_) => _BackfillSheet(
         today: widget.today,
@@ -1041,12 +1046,12 @@ class _BackfillSheetState extends State<_BackfillSheet> {
         borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
         boxShadow: palette.shadowHigh,
       ),
-      // 005 留档：同 _showMenu 弹层——底距 s5+8 home 避让裸算式非页缘口径。
-      padding: const EdgeInsets.fromLTRB(
+      // 底距同 _showMenu：s4 + 安全区（分支内 inset 0）。
+      padding: EdgeInsets.fromLTRB(
         AppSpace.s5,
         AppSpace.s3,
         AppSpace.s5,
-        AppSpace.s5 + 8,
+        AppSpace.s4 + MediaQuery.paddingOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

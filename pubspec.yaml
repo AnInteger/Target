@@ -80,11 +80,12 @@ flutter_launcher_icons:
   linux:
     generate: false
 
-# 启动屏：LaunchScreen 不支持渐变，纯色取四档底幕均值近似
-# （浅 #ded2ed = #ecd8e0..#d1ccf8 均值；深 #1f172a = #2c2036..#120e1c 均值）。
+# 启动屏：LaunchScreen 不支持渐变，纯色取首帧页面底色（= palette
+# .background，v2 令牌 2026-08-25 换值——旧值 #ded2ed/#1f172a 为退役
+# 粉紫底幕残留，冷启动曾现旧版观感）。
 flutter_native_splash:
-  color: "#ded2ed"
-  color_dark: "#1f172a"
+  color: "#f5f5f7"
+  color_dark: "#121212"
   image: design/brand/splash-mark-light.png
   image_dark: design/brand/splash-mark-dark.png
   android: false

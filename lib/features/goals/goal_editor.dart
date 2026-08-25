@@ -532,6 +532,8 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   Future<void> _correctCategory() async {
     final picked = await showModalBottomSheet<GoalIconDomain>(
       context: context,
+      // 编辑器为壳层分支页：弹层止于 dock 之上。
+      useRootNavigator: false,
       backgroundColor: Colors.transparent,
       builder: (context) {
         final palette = TargetPalette.of(context);
@@ -540,7 +542,13 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             color: palette.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          // 底距 s4 + 安全区（分支内 inset 恒 0）。
+          padding: EdgeInsets.fromLTRB(
+            20,
+            18,
+            20,
+            AppSpace.s4 + MediaQuery.paddingOf(context).bottom,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

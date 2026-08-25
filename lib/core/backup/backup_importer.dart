@@ -182,8 +182,9 @@ class BackupImporter {
       _instant(s, 'startedAt', 'busySessions[$i].startedAt');
       _instantOpt(s, 'endedAt', 'busySessions[$i].endedAt');
       final entries = s['entries'];
-      if (entries is! List || entries.isEmpty)
+      if (entries is! List || entries.isEmpty) {
         _fail('busySessions[$i].entries');
+      }
       for (var j = 0; j < entries.length; j++) {
         final e = _asMap(entries[j], 'busySessions[$i].entries[$j]');
         _str(e, 'goalId', 'busySessions[$i].entries[$j].goalId');

@@ -477,7 +477,8 @@ class _ProgressCardState extends State<_ProgressCard> {
                 points: widget.snapshot.evaluation.dailyPoints,
                 colors: _dimensionColors(context),
                 guide: palette.divider,
-                label: palette.onSurfaceVariant,
+                labelStyle: Theme.of(context).textTheme.labelS
+                    .copyWith(color: palette.onSurfaceVariant),
               ),
             ),
           ),
@@ -498,13 +499,13 @@ class _TrendPainter extends CustomPainter {
     required this.points,
     required this.colors,
     required this.guide,
-    required this.label,
+    required this.labelStyle,
   });
 
   final List<DailyProgressPoint> points;
   final Map<ProgressDimension, Color> colors;
   final Color guide;
-  final Color label;
+  final TextStyle labelStyle;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -537,22 +538,24 @@ class _TrendPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round;
       Path? path;
+      var started = false;
       for (final (index, point) in points.indexed) {
         final value = point.dimensions[dimension];
         if (value == null) {
           if (path != null) canvas.drawPath(path, paint);
           path = null;
+          started = false;
           continue;
         }
         final offset = Offset(
           xAt(index),
           chart.bottom - chart.height * value / 100,
         );
-        path ??= Path()..moveTo(offset.dx, offset.dy);
-        if (path.getBounds().isEmpty) {
-          path.moveTo(offset.dx, offset.dy);
+        if (!started) {
+          path = Path()..moveTo(offset.dx, offset.dy);
+          started = true;
         } else {
-          path.lineTo(offset.dx, offset.dy);
+          path!.lineTo(offset.dx, offset.dy);
         }
         canvas.drawCircle(offset, 2.6, Paint()..color = colors[dimension]!);
       }
@@ -563,7 +566,7 @@ class _TrendPainter extends CustomPainter {
       final day = points[index].day;
       textPainter.text = TextSpan(
         text: '${day.month}/${day.day}',
-        style: TextStyle(color: label, fontSize: 10),
+        style: labelStyle,
       );
       textPainter.layout();
       textPainter.paint(
@@ -576,9 +579,8 @@ class _TrendPainter extends CustomPainter {
       if (value == null) continue;
       textPainter.text = TextSpan(
         text: '$value',
-        style: TextStyle(
+        style: labelStyle.copyWith(
           color: colors[dimension],
-          fontSize: 10,
           fontWeight: FontWeight.w700,
         ),
       );

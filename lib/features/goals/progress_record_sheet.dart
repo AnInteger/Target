@@ -152,7 +152,11 @@ class _ProgressRecordSheetState extends ConsumerState<_ProgressRecordSheet> {
                 minLines: 2,
                 maxLines: 3,
                 textInputAction: TextInputAction.newline,
-                decoration: _inputDecoration(palette, hint: '例如：完成 DSD 体验潜水'),
+                decoration: _inputDecoration(
+                  context,
+                  palette,
+                  hint: '例如：完成 DSD 体验潜水',
+                ),
               ),
               if (widget.currentStep != null) ...[
                 const SizedBox(height: 6),
@@ -218,7 +222,11 @@ class _ProgressRecordSheetState extends ConsumerState<_ProgressRecordSheet> {
                   controller: _next,
                   maxLength: 50,
                   textInputAction: TextInputAction.done,
-                  decoration: _inputDecoration(palette, hint: '例如：完成理论课程'),
+                  decoration: _inputDecoration(
+                    context,
+                    palette,
+                    hint: '例如：完成理论课程',
+                  ),
                   onSubmitted: (_) => _save(),
                 ),
               ],
@@ -257,13 +265,15 @@ class _ProgressRecordSheetState extends ConsumerState<_ProgressRecordSheet> {
   }
 
   InputDecoration _inputDecoration(
+    BuildContext context,
     TargetPalette palette, {
     required String hint,
   }) => InputDecoration(
     hintText: hint,
     filled: true,
     fillColor: palette.surfaceAlt,
-    counterStyle: TextStyle(color: palette.onSurfaceVariant),
+    counterStyle: Theme.of(context).textTheme.bodyS
+        .copyWith(color: palette.onSurfaceVariant),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(color: palette.divider),

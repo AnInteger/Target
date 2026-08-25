@@ -106,14 +106,17 @@ class DebugClockTile extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 抓手条（冻结稿 .grab）。
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: AppSpace.s3),
-                decoration: BoxDecoration(
-                  color: palette.divider,
-                  borderRadius: AppRadius.rFull,
+              // 抓手条（冻结稿 .grab）。2026-08-25：stretch 列同款修正
+              //（Center 回 40，见 notification_list 同日注记）。
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: AppSpace.s3),
+                  decoration: BoxDecoration(
+                    color: palette.divider,
+                    borderRadius: AppRadius.rFull,
+                  ),
                 ),
               ),
               Padding(

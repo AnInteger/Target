@@ -372,6 +372,13 @@ void main() {
       expect(find.text(Copy.notificationTitle), findsOneWidget);
       expect(find.text(Copy.notifEmptyTitle), findsOneWidget);
       expect(find.text(Copy.notificationEmptyHint), findsOneWidget);
+      // 2026-08-25 回归：抓手条宽 40——本 sheet 列为 stretch，未包
+      // Center 时固定 width 被紧约束拉成整屏宽（与其他弹层不同长；
+      // rect 含底距 margin，故只断宽度）。
+      final grab = tester.getRect(
+        find.byKey(const ValueKey('notificationSheetGrab')),
+      );
+      expect(grab.width, 40);
       await db.close();
     });
 

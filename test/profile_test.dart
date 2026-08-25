@@ -88,6 +88,10 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.text(Copy.profileSheetTitle), findsOneWidget);
+    // 2026-08-25 回归：抓手条宽 40（stretch 列内直接子项固定宽会被
+    // 紧约束拉满；rect 含底距 margin，故只断宽度）。
+    final grab = tester.getRect(find.byKey(const ValueKey('profileSheetGrab')));
+    expect(grab.width, 40);
 
     await tester.enterText(find.byType(TextField), '阿星');
     await tester.pump();

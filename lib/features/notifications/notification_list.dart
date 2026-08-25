@@ -293,14 +293,19 @@ class _NotificationBody extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 抓手条（冻结稿 .grab）。
-        Container(
-          width: 40,
-          height: 4,
-          margin: const EdgeInsets.only(bottom: AppSpace.s3),
-          decoration: BoxDecoration(
-            color: palette.divider,
-            borderRadius: AppRadius.rFull,
+        // 抓手条（冻结稿 .grab）。2026-08-25：本 Column 为 stretch（行
+        // 卡满宽），直接子项的固定 width 会被紧约束吞掉拉成整屏宽——
+        // 经 Center 松约束回 40，与其他弹层抓手同长。
+        Center(
+          child: Container(
+            key: const ValueKey('notificationSheetGrab'),
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: AppSpace.s3),
+            decoration: BoxDecoration(
+              color: palette.divider,
+              borderRadius: AppRadius.rFull,
+            ),
           ),
         ),
         Padding(

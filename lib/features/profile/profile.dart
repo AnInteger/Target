@@ -189,14 +189,18 @@ class _ProfileSheetState extends ConsumerState<_ProfileSheet> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 抓手条（冻结稿 .grab）。
-        Container(
-          width: 40,
-          height: 4,
-          margin: const EdgeInsets.only(bottom: AppSpace.s3),
-          decoration: BoxDecoration(
-            color: palette.divider,
-            borderRadius: AppRadius.rFull,
+        // 抓手条（冻结稿 .grab）。2026-08-25：本 Column 为 stretch，直接
+        // 子项固定 width 会被紧约束拉成整屏宽——经 Center 回 40。
+        Center(
+          child: Container(
+            key: const ValueKey('profileSheetGrab'),
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: AppSpace.s3),
+            decoration: BoxDecoration(
+              color: palette.divider,
+              borderRadius: AppRadius.rFull,
+            ),
           ),
         ),
         Padding(

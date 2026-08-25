@@ -75,12 +75,17 @@ class GoalProgressEvaluation {
     required this.dimensions,
     required this.dailyPoints,
     required this.attention,
+    required this.hasProgressEvents,
   });
 
   final Map<String, GoalScore> byGoal;
   final Map<ProgressDimension, DimensionProgress> dimensions;
   final List<DailyProgressPoint> dailyPoints;
   final List<AttentionItem> attention;
+
+  /// 是否存在可追溯到具体日期的真实进展事件（有效记录或已完成里程碑）。
+  /// 分数本身可能由目标期限、节奏等静态信息产生，不能据此伪造趋势。
+  final bool hasProgressEvents;
 }
 
 ScoreBand scoreBandOf(int score) {
@@ -110,6 +115,9 @@ GoalProgressEvaluation evaluateGoalProgress({
       checkIns: checkIns,
       milestones: milestones,
       day: day,
+      // 里程碑没有创建时间，无法可靠回算过去是否已有下一步。
+      // 历史日期使用中性清晰度，仅今天采用当前规划状态。
+      useCurrentMilestoneClarity: day == today,
     );
     daily.add(
       DailyProgressPoint(
@@ -126,6 +134,7 @@ GoalProgressEvaluation evaluateGoalProgress({
     dimensions: current.dimensions,
     dailyPoints: daily,
     attention: current.attention,
+    hasProgressEvents: current.hasProgressEvents,
   );
 }
 
@@ -134,6 +143,7 @@ GoalProgressEvaluation _evaluateAt({
   required List<CheckIn> checkIns,
   required Map<String, List<MilestoneStep>> milestones,
   required LocalDate day,
+  bool useCurrentMilestoneClarity = true,
 }) {
   final active = goals
       .where(
@@ -143,6 +153,7 @@ GoalProgressEvaluation _evaluateAt({
       .toList();
   final byGoal = <String, GoalScore>{};
   final attention = <AttentionItem>[];
+  var hasProgressEvents = false;
 
   for (final goal in active) {
     final steps = milestones[goal.id] ?? const <MilestoneStep>[];
@@ -154,13 +165,26 @@ GoalProgressEvaluation _evaluateAt({
               !check.day.isAfter(day),
         )
         .toList();
+    if (validChecks.isNotEmpty ||
+        steps.any((step) {
+          final doneAt = step.doneAt;
+          return step.isDone &&
+              doneAt != null &&
+              !LocalDate.fromDateTime(doneAt.toLocal()).isAfter(day);
+        })) {
+      hasProgressEvents = true;
+    }
     final momentum = _momentum(
       goal: goal,
       checks: validChecks,
       steps: steps,
       day: day,
     );
-    final clarity = _clarity(goal, steps, day);
+    final clarity = _clarity(
+      goal,
+      steps,
+      useCurrentMilestoneClarity: useCurrentMilestoneClarity,
+    );
 
     late final GoalScore score;
     if (goal.isHabit) {
@@ -251,6 +275,7 @@ GoalProgressEvaluation _evaluateAt({
     dimensions: Map.unmodifiable(dimensions),
     dailyPoints: const [],
     attention: List.unmodifiable(attention),
+    hasProgressEvents: hasProgressEvents,
   );
 }
 
@@ -282,8 +307,13 @@ int _momentum({
   return 0;
 }
 
-int _clarity(Goal goal, List<MilestoneStep> steps, LocalDate day) {
+int _clarity(
+  Goal goal,
+  List<MilestoneStep> steps, {
+  required bool useCurrentMilestoneClarity,
+}) {
   if (goal.isHabit) return 100;
+  if (!useCurrentMilestoneClarity) return 100;
   final hasOpenStep = steps.any((step) => !step.isDone);
   return hasOpenStep ? 100 : 40;
 }

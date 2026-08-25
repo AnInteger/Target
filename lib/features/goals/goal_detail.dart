@@ -840,12 +840,30 @@ class _WeekDots extends StatelessWidget {
     for (final c in mine) {
       byDay.putIfAbsent(c.day, () => []).add(c);
     }
-    return Row(
-      key: const ValueKey('detailWeekCalendar'),
-      children: [
-        for (var i = 6; i >= 0; i--)
-          Expanded(child: _dayColumn(palette, theme, today.addDays(-i), byDay)),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const minimumWidth = 44.0 * 7;
+        final rowWidth = constraints.maxWidth < minimumWidth
+            ? minimumWidth
+            : constraints.maxWidth;
+        final calendar = SizedBox(
+          width: rowWidth,
+          child: Row(
+            key: const ValueKey('detailWeekCalendar'),
+            children: [
+              for (var i = 6; i >= 0; i--)
+                Expanded(
+                  child: _dayColumn(palette, theme, today.addDays(-i), byDay),
+                ),
+            ],
+          ),
+        );
+        if (rowWidth == constraints.maxWidth) return calendar;
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: calendar,
+        );
+      },
     );
   }
 
@@ -1114,8 +1132,13 @@ class _BackfillSheetState extends State<_BackfillSheet> {
           const SizedBox(height: AppSpace.s1),
           LayoutBuilder(
             builder: (context, constraints) {
-              const gap = AppSpace.s2;
-              final w = (constraints.maxWidth - 6 * gap) / 7;
+              const gap = AppSpace.s1;
+              const minimumCellWidth = 44.0;
+              const minimumGridWidth = minimumCellWidth * 7 + gap * 6;
+              final gridWidth = constraints.maxWidth < minimumGridWidth
+                  ? minimumGridWidth
+                  : constraints.maxWidth;
+              final w = (gridWidth - 6 * gap) / 7;
               final cells = <Widget>[];
               for (var i = 0; i < leading; i++) {
                 cells.add(SizedBox(width: w, height: w));
@@ -1123,7 +1146,15 @@ class _BackfillSheetState extends State<_BackfillSheet> {
               for (final d in daysInMonth) {
                 cells.add(_cell(palette, theme, d, w));
               }
-              return Wrap(spacing: gap, runSpacing: gap, children: cells);
+              final grid = SizedBox(
+                width: gridWidth,
+                child: Wrap(spacing: gap, runSpacing: gap, children: cells),
+              );
+              if (gridWidth == constraints.maxWidth) return grid;
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: grid,
+              );
             },
           ),
         ],
@@ -1135,34 +1166,49 @@ class _BackfillSheetState extends State<_BackfillSheet> {
     final selectable = _selectable(d);
     final done = widget.recordedDays.contains(d);
     final picked = d == _picked;
-    return Opacity(
-      opacity: selectable ? 1 : .3,
-      child: IgnorePointer(
-        ignoring: !selectable,
-        child: InkWell(
-          onTap: () => setState(() => _picked = d),
-          customBorder: const CircleBorder(),
-          child: Container(
-            width: w,
-            height: w,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: picked ? palette.accent : palette.surfaceAlt,
-              border: Border.all(
-                width: 2,
-                color: done
-                    ? palette.positiveFill
-                    : picked
-                    ? palette.accent
-                    : Colors.transparent,
+    final state = done
+        ? '已记录'
+        : picked
+        ? '已选择'
+        : selectable
+        ? '可补记'
+        : '不可补记';
+    return Semantics(
+      key: ValueKey('backfillDay-${d.isoString}'),
+      button: true,
+      enabled: selectable,
+      selected: picked,
+      label: '${d.year}年${d.month}月${d.day}日，$state',
+      excludeSemantics: true,
+      child: Opacity(
+        opacity: selectable ? 1 : .3,
+        child: IgnorePointer(
+          ignoring: !selectable,
+          child: InkWell(
+            onTap: () => setState(() => _picked = d),
+            customBorder: const CircleBorder(),
+            child: Container(
+              width: w,
+              height: w,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: picked ? palette.accent : palette.surfaceAlt,
+                border: Border.all(
+                  width: 2,
+                  color: done
+                      ? palette.positiveFill
+                      : picked
+                      ? palette.accent
+                      : Colors.transparent,
+                ),
               ),
-            ),
-            child: Text(
-              '${d.day}',
-              style: theme.textTheme.bodyM.copyWith(
-                color: picked ? palette.accentOn : palette.onSurface,
-                fontWeight: picked ? FontWeight.w700 : null,
+              child: Text(
+                '${d.day}',
+                style: theme.textTheme.bodyM.copyWith(
+                  color: picked ? palette.accentOn : palette.onSurface,
+                  fontWeight: picked ? FontWeight.w700 : null,
+                ),
               ),
             ),
           ),

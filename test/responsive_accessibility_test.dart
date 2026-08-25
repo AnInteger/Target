@@ -140,6 +140,10 @@ void main() {
           brightness,
           const GoalDetailPage(goalId: 'responsive'),
         );
+        _expectHitTarget(
+          tester,
+          find.byKey(ValueKey('detailDay-${_today.addDays(-1).isoString}')),
+        );
         await tester.drag(find.byType(ListView), const Offset(0, -1000));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
@@ -155,7 +159,7 @@ void main() {
   testWidgets(
     'primary navigation and insight actions expose accessible targets',
     (tester) async {
-      tester.view.physicalSize = const Size(390, 844);
+      tester.view.physicalSize = const Size(320, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       final db = await _seedDatabase(onboarding: true);
@@ -191,8 +195,10 @@ void main() {
 
       await tester.tap(progressTab);
       await tester.pumpAndSettle();
+      final trendChart = find.byKey(const ValueKey('progressTrendChart'));
+      expect(tester.getSemantics(trendChart).label, contains('最近 7 天目标管理得分趋势'));
       final advice = find.byKey(const ValueKey('adviceToggle-health'));
-      expect(tester.getSemantics(advice).label, '健康类目标建议');
+      expect(tester.getSemantics(advice).label, '健康类目标，当前得分 100 / 100，建议');
       _expectHitTarget(tester, advice);
 
       await tester.tap(find.byKey(const ValueKey('navTab-/today')));
@@ -207,6 +213,14 @@ void main() {
       );
       expect(tester.getSemantics(yesterday).label, contains('可补记'));
       _expectHitTarget(tester, yesterday);
+
+      await tester.tap(calendar);
+      await tester.pumpAndSettle();
+      final fullCalendarDay = find.byKey(
+        ValueKey('backfillDay-${_today.addDays(-1).isoString}'),
+      );
+      expect(tester.getSemantics(fullCalendarDay).label, contains('8月24日，可补记'));
+      _expectHitTarget(tester, fullCalendarDay);
 
       semantics.dispose();
       await tester.pumpWidget(const SizedBox.shrink());

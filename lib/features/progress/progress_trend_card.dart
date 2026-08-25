@@ -16,9 +16,7 @@ class ProgressTrendCard extends StatefulWidget {
 class _ProgressTrendCardState extends State<ProgressTrendCard> {
   final Set<ProgressDimension> _expanded = {};
 
-  bool get _hasTrend => widget.snapshot.evaluation.dailyPoints.any(
-    (point) => point.dimensions.isNotEmpty,
-  );
+  bool get _hasTrend => widget.snapshot.evaluation.hasProgressEvents;
 
   @override
   Widget build(BuildContext context) {
@@ -43,16 +41,23 @@ class _ProgressTrendCardState extends State<ProgressTrendCard> {
           ),
           const SizedBox(height: 14),
           if (_hasTrend)
-            SizedBox(
-              height: 180,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: _TrendPainter(
-                  points: widget.snapshot.evaluation.dailyPoints,
-                  colors: _dimensionColors(context),
-                  guide: palette.divider,
-                  labelStyle: Theme.of(context).textTheme.labelS
-                      .copyWith(color: palette.onSurfaceVariant),
+            Semantics(
+              key: const ValueKey('progressTrendChart'),
+              image: true,
+              label: '最近 7 天目标管理得分趋势',
+              value: _trendSemanticValue(widget.snapshot.evaluation),
+              excludeSemantics: true,
+              child: SizedBox(
+                height: 180,
+                width: double.infinity,
+                child: CustomPaint(
+                  painter: _TrendPainter(
+                    points: widget.snapshot.evaluation.dailyPoints,
+                    colors: _dimensionColors(context),
+                    guide: palette.divider,
+                    labelStyle: Theme.of(context).textTheme.labelS
+                        .copyWith(color: palette.onSurfaceVariant),
+                  ),
                 ),
               ),
             )
@@ -74,6 +79,10 @@ class _ProgressTrendCardState extends State<ProgressTrendCard> {
             if (widget.snapshot.advice[dimension] case final advice?)
               _AdviceSection(
                 advice: advice,
+                score:
+                    widget.snapshot.evaluation.dimensions[dimension]?.score ??
+                    0,
+                color: _dimensionColors(context)[dimension]!,
                 expanded: _expanded.contains(dimension),
                 onToggle: () => setState(() {
                   if (!_expanded.add(dimension)) _expanded.remove(dimension);
@@ -85,6 +94,21 @@ class _ProgressTrendCardState extends State<ProgressTrendCard> {
   }
 }
 
+String _trendSemanticValue(GoalProgressEvaluation evaluation) {
+  final labels = <String>[];
+  for (final dimension in ProgressDimension.values) {
+    final progress = evaluation.dimensions[dimension];
+    if (progress == null) continue;
+    final name = switch (dimension) {
+      ProgressDimension.health => '健康类目标',
+      ProgressDimension.habit => '习惯类目标',
+      ProgressDimension.goal => '成长类目标',
+    };
+    labels.add('$name ${progress.score} / 100');
+  }
+  return labels.join('，');
+}
+
 Map<ProgressDimension, Color> _dimensionColors(BuildContext context) => {
   ProgressDimension.health: MajorColors.health.of(context),
   ProgressDimension.habit: MajorColors.habit.of(context),
@@ -94,11 +118,15 @@ Map<ProgressDimension, Color> _dimensionColors(BuildContext context) => {
 class _AdviceSection extends StatelessWidget {
   const _AdviceSection({
     required this.advice,
+    required this.score,
+    required this.color,
     required this.expanded,
     required this.onToggle,
   });
 
   final GoalAdvice advice;
+  final int score;
+  final Color color;
   final bool expanded;
   final VoidCallback onToggle;
 
@@ -118,7 +146,7 @@ class _AdviceSection extends StatelessWidget {
           Semantics(
             button: true,
             expanded: expanded,
-            label: '$title建议',
+            label: '$title，当前得分 $score / 100，建议',
             excludeSemantics: true,
             child: InkWell(
               key: ValueKey('adviceToggle-${advice.dimension.name}'),
@@ -130,12 +158,29 @@ class _AdviceSection extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
+                      Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           title,
                           style: Theme.of(context).textTheme.titleSmall,
                         ),
                       ),
+                      Text(
+                        '$score / 100',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: palette.onSurfaceVariant,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Icon(
                         expanded
                             ? Icons.keyboard_arrow_up_rounded

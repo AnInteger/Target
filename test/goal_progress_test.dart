@@ -195,4 +195,31 @@ void main() {
     expect(result.dailyPoints.first.day, today.addDays(-6));
     expect(result.dailyPoints.last.day, today);
   });
+
+  test('adding a first next step today does not rewrite earlier points', () {
+    final target = goal();
+    final before = evaluateGoalProgress(
+      goals: [target],
+      checkIns: [check('g', 0)],
+      milestones: const {'g': []},
+      today: today,
+    );
+    final after = evaluateGoalProgress(
+      goals: [target],
+      checkIns: [check('g', 0)],
+      milestones: {
+        'g': [openStep('g')],
+      },
+      today: today,
+    );
+
+    expect(
+      after.dailyPoints.take(6).map((point) => point.dimensions),
+      before.dailyPoints.take(6).map((point) => point.dimensions),
+    );
+    expect(
+      after.dailyPoints.last.dimensions[ProgressDimension.goal],
+      greaterThan(before.dailyPoints.last.dimensions[ProgressDimension.goal]!),
+    );
+  });
 }

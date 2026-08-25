@@ -16,6 +16,7 @@ const _today = LocalDate(2026, 8, 25);
 Future<AppDatabase> _pumpProgress(
   WidgetTester tester, {
   bool seedGoal = true,
+  bool seedProgress = true,
 }) async {
   await tester.binding.setSurfaceSize(const Size(390, 844));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -34,12 +35,14 @@ Future<AppDatabase> _pumpProgress(
       ),
     );
     await goals.addStep(MilestoneStep(id: 'm1', goalId: 'g1', title: '完成理论课程'));
-    await CheckInRepository(db).add(
-      'g1',
-      _today.addDays(-1),
-      _today.atStartOfDay.subtract(const Duration(hours: 12)),
-      note: '完成潜水理论复习',
-    );
+    if (seedProgress) {
+      await CheckInRepository(db).add(
+        'g1',
+        _today.addDays(-1),
+        _today.atStartOfDay.subtract(const Duration(hours: 12)),
+        note: '完成潜水理论复习',
+      );
+    }
   }
   await tester.pumpWidget(
     ProviderScope(
@@ -82,6 +85,17 @@ void main() {
 
     expect(find.byKey(const ValueKey('progressNoTrend')), findsOneWidget);
     expect(find.text('当前没有需要优先处理的计划。'), findsOneWidget);
+    await _disposeProgress(tester);
+  });
+
+  testWidgets('an active goal without progress does not draw a false trend', (
+    tester,
+  ) async {
+    final db = await _pumpProgress(tester, seedProgress: false);
+    addTearDown(db.close);
+
+    expect(find.byKey(const ValueKey('progressNoTrend')), findsOneWidget);
+    expect(find.byKey(const ValueKey('progressTrendChart')), findsNothing);
     await _disposeProgress(tester);
   });
 }

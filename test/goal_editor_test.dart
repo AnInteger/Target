@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:target/app/design_tokens.dart';
 import 'package:target/app/providers.dart';
 import 'package:target/core/db/app_database.dart' show AppDatabase;
@@ -127,5 +128,45 @@ void main() {
       '完成 DSD 体验潜水',
     );
     expect(await ReminderRepository(db).all(), isEmpty);
+  });
+
+  testWidgets('深链直达新建目标后保存会回首页', (tester) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final router = GoRouter(
+      initialLocation: '/goal-editor',
+      routes: [
+        GoRoute(
+          path: '/today',
+          builder: (_, _) => const Scaffold(body: Text('首页')),
+        ),
+        GoRoute(
+          path: '/goal-editor',
+          builder: (_, _) => const GoalEditorPage(),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [dbProvider.overrideWithValue(db)],
+        child: MaterialApp.router(
+          theme: AppTheme.light(),
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('goalNameField')),
+      '拿到 OW 潜水证',
+    );
+    tester.testTextInput.hide();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('首页'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

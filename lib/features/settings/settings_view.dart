@@ -97,7 +97,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         (settings?.notificationDeniedAcknowledged ?? true) == false;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: TargetPalette.of(context).background,
       body: SafeArea(
         bottom: false,
         child: Column(

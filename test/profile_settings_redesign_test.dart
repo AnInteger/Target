@@ -8,8 +8,35 @@ import 'package:target/core/db/app_database.dart' show AppDatabase;
 import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
+import 'package:target/core/platform/gateways.dart';
 import 'package:target/features/profile/profile_hub.dart';
 import 'package:target/features/settings/appearance_mode_sheet.dart';
+import 'package:target/features/settings/settings_view.dart';
+
+class _NotificationGateway implements NotificationGateway {
+  @override
+  Stream<NotificationBanner> get banners => const Stream.empty();
+
+  @override
+  Future<void> cancel(int id) async {}
+
+  @override
+  Future<void> cancelAll() async {}
+
+  @override
+  Future<bool> get isPermissionGranted async => true;
+
+  @override
+  Future<bool> requestPermission() async => true;
+
+  @override
+  Future<void> scheduleDaily({
+    required int id,
+    required LocalTime time,
+    required String title,
+    required String body,
+  }) async {}
+}
 
 void main() {
   testWidgets('我的页是个人与目标管理入口', (tester) async {
@@ -100,6 +127,28 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('themeLight')));
     await tester.pumpAndSettle();
     expect((await SettingsRepository(db).get()).themeMode, AppThemeMode.light);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle(const Duration(milliseconds: 1));
+  });
+
+  testWidgets('设置页深色模式不混入浅色底幕', (tester) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          notificationGatewayProvider.overrideWithValue(_NotificationGateway()),
+        ],
+        child: MaterialApp(theme: AppTheme.dark(), home: const SettingsView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    final palette = TargetPalette.of(tester.element(find.byType(SettingsView)));
+    expect(scaffold.backgroundColor, palette.background);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle(const Duration(milliseconds: 1));

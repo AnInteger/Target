@@ -61,3 +61,6 @@ show.encryption_key
 
 # Local isolated implementation worktrees
 .worktrees/
+
+# Local brainstorming visual companion sessions
+.superpowers/

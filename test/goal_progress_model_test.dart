@@ -39,10 +39,9 @@ void main() {
     );
 
     expect(goal.effectiveDomain, GoalIconDomain.travel);
-    expect(
-      goal.copyWith(categoryOverride: GoalIconDomain.learning).effectiveDomain,
-      GoalIconDomain.learning,
-    );
+    final corrected = goal.copyWith(categoryOverride: GoalIconDomain.health);
+    expect(corrected.effectiveDomain, GoalIconDomain.health);
+    expect(corrected.major, MajorCategory.health);
   });
 
   test('milestones retain a stable manual order', () {

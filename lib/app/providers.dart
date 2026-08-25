@@ -16,6 +16,8 @@ import '../core/models/calendar_types.dart';
 import '../core/models/date_provider.dart';
 import '../core/models/entities.dart';
 import '../core/models/health_score.dart';
+import '../core/models/goal_advice.dart';
+import '../core/models/goal_progress.dart';
 import '../core/platform/file_pick_gateway.dart';
 import '../core/platform/gateways.dart';
 import '../core/platform/notification_gateway.dart';
@@ -144,6 +146,10 @@ final stepsProvider = StreamProvider.family<List<MilestoneStep>, String>(
   (ref, goalId) => ref.watch(goalRepoProvider).watchStepsOf(goalId),
 );
 
+final allStepsProvider = StreamProvider<List<MilestoneStep>>(
+  (ref) => ref.watch(goalRepoProvider).watchAllSteps(),
+);
+
 /// 注入时钟的"今天"（自然日，本地时区）。
 final todayProvider = Provider<LocalDate>(
   (ref) => ref.watch(dateProviderProvider).today,
@@ -196,6 +202,27 @@ final healthScoreProvider = Provider<HealthSnapshot?>((ref) {
     return null;
   }
   return evaluateHealth(goals: goals, checkIns: checkIns, today: today);
+});
+
+/// 当前目标管理状态的一体化只读模型。所有依赖流到齐后才出值；页面无需
+/// 自行拼接目标、记录、里程碑或复制评分与建议规则。
+final goalProgressProvider = Provider<GoalProgressSnapshot?>((ref) {
+  final goals = ref.watch(goalsProvider).value;
+  final checkIns = ref.watch(checkInsProvider).value;
+  final steps = ref.watch(allStepsProvider).value;
+  final today = ref.watch(todayProvider);
+  if (goals == null || checkIns == null || steps == null) return null;
+  final groupedSteps = <String, List<MilestoneStep>>{};
+  for (final step in steps) {
+    groupedSteps.putIfAbsent(step.goalId, () => []).add(step);
+  }
+  final evaluation = evaluateGoalProgress(
+    goals: goals,
+    checkIns: checkIns,
+    milestones: groupedSteps,
+    today: today,
+  );
+  return buildProgressSnapshot(evaluation: evaluation, goals: goals);
 });
 
 final notificationGatewayProvider = Provider<NotificationGateway>(

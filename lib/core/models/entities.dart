@@ -156,7 +156,7 @@ class Goal {
   /// 三大类派生（004 T005 · data-model.md 的 majorOf）：iconKey →
   /// 领域 → 大类，零落库；未匹配键兜底 explore（travel 域 → 目标
   /// 大类，沿 byKey 兜底，结论与 data-model 一致）。
-  MajorCategory get major => GoalIconCatalog.byKey(iconKey).domain.major;
+  MajorCategory get major => effectiveDomain.major;
 
   /// 状态机（003 D4）：active ⇄ paused；active → achieved（habit 持续型
   /// 不可达成）；active/paused → archived（终态）。创建后类型不可变更。

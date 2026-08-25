@@ -184,6 +184,17 @@ class GoalRepository {
           .map(_toStep)
           .watch();
 
+  /// 全量里程碑流。评分引擎一次性按 goalId 分组，避免在 Provider 中动态
+  /// watch family 导致订阅数量和目标列表互相耦合。
+  Stream<List<MilestoneStep>> watchAllSteps() =>
+      (_db.select(_db.milestoneSteps)..orderBy([
+            (t) => OrderingTerm.asc(t.goalId),
+            (t) => OrderingTerm.asc(t.position),
+            (t) => OrderingTerm.asc(t.id),
+          ]))
+          .map(_toStep)
+          .watch();
+
   Future<List<MilestoneStep>> stepsOf(String goalId) =>
       (_db.select(_db.milestoneSteps)
             ..where((t) => t.goalId.equals(goalId))

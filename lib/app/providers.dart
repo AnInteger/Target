@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/db/app_database.dart' show AppDatabase;
 import '../core/db/connection.dart';
 import '../core/db/repositories.dart';
+import '../core/db/progress_repository.dart';
 import '../core/models/calendar_types.dart';
 import '../core/models/date_provider.dart';
 import '../core/models/entities.dart';
@@ -46,6 +47,9 @@ final goalRepoProvider = Provider(
 );
 final checkInRepoProvider = Provider(
   (ref) => CheckInRepository(ref.watch(dbProvider)),
+);
+final progressRepoProvider = Provider(
+  (ref) => ProgressRepository(ref.watch(dbProvider)),
 );
 
 /// 打卡服务（T025）：统一注入时钟入口。

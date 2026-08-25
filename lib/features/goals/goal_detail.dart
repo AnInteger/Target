@@ -10,6 +10,8 @@
 /// （FR-016 全能力零丢失）。
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -164,7 +166,7 @@ class GoalDetailPage extends ConsumerWidget {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text(Copy.milestoneDone)));
-      Navigator.of(context).pop(); // 与编辑器同款本地 pop
+      context.go('/today');
     }
   }
 
@@ -325,7 +327,7 @@ class GoalDetailPage extends ConsumerWidget {
     );
     if (yes != true) return;
     await ref.read(goalRepoProvider).deleteGoal(goal.id);
-    if (context.mounted) Navigator.of(context).pop();
+    if (context.mounted) context.go('/today');
   }
 }
 
@@ -1637,7 +1639,7 @@ class _MenuRow extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final FutureOr<void> Function() onTap;
   final bool danger;
 
   @override
@@ -1647,9 +1649,9 @@ class _MenuRow extends StatelessWidget {
     final color = danger ? palette.badge : palette.onSurface;
     final iconColor = danger ? palette.badge : palette.onSurfaceVariant;
     return InkWell(
-      onTap: () {
+      onTap: () async {
         Navigator.of(context).pop();
-        onTap();
+        await Future<void>.sync(onTap);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(

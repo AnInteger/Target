@@ -9,6 +9,8 @@
 /// 暂停恢复/删除走二次确认，003 管理职能全承）；筛选空态引导。
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -424,7 +426,7 @@ class _GoalCard extends ConsumerWidget {
         icon: Icons.edit_outlined,
         label: Copy.goalEdit,
         hint: true,
-        onTap: () => context.push('/goal-editor?id=${goal.id}'),
+        onTap: () => context.go('/goal-editor?id=${goal.id}'),
       ),
       if (goal.canTransitTo(GoalStatus.paused))
         _SheetAction(
@@ -521,6 +523,7 @@ class _GoalCard extends ConsumerWidget {
                 ),
               _SheetRow(
                 actionKey: a.actionKey,
+                goalId: goal.id,
                 icon: a.icon,
                 label: a.label,
                 danger: a.danger,
@@ -609,6 +612,7 @@ class _GoalCard extends ConsumerWidget {
     final aux = _aux(steps);
 
     return DecoratedBox(
+      key: ValueKey('goalCard-${goal.id}'),
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: AppRadius.rLg,
@@ -620,7 +624,7 @@ class _GoalCard extends ConsumerWidget {
         child: InkWell(
           // 004 T022 立下的行 key 契约：goalsAllRow-{id}（tap 进详情）。
           key: ValueKey('goalsAllRow-${goal.id}'),
-          onTap: () => context.push('/goal/${goal.id}'),
+          onTap: () => context.go('/goal/${goal.id}'),
           onLongPress: () => _showManageSheet(context, ref),
           borderRadius: AppRadius.rLg,
           child: Padding(
@@ -864,7 +868,7 @@ class _SheetAction {
   final String actionKey;
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final FutureOr<void> Function() onTap;
   final bool danger;
   final bool hint;
 }
@@ -872,6 +876,7 @@ class _SheetAction {
 class _SheetRow extends StatelessWidget {
   const _SheetRow({
     required this.actionKey,
+    required this.goalId,
     required this.icon,
     required this.label,
     required this.onTap,
@@ -881,9 +886,10 @@ class _SheetRow extends StatelessWidget {
 
   /// 行 key（goalsAllMenu-edit/pause/resume/delete——测试锚点）。
   final String actionKey;
+  final String goalId;
   final IconData icon;
   final String label;
-  final VoidCallback onTap;
+  final FutureOr<void> Function() onTap;
   final bool danger;
 
   /// 尾随 › 提示（冻结稿 .to，编辑行）。
@@ -896,10 +902,10 @@ class _SheetRow extends StatelessWidget {
     final color = danger ? palette.badge : palette.onSurface;
     final iconColor = danger ? palette.badge : palette.onSurfaceVariant;
     return InkWell(
-      key: ValueKey('goalsAllMenu-$actionKey'),
-      onTap: () {
+      key: ValueKey('goalAction-$actionKey-$goalId'),
+      onTap: () async {
         Navigator.of(context).pop();
-        onTap();
+        await Future<void>.sync(onTap);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(

@@ -86,4 +86,65 @@ void main() {
       expect(savedSteps.last.title, '完成理论课程');
     },
   );
+
+  testWidgets('failed save keeps the sheet and entered text', (tester) async {
+    const today = LocalDate(2026, 8, 25);
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final goal = Goal(
+      id: 'g',
+      name: '拿到 OW 潜水证',
+      goalType: GoalType.longTerm,
+      iconKey: 'pool',
+      colorKey: '',
+      createdAt: const LocalDate(2026, 8, 1),
+    );
+    final missingStep = MilestoneStep(
+      id: 'missing',
+      goalId: 'g',
+      title: '不会丢失的输入',
+    );
+    await GoalRepository(db).create(goal);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dbProvider.overrideWithValue(db),
+          dateProviderProvider.overrideWith(
+            (ref) => FixedDateProvider(today.atStartOfDay),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showProgressRecordSheet(
+                  context,
+                  goal: goal,
+                  currentStep: missingStep,
+                ),
+                child: const Text('打开失败场景'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('打开失败场景'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('progressNoteField')),
+      '不会丢失的输入',
+    );
+    await tester.tap(find.text('同时完成当前里程碑'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('保存进展'));
+    await tester.tap(find.text('保存进展'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('progressRecordSheet')), findsOneWidget);
+    expect(find.byKey(const ValueKey('progressSaveError')), findsOneWidget);
+    expect(find.text('不会丢失的输入'), findsWidgets);
+  });
 }

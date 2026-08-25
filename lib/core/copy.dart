@@ -60,6 +60,7 @@ abstract final class Copy {
   //      004 T014 按冻结稿 v2-goal-detail 换装）----
 
   static const goalDetailTitle = '目标详情';
+  static const goalMissing = '目标不存在或已删除';
   static const goalEdit = '编辑目标';
   static const goalMoreActions = '更多操作';
 
@@ -77,7 +78,7 @@ abstract final class Copy {
 
   /// 补签弹层（冻结稿板 3：14 天窗口日历单选 + 确认主按钮）。
   static const backfillSheetTitle = '补签日期';
-  static const backfillSheetHint = '青圈边 = 已有记录；灰且不可点 = 未来日期或超出 14 天';
+  static const backfillSheetHint = '绿色描边表示已有记录；可补记最近 6 个月的空日期';
   static String backfillConfirm(int month, int day) => '补签 $month 月 $day 日';
   static const backfillTag = '补签';
 

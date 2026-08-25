@@ -21,6 +21,7 @@ import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/goal_icon_catalog.dart';
+import 'day_records_sheet.dart';
 import 'goal_lifecycle.dart';
 import 'progress_record_sheet.dart';
 import 'goal_type_badge.dart';
@@ -32,11 +33,19 @@ class GoalDetailPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
+    final goals = ref.watch(goalsProvider).value;
+    if (goals == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final goal = goals.where((g) => g.id == goalId).firstOrNull;
     if (goal == null) {
-      // 删除后立即 pop（_confirmDelete），此态只作瞬时兜底。
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text(Copy.goalMissing)));
+        context.go('/today');
+      });
+      return const Scaffold(body: SizedBox.shrink());
     }
     final reminders = ref.watch(remindersProvider).value ?? const <Reminder>[];
     final reminderRow = reminders.where((r) => r.goalId == goalId).firstOrNull;
@@ -666,6 +675,9 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
     }
   }
 
+  Future<void> _openRecords(LocalDate day, List<CheckIn> records) =>
+      showDayRecordsSheet(context, day: day, records: records);
+
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
@@ -681,7 +693,7 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            Copy.detailTodayCard,
+            '今日进展',
             style: theme.textTheme.labelS.copyWith(
               letterSpacing: .8,
               color: palette.onSurfaceVariant,
@@ -720,18 +732,56 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
             shadow: true,
             onTap: _recordProgress,
           ),
+          const SizedBox(height: AppSpace.s4),
+          Divider(height: 1, color: palette.divider),
+          const SizedBox(height: AppSpace.s4),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('最近 7 天', style: theme.textTheme.titleS),
+                    const SizedBox(height: AppSpace.s1),
+                    Text(
+                      _recentRange(widget.today),
+                      style: theme.textTheme.bodyS.copyWith(
+                        color: palette.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                key: const ValueKey('detailOpenCalendar'),
+                onPressed: _openBackfill,
+                child: const Text('查看日历'),
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpace.s3),
           _WeekDots(
             mine: widget.mine,
             today: widget.today,
             onPickPast: (d) => _openBackfill(d),
+            onOpenRecords: _openRecords,
           ),
-          const SizedBox(height: AppSpace.s2),
-          Text(
-            Copy.weekDotsHint,
-            style: theme.textTheme.bodyS.copyWith(
-              color: palette.onSurfaceVariant,
-            ),
+          const SizedBox(height: AppSpace.s3),
+          Row(
+            children: [
+              _CalendarLegend(
+                icon: Icons.check_rounded,
+                label: '已记录',
+                color: palette.positiveFill,
+              ),
+              const SizedBox(width: AppSpace.s4),
+              _CalendarLegend(
+                icon: Icons.add_rounded,
+                label: '可补记',
+                color: palette.onSurfaceVariant,
+              ),
+            ],
           ),
         ],
       ),
@@ -739,18 +789,46 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
   }
 }
 
-/// 近 7 天点阵（冻结稿 .week）：34px 圆 + 对勾完成 + 虚线补签 +
-/// 今日加粗；点过去日开补签弹层。
+String _recentRange(LocalDate today) {
+  final start = today.addDays(-6);
+  return '${start.month}月${start.day}日 – ${today.month}月${today.day}日';
+}
+
+class _CalendarLegend extends StatelessWidget {
+  const _CalendarLegend({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 15, color: color),
+      const SizedBox(width: 5),
+      Text(label, style: Theme.of(context).textTheme.bodyS),
+    ],
+  );
+}
+
+/// 最近七天日历：星期、日期和文字状态同时呈现，不依赖颜色判断。
 class _WeekDots extends StatelessWidget {
   const _WeekDots({
     required this.mine,
     required this.today,
     required this.onPickPast,
+    required this.onOpenRecords,
   });
 
   final List<CheckIn> mine;
   final LocalDate today;
   final void Function(LocalDate) onPickPast;
+  final void Function(LocalDate, List<CheckIn>) onOpenRecords;
 
   @override
   Widget build(BuildContext context) {
@@ -761,13 +839,10 @@ class _WeekDots extends StatelessWidget {
       byDay.putIfAbsent(c.day, () => []).add(c);
     }
     return Row(
-      key: const ValueKey('detailWeekDots'),
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      key: const ValueKey('detailWeekCalendar'),
       children: [
-        // i 自 6 递减至 0：today-6（最旧）在左 → today 在右；
-        // 曾误写 i++ 造成无限 build（WSL VM 被测试进程压死），勿回退。
         for (var i = 6; i >= 0; i--)
-          _dayColumn(palette, theme, today.addDays(-i), byDay),
+          Expanded(child: _dayColumn(palette, theme, today.addDays(-i), byDay)),
       ],
     );
   }
@@ -782,43 +857,79 @@ class _WeekDots extends StatelessWidget {
     final hit = rows.isNotEmpty;
     final bf = rows.any((c) => c.isBackfill);
     final isToday = day == today;
-    return InkWell(
-      onTap: day.isBefore(today) ? () => onPickPast(day) : null,
-      child: Column(
-        children: [
-          CustomPaint(
-            foregroundPainter: bf
-                ? _DashedCirclePainter(color: palette.divider)
-                : null,
-            child: Container(
-              width: 34,
-              height: 34,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: hit ? palette.positiveFill : palette.surfaceAlt,
-                border: hit && !bf
-                    ? Border.all(color: Colors.transparent)
-                    : Border.all(color: palette.divider),
+    final state = isToday
+        ? '今日'
+        : hit
+        ? '已记录'
+        : '可补记';
+    return Semantics(
+      button: !isToday,
+      label: '星期${day.weekday.zhLabel}，${day.month}月${day.day}日，$state',
+      child: InkWell(
+        key: ValueKey('detailDay-${day.isoString}'),
+        onTap: isToday
+            ? null
+            : hit
+            ? () => onOpenRecords(day, rows)
+            : () => onPickPast(day),
+        borderRadius: AppRadius.rMd,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 82, minWidth: 44),
+          child: Column(
+            children: [
+              Text(
+                day.weekday.zhLabel,
+                style: theme.textTheme.labelS.copyWith(
+                  color: palette.onSurfaceVariant,
+                ),
               ),
-              child: hit
-                  ? Icon(
-                      Icons.check,
-                      size: bf ? 14 : 16,
-                      color: palette.positiveOn,
-                    )
-                  : null,
-            ),
+              const SizedBox(height: AppSpace.s1),
+              CustomPaint(
+                foregroundPainter: bf
+                    ? _DashedCirclePainter(color: palette.divider)
+                    : null,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: hit
+                        ? palette.positiveFill
+                        : isToday
+                        ? palette.accent
+                        : palette.surfaceAlt,
+                    border: Border.all(
+                      color: hit && !bf ? Colors.transparent : palette.divider,
+                    ),
+                  ),
+                  child: hit
+                      ? Icon(
+                          Icons.check_rounded,
+                          size: 16,
+                          color: palette.positiveOn,
+                        )
+                      : Text(
+                          '${day.day}',
+                          style: theme.textTheme.bodyS.copyWith(
+                            color: isToday
+                                ? palette.accentOn
+                                : palette.onSurface,
+                            fontWeight: isToday ? FontWeight.w700 : null,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                state,
+                style: theme.textTheme.labelS.copyWith(
+                  color: isToday ? palette.accent : palette.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpace.s1),
-          Text(
-            '${day.day}',
-            style: theme.textTheme.bodyS.copyWith(
-              color: isToday ? palette.onSurface : palette.onSurfaceVariant,
-              fontWeight: isToday ? FontWeight.w700 : null,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -881,12 +992,14 @@ class _BackfillSheetState extends State<_BackfillSheet> {
     _picked = widget.initial;
   }
 
-  /// 窗口：today-13 .. today-1（未来与今日不可选）。
-  late final LocalDate _windowStart = widget.today.addDays(-13);
+  /// 完整日历提供最近六个月；未来、今日和已有记录不可重复选择。
+  late final LocalDate _windowStart = widget.today.addDays(-183);
   late final LocalDate _windowEnd = widget.today.addDays(-1);
 
   bool _selectable(LocalDate d) =>
-      !d.isBefore(_windowStart) && !d.isAfter(_windowEnd);
+      !d.isBefore(_windowStart) &&
+      !d.isAfter(_windowEnd) &&
+      !widget.recordedDays.contains(d);
 
   @override
   Widget build(BuildContext context) {

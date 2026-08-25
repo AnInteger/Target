@@ -234,6 +234,7 @@ class _ProgressRecordSheetState extends ConsumerState<_ProgressRecordSheet> {
                 const SizedBox(height: 10),
                 Text(
                   _error!,
+                  key: const ValueKey('progressSaveError'),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: palette.badge,
                   ),

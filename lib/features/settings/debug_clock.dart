@@ -1,7 +1,7 @@
 /// Debug 时钟菜单（T049，research D6）：开发构建专用的运行时时间旅行。
 ///
 /// 切换 dateProviderProvider 实现（System ⇄ Fixed）后 invalidate
-/// today/stats，即可在真机/Web 上验证周一结算、跨天电量、连击截至
+/// today/stats，即可在真机/Web 上验证跨天状态、连击截至
 /// 昨天等口径。仅 kDebugMode 渲染入口。
 ///
 /// 004 T016 换装 v2 语言（无对应原型画板，按已冻结组件拼装）：入口行
@@ -133,8 +133,8 @@ class DebugClockTile extends ConsumerWidget {
               ),
               _DebugActionRow(
                 icon: Icons.skip_next_rounded,
-                title: '跳到下周一（验证周结算）',
-                sub: '周一晨：概要带上周回顾 + 结算幂等',
+                title: '跳到下周一',
+                sub: '验证自然周切换后的状态与提醒',
                 onTap: () {
                   _travel(ref, today.weekStart.next.monday);
                   Navigator.of(sheetContext).pop();

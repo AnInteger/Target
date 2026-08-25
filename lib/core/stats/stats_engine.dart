@@ -6,10 +6,6 @@
 /// 打卡 = 一条有效 CheckIns；当日 ≥1 次 → 环满（0→1 封顶）。
 /// 三类型均打卡，引擎不按类型过滤（消费方自选活跃集）。
 ///
-/// 004 US5 周视图派生（回顾页三区块，实时派生不读 WeeklyReviews 快照）：
-/// 周概览（平均完成率 + 上周环比）/ 每日活动（逐日聚合）/ 单目标周完成度。
-/// 应记日 = 目标已创建且（概览口径）当前仍活跃的自然日；本周只算已过
-/// 天数（不因周末未到稀释，沿 weekStatOf 实时口径）。
 library;
 
 import '../models/calendar_types.dart';
@@ -42,76 +38,10 @@ class LifeBattery {
   final int? percent;
 }
 
-/// 每日活动单日聚合（回顾页七天点阵，004 US5）。
-class DayActivity {
-  const DayActivity({
-    required this.day,
-    required this.checks,
-    required this.doneGoals,
-    required this.activeGoals,
-    required this.isFuture,
-  });
-
-  final LocalDate day;
-
-  /// 当日全部有效打卡次数（不限目标状态——历史活动如实计数）。
-  final int checks;
-
-  /// 当日活跃目标中已留痕数（活跃 = 当前 active 且创建日 ≤ 当日）。
-  final int doneGoals;
-
-  /// 当日应记目标数（分母；0 = 当日无应记）。
-  final int activeGoals;
-
-  /// 未来日（点阵不完成态——打卡日着色永不落在未到的日子）。
-  final bool isFuture;
-
-  /// 着色档：full = 应记全留痕 / partial = 部分 / none = 零留痕或无应记。
-  DayFill get fill {
-    if (activeGoals == 0 || doneGoals == 0) return DayFill.none;
-    return doneGoals == activeGoals ? DayFill.full : DayFill.partial;
-  }
-}
-
-/// 点阵着色档（对勾实底 / 描边圈 / 灰底，FR-013 双编码不单靠色相）。
-enum DayFill { none, partial, full }
-
-/// 单目标周完成度（回顾页本周目标卡 x/y 与线性进度，004 US5）。
-/// 状态不设滤（回看口径——暂停/达成目标的历史周照常出数，是否上屏
-/// 由消费方选卡）。
-class GoalWeekRate {
-  const GoalWeekRate({required this.metDays, required this.expectedDays});
-
-  /// 周留痕天数（= weekStatOf 同口径）。
-  final int metDays;
-
-  /// 周应记天数（创建日起算、本周截至今日；0 = 该周无应记 → 「—」）。
-  final int expectedDays;
-
-  /// 完成度 0..1；null = 该周无应记。
-  double? get fraction => expectedDays == 0 ? null : metDays / expectedDays;
-}
-
-/// 周概览（回顾页本周概览卡，004 US5）：平均完成率 + 上周环比。
-class WeekOverview {
-  const WeekOverview({required this.rate, required this.lastRate});
-
-  /// 周平均完成率 0..100 = Σ留痕日 / Σ应记日（活跃目标池，舍入取整）；
-  /// null = 该周零应记（「该周暂无记录」）。
-  final int? rate;
-
-  /// 上周同口径；null = 上周零应记（环比无可比较）。
-  final int? lastRate;
-
-  /// 环比 = 本周 − 上周（百分点）；null = 任一周零应记（无可比较）。
-  int? get delta => rate == null || lastRate == null ? null : rate! - lastRate!;
-}
-
 /// 一次 evaluate 的结果：按 goalId 查询各口径数字。
 class StatsEvaluation {
   StatsEvaluation({
     required List<Goal> goals,
-    required this.busySessions,
     required List<CheckIn> checkIns,
     required LocalDate today,
   }) : _goals = {for (final g in goals) g.id: g} {
@@ -125,7 +55,6 @@ class StatsEvaluation {
   }
 
   final Map<String, Goal> _goals;
-  final List<BusyModeSession> busySessions;
   final Map<String, Map<LocalDate, List<CheckIn>>> _validByGoalDay = {};
   late final LocalDate _today;
 
@@ -212,12 +141,6 @@ class StatsEvaluation {
       metDays: metDays,
       totalChecks: totalChecks,
       backfillCount: backfillCount,
-      busyModeApplied: busySessions.any(
-        (s) =>
-            s.isActive &&
-            s.weekStart == week &&
-            s.entries.any((e) => e.goalId == goalId),
-      ),
     );
   }
 
@@ -239,82 +162,6 @@ class StatsEvaluation {
       metDays: metDays,
       totalChecks: totalChecks,
       backfillCount: backfillCount,
-    );
-  }
-
-  /// 目标在 [week] 的应记天数：[week.monday, min(week.sunday, 今日)] 与
-  /// 创建日之后取交（本周实时截断——不因周末未到稀释）。
-  /// [activeOnly] 概览口径只数当前仍活跃的目标（守护面，沿 battery）；
-  /// 单目标完成度（weekRateOf）回看口径不滤。
-  int _expectedDays(Goal g, WeekStart week, {required bool activeOnly}) {
-    if (activeOnly && g.status != GoalStatus.active) return 0;
-    final end = week.sunday.isAfter(_today) ? _today : week.sunday;
-    final start = week.monday.isAfter(g.createdAt) ? week.monday : g.createdAt;
-    if (start.isAfter(end)) return 0;
-    return end.differenceInDays(start) + 1;
-  }
-
-  /// 单目标周完成度（回顾页本周目标卡）：metDays = weekStatOf 同口径，
-  /// expectedDays = 创建日起算的应记天数（状态不滤）。
-  GoalWeekRate weekRateOf(String goalId, WeekStart week) {
-    final goal = _goals[goalId];
-    if (goal == null) {
-      return const GoalWeekRate(metDays: 0, expectedDays: 0);
-    }
-    return GoalWeekRate(
-      metDays: weekStatOf(goalId, week).metDays,
-      expectedDays: _expectedDays(goal, week, activeOnly: false),
-    );
-  }
-
-  /// 周概览（回顾页本周概览卡）：平均完成率 = 活跃目标池 Σ留痕日/
-  /// Σ应记日（按应记天数加权，2 目标跨 3 天手工核算即 5/6）；
-  /// 上周零应记 → lastRate/delta = null（环比「无可比较」）。
-  WeekOverview weekOverview(WeekStart week) {
-    int rateOf(WeekStart w) {
-      var met = 0, expected = 0;
-      for (final g in _goals.values) {
-        final exp = _expectedDays(g, w, activeOnly: true);
-        if (exp == 0) continue; // 分子分母同池（暂停目标不灌入留痕）
-        expected += exp;
-        met += weekStatOf(g.id, w).metDays;
-      }
-      return expected == 0 ? -1 : (met * 100 / expected).round();
-    }
-
-    final rate = rateOf(week);
-    final last = rateOf(week.previous);
-    return WeekOverview(
-      rate: rate < 0 ? null : rate,
-      lastRate: last < 0 ? null : last,
-    );
-  }
-
-  /// 每日活动（回顾页七天点阵）：周一→周日逐日聚合。checks 计全量
-  /// 有效打卡（含已暂停目标的历史留痕）；done/active 只数当前活跃目标
-  /// （创建日 ≤ 当日）——未来日恒 isFuture（点阵不完成态）。
-  List<DayActivity> dayActivities(WeekStart week) {
-    return [for (var i = 0; i < 7; i++) _activityOn(week.monday.addDays(i))];
-  }
-
-  DayActivity _activityOn(LocalDate day) {
-    var checks = 0, done = 0, active = 0;
-    for (final g in _goals.values) {
-      final st = dayStatusOf(g.id, day);
-      checks += st.doneCount;
-      final isActive =
-          g.status == GoalStatus.active && !day.isBefore(g.createdAt);
-      if (isActive) {
-        active++;
-        if (st.done) done++;
-      }
-    }
-    return DayActivity(
-      day: day,
-      checks: checks,
-      doneGoals: done,
-      activeGoals: active,
-      isFuture: day.isAfter(_today),
     );
   }
 
@@ -341,13 +188,7 @@ class StatsEvaluation {
 abstract final class StatsEngine {
   static StatsEvaluation evaluate({
     required List<Goal> goals,
-    required List<BusyModeSession> busySessions,
     required List<CheckIn> checkIns,
     required LocalDate today,
-  }) => StatsEvaluation(
-    goals: goals,
-    busySessions: busySessions,
-    checkIns: checkIns,
-    today: today,
-  );
+  }) => StatsEvaluation(goals: goals, checkIns: checkIns, today: today);
 }

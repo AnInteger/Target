@@ -710,7 +710,6 @@ void main() {
     // 周四 8/20：gd daily 命中（08:30）；gw weekly 锚点=周六，不当日。
     final statsThu = StatsEngine.evaluate(
       goals: goals,
-      busySessions: const [],
       checkIns: checkIns,
       today: LocalDate.parse('2026-08-20'),
     );
@@ -735,7 +734,6 @@ void main() {
     final enabledRows = await reminderRepo.all();
     final statsSat = StatsEngine.evaluate(
       goals: goals,
-      busySessions: const [],
       checkIns: checkIns,
       today: LocalDate.parse('2026-08-22'),
     );
@@ -796,12 +794,8 @@ void main() {
     // 场景 2：高频节律（每日 3 次）→ habit；既有计数连续不中断。
     final g3 = goals.firstWhere((g) => g.id == 'g3');
     expect(g3.goalType, GoalType.habit);
-    StatsEvaluation statsOf(List<CheckIn> checkIns) => StatsEngine.evaluate(
-      goals: goals,
-      busySessions: const [],
-      checkIns: checkIns,
-      today: today,
-    );
+    StatsEvaluation statsOf(List<CheckIn> checkIns) =>
+        StatsEngine.evaluate(goals: goals, checkIns: checkIns, today: today);
     var stats = statsOf(await checkInRepo.all());
     expect(stats.streakOf('g3'), 6, reason: '迁移不得重置连续计数');
     // 迁移后继续打卡：计数延续（6 → 7），无断层。

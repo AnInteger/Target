@@ -40,21 +40,6 @@ class _TargetAppState extends ConsumerState<TargetApp> {
         SnackBar(content: Text('${b.title}\n${b.body}')),
       );
     });
-    // T022（2026-08-21 裁决：忙碌态全 App 移除）：升级前若仍有进行中的
-    // 降档会话，启动即恢复原频率并收尾——历史留痕保留，仅清入口。
-    _closeLegacyBusySessions();
-  }
-
-  /// 收尾遗留忙碌会话：恢复各目标原频率 + 结束会话（幂等，无会话则空转）。
-  Future<void> _closeLegacyBusySessions() async {
-    try {
-      final sessions = await ref.read(busySessionsProvider.future);
-      for (final s in sessions.where((s) => s.isActive)) {
-        await ref
-            .read(busyModeServiceProvider)
-            .deactivate(s, now: DateTime.now());
-      }
-    } catch (_) {}
   }
 
   @override
@@ -73,13 +58,9 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     if (stats == null || goals == null || settings == null) return;
     final now = DateTime.now();
     final today = ref.read(todayProvider);
-    // 结算在概要调度前（FR-008 周一晨顺序）；失败不阻塞提醒。
-    try {
-      await ref
-          .read(settlementServiceProvider)
-          .settleLastWeekIfNeeded(today: today, now: now);
-    } catch (_) {}
-    await ref.read(reminderServiceProvider).replan(
+    await ref
+        .read(reminderServiceProvider)
+        .replan(
           settings: settings,
           goals: goals,
           stats: stats,
@@ -95,8 +76,9 @@ class _TargetAppState extends ConsumerState<TargetApp> {
     if (stats == null) return;
     final repo = ref.read(goalRepoProvider);
     final stepsByGoal = <String, List<MilestoneStep>>{};
-    for (final g
-        in goals.where((g) => g.isShortTerm && g.status == GoalStatus.active)) {
+    for (final g in goals.where(
+      (g) => g.isShortTerm && g.status == GoalStatus.active,
+    )) {
       stepsByGoal[g.id] = await repo.stepsOf(g.id);
     }
     if (!mounted) return;

@@ -16,7 +16,6 @@ import '../core/db/progress_repository.dart';
 import '../core/models/calendar_types.dart';
 import '../core/models/date_provider.dart';
 import '../core/models/entities.dart';
-import '../core/models/health_score.dart';
 import '../core/models/goal_advice.dart';
 import '../core/models/goal_progress.dart';
 import '../core/platform/file_pick_gateway.dart';
@@ -24,9 +23,7 @@ import '../core/platform/gateways.dart';
 import '../core/platform/notification_gateway.dart';
 import '../core/platform/share_gateway.dart';
 import '../core/platform/widget_gateway.dart';
-import '../core/stats/busy_mode_service.dart';
 import '../core/stats/check_in_service.dart';
-import '../core/stats/settlement_service.dart';
 import '../core/stats/stats_engine.dart';
 import '../features/settings/reminder_service.dart';
 
@@ -61,29 +58,6 @@ final checkInServiceProvider = Provider(
 );
 final reminderRepoProvider = Provider(
   (ref) => ReminderRepository(ref.watch(dbProvider)),
-);
-final reviewRepoProvider = Provider(
-  (ref) => ReviewRepository(ref.watch(dbProvider)),
-);
-
-/// 周回顾流（回顾页 + 结算幂等查询）。
-final reviewsProvider = StreamProvider<List<WeeklyReview>>(
-  (ref) => ref.watch(reviewRepoProvider).watchAll(),
-);
-
-/// 周结算（US4）：启动/数据变化时幂等结算上一周。
-final settlementServiceProvider = Provider(
-  (ref) => WeeklySettlementService(
-    ref.watch(goalRepoProvider),
-    ref.watch(checkInRepoProvider),
-    ref.watch(reviewRepoProvider),
-  ),
-);
-
-/// 忙碌收尾（2026-08-21 裁决：忙碌态全 App 移除）：入口与视图已删，
-/// 服务仅用于 App 启动时自动收尾升级前遗留的活跃降档会话（见 app.dart）。
-final busyModeServiceProvider = Provider(
-  (ref) => BusyModeService(ref.watch(goalRepoProvider)),
 );
 final settingsRepoProvider = Provider(
   (ref) => SettingsRepository(ref.watch(dbProvider)),
@@ -133,16 +107,8 @@ final goalsProvider = StreamProvider<List<Goal>>(
   (ref) => ref.watch(goalRepoProvider).watchGoals(),
 );
 
-final versionsProvider = StreamProvider<List<FrequencyVersion>>(
-  (ref) => ref.watch(goalRepoProvider).watchAllVersions(),
-);
-
 final checkInsProvider = StreamProvider<List<CheckIn>>(
   (ref) => ref.watch(checkInRepoProvider).watchAll(),
-);
-
-final busySessionsProvider = StreamProvider<List<BusyModeSession>>(
-  (ref) => ref.watch(goalRepoProvider).watchSessions(),
 );
 
 /// 里程碑步骤流（目标卡片/里程碑详情共用）。
@@ -181,31 +147,11 @@ final dayTickerProvider = Provider<void>((ref) {
 final statsProvider = Provider<StatsEvaluation?>((ref) {
   final goals = ref.watch(goalsProvider).value;
   final checkIns = ref.watch(checkInsProvider).value;
-  final sessions = ref.watch(busySessionsProvider).value;
-  final today = ref.watch(todayProvider);
-  if (goals == null || checkIns == null || sessions == null) {
-    return null;
-  }
-  // 003 口径收敛：引擎不再消费频率版本（versionsProvider 供编辑器回显）。
-  return StatsEngine.evaluate(
-    goals: goals,
-    busySessions: sessions,
-    checkIns: checkIns,
-    today: today,
-  );
-});
-
-/// 三大类健康度（004 US2 · T019，口径 = T018 纯函数）：goals/checkIns
-/// 任一流变化（打卡/补签/暂停恢复/删除/新建）失效重算；dayTicker 跨天
-/// → todayProvider 变化 → 窗口整体右移。数据未就绪为 null（三环加载态）。
-final healthScoreProvider = Provider<HealthSnapshot?>((ref) {
-  final goals = ref.watch(goalsProvider).value;
-  final checkIns = ref.watch(checkInsProvider).value;
   final today = ref.watch(todayProvider);
   if (goals == null || checkIns == null) {
     return null;
   }
-  return evaluateHealth(goals: goals, checkIns: checkIns, today: today);
+  return StatsEngine.evaluate(goals: goals, checkIns: checkIns, today: today);
 });
 
 /// 当前目标管理状态的一体化只读模型。所有依赖流到齐后才出值；页面无需

@@ -13,29 +13,27 @@ import 'package:target/core/stats/stats_engine.dart';
 
 final LocalDate _today = const LocalDate(2026, 8, 19);
 
-StatsEvaluation _evaluate(List<Goal> goals) => StatsEngine.evaluate(
-      goals: goals,
-      busySessions: const [],
-      checkIns: const [],
-      today: _today,
-    );
+StatsEvaluation _evaluate(List<Goal> goals) =>
+    StatsEngine.evaluate(goals: goals, checkIns: const [], today: _today);
 
 Goal _habit(String id) => Goal(
-    id: id,
-    name: '习惯$id',
-    goalType: GoalType.habit,
-    iconKey: 'star',
-    colorKey: 'teal',
-    createdAt: const LocalDate(2026, 8, 3));
+  id: id,
+  name: '习惯$id',
+  goalType: GoalType.habit,
+  iconKey: 'star',
+  colorKey: 'teal',
+  createdAt: const LocalDate(2026, 8, 3),
+);
 
 Goal _milestone(String id, {LocalDate? deadline}) => Goal(
-    id: id,
-    name: '里程碑$id',
-    goalType: GoalType.shortTerm,
-    iconKey: 'flag',
-    colorKey: 'coral',
-    createdAt: const LocalDate(2026, 8, 3),
-    deadline: deadline ?? const LocalDate(2026, 12, 31));
+  id: id,
+  name: '里程碑$id',
+  goalType: GoalType.shortTerm,
+  iconKey: 'flag',
+  colorKey: 'coral',
+  createdAt: const LocalDate(2026, 8, 3),
+  deadline: deadline ?? const LocalDate(2026, 12, 31),
+);
 
 void main() {
   test('里程碑行：kind/steps 进度/deadline，无习惯口径键', () {
@@ -47,7 +45,13 @@ void main() {
       now: DateTime(2026, 8, 19, 10),
       stepsOf: (id) => id == 'm'
           ? [
-              MilestoneStep(id: 's1', goalId: 'm', title: 'a', isDone: true, doneAt: DateTime(2026, 8, 18)),
+              MilestoneStep(
+                id: 's1',
+                goalId: 'm',
+                title: 'a',
+                isDone: true,
+                doneAt: DateTime(2026, 8, 18),
+              ),
               MilestoneStep(id: 's2', goalId: 'm', title: 'b'),
             ]
           : const [],
@@ -65,8 +69,11 @@ void main() {
     expect(ms['stepsDone'], 1);
     expect(ms['stepsTotal'], 2);
     expect(ms['deadline'], '2026-12-31');
-    expect(ms.containsKey('targetCount'), isFalse,
-        reason: 'Swift 端这些键已转可选，不发的行不发');
+    expect(
+      ms.containsKey('targetCount'),
+      isFalse,
+      reason: 'Swift 端这些键已转可选，不发的行不发',
+    );
   });
 
   test('weekProgress 只统计习惯；无 stepsOf 时里程碑步骤为 0', () {
@@ -79,8 +86,9 @@ void main() {
     );
     final wp = snap['weekProgress'] as Map<String, Object?>;
     expect(wp['totalGoals'], 1);
-    final ms =
-        (snap['goals'] as List).firstWhere((r) => (r as Map)['id'] == 'm') as Map<String, Object?>;
+    final ms = (snap['goals'] as List).firstWhere(
+      (r) => (r as Map)['id'] == 'm',
+    ) as Map<String, Object?>;
     expect(ms['stepsTotal'], 0);
   });
 

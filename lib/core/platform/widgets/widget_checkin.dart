@@ -37,18 +37,15 @@ Future<void> widgetCheckInCallback(Uri? uri) async {
     final today = LocalDate.fromDateTime(now);
 
     final goals = await goalRepo.getGoals();
-    final sessions = await goalRepo.watchSessions().first;
 
     var checkIns = await checkInRepo.all();
 
-    StatsEvaluation evaluate() => StatsEngine.evaluate(
-        goals: goals,
-        busySessions: sessions,
-        checkIns: checkIns,
-        today: today);
+    StatsEvaluation evaluate() =>
+        StatsEngine.evaluate(goals: goals, checkIns: checkIns, today: today);
 
     final goal = goals.where((g) => g.id == goalId).firstOrNull;
-    final eligible = goal != null &&
+    final eligible =
+        goal != null &&
         goal.status == GoalStatus.active &&
         !evaluate().dayStatusOf(goalId).done;
     if (eligible) {
@@ -57,9 +54,15 @@ Future<void> widgetCheckInCallback(Uri? uri) async {
     }
 
     final snapshot = buildTodaySnapshot(
-        goals: goals, stats: evaluate(), today: today, now: DateTime.now());
+      goals: goals,
+      stats: evaluate(),
+      today: today,
+      now: DateTime.now(),
+    );
     await HomeWidget.saveWidgetData<String>(
-        HomeWidgetGateway.snapshotKey, jsonEncode(snapshot));
+      HomeWidgetGateway.snapshotKey,
+      jsonEncode(snapshot),
+    );
     await HomeWidget.updateWidget(iOSName: HomeWidgetGateway.iosWidgetName);
   } finally {
     await db.close();

@@ -74,12 +74,7 @@ List<NotificationItem> _derive(
   goals: goals,
   checkIns: checkIns,
   reminders: reminders,
-  stats: StatsEngine.evaluate(
-    goals: goals,
-    busySessions: const [],
-    checkIns: checkIns,
-    today: _today,
-  ),
+  stats: StatsEngine.evaluate(goals: goals, checkIns: checkIns, today: _today),
   today: _today,
   nowTime: const LocalTime(12, 0),
   defaultBriefTime: _brief,

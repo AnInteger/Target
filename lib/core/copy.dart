@@ -11,31 +11,6 @@ abstract final class Copy {
   static String backfillDone(String day) => '已补上 $day 的记录';
   static const checkInRevoked = '已撤销，统计同步更新';
 
-  // ---- 周回顾（FR-008 · v2-review：周切换 + 三区块，只描述不建议）----
-
-  static const reviewTitle = '回顾';
-
-  /// 概览区块题（选中周非必为本周，不写死「本周」）。
-  static const reviewOverviewTitle = '本周概览';
-
-  /// 概览副行：「周平均完成率 · 上周 N%」；上周零应记 → 无可比较
-  ///（区别于本周零应记的 reviewAvgEmpty「该周暂无记录」）。
-  static String reviewAvgSub(int? lastRate) =>
-      lastRate == null ? '周平均完成率 · 上周无可比较' : '周平均完成率 · 上周 $lastRate%';
-
-  static const reviewAvgEmpty = '该周暂无记录';
-  static const reviewAvgScore = '均分';
-
-  /// 右上日历钮占位提示（选择周期交互后续版本，Tooltip 明示无动作）。
-  static const reviewPickWeek = '选择周期';
-
-  /// 区块 2/3 题款（选中周非必为本周，语言不写死）。
-  static const reviewDaysTitle = '每日活动';
-  static const reviewGoalsTitle = '本周目标';
-
-  static const reviewEmptyTitle = '这一周还没有记录';
-  static const reviewEmptySub = '切到有打卡记录的周即可查看统计，\n或回到「今日」继续记录。';
-
   // ---- 目标创建 / 编辑（FR-001/011/012）----
 
   static const editorNewGoal = '新建目标'; // 004 v2：标题随冻结稿（原「新的目标」退役）
@@ -168,7 +143,6 @@ abstract final class Copy {
   static const dailyBriefAllDone = '都照顾到了，安心过今天。';
   static String dailyBriefSummary(int unmet) =>
       unmet == 1 ? '还有 1 件小事在等你，不着急。' : '还有 $unmet 件小事在等你，不着急。';
-  static const dailyBriefReviewLine = '上周回顾已生成，花两分钟看看这一周';
 
   // 逐目标提醒（场景档驱动）：单目标带「为什么」（编辑器预览承诺的句式）。
 
@@ -180,7 +154,6 @@ abstract final class Copy {
   static const reminderNudge = '今天还没有记录。';
 
   static const reminderGoalHint = '目标提醒在编辑目标时设置，按所选频率定时提醒。';
-  static const reminderMondayHint = '周一的概要会带上上周回顾。';
 
   // ---- 备份（FR-015）----
 

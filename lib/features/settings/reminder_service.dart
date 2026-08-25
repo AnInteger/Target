@@ -54,7 +54,7 @@ class PlannedNotification {
 /// 计算应调度的通知集合（纯函数，注入时刻便于测试）。
 ///
 /// - dailyBrief：无行 → [defaultBriefTime] 且默认启用；有行 → 行生效。
-///   正文为各目标当日概览；下一次触发日为周一时附周回顾行（FR-008 联动）。
+///   正文为各目标当日概览，不额外制造回顾任务。
 /// - 逐目标提醒（Reminders 行 cadence 驱动）：daily 每日 time；
 ///   threeDay 自启用日（最近一次打卡或创建日）起每 3 天；weekly 每周
 ///   同 weekday。仅活跃目标、当日适用且未达标（SC-005）。
@@ -74,14 +74,14 @@ List<PlannedNotification> planReminders({
   final brief = reminders.where((r) => r.isDailyBrief).firstOrNull;
   final briefTime = brief?.time ?? defaultBriefTime;
   if (brief == null || brief.isEnabled) {
-    final fireDate =
-        nowTime.compareTo(briefTime) < 0 ? today : today.addDays(1);
-    plan.add(PlannedNotification(
-      id: kDailyBriefNotificationId,
-      time: briefTime,
-      title: Copy.dailyBriefTitle,
-      body: _briefBody(goals, stats, monday: fireDate.weekdayIso == 1),
-    ));
+    plan.add(
+      PlannedNotification(
+        id: kDailyBriefNotificationId,
+        time: briefTime,
+        title: Copy.dailyBriefTitle,
+        body: _briefBody(goals, stats),
+      ),
+    );
   }
 
   // ---- 逐目标提醒（Reminders 行 = 唯一真源）----
@@ -95,18 +95,19 @@ List<PlannedNotification> planReminders({
     final anchor = stats.lastCheckInDayOf(g.id) ?? g.createdAt;
     final applicable = switch (r.effectiveCadence) {
       Cadence.daily => true,
-      Cadence.threeDay =>
-        today.differenceInDays(anchor) % 3 == 0, // 0/3/6… 天命中
+      Cadence.threeDay => today.differenceInDays(anchor) % 3 == 0, // 0/3/6… 天命中
       Cadence.weekly => today.weekdayIso == anchor.weekdayIso,
     };
     if (!applicable) continue;
-    plan.add(PlannedNotification(
-      id: goalReminderNotificationId(g.id),
-      time: r.time,
-      title: g.name,
-      body: _goalBody(g),
-      goalIds: [g.id],
-    ));
+    plan.add(
+      PlannedNotification(
+        id: goalReminderNotificationId(g.id),
+        time: r.time,
+        title: g.name,
+        body: _goalBody(g),
+        goalIds: [g.id],
+      ),
+    );
   }
 
   // ---- 短期到期询问（D4）----
@@ -116,13 +117,15 @@ List<PlannedNotification> planReminders({
     }
     if (g.achievedAt != null) continue; // 已达成不再问
     if (g.deadline == null || g.deadline != today) continue;
-    plan.add(PlannedNotification(
-      id: dueAskNotificationId(g.id),
-      time: kDueAskTime,
-      title: g.name,
-      body: Copy.shortTermDueAsk,
-      goalIds: [g.id],
-    ));
+    plan.add(
+      PlannedNotification(
+        id: dueAskNotificationId(g.id),
+        time: kDueAskTime,
+        title: g.name,
+        body: Copy.shortTermDueAsk,
+        goalIds: [g.id],
+      ),
+    );
   }
   return plan;
 }
@@ -134,20 +137,13 @@ String _goalBody(Goal g) {
   return Copy.reminderNudge;
 }
 
-String _briefBody(
-  List<Goal> goals,
-  StatsEvaluation stats, {
-  required bool monday,
-}) {
+String _briefBody(List<Goal> goals, StatsEvaluation stats) {
   final unmet = goals
-      .where((g) =>
-          g.status == GoalStatus.active &&
-          !stats.dayStatusOf(g.id).done)
+      .where(
+        (g) => g.status == GoalStatus.active && !stats.dayStatusOf(g.id).done,
+      )
       .length;
-  final buffer = StringBuffer(
-      unmet == 0 ? Copy.dailyBriefAllDone : Copy.dailyBriefSummary(unmet));
-  if (monday) buffer.write('\n${Copy.dailyBriefReviewLine}');
-  return buffer.toString();
+  return unmet == 0 ? Copy.dailyBriefAllDone : Copy.dailyBriefSummary(unmet);
 }
 
 /// 应用层入口：全量重建 pending 通知（数据/设置变化后调用）。
@@ -166,8 +162,7 @@ class ReminderService {
   }) async {
     await _gateway.cancelAll();
     if (!await _gateway.isPermissionGranted) return; // FR-007
-    final reminders =
-        _repo == null ? const <Reminder>[] : await _repo.all();
+    final reminders = _repo == null ? const <Reminder>[] : await _repo.all();
     final plan = planReminders(
       reminders: reminders,
       defaultBriefTime: settings.dailyBriefTime,
@@ -178,7 +173,11 @@ class ReminderService {
     );
     for (final p in plan) {
       await _gateway.scheduleDaily(
-          id: p.id, time: p.time, title: p.title, body: p.body);
+        id: p.id,
+        time: p.time,
+        title: p.title,
+        body: p.body,
+      );
     }
   }
 }

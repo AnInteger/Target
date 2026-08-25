@@ -198,10 +198,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                         ? const [Copy.notifOffHint]
                         : _goalsExpanded
                         ? const [Copy.settingsNestHint]
-                        : const [
-                            Copy.reminderGoalHint,
-                            Copy.reminderMondayHint,
-                          ],
+                        : const [Copy.reminderGoalHint],
                   ),
 
                   // ---- 分组·目标：进行中数（→今日页）+ 补签只读说明 ----

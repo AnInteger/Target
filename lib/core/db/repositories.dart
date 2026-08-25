@@ -221,6 +221,19 @@ class GoalRepository {
     return s;
   }
 
+  /// 拖拽重排持久化：按传入顺序整体重写 position（0..n-1，顺带归一化
+  /// 历史多步同位的脏数据）。
+  Future<void> reorderSteps(String goalId, List<String> orderedIds) =>
+      _db.batch((batch) {
+        for (final (i, id) in orderedIds.indexed) {
+          batch.update(
+            _db.milestoneSteps,
+            db.MilestoneStepsCompanion(position: Value(i)),
+            where: (t) => t.id.equals(id) & t.goalId.equals(goalId),
+          );
+        }
+      });
+
   Future<void> updateStep(MilestoneStep s) =>
       (_db.update(_db.milestoneSteps)..where((t) => t.id.equals(s.id))).write(
         db.MilestoneStepsCompanion(

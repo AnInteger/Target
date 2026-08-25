@@ -71,8 +71,15 @@ void main() {
     expect(find.text('今日进展'), findsOneWidget);
     expect(find.text('最近 7 天'), findsOneWidget);
     expect(find.text('8月19日 – 8月25日'), findsOneWidget);
-    expect(find.text('已记录'), findsWidgets);
-    expect(find.text('可补记'), findsWidgets);
+    // 2026-08-25 收敛：逐日文字状态与底部图例退役——状态走形与色
+    //（绿勾 = 已记录、灰圆 + 小「+」角标 = 可补记），读屏仍带状态语。
+    expect(find.text('已记录'), findsNothing);
+    expect(find.text('可补记'), findsNothing);
+    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+    expect(
+      find.byKey(ValueKey('detailDayPlus-${_today.addDays(-1).isoString}')),
+      findsOneWidget,
+    );
     expect(
       find.byKey(ValueKey('detailDay-${_today.isoString}')),
       findsOneWidget,

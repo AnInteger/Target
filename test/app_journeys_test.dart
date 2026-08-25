@@ -378,6 +378,12 @@ void main() {
     }
     await tester.tap(find.byKey(const ValueKey('goalMarkAchievedButton')));
     await tester.pumpAndSettle();
+    // 2026-08-25：达成改双通道——轻点先出校验弹窗（无里程碑时温和
+    // 确认；有未完成里程碑时警示），确认后才落库跳转。
+    final achieveDialog = find.byKey(const ValueKey('goalAchieveDialog'));
+    expect(achieveDialog, findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('goalAchieveConfirm')));
+    await tester.pumpAndSettle();
     expect(find.byType(TodayView), findsOneWidget);
     expect((await _goalById(app.db, 'manage'))!.status, GoalStatus.achieved);
     expect(

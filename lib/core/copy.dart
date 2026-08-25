@@ -113,14 +113,26 @@ abstract final class Copy {
   static const milestoneDone = '达成了，恭喜！';
   static const milestoneStepsHeader = '里程碑'; // 004 v2 冻结稿卡题
   static const milestoneAddStep = '添加'; // 004 v2 冻结稿 .ms-add 按钮字
-  static const milestoneDeleteStep = '删除步骤';
+  static const milestoneDeleteStep = '删除里程碑';
   static const milestoneStepHint = '添加步骤…'; // 004 v2 冻结稿输入占位
   static const milestonePostponed = '截止日已更新';
 
-  // 短期到期处理（003 D4：到点只提醒不判决——标记达成/续期双入口；
-  // 004 v2 常驻行形态，冻结稿板 2 字面）。
+  /// 2026-08-25 里程碑重设计：输入占位/空态引导/达成日副题。
+  static const milestoneInputHint = '添加里程碑…';
+  static const milestoneEmptyHint = '拆解成几个里程碑，一步一步靠近目标';
+  static String milestoneDoneAt(int month, int day) => '$month月$day日达成';
+
+  /// 2026-08-25 标记达成双通道：轻点 = 确认弹窗（校验里程碑），
+  /// 长按 = 快速标记（填充动画即确认）。
   static const goalMarkAchieved = '标记达成';
-  static const goalRenewDeadline = '续期（调整截止日期）';
+  static const achieveHoldCaption = '轻点确认 · 长按快速标记';
+  static const achieveConfirmTitle = '标记达成？';
+  static String achieveConfirmBody(String name) =>
+      '要将「$name」标记为已达成吗？全部记录与里程碑都会保留。';
+  static String achievePendingTitle(int n) => '还有 $n 个里程碑未完成';
+  static String achievePendingBody(String name) =>
+      '要将「$name」标记为已达成吗？未完成的里程碑将一并归档为历史。';
+  static const achieveYes = '标记达成';
 
   // ---- 提醒 / 通知（FR-006/007）----
 

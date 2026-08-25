@@ -258,12 +258,13 @@ const _navDests = [
 /// 反白，全条无彩色）；FAB 56px 中性（浅色墨底白＋/深色反白），上缘
 /// 凸出底条 22px、带 glass-card 4px 描边环；任意壳层页恒定（FR-010）。
 ///
-/// 安全区几何（005 D1 → 2026-08-25 二次收敛）：底条高度随 inset 动态
-/// 计算 = 顶垫 8 + 页签带 ~45 + max(底距 8, inset)。冻结稿 84px 恒高
-/// 在 inset=0 环境下标签下方留出 31px 空带（实机截图判为缺陷）——
-/// 现以 8px 呼吸距封底；iPhone（34）下 max(8,34)=34，几何与首版收敛
-/// 恒等（87），标签仍贴安全区边界、Home 指示区全由底条背景承载。
-/// 页签/FAB 互动槽整体止于 inset 之上；底幕背景下延至屏幕物理底边。
+/// 安全区几何（005 D1 → 2026-08-25 三次收敛）：底条高度随 inset 动态
+/// 计算 = 顶垫 8 + 页签带 ~45 + max(底距 8, inset)。有 inset 的环境
+///（iPhone 34）贴物理底边、Home 指示区由底条背景承载（原生 tab bar
+/// 口径，几何 87 恒等）；inset=0 的环境（浏览器/桌面）改为悬浮胶囊——
+/// 离底 10px + 两侧 12px + rXl 圆角，不再贴死窗口底边（2026-08-25
+/// 用户反馈：太贴屏幕底端，整体再往上收一点）。
+/// 页签/FAB 互动槽整体止于 inset（+悬浮距）之上。
 class _Dock extends StatelessWidget {
   const _Dock({required this.shell});
 
@@ -281,10 +282,18 @@ class _Dock extends StatelessWidget {
   /// 无 inset 环境的标签下呼吸距（冻结稿 84px 高的 31px 底部余量收敛）。
   static const double _barBottomPad = 8;
 
+  /// inset=0 环境的悬浮离底距 + 两侧收边（悬浮胶囊观感）。
+  static const double _barFloatGap = 10;
+  static const double _barFloatSide = 12;
+
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // 悬浮胶囊仅 inset=0 环境；有 Home 指示区时保持原生贴底。
+    final floating = bottomInset < 1;
+    final gap = floating ? _barFloatGap : 0.0;
+    final side = floating ? _barFloatSide : 0.0;
     // 底条实际高度：inset ≤ 8 时贴 8px 呼吸距（浏览器 61）；更大时
     // 等量承载 Home 指示区（iPhone 34 → 87），标签落在安全区边界。
     final barExtent =
@@ -304,31 +313,34 @@ class _Dock extends StatelessWidget {
     return SizedBox(
       // 高出底条的 22px = FAB 凸出带：视觉透明但占位命中（凸出部分
       // 的点击须落在 dock 自身区域而非 body，才能稳定命中 FAB）。
-      height: barExtent + _fabOverhang,
+      height: barExtent + _fabOverhang + gap,
       child: Stack(
         children: [
-          // 底条本体：近实卡底 + 顶缘发丝线（冻结稿 .dock）——贴至
-          // 物理底边，inset 区纯背景无互动元素。
+          // 底条本体：近实卡底（冻结稿 .dock）。贴底环境 = 顶缘发丝线
+          // 全宽；悬浮环境 = 四缘发丝线 + 圆角的独立胶囊。
           Positioned(
             top: _fabOverhang,
-            left: 0,
-            right: 0,
-            bottom: 0,
+            left: side,
+            right: side,
+            bottom: gap,
             child: DecoratedBox(
               key: const ValueKey('dockBar'),
               decoration: BoxDecoration(
                 color: palette.glassCard,
-                border: Border(top: BorderSide(color: palette.divider)),
+                borderRadius: floating ? AppRadius.rXl : null,
+                border: floating
+                    ? Border.all(color: palette.divider)
+                    : Border(top: BorderSide(color: palette.divider)),
               ),
             ),
           ),
           // 三槽行：FAB 起于 0（凸出 22），两页签起于 30；整行止于
-          // inset 之上（Home 指示条避让，命中区不缩小）。
+          // inset + 悬浮距之上（Home 指示条避让，命中区不缩小）。
           Positioned(
             top: 0,
-            left: 0,
-            right: 0,
-            bottom: bottomInset,
+            left: side,
+            right: side,
+            bottom: bottomInset + gap,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

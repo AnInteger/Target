@@ -1,18 +1,23 @@
-/// 目标详情页（003 T021 管理动线 → 004 T014 按冻结稿 v2-goal-detail 换装）。
+/// 目标详情页（003 T021 管理动线 → 004 T014 冻结稿换装 → 2026-08-25
+/// 里程碑/达成交互重设计）。
 ///
 /// 全屏 push 无底部页签；顶栏 = 返回 + 「目标详情」+「⋯」更多。身份区
 /// hero 随三大类变色（icon/徽章/meta 点），meta 胶囊：习惯/长期 = 连续/
 /// 本周/提醒摘要，短期 = 倒计时 + 截止日；今日记录卡 = 选填一句话 +
-/// accent 打卡主按钮 + 近 7 天点阵（对勾完成、虚线补签，点过去日开
-/// 补签弹层：14 天窗口日历单选）；历史记录含「补签」标记；短期另有
-/// 里程碑卡（进度百分比 + 勾选/删除/添加）与 标记达成/续期 常驻行；
-/// 暂停/恢复/删除收纳「⋯」菜单，删除二次确认后物理级联删除
+/// accent 打卡主按钮 + 近 7 天点阵（绿勾 = 已记录、蓝圆 = 今日、灰圆
+/// 小「+」角标 = 可补记——纯形色状态无文字层；点过去日开补签弹层：
+/// 14 天窗口日历单选）；历史记录含「补签」标记；短期另有里程碑卡
+///（题头百分比 + 圆角卡行：点行勾选/达成日副题/删除/拖柄排序 +
+/// 统一输入语言添加行）；标记达成 = 全宽胶囊双通道（轻点校验弹窗 /
+/// 长按 800ms 填充动画快速标记，未完成里程碑时两条通道都警示）；
+/// 编辑/暂停/恢复/删除收纳「⋯」菜单，删除二次确认后物理级联删除
 /// （FR-016 全能力零丢失）。
 library;
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -129,13 +134,12 @@ class GoalDetailPage extends ConsumerWidget {
                       majorColor: majorColor,
                     ),
                   ],
-                  if (active) ...[
+                  if (active && goal.isShortTerm) ...[
                     const SizedBox(height: AppSpace.s4),
-                    _ActionRowsCard(
+                    _AchieveSection(
                       goal: goal,
-                      days: days,
-                      onRenew: () => _postpone(context, ref, goal),
-                      onAchieve: () => _achieveAndPop(context, ref, goal),
+                      steps: steps,
+                      onConfirmed: () => _achieveAndPop(context, ref, goal),
                     ),
                   ],
                   if (mine.isNotEmpty) ...[
@@ -169,26 +173,6 @@ class GoalDetailPage extends ConsumerWidget {
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text(Copy.milestoneDone)));
       context.go('/today');
-    }
-  }
-
-  /// 温和续期（D4）：新截止日自选，立即生效；超期目标锚定今天起选。
-  Future<void> _postpone(BuildContext context, WidgetRef ref, Goal goal) async {
-    final first = DateTime.now();
-    final base = goal.deadline?.atStartOfDay ?? first;
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: base.isBefore(first) ? first : base,
-      firstDate: first,
-      lastDate: first.add(const Duration(days: 365 * 5)),
-    );
-    if (picked == null) return;
-    await ref
-        .read(goalRepoProvider)
-        .update(goal.copyWith(deadline: LocalDate.fromDateTime(picked)));
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text(Copy.milestonePostponed)));
     }
   }
 
@@ -777,22 +761,6 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
             onPickPast: (d) => _openBackfill(d),
             onOpenRecords: _openRecords,
           ),
-          const SizedBox(height: AppSpace.s3),
-          Row(
-            children: [
-              _CalendarLegend(
-                icon: Icons.check_rounded,
-                label: '已记录',
-                color: palette.positiveFill,
-              ),
-              const SizedBox(width: AppSpace.s4),
-              _CalendarLegend(
-                icon: Icons.add_rounded,
-                label: '可补记',
-                color: palette.onSurfaceVariant,
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -804,29 +772,9 @@ String _recentRange(LocalDate today) {
   return '${start.month}月${start.day}日 – ${today.month}月${today.day}日';
 }
 
-class _CalendarLegend extends StatelessWidget {
-  const _CalendarLegend({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(icon, size: 15, color: color),
-      const SizedBox(width: 5),
-      Text(label, style: Theme.of(context).textTheme.bodyS),
-    ],
-  );
-}
-
-/// 最近七天日历：星期、日期和文字状态同时呈现，不依赖颜色判断。
+/// 最近七天日历（2026-08-25 收敛：文字状态层退役——绿勾 = 已记录、
+/// 蓝圆 = 今日、灰圆 + 角标「+」= 可补记，状态全部走形与色；读屏标签
+/// 仍带完整状态语，不依赖颜色判断）。
 class _WeekDots extends StatelessWidget {
   const _WeekDots({
     required this.mine,
@@ -885,11 +833,8 @@ class _WeekDots extends StatelessWidget {
     final hit = rows.isNotEmpty;
     final bf = rows.any((c) => c.isBackfill);
     final isToday = day == today;
-    final state = isToday
-        ? '今日'
-        : hit
-        ? '已记录'
-        : '可补记';
+    final canBackfill = !hit && !isToday;
+    final state = isToday ? '今日' : hit ? '已记录' : '可补记';
     return Semantics(
       button: !isToday,
       label: '星期${day.weekday.zhLabel}，${day.month}月${day.day}日，$state',
@@ -903,57 +848,86 @@ class _WeekDots extends StatelessWidget {
             : () => onPickPast(day),
         borderRadius: AppRadius.rMd,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 82, minWidth: 44),
+          constraints: const BoxConstraints(minHeight: 58, minWidth: 44),
           child: Column(
             children: [
               Text(
                 day.weekday.zhLabel,
                 style: theme.textTheme.labelS.copyWith(
-                  color: palette.onSurfaceVariant,
+                  color: isToday ? palette.accent : palette.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: AppSpace.s1),
-              CustomPaint(
-                foregroundPainter: bf
-                    ? _DashedCirclePainter(color: palette.divider)
-                    : null,
-                child: Container(
-                  width: 36,
-                  height: 36,
+              SizedBox(
+                width: 38,
+                height: 38,
+                child: Stack(
+                  clipBehavior: Clip.none,
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: hit
-                        ? palette.positiveFill
-                        : isToday
-                        ? palette.accent
-                        : palette.surfaceAlt,
-                    border: Border.all(
-                      color: hit && !bf ? Colors.transparent : palette.divider,
-                    ),
-                  ),
-                  child: hit
-                      ? Icon(
-                          Icons.check_rounded,
-                          size: 16,
-                          color: palette.positiveOn,
-                        )
-                      : Text(
-                          '${day.day}',
-                          style: theme.textTheme.bodyS.copyWith(
-                            color: isToday
-                                ? palette.accentOn
-                                : palette.onSurface,
-                            fontWeight: isToday ? FontWeight.w700 : null,
+                  children: [
+                    CustomPaint(
+                      foregroundPainter: bf
+                          ? _DashedCirclePainter(color: palette.divider)
+                          : null,
+                      child: Container(
+                        width: 36,
+                        height: 36,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: hit
+                              ? palette.positiveFill
+                              : isToday
+                              ? palette.accent
+                              : palette.surfaceAlt,
+                          border: Border.all(
+                            color: hit && !bf
+                                ? Colors.transparent
+                                : palette.divider,
                           ),
                         ),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                state,
-                style: theme.textTheme.labelS.copyWith(
-                  color: isToday ? palette.accent : palette.onSurfaceVariant,
+                        child: hit
+                            ? Icon(
+                                Icons.check_rounded,
+                                size: 16,
+                                color: palette.positiveOn,
+                              )
+                            : Text(
+                                '${day.day}',
+                                style: theme.textTheme.bodyS.copyWith(
+                                  color: isToday
+                                      ? palette.accentOn
+                                      : palette.onSurface,
+                                  fontWeight: isToday
+                                      ? FontWeight.w700
+                                      : null,
+                                ),
+                              ),
+                      ),
+                    ),
+                    // 补记入口角标：灰圆 + 小「+」= 轻点补记（替代旧文字层）。
+                    if (canBackfill)
+                      Positioned(
+                        right: -4,
+                        bottom: -4,
+                        child: Container(
+                          key: ValueKey('detailDayPlus-${day.isoString}'),
+                          width: 15,
+                          height: 15,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: palette.surface,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: palette.divider),
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            size: 11,
+                            color: palette.accent,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -1240,7 +1214,9 @@ class _MonthSpan {
 }
 
 // ---------------------------------------------------------------------------
-// 里程碑卡（冻结稿板 2）：进度百分比 + 勾选/删除/添加。
+// 里程碑卡（2026-08-25 重设计）：题头内联百分比 + 细进度条；行 = surfaceAlt
+// 圆角卡（点行勾选、达成日副题、删除 ×、拖柄排序）；输入 = 应用统一
+// 输入语言（surfaceAlt + divider 边 + 内联圆形加号钮）。
 // ---------------------------------------------------------------------------
 
 class _MilestoneCard extends ConsumerWidget {
@@ -1271,94 +1247,73 @@ class _MilestoneCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            Copy.milestoneStepsHeader,
-            style: theme.textTheme.labelS.copyWith(
-              letterSpacing: .8,
-              color: palette.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: AppSpace.s3),
           Row(
             children: [
               Expanded(
-                child: ClipRRect(
-                  borderRadius: AppRadius.rFull,
-                  child: Container(
-                    height: 8,
-                    color: palette.surfaceAlt,
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: percent / 100,
-                      child: Container(color: majorColor),
-                    ),
+                child: Text(
+                  Copy.milestoneStepsHeader,
+                  style: theme.textTheme.labelS.copyWith(
+                    letterSpacing: .8,
+                    color: palette.onSurfaceVariant,
                   ),
                 ),
               ),
-              const SizedBox(width: AppSpace.s3),
-              SizedBox(
-                width: 44,
-                child: Text(
-                  '$percent%',
-                  textAlign: TextAlign.right,
-                  style: theme.textTheme.titleS,
+              Text(
+                '$percent%',
+                style: theme.textTheme.titleS.copyWith(
+                  color: palette.onSurfaceVariant,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ],
           ),
-          if (steps.isNotEmpty) const SizedBox(height: AppSpace.s2),
-          for (final s in steps)
-            Row(
+          const SizedBox(height: AppSpace.s2),
+          ClipRRect(
+            borderRadius: AppRadius.rFull,
+            child: Container(
+              height: 6,
+              color: palette.surfaceAlt,
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: percent / 100,
+                child: Container(color: majorColor),
+              ),
+            ),
+          ),
+          if (steps.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
+              child: Text(
+                Copy.milestoneEmptyHint,
+                style: theme.textTheme.bodyS.copyWith(
+                  color: palette.onSurfaceVariant,
+                ),
+              ),
+            )
+          else ...[
+            const SizedBox(height: AppSpace.s3),
+            ReorderableListView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              buildDefaultDragHandles: false,
+              padding: EdgeInsets.zero,
+              // onReorderItem：newIndex 已按移除旧位调整，直接插入即得
+              // 新序（旧 onReorder 需自行 -1，3.41 起废弃）。
+              onReorderItem: (oldIndex, newIndex) {
+                final list = [...steps];
+                final item = list.removeAt(oldIndex);
+                list.insert(newIndex, item);
+                ref.read(goalRepoProvider).reorderSteps(
+                  goalId,
+                  [for (final s in list) s.id],
+                );
+              },
               children: [
-                InkWell(
-                  key: ValueKey('stepCheck-${s.id}'),
-                  onTap: () => ref
-                      .read(goalRepoProvider)
-                      .updateStep(
-                        s.toggled(now: DateTime.now(), done: !s.isDone),
-                      ),
-                  customBorder: const CircleBorder(),
-                  child: Container(
-                    width: 26,
-                    height: 26,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: s.isDone ? palette.positiveFill : null,
-                      border: s.isDone
-                          ? Border.all(color: Colors.transparent)
-                          : Border.all(color: palette.divider, width: 1.5),
-                    ),
-                    child: s.isDone
-                        ? Icon(Icons.check, size: 14, color: palette.positiveOn)
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: AppSpace.s3),
-                Expanded(
-                  child: Text(
-                    s.title,
-                    style: s.isDone
-                        ? theme.textTheme.bodyL.copyWith(
-                            color: palette.onSurfaceVariant,
-                            decoration: TextDecoration.lineThrough,
-                          )
-                        : theme.textTheme.bodyL,
-                  ),
-                ),
-                IconButton(
-                  key: ValueKey('stepDelete-${s.id}'),
-                  icon: Icon(
-                    Icons.close,
-                    size: 16,
-                    color: palette.onSurfaceVariant,
-                  ),
-                  tooltip: Copy.milestoneDeleteStep,
-                  onPressed: () => ref.read(goalRepoProvider).removeStep(s.id),
-                  visualDensity: VisualDensity.compact,
-                ),
+                for (final (i, s) in steps.indexed)
+                  _StepRow(key: ValueKey('stepRow-${s.id}'), step: s, index: i),
               ],
             ),
+          ],
           _StepAddRow(goalId: goalId),
         ],
       ),
@@ -1366,7 +1321,133 @@ class _MilestoneCard extends ConsumerWidget {
   }
 }
 
-/// 「添加步骤…」行（冻结稿 .ms-add）：输入 + 添加按钮。
+/// 里程碑行（重设计）：surfaceAlt 圆角卡；主区点按 = 勾选/回退，已完成
+/// 行带「M月d日达成」历史副题；尾随 删除 × + 拖柄（拖柄起拖排序）。
+class _StepRow extends ConsumerWidget {
+  const _StepRow({super.key, required this.step, required this.index});
+
+  final MilestoneStep step;
+  final int index;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    final doneAt = step.doneAt;
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpace.s2),
+      decoration: BoxDecoration(
+        color: palette.surfaceAlt,
+        borderRadius: AppRadius.rMd,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              key: ValueKey('stepCheck-${step.id}'),
+              onTap: () => ref
+                  .read(goalRepoProvider)
+                  .updateStep(
+                    step.toggled(now: DateTime.now(), done: !step.isDone),
+                  ),
+              borderRadius: const BorderRadius.horizontal(
+                left: Radius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.s3,
+                  vertical: AppSpace.s2,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 22,
+                      height: 22,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: step.isDone ? palette.positiveFill : null,
+                        border: step.isDone
+                            ? Border.all(color: Colors.transparent)
+                            : Border.all(color: palette.divider, width: 1.5),
+                      ),
+                      child: step.isDone
+                          ? Icon(
+                              Icons.check,
+                              size: 13,
+                              color: palette.positiveOn,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: AppSpace.s3),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpace.s1,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              step.title,
+                              style: step.isDone
+                                  ? theme.textTheme.bodyM.copyWith(
+                                      color: palette.onSurfaceVariant,
+                                      decoration: TextDecoration.lineThrough,
+                                    )
+                                  : theme.textTheme.bodyM,
+                            ),
+                            if (step.isDone && doneAt != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                Copy.milestoneDoneAt(doneAt.month, doneAt.day),
+                                style: theme.textTheme.labelS.copyWith(
+                                  color: palette.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          InkWell(
+            key: ValueKey('stepDelete-${step.id}'),
+            onTap: () => ref.read(goalRepoProvider).removeStep(step.id),
+            borderRadius: AppRadius.rMd,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpace.s2),
+              child: Icon(
+                Icons.close,
+                size: 15,
+                color: palette.onSurfaceVariant,
+              ),
+            ),
+          ),
+          ReorderableDragStartListener(
+            key: ValueKey('stepHandle-${step.id}'),
+            index: index,
+            child: Padding(
+              padding: const EdgeInsets.only(right: AppSpace.s2),
+              child: Icon(
+                Icons.drag_indicator,
+                size: 18,
+                color: palette.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 添加行（重设计）：应用统一输入语言——surfaceAlt 底 + 1px divider 边
+/// + 内联 32px 圆形加号钮（空稿 = 变体色禁用观感，有稿 = accent 实底）。
 class _StepAddRow extends ConsumerStatefulWidget {
   const _StepAddRow({required this.goalId});
 
@@ -1380,17 +1461,42 @@ class _StepAddRowState extends ConsumerState<_StepAddRow> {
   final _controller = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // 加号钮的实/虚随草稿切换。
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
+  bool get _canAdd => _controller.text.trim().isNotEmpty;
+
   void _add() {
     final title = _controller.text.trim();
     if (title.isEmpty) return;
+    // 追加到当前最大位之后（reorder 后即列表末位；兼容历史空洞位序）。
+    final steps =
+        ref.read(stepsProvider(widget.goalId)).value ??
+        const <MilestoneStep>[];
+    final next = steps.isEmpty
+        ? 0
+        : steps
+              .map((s) => s.position)
+              .reduce((a, b) => a > b ? a : b) +
+              1;
     ref
         .read(goalRepoProvider)
-        .addStep(MilestoneStep(goalId: widget.goalId, title: title));
+        .addStep(
+          MilestoneStep(
+            goalId: widget.goalId,
+            title: title,
+            position: next,
+          ),
+        );
     _controller.clear();
   }
 
@@ -1398,55 +1504,57 @@ class _StepAddRowState extends ConsumerState<_StepAddRow> {
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpace.s2),
+    return Container(
+      key: const ValueKey('stepAddRow'),
+      height: 44,
+      margin: const EdgeInsets.only(top: AppSpace.s2),
+      decoration: BoxDecoration(
+        color: palette.surfaceAlt,
+        borderRadius: AppRadius.rMd,
+        border: Border.all(color: palette.divider),
+      ),
       child: Row(
         children: [
           Expanded(
-            child: SizedBox(
-              height: 44,
-              child: TextFormField(
-                controller: _controller,
-                maxLength: 50,
-                style: theme.textTheme.bodyM,
-                decoration: InputDecoration(
-                  hintText: Copy.milestoneStepHint,
-                  counterText: '',
-                  isDense: true,
-                  filled: true,
-                  fillColor: palette.surfaceAlt,
-                  border: OutlineInputBorder(
-                    borderRadius: AppRadius.rMd,
-                    borderSide: BorderSide(color: palette.divider),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: AppRadius.rMd,
-                    borderSide: BorderSide(color: palette.divider),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpace.s3,
-                    vertical: AppSpace.s2,
-                  ),
+            child: TextField(
+              key: const ValueKey('stepInputField'),
+              controller: _controller,
+              maxLength: 50,
+              style: theme.textTheme.bodyM,
+              decoration: InputDecoration(
+                hintText: Copy.milestoneInputHint,
+                counterText: '',
+                isDense: true,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpace.s3,
                 ),
-                onFieldSubmitted: (_) => _add(),
               ),
+              onSubmitted: (_) => _add(),
             ),
           ),
-          const SizedBox(width: AppSpace.s2),
-          InkWell(
-            onTap: _add,
-            borderRadius: AppRadius.rMd,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
-              height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: palette.surfaceAlt,
-                borderRadius: AppRadius.rMd,
-              ),
-              child: Text(
-                Copy.milestoneAddStep,
-                style: theme.textTheme.bodyM.copyWith(color: palette.accent),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpace.s1),
+            child: InkWell(
+              key: const ValueKey('stepAddButton'),
+              onTap: _canAdd ? _add : null,
+              customBorder: const CircleBorder(),
+              child: Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _canAdd ? palette.accent : null,
+                  border: _canAdd
+                      ? null
+                      : Border.all(color: palette.divider),
+                ),
+                child: Icon(
+                  Icons.add_rounded,
+                  size: 17,
+                  color: _canAdd ? palette.accentOn : palette.onSurfaceVariant,
+                ),
               ),
             ),
           ),
@@ -1457,136 +1565,277 @@ class _StepAddRowState extends ConsumerState<_StepAddRow> {
 }
 
 // ---------------------------------------------------------------------------
-// 行式卡（冻结稿 .lrow）：短期 标记达成/续期 + 通用 编辑目标。
+// 标记达成（2026-08-25 重设计）：双通道确认——轻点 = 校验弹窗（有未完成
+// 里程碑时警示；无则温和确认），长按 ≈800ms = 填充扫过动画快速标记
+//（仍有未完成里程碑时长按结束同样走弹窗）。编辑目标/续期常驻行退役
+//（编辑已在「⋯」菜单；续期经编辑器改截止日）。
 // ---------------------------------------------------------------------------
 
-class _ActionRowsCard extends StatelessWidget {
-  const _ActionRowsCard({
+class _AchieveSection extends StatelessWidget {
+  const _AchieveSection({
     required this.goal,
-    required this.days,
-    required this.onRenew,
-    required this.onAchieve,
+    required this.steps,
+    required this.onConfirmed,
   });
 
   final Goal goal;
-  final int days;
-  final VoidCallback onRenew;
-  final VoidCallback onAchieve;
+  final List<MilestoneStep> steps;
+  final VoidCallback onConfirmed;
 
-  @override
-  Widget build(BuildContext context) {
+  /// 轻点（或长按结束仍有未完成里程碑时）的校验弹窗。
+  Future<void> _confirm(BuildContext context) async {
+    final pending = steps.where((s) => !s.isDone).length;
     final palette = TargetPalette.of(context);
-    final icon = GoalIconCatalog.byKey(goal.iconKey);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpace.s4,
-        vertical: AppSpace.s2,
-      ),
-      decoration: BoxDecoration(
-        color: palette.surface,
-        borderRadius: AppRadius.rLg,
-        boxShadow: palette.shadowLow,
-      ),
-      child: Column(
-        children: [
-          if (goal.isShortTerm) ...[
-            _LineRow(
-              key: const ValueKey('goalMarkAchievedButton'),
-              icon: Icons.trip_origin,
-              label: Copy.goalMarkAchieved,
-              onTap: onAchieve,
-            ),
-            _divider(palette),
-            _LineRow(
-              key: const ValueKey('goalRenewButton'),
-              icon: Icons.add_circle_outline,
-              label: Copy.goalRenewDeadline,
-              value: goal.deadline?.isoString,
-              onTap: onRenew,
-            ),
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 28 + AppSpace.s3,
-                bottom: AppSpace.s2,
+    final theme = Theme.of(context);
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        key: const ValueKey('goalAchieveDialog'),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpace.s5),
+          decoration: BoxDecoration(
+            color: palette.surface,
+            borderRadius: AppRadius.rXl,
+            boxShadow: palette.shadowHigh,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                pending > 0
+                    ? Copy.achievePendingTitle(pending)
+                    : Copy.achieveConfirmTitle,
+                style: theme.textTheme.titleS,
               ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  Copy.renewHint,
-                  style: Theme.of(context).textTheme.bodyS
-                      .copyWith(color: palette.onSurfaceVariant),
+              const SizedBox(height: AppSpace.s3),
+              Text(
+                pending > 0
+                    ? Copy.achievePendingBody(goal.name)
+                    : Copy.achieveConfirmBody(goal.name),
+                style: theme.textTheme.bodyM.copyWith(
+                  color: palette.onSurfaceVariant,
+                  height: 1.7,
                 ),
               ),
-            ),
-            _divider(palette),
-          ],
-          _LineRow(
-            icon: icon.icon,
-            label: Copy.goalEdit,
-            onTap: () =>
-                GoRouter.of(context).push('/goal-editor?id=${goal.id}'),
+              const SizedBox(height: AppSpace.s4),
+              Row(
+                children: [
+                  Expanded(
+                    child: _PillButton(
+                      label: Copy.dialogCancel,
+                      background: palette.surfaceAlt,
+                      foreground: palette.onSurface,
+                      onTap: () => Navigator.of(dialogContext).pop(false),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpace.s3),
+                  Expanded(
+                    child: _PillButton(
+                      key: const ValueKey('goalAchieveConfirm'),
+                      label: Copy.achieveYes,
+                      background: palette.positiveFill,
+                      foreground: palette.positiveOn,
+                      shadow: true,
+                      onTap: () => Navigator.of(dialogContext).pop(true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
+    if (yes == true) onConfirmed();
   }
-
-  Widget _divider(TargetPalette palette) =>
-      Container(height: 1, color: palette.divider);
-}
-
-/// 行式（.lrow）：28 盒图标 + 标签 + 行尾值 + ›。
-class _LineRow extends StatelessWidget {
-  const _LineRow({
-    super.key,
-    required this.icon,
-    required this.label,
-    this.value,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final String? value;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: palette.surfaceAlt,
-                borderRadius: AppRadius.rSm,
-              ),
-              child: Icon(icon, size: 16, color: palette.onSurfaceVariant),
-            ),
-            const SizedBox(width: AppSpace.s3),
-            Expanded(child: Text(label, style: theme.textTheme.bodyL)),
-            if (value != null) ...[
-              Text(
-                value!,
-                style: theme.textTheme.bodyM.copyWith(
-                  color: palette.onSurfaceVariant,
+    final hasPending = steps.any((s) => !s.isDone);
+    return Column(
+      children: [
+        _HoldAchieveButton(
+          key: const ValueKey('goalMarkAchievedButton'),
+          onTap: () => _confirm(context),
+          // 长按快速通道：无未完成里程碑直接达成，否则同样落回校验弹窗。
+          onHoldComplete: () async {
+            if (hasPending) {
+              await _confirm(context);
+            } else {
+              onConfirmed();
+            }
+          },
+        ),
+        const SizedBox(height: AppSpace.s2),
+        Text(
+          Copy.achieveHoldCaption,
+          style: theme.textTheme.bodyS.copyWith(
+            color: palette.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 长按填充达成钮：按住 = 左→右白色扫过（800ms）+ 微缩按压感；填满 =
+/// 震感 + 翻绿「已达成」闪示后回调。轻点（<250ms 且未起填）走 onTap。
+class _HoldAchieveButton extends StatefulWidget {
+  const _HoldAchieveButton({super.key, required this.onTap, required this.onHoldComplete});
+
+  final VoidCallback onTap;
+  final Future<void> Function() onHoldComplete;
+
+  @override
+  State<_HoldAchieveButton> createState() => _HoldAchieveButtonState();
+}
+
+class _HoldAchieveButtonState extends State<_HoldAchieveButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _hold = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  );
+
+  /// 快速轻点判定窗（按下→抬起小于此且几乎未起填 = 轻点）。
+  static const _tapWindow = Duration(milliseconds: 250);
+
+  DateTime? _downAt;
+  bool _completed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hold.addStatusListener((status) {
+      if (status == AnimationStatus.completed) _onHoldDone();
+    });
+  }
+
+  @override
+  void dispose() {
+    _hold.dispose();
+    super.dispose();
+  }
+
+  void _down(PointerDownEvent _) {
+    if (_completed) return;
+    _downAt = DateTime.now();
+    _hold.forward();
+  }
+
+  void _up(PointerUpEvent _) {
+    if (_completed) return;
+    final quick =
+        _downAt != null &&
+        DateTime.now().difference(_downAt!) < _tapWindow &&
+        _hold.value < .2;
+    _hold.reverse();
+    _downAt = null;
+    if (quick) widget.onTap();
+  }
+
+  void _cancel(PointerCancelEvent _) {
+    if (_completed) return;
+    _hold.reverse();
+    _downAt = null;
+  }
+
+  Future<void> _onHoldDone() async {
+    if (_completed) return;
+    _completed = true;
+    HapticFeedback.mediumImpact();
+    setState(() {});
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    if (!mounted) return;
+    await widget.onHoldComplete();
+    // 弹窗取消（未达成跳转）时复位回待按状态。
+    if (mounted) {
+      setState(() {
+        _completed = false;
+        _hold.reset();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TargetPalette.of(context);
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: Copy.goalMarkAchieved,
+      hint: Copy.achieveHoldCaption,
+      onTap: widget.onTap,
+      excludeSemantics: true,
+      child: Listener(
+        onPointerDown: _down,
+        onPointerUp: _up,
+        onPointerCancel: _cancel,
+        child: AnimatedBuilder(
+          animation: _hold,
+          builder: (context, _) {
+            final holding = _hold.value > 0 && !_completed;
+            return AnimatedScale(
+              scale: holding ? .98 : 1,
+              duration: const Duration(milliseconds: 120),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: AppRadius.rFull,
+                  boxShadow: palette.shadowMid,
+                ),
+                child: Material(
+                  color: _completed ? palette.positiveFill : palette.accent,
+                  borderRadius: AppRadius.rFull,
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    children: [
+                      // 按住填充扫过（半透明白，左→右）。
+                      if (_hold.value > 0)
+                        FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: _hold.value,
+                          child: Container(
+                            color: Colors.white.withValues(alpha: .25),
+                          ),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: AppSpace.s4,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _completed
+                                  ? Icons.check_circle_rounded
+                                  : Icons.flag_rounded,
+                              size: 18,
+                              color: _completed
+                                  ? palette.positiveOn
+                                  : palette.accentOn,
+                            ),
+                            const SizedBox(width: AppSpace.s2),
+                            Text(
+                              _completed ? Copy.goalStatusAchievedSuffix : Copy.goalMarkAchieved,
+                              style: theme.textTheme.titleS.copyWith(
+                                color: _completed
+                                    ? palette.positiveOn
+                                    : palette.accentOn,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: AppSpace.s1),
-            ],
-            Icon(
-              Icons.chevron_right,
-              size: 14,
-              color: palette.onSurfaceVariant,
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

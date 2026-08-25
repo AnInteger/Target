@@ -97,11 +97,14 @@ void main() {
     expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
     expect(find.byKey(const ValueKey('navTab-/progress')), findsOneWidget);
     expect(find.byKey(const ValueKey('navTab-/review')), findsNothing);
-    // 无 inset 机型：底条 = 8 + 45 + max(8, 0) = 61（2026-08-25 二次
-    // 收敛——84 恒高在无 inset 环境标签下留 31px 空带，实机判缺陷）。
+    // 无 inset 机型：底条 = 8 + 45 + max(8, 0) = 61，且悬浮胶囊离底 10、
+    // 两侧收 12（2026-08-25 三次收敛——贴死窗口底边观感过重，往上
+    // 收出呼吸位；几何断言同步改悬浮口径）。
     final bar = tester.getRect(find.byKey(const ValueKey('dockBar')));
     expect(bar.height, 61);
-    expect(bar.bottom, 844);
+    expect(bar.bottom, 834); // 844 - 10 悬浮离底距
+    expect(bar.left, 12); // 两侧收边
+    expect(bar.right, 378);
     await _disposeTarget(tester, db);
   });
 
@@ -109,7 +112,8 @@ void main() {
     tester,
   ) async {
     // iPhone Home 指示条 34px：底距 max(8, 34) → 底条 87，页签标签贴
-    // 安全区边界——不再出现 68+inset 全额叠加的 49px 空带。
+    // 安全区边界——不再出现 68+inset 全额叠加的 49px 空带。有 inset
+    // 环境保持原生贴底（悬浮胶囊仅 inset=0 时启用）。
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     tester.view.padding = const FakeViewPadding(bottom: 34);

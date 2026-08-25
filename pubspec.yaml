@@ -61,14 +61,16 @@ dev_dependencies:
   build_runner: ^2.16.0
   flutter_launcher_icons: ^0.14.4
   flutter_native_splash: ^2.4.8
+  image: ^4.9.2
 
-# 品牌资产（T028，A 案「今日之环」）：母版在 design/brand/*.svg，
-# 生成物进 iOS 资产目录；iOS 18 深色变体由生成后手工补 Contents.json 条目。
+# 品牌资产：白底目标轨迹母版，同时生成 iOS 与 Android 自适应图标。
 flutter_launcher_icons:
   ios: true
-  image_path: design/brand/icon-a-light-1024.png
+  image_path: design/brand/icon-progress-white-1024.png
   remove_alpha_ios: true
-  android: false
+  android: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: design/brand/icon-progress-foreground-1024.png
   web:
     generate: false
   macos:

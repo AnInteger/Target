@@ -258,13 +258,12 @@ const _navDests = [
 /// 反白，全条无彩色）；FAB 56px 中性（浅色墨底白＋/深色反白），上缘
 /// 凸出底条 22px、带 glass-card 4px 描边环；任意壳层页恒定（FR-010）。
 ///
-/// 安全区几何（005 D1 → 2026-08-25 收敛）：底条恒取冻结稿 84px
-///（= 顶垫 8 + 页签带 ~45 + 底部设计余量 31），系统 Home 指示条
-/// inset 优先由这 31px 余量吸收——仅当 inset 大到吞尽余量
-///（8+45+inset > 84）时底条才等量加高。如此页签标签始终贴近
-/// 安全区边界（原生 TabBar 观感），不再出现「标签下方 49px 空带」
-///（旧算法 68+inset 全额叠加所致）。底幕背景仍下延至屏幕物理底边，
-/// 页签/FAB 互动槽整体止于 inset 之上；inset=0 机型与冻结稿恒等。
+/// 安全区几何（005 D1 → 2026-08-25 二次收敛）：底条高度随 inset 动态
+/// 计算 = 顶垫 8 + 页签带 ~45 + max(底距 8, inset)。冻结稿 84px 恒高
+/// 在 inset=0 环境下标签下方留出 31px 空带（实机截图判为缺陷）——
+/// 现以 8px 呼吸距封底；iPhone（34）下 max(8,34)=34，几何与首版收敛
+/// 恒等（87），标签仍贴安全区边界、Home 指示区全由底条背景承载。
+/// 页签/FAB 互动槽整体止于 inset 之上；底幕背景下延至屏幕物理底边。
 class _Dock extends StatelessWidget {
   const _Dock({required this.shell});
 
@@ -273,25 +272,23 @@ class _Dock extends StatelessWidget {
   /// FAB 上缘凸出量（冻结稿 .fab margin-top: -22px）。
   static const double _fabOverhang = 22;
 
-  /// 底条冻结高度（.dock 84px）。
-  static const double _barHeight = 84;
-
   /// 底条顶垫（冻结稿 dock padding-top 8）。
   static const double _barTopPad = 8;
 
   /// 页签带高度估值（图标 22 + 缝 3 + 标签/短横线 ~20）。
   static const double _tabBand = 45;
 
+  /// 无 inset 环境的标签下呼吸距（冻结稿 84px 高的 31px 底部余量收敛）。
+  static const double _barBottomPad = 8;
+
   @override
   Widget build(BuildContext context) {
     final palette = TargetPalette.of(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
-    // 底条实际高度：84 冻结值与「顶垫+页签带+inset」取大——inset 31
-    // 以内被设计余量吸收，超出才加高（iPhone 34 → 87 而非旧算法 102）。
-    final barExtent = math.max(
-      _barHeight,
-      _barTopPad + _tabBand + bottomInset,
-    );
+    // 底条实际高度：inset ≤ 8 时贴 8px 呼吸距（浏览器 61）；更大时
+    // 等量承载 Home 指示区（iPhone 34 → 87），标签落在安全区边界。
+    final barExtent =
+        _barTopPad + _tabBand + math.max(_barBottomPad, bottomInset);
     Widget tab(int i) => Expanded(
       child: Padding(
         // 页签起于底条顶 padding 8 之后（22 + 8 = 30）。

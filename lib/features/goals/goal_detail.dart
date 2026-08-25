@@ -67,7 +67,9 @@ class GoalDetailPage extends ConsumerWidget {
     final majorColor = MajorColors.byKey(icon.domain.major.name).of(context);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      // 2026-08-25：同编辑器——分支 push 淡入铺实底，消除转场结束的
+      // 背景突变（下层分支页在 opaque 转场完成后不再绘制）。
+      backgroundColor: TargetPalette.of(context).background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -220,9 +222,10 @@ class GoalDetailPage extends ConsumerWidget {
     ];
     await showModalBottomSheet<void>(
       context: context,
-      // 2026-08-25：详情为壳层分支页，弹层挂分支导航器——呈现于
-      // 壳层 body 内、止于 dock 之上（不再整屏盖住导航条）。
-      useRootNavigator: false,
+      // 2026-08-25：Flutter 3.47 起 useRootNavigator 缺省 false——分支
+      // 页弹层会落在壳层 body 内（止于 dock 顶，导航条露在 sheet 之下）。
+      // 定稿口径：整屏 sheet 盖于导航条之前、贴屏幕物理底。
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => Container(
         key: const ValueKey('goalMenuSheet'),
@@ -231,8 +234,8 @@ class GoalDetailPage extends ConsumerWidget {
           borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
           boxShadow: palette.shadowHigh,
         ),
-        // 底距 s4 + 安全区：分支内 inset 恒 0（dock 已占位）→ 紧贴
-        // dock 顶；若经 root 上下文复用则自动吃 Home 指示条避让。
+        // 底距 s4 + 安全区——内容避让 Home 指示条，指示区由 sheet
+        // 表面承载（原生 sheet 观感），不再留固定 28px 空带。
         padding: EdgeInsets.fromLTRB(
           AppSpace.s5,
           AppSpace.s3,
@@ -661,8 +664,8 @@ class _TodayCardState extends ConsumerState<_TodayCard> {
     final picked = await showModalBottomSheet<LocalDate>(
       context: context,
       isScrollControlled: true,
-      // 同 ⋯ 菜单：分支内呈现，止于 dock 之上。
-      useRootNavigator: false,
+      // 同 ⋯ 菜单：整屏 sheet（盖于导航条之前、贴屏幕物理底）。
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _BackfillSheet(
         today: widget.today,
@@ -1046,7 +1049,7 @@ class _BackfillSheetState extends State<_BackfillSheet> {
         borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
         boxShadow: palette.shadowHigh,
       ),
-      // 底距同 _showMenu：s4 + 安全区（分支内 inset 0）。
+      // 底距同 _showMenu：s4 + 安全区（整屏 sheet，指示区由表面承载）。
       padding: EdgeInsets.fromLTRB(
         AppSpace.s5,
         AppSpace.s3,

@@ -274,7 +274,10 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      // 2026-08-25：转场收敛——透明底在分支 push 淡入过程中透出下一页，
+      // 转场结束下层被移除时背景突变（观感「跳一下」）；铺实底与
+      // 今日页同口径（shell 底幕渐变本就被今日页实底遮蔽）。
+      backgroundColor: TargetPalette.of(context).background,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -532,8 +535,8 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   Future<void> _correctCategory() async {
     final picked = await showModalBottomSheet<GoalIconDomain>(
       context: context,
-      // 编辑器为壳层分支页：弹层止于 dock 之上。
-      useRootNavigator: false,
+      // 编辑器为分支页：整屏 sheet（3.47 起缺省 useRootNavigator=false）。
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         final palette = TargetPalette.of(context);
@@ -542,7 +545,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
             color: palette.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          // 底距 s4 + 安全区（分支内 inset 恒 0）。
+          // 底距 s4 + 安全区（整屏 sheet，指示区由表面承载）。
           padding: EdgeInsets.fromLTRB(
             20,
             18,

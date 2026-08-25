@@ -12,8 +12,9 @@ Future<void> showDayRecordsSheet(
   final palette = TargetPalette.of(context);
   return showModalBottomSheet<void>(
     context: context,
-    // 详情分支页调用：止于 dock 之上。
-    useRootNavigator: false,
+    // 详情分支页调用：整屏 sheet（useRootNavigator 缺省 false 会落在
+    // 壳层 body 内、止于 dock 顶——3.47 起缺省变更，显式回整屏口径）。
+    useRootNavigator: true,
     backgroundColor: Colors.transparent,
     barrierColor: palette.scrim,
     builder: (_) => _DayRecordsSheet(day: day, records: records),
@@ -37,7 +38,7 @@ class _DayRecordsSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: palette.shadowHigh,
       ),
-      // 底距 s4 + 安全区（分支内 inset 恒 0，紧贴 dock 顶）。
+      // 底距 s4 + 安全区（整屏 sheet，指示区由表面承载）。
       padding: EdgeInsets.fromLTRB(
         20,
         12,

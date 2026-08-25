@@ -97,18 +97,19 @@ void main() {
     expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
     expect(find.byKey(const ValueKey('navTab-/progress')), findsOneWidget);
     expect(find.byKey(const ValueKey('navTab-/review')), findsNothing);
-    // 无 inset 机型：底条恒为冻结稿 84px（005 D1 → 2026-08-25 收敛）。
+    // 无 inset 机型：底条 = 8 + 45 + max(8, 0) = 61（2026-08-25 二次
+    // 收敛——84 恒高在无 inset 环境标签下留 31px 空带，实机判缺陷）。
     final bar = tester.getRect(find.byKey(const ValueKey('dockBar')));
-    expect(bar.height, 84);
+    expect(bar.height, 61);
     expect(bar.bottom, 844);
     await _disposeTarget(tester, db);
   });
 
-  testWidgets('dock absorbs home inset into the 84px bar breathing room', (
+  testWidgets('dock absorbs home inset into its breathing room', (
     tester,
   ) async {
-    // iPhone Home 指示条 34px：31px 设计余量吸收 + 底条仅加高 3px，
-    // 页签标签贴安全区边界——不再出现 68+inset 全额叠加的 49px 空带。
+    // iPhone Home 指示条 34px：底距 max(8, 34) → 底条 87，页签标签贴
+    // 安全区边界——不再出现 68+inset 全额叠加的 49px 空带。
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     tester.view.padding = const FakeViewPadding(bottom: 34);
@@ -177,6 +178,14 @@ void main() {
     final editorOffset = tester.getTopLeft(find.byType(GoalEditorPage));
     expect(editorOffset.dx, greaterThan(0));
     await tester.pumpAndSettle();
+    // 编辑器铺实底：转场结束下层分支页移除时背景不突变（透明底会透出
+    // 今日内容并在 settle 瞬间跳变）。
+    final editorScaffold = tester.widget<Scaffold>(
+      find
+          .descendant(of: find.byType(GoalEditorPage), matching: find.byType(Scaffold))
+          .first,
+    );
+    expect(editorScaffold.backgroundColor, TargetPalette.light.background);
     await _disposeTarget(tester, editorDb);
 
     final goalsDb = await _pumpTarget(tester);
@@ -206,9 +215,11 @@ void main() {
     await _disposeTarget(tester, db);
   });
 
-  testWidgets('goal detail menu sheet rests above the dock', (tester) async {
-    // 分支页弹层挂分支导航器：呈现于壳层 body 内、止于 dock 顶缘——
-    // dock 不被遮盖、sheet 底缘无 home 空带。
+  testWidgets('goal detail menu sheet spans to the physical screen bottom', (
+    tester,
+  ) async {
+    // 2026-08-25 定稿口径：整屏 sheet——盖于导航条之前（z 序在 dock
+    // 之上）、贴屏幕物理底；内容底距吃安全区，不再留固定空带。
     final db = await _pumpTarget(tester);
     await tester.tap(find.byKey(const ValueKey('focusCard-g1')));
     await tester.pumpAndSettle();
@@ -216,13 +227,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('goalMenuSheet')), findsOneWidget);
-    // dock 仍在场（弹层不再整屏遮盖导航条）；sheet 底缘贴壳层 body 底
-    //＝ dock 占位顶（含 FAB 凸出带 22px：barTop - 22）。
-    final barRect = tester.getRect(find.byKey(const ValueKey('dockBar')));
     final sheetRect = tester.getRect(
       find.byKey(const ValueKey('goalMenuSheet')),
     );
-    expect(sheetRect.bottom, closeTo(barRect.top - 22, .5));
+    expect(sheetRect.bottom, 844); // 贴屏幕物理底
+    expect(sheetRect.left, 0);
+    expect(sheetRect.width, 390); // 整屏宽（盖住 dock）
     await _disposeTarget(tester, db);
   });
 }

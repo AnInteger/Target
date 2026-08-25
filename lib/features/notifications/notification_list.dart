@@ -244,14 +244,14 @@ int todayBadgeCount(List<NotificationItem> items, LocalDate today) =>
     items.where((i) => LocalDate.fromDateTime(i.at) == today).length;
 
 /// 弹起通知列表 sheet（今日页铃铛；冻结稿 .sheet = surface 圆角顶 +
-/// 抓手条 + 72% 屏高上限）。今日页为壳层分支页——弹层挂分支导航器，
-/// 真正「不遮底部导航」（2026-08-25：useRootNavigator 缺省 true 实为
-/// 整屏盖 dock，与本注释原意相悖，一并修正）。
+/// 抓手条 + 72% 屏高上限）。整屏 sheet：盖于导航条之前、贴屏幕物理底
+///（2026-08-25 定稿：3.47 起 useRootNavigator 缺省 false 会落壳层 body
+/// 止于 dock 顶——显式 true；底距 s4 + 安全区，指示区由 sheet 承载）。
 Future<void> showNotificationSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    useRootNavigator: false,
+    useRootNavigator: true,
     backgroundColor: Colors.transparent,
     builder: (sheetContext) {
       final palette = TargetPalette.of(sheetContext);
@@ -266,7 +266,6 @@ Future<void> showNotificationSheet(BuildContext context) {
             borderRadius: BorderRadius.vertical(top: AppRadius.rXl.topLeft),
             boxShadow: palette.shadowHigh,
           ),
-          // 底距 s4 + 安全区（分支内 inset 恒 0 → 紧贴 dock 顶）。
           padding: EdgeInsets.fromLTRB(
             AppSpace.s5,
             AppSpace.s3,

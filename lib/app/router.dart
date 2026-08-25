@@ -26,6 +26,7 @@ import '../features/goals/goal_editor.dart';
 import '../features/goals/goals_all_view.dart';
 import '../features/goals/goal_templates.dart';
 import '../features/goals/onboarding.dart';
+import '../features/profile/profile_hub.dart';
 import '../features/settings/settings_view.dart';
 import '../features/review/review_view.dart';
 import '../features/today/today_view.dart';
@@ -41,6 +42,7 @@ GoRouter _build() => GoRouter(
     GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingPage()),
     // 我的页（004 T024）：根级全屏 push 子路由——壳层 dock 被覆盖，
     // 今日页头像 push 进 / pop 回（不再是页签分支）。
+    GoRoute(path: '/profile', builder: (_, _) => const ProfileHubPage()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsView()),
     StatefulShellRoute.indexedStack(
       builder: (_, _, shell) => _AppShell(navigationShell: shell),

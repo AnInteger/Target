@@ -26,7 +26,7 @@ import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/goal_icon_catalog.dart';
-import '../profile/profile.dart';
+import 'appearance_mode_sheet.dart';
 import 'debug_clock.dart';
 
 /// dailyBrief 提醒行固定 id（goalId=null ⇔ 概要）。
@@ -109,7 +109,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
               title: Copy.settingsTitle,
               titleKey: const ValueKey('screenTitle'),
               onBack: () =>
-                  context.canPop() ? context.pop() : context.go('/today'),
+                  context.canPop() ? context.pop() : context.go('/profile'),
             ),
             Expanded(
               child: ListView(
@@ -121,32 +121,17 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
                   AppSpace.s8,
                 ),
                 children: [
-                  const _MeCard(),
-
-                  // ---- 分组·外观（主题三档，FR-002）----
+                  // ---- 分组·外观（单行入口 + 底部单选面板）----
                   const _SectionLabel(Copy.settingsSectionAppearance),
                   _GroupCard(
                     children: [
                       _SettingsRow(
-                        key: const ValueKey('themeSystem'),
-                        icon: Icons.brightness_auto,
-                        title: Copy.settingsThemeSystem,
-                        checkmarked: themeMode == AppThemeMode.system,
-                        onTap: () => _setTheme(AppThemeMode.system),
-                      ),
-                      _SettingsRow(
-                        key: const ValueKey('themeLight'),
-                        icon: Icons.light_mode,
-                        title: Copy.settingsThemeLight,
-                        checkmarked: themeMode == AppThemeMode.light,
-                        onTap: () => _setTheme(AppThemeMode.light),
-                      ),
-                      _SettingsRow(
-                        key: const ValueKey('themeDark'),
-                        icon: Icons.dark_mode,
-                        title: Copy.settingsThemeDark,
-                        checkmarked: themeMode == AppThemeMode.dark,
-                        onTap: () => _setTheme(AppThemeMode.dark),
+                        key: const ValueKey('appearanceRow'),
+                        icon: Icons.palette_outlined,
+                        title: Copy.settingsSectionAppearance,
+                        value: appearanceModeLabel(themeMode),
+                        showChevron: true,
+                        onTap: () => showAppearanceModeSheet(context),
                       ),
                     ],
                   ),
@@ -284,14 +269,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     );
   }
 
-  /// 主题三档落库（FR-002）：settingsProvider 流回放 → themeModeProvider
-  /// 重建 → MaterialApp.themeMode 即时切换；值持久于 Settings.themeMode。
-  Future<void> _setTheme(AppThemeMode mode) async {
-    final repo = ref.read(settingsRepoProvider);
-    final s = await repo.get();
-    await repo.update(s.copyWith(themeMode: mode));
-  }
-
   /// 总开关：全开/全关所有 Reminders 行。简报无行时排程器视为默认开
   /// （reminder_service 契约），故无论开/关都显式落一条简报行承载总开关
   /// 态——否则关掉逐目标行后聚合视图仍被「默认开」的简报拉回 true。
@@ -349,63 +326,6 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
         .update(
           s.copyWith(dailyBriefTime: LocalTime(picked.hour, picked.minute)),
         );
-  }
-}
-
-/// 资料卡（v2 me）：56 头像 + 昵称 +「编辑资料」+ 箭头，整卡进编辑 sheet。
-/// [themeMode] 仅用于触发深浅切换时本卡重绘（palette 随 Theme 走）。
-class _MeCard extends ConsumerWidget {
-  const _MeCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final palette = TargetPalette.of(context);
-    final profile = ref.watch(profileProvider).value;
-    return Material(
-      key: const ValueKey('meCard'),
-      color: palette.surface,
-      borderRadius: AppRadius.rXl,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => showProfileSheet(context),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpace.s4),
-          decoration: BoxDecoration(
-            borderRadius: AppRadius.rXl,
-            boxShadow: palette.shadowLow,
-          ),
-          child: Row(
-            children: [
-              ProfileAvatar(profile: profile, size: 56),
-              const SizedBox(width: AppSpace.s4),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      profile?.nickname ?? Copy.profileDefaultNickname,
-                      key: const ValueKey('meNickname'),
-                      style: Theme.of(context).textTheme.titleM,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      Copy.settingsMeSub,
-                      style: Theme.of(context).textTheme.bodyS
-                          .copyWith(color: palette.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: palette.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -479,7 +399,6 @@ class _SettingsRow extends StatelessWidget {
     this.time,
     this.switchValue,
     this.onSwitch,
-    this.checkmarked = false,
     this.showChevron = false,
     this.expanded = false,
     this.onTap,
@@ -492,9 +411,6 @@ class _SettingsRow extends StatelessWidget {
   final LocalTime? time;
   final bool? switchValue;
   final ValueChanged<bool>? onSwitch;
-
-  /// 单选选中态（主题三档）：行尾 22 对勾，accent。
-  final bool checkmarked;
 
   /// 行尾箭头（值行/二级入口）；已展开时箭头转向下（原型 chev 旋转语义）。
   final bool showChevron;
@@ -556,10 +472,6 @@ class _SettingsRow extends StatelessWidget {
                   onChanged: onSwitch,
                   activeThumbColor: palette.positiveFill,
                 ),
-              ],
-              if (checkmarked) ...[
-                const SizedBox(width: AppSpace.s2),
-                Icon(Icons.check, size: 22, color: palette.accent),
               ],
               if (showChevron) ...[
                 const SizedBox(width: AppSpace.s1),

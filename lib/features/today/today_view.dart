@@ -175,7 +175,7 @@ class _Head extends ConsumerWidget {
               ),
               const SizedBox(width: 10),
               InkWell(
-                onTap: () => context.push('/settings'),
+                onTap: () => context.push('/profile'),
                 borderRadius: BorderRadius.circular(999),
                 child: Container(
                   padding: const EdgeInsets.all(3),

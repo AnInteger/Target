@@ -196,7 +196,8 @@ abstract final class Copy {
   // ---- 设置 / 其他（004 v2 冻结稿 v2-settings.html：账号卡 + 外观/通知/
   // 目标/数据/关于分组，行 = 图标 + 标题 + 行尾值|开关|箭头|对勾）----
 
-  static const settingsTitle = '我的';
+  static const profileTitle = '我的';
+  static const settingsTitle = '设置';
 
   static const settingsMeSub = '编辑资料';
   static const settingsSectionAppearance = '外观';

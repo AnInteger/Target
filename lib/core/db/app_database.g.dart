@@ -46,6 +46,46 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _progressCadenceDaysMeta =
+      const VerificationMeta('progressCadenceDays');
+  @override
+  late final GeneratedColumn<int> progressCadenceDays = GeneratedColumn<int>(
+    'progress_cadence_days',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoryOverrideMeta = const VerificationMeta(
+    'categoryOverride',
+  );
+  @override
+  late final GeneratedColumn<String> categoryOverride = GeneratedColumn<String>(
+    'category_override',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<LocalDate?, String> targetDate =
+      GeneratedColumn<String>(
+        'target_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<LocalDate?>($GoalsTable.$convertertargetDaten);
+  static const VerificationMeta _habitTargetPerWeekMeta =
+      const VerificationMeta('habitTargetPerWeek');
+  @override
+  late final GeneratedColumn<int> habitTargetPerWeek = GeneratedColumn<int>(
+    'habit_target_per_week',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _colorKeyMeta = const VerificationMeta(
     'colorKey',
   );
@@ -132,6 +172,10 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     name,
     goalType,
     iconKey,
+    progressCadenceDays,
+    categoryOverride,
+    targetDate,
+    habitTargetPerWeek,
     colorKey,
     status,
     createdAt,
@@ -173,6 +217,33 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
       );
     } else if (isInserting) {
       context.missing(_iconKeyMeta);
+    }
+    if (data.containsKey('progress_cadence_days')) {
+      context.handle(
+        _progressCadenceDaysMeta,
+        progressCadenceDays.isAcceptableOrUnknown(
+          data['progress_cadence_days']!,
+          _progressCadenceDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('category_override')) {
+      context.handle(
+        _categoryOverrideMeta,
+        categoryOverride.isAcceptableOrUnknown(
+          data['category_override']!,
+          _categoryOverrideMeta,
+        ),
+      );
+    }
+    if (data.containsKey('habit_target_per_week')) {
+      context.handle(
+        _habitTargetPerWeekMeta,
+        habitTargetPerWeek.isAcceptableOrUnknown(
+          data['habit_target_per_week']!,
+          _habitTargetPerWeekMeta,
+        ),
+      );
     }
     if (data.containsKey('color_key')) {
       context.handle(
@@ -228,6 +299,24 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         DriftSqlType.string,
         data['${effectivePrefix}icon_key'],
       )!,
+      progressCadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}progress_cadence_days'],
+      ),
+      categoryOverride: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_override'],
+      ),
+      targetDate: $GoalsTable.$convertertargetDaten.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}target_date'],
+        ),
+      ),
+      habitTargetPerWeek: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}habit_target_per_week'],
+      ),
       colorKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}color_key'],
@@ -277,6 +366,10 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
   }
 
   static TypeConverter<GoalType, String> $convertergoalType = goalTypeConverter;
+  static TypeConverter<LocalDate, String> $convertertargetDate =
+      const LocalDateText();
+  static TypeConverter<LocalDate?, String?> $convertertargetDaten =
+      NullAwareTypeConverter.wrap($convertertargetDate);
   static TypeConverter<GoalStatus, String> $converterstatus =
       goalStatusConverter;
   static TypeConverter<LocalDate, String> $convertercreatedAt =
@@ -296,6 +389,10 @@ class Goal extends DataClass implements Insertable<Goal> {
   final String name;
   final GoalType goalType;
   final String iconKey;
+  final int? progressCadenceDays;
+  final String? categoryOverride;
+  final LocalDate? targetDate;
+  final int? habitTargetPerWeek;
   final String? colorKey;
   final GoalStatus status;
   final LocalDate createdAt;
@@ -313,6 +410,10 @@ class Goal extends DataClass implements Insertable<Goal> {
     required this.name,
     required this.goalType,
     required this.iconKey,
+    this.progressCadenceDays,
+    this.categoryOverride,
+    this.targetDate,
+    this.habitTargetPerWeek,
     this.colorKey,
     required this.status,
     required this.createdAt,
@@ -333,6 +434,20 @@ class Goal extends DataClass implements Insertable<Goal> {
       );
     }
     map['icon_key'] = Variable<String>(iconKey);
+    if (!nullToAbsent || progressCadenceDays != null) {
+      map['progress_cadence_days'] = Variable<int>(progressCadenceDays);
+    }
+    if (!nullToAbsent || categoryOverride != null) {
+      map['category_override'] = Variable<String>(categoryOverride);
+    }
+    if (!nullToAbsent || targetDate != null) {
+      map['target_date'] = Variable<String>(
+        $GoalsTable.$convertertargetDaten.toSql(targetDate),
+      );
+    }
+    if (!nullToAbsent || habitTargetPerWeek != null) {
+      map['habit_target_per_week'] = Variable<int>(habitTargetPerWeek);
+    }
     if (!nullToAbsent || colorKey != null) {
       map['color_key'] = Variable<String>(colorKey);
     }
@@ -374,6 +489,18 @@ class Goal extends DataClass implements Insertable<Goal> {
       name: Value(name),
       goalType: Value(goalType),
       iconKey: Value(iconKey),
+      progressCadenceDays: progressCadenceDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(progressCadenceDays),
+      categoryOverride: categoryOverride == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryOverride),
+      targetDate: targetDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetDate),
+      habitTargetPerWeek: habitTargetPerWeek == null && nullToAbsent
+          ? const Value.absent()
+          : Value(habitTargetPerWeek),
       colorKey: colorKey == null && nullToAbsent
           ? const Value.absent()
           : Value(colorKey),
@@ -407,6 +534,12 @@ class Goal extends DataClass implements Insertable<Goal> {
       name: serializer.fromJson<String>(json['name']),
       goalType: serializer.fromJson<GoalType>(json['goalType']),
       iconKey: serializer.fromJson<String>(json['iconKey']),
+      progressCadenceDays: serializer.fromJson<int?>(
+        json['progressCadenceDays'],
+      ),
+      categoryOverride: serializer.fromJson<String?>(json['categoryOverride']),
+      targetDate: serializer.fromJson<LocalDate?>(json['targetDate']),
+      habitTargetPerWeek: serializer.fromJson<int?>(json['habitTargetPerWeek']),
       colorKey: serializer.fromJson<String?>(json['colorKey']),
       status: serializer.fromJson<GoalStatus>(json['status']),
       createdAt: serializer.fromJson<LocalDate>(json['createdAt']),
@@ -425,6 +558,10 @@ class Goal extends DataClass implements Insertable<Goal> {
       'name': serializer.toJson<String>(name),
       'goalType': serializer.toJson<GoalType>(goalType),
       'iconKey': serializer.toJson<String>(iconKey),
+      'progressCadenceDays': serializer.toJson<int?>(progressCadenceDays),
+      'categoryOverride': serializer.toJson<String?>(categoryOverride),
+      'targetDate': serializer.toJson<LocalDate?>(targetDate),
+      'habitTargetPerWeek': serializer.toJson<int?>(habitTargetPerWeek),
       'colorKey': serializer.toJson<String?>(colorKey),
       'status': serializer.toJson<GoalStatus>(status),
       'createdAt': serializer.toJson<LocalDate>(createdAt),
@@ -441,6 +578,10 @@ class Goal extends DataClass implements Insertable<Goal> {
     String? name,
     GoalType? goalType,
     String? iconKey,
+    Value<int?> progressCadenceDays = const Value.absent(),
+    Value<String?> categoryOverride = const Value.absent(),
+    Value<LocalDate?> targetDate = const Value.absent(),
+    Value<int?> habitTargetPerWeek = const Value.absent(),
     Value<String?> colorKey = const Value.absent(),
     GoalStatus? status,
     LocalDate? createdAt,
@@ -454,6 +595,16 @@ class Goal extends DataClass implements Insertable<Goal> {
     name: name ?? this.name,
     goalType: goalType ?? this.goalType,
     iconKey: iconKey ?? this.iconKey,
+    progressCadenceDays: progressCadenceDays.present
+        ? progressCadenceDays.value
+        : this.progressCadenceDays,
+    categoryOverride: categoryOverride.present
+        ? categoryOverride.value
+        : this.categoryOverride,
+    targetDate: targetDate.present ? targetDate.value : this.targetDate,
+    habitTargetPerWeek: habitTargetPerWeek.present
+        ? habitTargetPerWeek.value
+        : this.habitTargetPerWeek,
     colorKey: colorKey.present ? colorKey.value : this.colorKey,
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
@@ -471,6 +622,18 @@ class Goal extends DataClass implements Insertable<Goal> {
       name: data.name.present ? data.name.value : this.name,
       goalType: data.goalType.present ? data.goalType.value : this.goalType,
       iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
+      progressCadenceDays: data.progressCadenceDays.present
+          ? data.progressCadenceDays.value
+          : this.progressCadenceDays,
+      categoryOverride: data.categoryOverride.present
+          ? data.categoryOverride.value
+          : this.categoryOverride,
+      targetDate: data.targetDate.present
+          ? data.targetDate.value
+          : this.targetDate,
+      habitTargetPerWeek: data.habitTargetPerWeek.present
+          ? data.habitTargetPerWeek.value
+          : this.habitTargetPerWeek,
       colorKey: data.colorKey.present ? data.colorKey.value : this.colorKey,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -495,6 +658,10 @@ class Goal extends DataClass implements Insertable<Goal> {
           ..write('name: $name, ')
           ..write('goalType: $goalType, ')
           ..write('iconKey: $iconKey, ')
+          ..write('progressCadenceDays: $progressCadenceDays, ')
+          ..write('categoryOverride: $categoryOverride, ')
+          ..write('targetDate: $targetDate, ')
+          ..write('habitTargetPerWeek: $habitTargetPerWeek, ')
           ..write('colorKey: $colorKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -513,6 +680,10 @@ class Goal extends DataClass implements Insertable<Goal> {
     name,
     goalType,
     iconKey,
+    progressCadenceDays,
+    categoryOverride,
+    targetDate,
+    habitTargetPerWeek,
     colorKey,
     status,
     createdAt,
@@ -530,6 +701,10 @@ class Goal extends DataClass implements Insertable<Goal> {
           other.name == this.name &&
           other.goalType == this.goalType &&
           other.iconKey == this.iconKey &&
+          other.progressCadenceDays == this.progressCadenceDays &&
+          other.categoryOverride == this.categoryOverride &&
+          other.targetDate == this.targetDate &&
+          other.habitTargetPerWeek == this.habitTargetPerWeek &&
           other.colorKey == this.colorKey &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
@@ -545,6 +720,10 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   final Value<String> name;
   final Value<GoalType> goalType;
   final Value<String> iconKey;
+  final Value<int?> progressCadenceDays;
+  final Value<String?> categoryOverride;
+  final Value<LocalDate?> targetDate;
+  final Value<int?> habitTargetPerWeek;
   final Value<String?> colorKey;
   final Value<GoalStatus> status;
   final Value<LocalDate> createdAt;
@@ -559,6 +738,10 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     this.name = const Value.absent(),
     this.goalType = const Value.absent(),
     this.iconKey = const Value.absent(),
+    this.progressCadenceDays = const Value.absent(),
+    this.categoryOverride = const Value.absent(),
+    this.targetDate = const Value.absent(),
+    this.habitTargetPerWeek = const Value.absent(),
     this.colorKey = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -574,6 +757,10 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     required String name,
     required GoalType goalType,
     required String iconKey,
+    this.progressCadenceDays = const Value.absent(),
+    this.categoryOverride = const Value.absent(),
+    this.targetDate = const Value.absent(),
+    this.habitTargetPerWeek = const Value.absent(),
     this.colorKey = const Value.absent(),
     required GoalStatus status,
     required LocalDate createdAt,
@@ -594,6 +781,10 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Expression<String>? name,
     Expression<String>? goalType,
     Expression<String>? iconKey,
+    Expression<int>? progressCadenceDays,
+    Expression<String>? categoryOverride,
+    Expression<String>? targetDate,
+    Expression<int>? habitTargetPerWeek,
     Expression<String>? colorKey,
     Expression<String>? status,
     Expression<String>? createdAt,
@@ -609,6 +800,12 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       if (name != null) 'name': name,
       if (goalType != null) 'goal_type': goalType,
       if (iconKey != null) 'icon_key': iconKey,
+      if (progressCadenceDays != null)
+        'progress_cadence_days': progressCadenceDays,
+      if (categoryOverride != null) 'category_override': categoryOverride,
+      if (targetDate != null) 'target_date': targetDate,
+      if (habitTargetPerWeek != null)
+        'habit_target_per_week': habitTargetPerWeek,
       if (colorKey != null) 'color_key': colorKey,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
@@ -626,6 +823,10 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Value<String>? name,
     Value<GoalType>? goalType,
     Value<String>? iconKey,
+    Value<int?>? progressCadenceDays,
+    Value<String?>? categoryOverride,
+    Value<LocalDate?>? targetDate,
+    Value<int?>? habitTargetPerWeek,
     Value<String?>? colorKey,
     Value<GoalStatus>? status,
     Value<LocalDate>? createdAt,
@@ -641,6 +842,10 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       name: name ?? this.name,
       goalType: goalType ?? this.goalType,
       iconKey: iconKey ?? this.iconKey,
+      progressCadenceDays: progressCadenceDays ?? this.progressCadenceDays,
+      categoryOverride: categoryOverride ?? this.categoryOverride,
+      targetDate: targetDate ?? this.targetDate,
+      habitTargetPerWeek: habitTargetPerWeek ?? this.habitTargetPerWeek,
       colorKey: colorKey ?? this.colorKey,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -669,6 +874,20 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     }
     if (iconKey.present) {
       map['icon_key'] = Variable<String>(iconKey.value);
+    }
+    if (progressCadenceDays.present) {
+      map['progress_cadence_days'] = Variable<int>(progressCadenceDays.value);
+    }
+    if (categoryOverride.present) {
+      map['category_override'] = Variable<String>(categoryOverride.value);
+    }
+    if (targetDate.present) {
+      map['target_date'] = Variable<String>(
+        $GoalsTable.$convertertargetDaten.toSql(targetDate.value),
+      );
+    }
+    if (habitTargetPerWeek.present) {
+      map['habit_target_per_week'] = Variable<int>(habitTargetPerWeek.value);
     }
     if (colorKey.present) {
       map['color_key'] = Variable<String>(colorKey.value);
@@ -715,6 +934,10 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
           ..write('name: $name, ')
           ..write('goalType: $goalType, ')
           ..write('iconKey: $iconKey, ')
+          ..write('progressCadenceDays: $progressCadenceDays, ')
+          ..write('categoryOverride: $categoryOverride, ')
+          ..write('targetDate: $targetDate, ')
+          ..write('habitTargetPerWeek: $habitTargetPerWeek, ')
           ..write('colorKey: $colorKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -2233,6 +2456,18 @@ class $MilestoneStepsTable extends MilestoneSteps
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _isDoneMeta = const VerificationMeta('isDone');
   @override
   late final GeneratedColumn<bool> isDone = GeneratedColumn<bool>(
@@ -2255,7 +2490,14 @@ class $MilestoneStepsTable extends MilestoneSteps
         requiredDuringInsert: false,
       ).withConverter<DateTime?>($MilestoneStepsTable.$converterdoneAtn);
   @override
-  List<GeneratedColumn> get $columns => [id, goalId, title, isDone, doneAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    goalId,
+    title,
+    position,
+    isDone,
+    doneAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2289,6 +2531,12 @@ class $MilestoneStepsTable extends MilestoneSteps
     } else if (isInserting) {
       context.missing(_titleMeta);
     }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
     if (data.containsKey('is_done')) {
       context.handle(
         _isDoneMeta,
@@ -2318,6 +2566,10 @@ class $MilestoneStepsTable extends MilestoneSteps
         DriftSqlType.string,
         data['${effectivePrefix}title'],
       )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
       isDone: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_done'],
@@ -2346,12 +2598,14 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
   final String id;
   final String goalId;
   final String title;
+  final int position;
   final bool isDone;
   final DateTime? doneAt;
   const MilestoneStep({
     required this.id,
     required this.goalId,
     required this.title,
+    required this.position,
     required this.isDone,
     this.doneAt,
   });
@@ -2361,6 +2615,7 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
     map['id'] = Variable<String>(id);
     map['goal_id'] = Variable<String>(goalId);
     map['title'] = Variable<String>(title);
+    map['position'] = Variable<int>(position);
     map['is_done'] = Variable<bool>(isDone);
     if (!nullToAbsent || doneAt != null) {
       map['done_at'] = Variable<String>(
@@ -2375,6 +2630,7 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
       id: Value(id),
       goalId: Value(goalId),
       title: Value(title),
+      position: Value(position),
       isDone: Value(isDone),
       doneAt: doneAt == null && nullToAbsent
           ? const Value.absent()
@@ -2391,6 +2647,7 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
       id: serializer.fromJson<String>(json['id']),
       goalId: serializer.fromJson<String>(json['goalId']),
       title: serializer.fromJson<String>(json['title']),
+      position: serializer.fromJson<int>(json['position']),
       isDone: serializer.fromJson<bool>(json['isDone']),
       doneAt: serializer.fromJson<DateTime?>(json['doneAt']),
     );
@@ -2402,6 +2659,7 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
       'id': serializer.toJson<String>(id),
       'goalId': serializer.toJson<String>(goalId),
       'title': serializer.toJson<String>(title),
+      'position': serializer.toJson<int>(position),
       'isDone': serializer.toJson<bool>(isDone),
       'doneAt': serializer.toJson<DateTime?>(doneAt),
     };
@@ -2411,12 +2669,14 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
     String? id,
     String? goalId,
     String? title,
+    int? position,
     bool? isDone,
     Value<DateTime?> doneAt = const Value.absent(),
   }) => MilestoneStep(
     id: id ?? this.id,
     goalId: goalId ?? this.goalId,
     title: title ?? this.title,
+    position: position ?? this.position,
     isDone: isDone ?? this.isDone,
     doneAt: doneAt.present ? doneAt.value : this.doneAt,
   );
@@ -2425,6 +2685,7 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
       id: data.id.present ? data.id.value : this.id,
       goalId: data.goalId.present ? data.goalId.value : this.goalId,
       title: data.title.present ? data.title.value : this.title,
+      position: data.position.present ? data.position.value : this.position,
       isDone: data.isDone.present ? data.isDone.value : this.isDone,
       doneAt: data.doneAt.present ? data.doneAt.value : this.doneAt,
     );
@@ -2436,6 +2697,7 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
           ..write('id: $id, ')
           ..write('goalId: $goalId, ')
           ..write('title: $title, ')
+          ..write('position: $position, ')
           ..write('isDone: $isDone, ')
           ..write('doneAt: $doneAt')
           ..write(')'))
@@ -2443,7 +2705,7 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
   }
 
   @override
-  int get hashCode => Object.hash(id, goalId, title, isDone, doneAt);
+  int get hashCode => Object.hash(id, goalId, title, position, isDone, doneAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2451,6 +2713,7 @@ class MilestoneStep extends DataClass implements Insertable<MilestoneStep> {
           other.id == this.id &&
           other.goalId == this.goalId &&
           other.title == this.title &&
+          other.position == this.position &&
           other.isDone == this.isDone &&
           other.doneAt == this.doneAt);
 }
@@ -2459,6 +2722,7 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
   final Value<String> id;
   final Value<String> goalId;
   final Value<String> title;
+  final Value<int> position;
   final Value<bool> isDone;
   final Value<DateTime?> doneAt;
   final Value<int> rowid;
@@ -2466,6 +2730,7 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
     this.id = const Value.absent(),
     this.goalId = const Value.absent(),
     this.title = const Value.absent(),
+    this.position = const Value.absent(),
     this.isDone = const Value.absent(),
     this.doneAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2474,6 +2739,7 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
     required String id,
     required String goalId,
     required String title,
+    this.position = const Value.absent(),
     required bool isDone,
     this.doneAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2485,6 +2751,7 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
     Expression<String>? id,
     Expression<String>? goalId,
     Expression<String>? title,
+    Expression<int>? position,
     Expression<bool>? isDone,
     Expression<String>? doneAt,
     Expression<int>? rowid,
@@ -2493,6 +2760,7 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
       if (id != null) 'id': id,
       if (goalId != null) 'goal_id': goalId,
       if (title != null) 'title': title,
+      if (position != null) 'position': position,
       if (isDone != null) 'is_done': isDone,
       if (doneAt != null) 'done_at': doneAt,
       if (rowid != null) 'rowid': rowid,
@@ -2503,6 +2771,7 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
     Value<String>? id,
     Value<String>? goalId,
     Value<String>? title,
+    Value<int>? position,
     Value<bool>? isDone,
     Value<DateTime?>? doneAt,
     Value<int>? rowid,
@@ -2511,6 +2780,7 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
       id: id ?? this.id,
       goalId: goalId ?? this.goalId,
       title: title ?? this.title,
+      position: position ?? this.position,
       isDone: isDone ?? this.isDone,
       doneAt: doneAt ?? this.doneAt,
       rowid: rowid ?? this.rowid,
@@ -2528,6 +2798,9 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
     }
     if (isDone.present) {
       map['is_done'] = Variable<bool>(isDone.value);
@@ -2549,6 +2822,7 @@ class MilestoneStepsCompanion extends UpdateCompanion<MilestoneStep> {
           ..write('id: $id, ')
           ..write('goalId: $goalId, ')
           ..write('title: $title, ')
+          ..write('position: $position, ')
           ..write('isDone: $isDone, ')
           ..write('doneAt: $doneAt, ')
           ..write('rowid: $rowid')
@@ -3428,6 +3702,39 @@ class $SettingsRowsTable extends SettingsRows
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _defaultShortCadenceDaysMeta =
+      const VerificationMeta('defaultShortCadenceDays');
+  @override
+  late final GeneratedColumn<int> defaultShortCadenceDays =
+      GeneratedColumn<int>(
+        'default_short_cadence_days',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _defaultLongCadenceDaysMeta =
+      const VerificationMeta('defaultLongCadenceDays');
+  @override
+  late final GeneratedColumn<int> defaultLongCadenceDays = GeneratedColumn<int>(
+    'default_long_cadence_days',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<LocalDate?, String>
+  scoreAlgorithmStartedOn =
+      GeneratedColumn<String>(
+        'score_algorithm_started_on',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<LocalDate?>(
+        $SettingsRowsTable.$converterscoreAlgorithmStartedOnn,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3437,6 +3744,9 @@ class $SettingsRowsTable extends SettingsRows
     onboardingCompleted,
     notificationDeniedAcknowledged,
     themeMode,
+    defaultShortCadenceDays,
+    defaultLongCadenceDays,
+    scoreAlgorithmStartedOn,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3489,6 +3799,24 @@ class $SettingsRowsTable extends SettingsRows
         themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
       );
     }
+    if (data.containsKey('default_short_cadence_days')) {
+      context.handle(
+        _defaultShortCadenceDaysMeta,
+        defaultShortCadenceDays.isAcceptableOrUnknown(
+          data['default_short_cadence_days']!,
+          _defaultShortCadenceDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_long_cadence_days')) {
+      context.handle(
+        _defaultLongCadenceDaysMeta,
+        defaultLongCadenceDays.isAcceptableOrUnknown(
+          data['default_long_cadence_days']!,
+          _defaultLongCadenceDaysMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3528,6 +3856,22 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}theme_mode'],
       ),
+      defaultShortCadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}default_short_cadence_days'],
+      ),
+      defaultLongCadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}default_long_cadence_days'],
+      ),
+      scoreAlgorithmStartedOn: $SettingsRowsTable
+          .$converterscoreAlgorithmStartedOnn
+          .fromSql(
+            attachedDatabase.typeMapping.read(
+              DriftSqlType.string,
+              data['${effectivePrefix}score_algorithm_started_on'],
+            ),
+          ),
     );
   }
 
@@ -3538,6 +3882,10 @@ class $SettingsRowsTable extends SettingsRows
 
   static TypeConverter<LocalTime, String> $converterdailyBriefTime =
       const LocalTimeText();
+  static TypeConverter<LocalDate, String> $converterscoreAlgorithmStartedOn =
+      const LocalDateText();
+  static TypeConverter<LocalDate?, String?> $converterscoreAlgorithmStartedOnn =
+      NullAwareTypeConverter.wrap($converterscoreAlgorithmStartedOn);
 }
 
 class SettingsRow extends DataClass implements Insertable<SettingsRow> {
@@ -3548,6 +3896,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final bool onboardingCompleted;
   final bool notificationDeniedAcknowledged;
   final String? themeMode;
+  final int? defaultShortCadenceDays;
+  final int? defaultLongCadenceDays;
+  final LocalDate? scoreAlgorithmStartedOn;
   const SettingsRow({
     required this.id,
     required this.dailyBriefTime,
@@ -3556,6 +3907,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     required this.onboardingCompleted,
     required this.notificationDeniedAcknowledged,
     this.themeMode,
+    this.defaultShortCadenceDays,
+    this.defaultLongCadenceDays,
+    this.scoreAlgorithmStartedOn,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3579,6 +3933,21 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     if (!nullToAbsent || themeMode != null) {
       map['theme_mode'] = Variable<String>(themeMode);
     }
+    if (!nullToAbsent || defaultShortCadenceDays != null) {
+      map['default_short_cadence_days'] = Variable<int>(
+        defaultShortCadenceDays,
+      );
+    }
+    if (!nullToAbsent || defaultLongCadenceDays != null) {
+      map['default_long_cadence_days'] = Variable<int>(defaultLongCadenceDays);
+    }
+    if (!nullToAbsent || scoreAlgorithmStartedOn != null) {
+      map['score_algorithm_started_on'] = Variable<String>(
+        $SettingsRowsTable.$converterscoreAlgorithmStartedOnn.toSql(
+          scoreAlgorithmStartedOn,
+        ),
+      );
+    }
     return map;
   }
 
@@ -3597,6 +3966,15 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       themeMode: themeMode == null && nullToAbsent
           ? const Value.absent()
           : Value(themeMode),
+      defaultShortCadenceDays: defaultShortCadenceDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(defaultShortCadenceDays),
+      defaultLongCadenceDays: defaultLongCadenceDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(defaultLongCadenceDays),
+      scoreAlgorithmStartedOn: scoreAlgorithmStartedOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scoreAlgorithmStartedOn),
     );
   }
 
@@ -3617,6 +3995,15 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         json['notificationDeniedAcknowledged'],
       ),
       themeMode: serializer.fromJson<String?>(json['themeMode']),
+      defaultShortCadenceDays: serializer.fromJson<int?>(
+        json['defaultShortCadenceDays'],
+      ),
+      defaultLongCadenceDays: serializer.fromJson<int?>(
+        json['defaultLongCadenceDays'],
+      ),
+      scoreAlgorithmStartedOn: serializer.fromJson<LocalDate?>(
+        json['scoreAlgorithmStartedOn'],
+      ),
     );
   }
   @override
@@ -3632,6 +4019,13 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         notificationDeniedAcknowledged,
       ),
       'themeMode': serializer.toJson<String?>(themeMode),
+      'defaultShortCadenceDays': serializer.toJson<int?>(
+        defaultShortCadenceDays,
+      ),
+      'defaultLongCadenceDays': serializer.toJson<int?>(defaultLongCadenceDays),
+      'scoreAlgorithmStartedOn': serializer.toJson<LocalDate?>(
+        scoreAlgorithmStartedOn,
+      ),
     };
   }
 
@@ -3643,6 +4037,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     bool? onboardingCompleted,
     bool? notificationDeniedAcknowledged,
     Value<String?> themeMode = const Value.absent(),
+    Value<int?> defaultShortCadenceDays = const Value.absent(),
+    Value<int?> defaultLongCadenceDays = const Value.absent(),
+    Value<LocalDate?> scoreAlgorithmStartedOn = const Value.absent(),
   }) => SettingsRow(
     id: id ?? this.id,
     dailyBriefTime: dailyBriefTime ?? this.dailyBriefTime,
@@ -3652,6 +4049,15 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     notificationDeniedAcknowledged:
         notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
     themeMode: themeMode.present ? themeMode.value : this.themeMode,
+    defaultShortCadenceDays: defaultShortCadenceDays.present
+        ? defaultShortCadenceDays.value
+        : this.defaultShortCadenceDays,
+    defaultLongCadenceDays: defaultLongCadenceDays.present
+        ? defaultLongCadenceDays.value
+        : this.defaultLongCadenceDays,
+    scoreAlgorithmStartedOn: scoreAlgorithmStartedOn.present
+        ? scoreAlgorithmStartedOn.value
+        : this.scoreAlgorithmStartedOn,
   );
   SettingsRow copyWithCompanion(SettingsRowsCompanion data) {
     return SettingsRow(
@@ -3669,6 +4075,15 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ? data.notificationDeniedAcknowledged.value
           : this.notificationDeniedAcknowledged,
       themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
+      defaultShortCadenceDays: data.defaultShortCadenceDays.present
+          ? data.defaultShortCadenceDays.value
+          : this.defaultShortCadenceDays,
+      defaultLongCadenceDays: data.defaultLongCadenceDays.present
+          ? data.defaultLongCadenceDays.value
+          : this.defaultLongCadenceDays,
+      scoreAlgorithmStartedOn: data.scoreAlgorithmStartedOn.present
+          ? data.scoreAlgorithmStartedOn.value
+          : this.scoreAlgorithmStartedOn,
     );
   }
 
@@ -3683,7 +4098,10 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write(
             'notificationDeniedAcknowledged: $notificationDeniedAcknowledged, ',
           )
-          ..write('themeMode: $themeMode')
+          ..write('themeMode: $themeMode, ')
+          ..write('defaultShortCadenceDays: $defaultShortCadenceDays, ')
+          ..write('defaultLongCadenceDays: $defaultLongCadenceDays, ')
+          ..write('scoreAlgorithmStartedOn: $scoreAlgorithmStartedOn')
           ..write(')'))
         .toString();
   }
@@ -3697,6 +4115,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     onboardingCompleted,
     notificationDeniedAcknowledged,
     themeMode,
+    defaultShortCadenceDays,
+    defaultLongCadenceDays,
+    scoreAlgorithmStartedOn,
   );
   @override
   bool operator ==(Object other) =>
@@ -3709,7 +4130,10 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.onboardingCompleted == this.onboardingCompleted &&
           other.notificationDeniedAcknowledged ==
               this.notificationDeniedAcknowledged &&
-          other.themeMode == this.themeMode);
+          other.themeMode == this.themeMode &&
+          other.defaultShortCadenceDays == this.defaultShortCadenceDays &&
+          other.defaultLongCadenceDays == this.defaultLongCadenceDays &&
+          other.scoreAlgorithmStartedOn == this.scoreAlgorithmStartedOn);
 }
 
 class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
@@ -3720,6 +4144,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<bool> onboardingCompleted;
   final Value<bool> notificationDeniedAcknowledged;
   final Value<String?> themeMode;
+  final Value<int?> defaultShortCadenceDays;
+  final Value<int?> defaultLongCadenceDays;
+  final Value<LocalDate?> scoreAlgorithmStartedOn;
   const SettingsRowsCompanion({
     this.id = const Value.absent(),
     this.dailyBriefTime = const Value.absent(),
@@ -3728,6 +4155,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.onboardingCompleted = const Value.absent(),
     this.notificationDeniedAcknowledged = const Value.absent(),
     this.themeMode = const Value.absent(),
+    this.defaultShortCadenceDays = const Value.absent(),
+    this.defaultLongCadenceDays = const Value.absent(),
+    this.scoreAlgorithmStartedOn = const Value.absent(),
   });
   SettingsRowsCompanion.insert({
     this.id = const Value.absent(),
@@ -3737,6 +4167,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.onboardingCompleted = const Value.absent(),
     this.notificationDeniedAcknowledged = const Value.absent(),
     this.themeMode = const Value.absent(),
+    this.defaultShortCadenceDays = const Value.absent(),
+    this.defaultLongCadenceDays = const Value.absent(),
+    this.scoreAlgorithmStartedOn = const Value.absent(),
   }) : dailyBriefTime = Value(dailyBriefTime);
   static Insertable<SettingsRow> custom({
     Expression<int>? id,
@@ -3746,6 +4179,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<bool>? onboardingCompleted,
     Expression<bool>? notificationDeniedAcknowledged,
     Expression<String>? themeMode,
+    Expression<int>? defaultShortCadenceDays,
+    Expression<int>? defaultLongCadenceDays,
+    Expression<String>? scoreAlgorithmStartedOn,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -3757,6 +4193,12 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       if (notificationDeniedAcknowledged != null)
         'notification_denied_acknowledged': notificationDeniedAcknowledged,
       if (themeMode != null) 'theme_mode': themeMode,
+      if (defaultShortCadenceDays != null)
+        'default_short_cadence_days': defaultShortCadenceDays,
+      if (defaultLongCadenceDays != null)
+        'default_long_cadence_days': defaultLongCadenceDays,
+      if (scoreAlgorithmStartedOn != null)
+        'score_algorithm_started_on': scoreAlgorithmStartedOn,
     });
   }
 
@@ -3768,6 +4210,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<bool>? onboardingCompleted,
     Value<bool>? notificationDeniedAcknowledged,
     Value<String?>? themeMode,
+    Value<int?>? defaultShortCadenceDays,
+    Value<int?>? defaultLongCadenceDays,
+    Value<LocalDate?>? scoreAlgorithmStartedOn,
   }) {
     return SettingsRowsCompanion(
       id: id ?? this.id,
@@ -3778,6 +4223,12 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       notificationDeniedAcknowledged:
           notificationDeniedAcknowledged ?? this.notificationDeniedAcknowledged,
       themeMode: themeMode ?? this.themeMode,
+      defaultShortCadenceDays:
+          defaultShortCadenceDays ?? this.defaultShortCadenceDays,
+      defaultLongCadenceDays:
+          defaultLongCadenceDays ?? this.defaultLongCadenceDays,
+      scoreAlgorithmStartedOn:
+          scoreAlgorithmStartedOn ?? this.scoreAlgorithmStartedOn,
     );
   }
 
@@ -3809,6 +4260,23 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     if (themeMode.present) {
       map['theme_mode'] = Variable<String>(themeMode.value);
     }
+    if (defaultShortCadenceDays.present) {
+      map['default_short_cadence_days'] = Variable<int>(
+        defaultShortCadenceDays.value,
+      );
+    }
+    if (defaultLongCadenceDays.present) {
+      map['default_long_cadence_days'] = Variable<int>(
+        defaultLongCadenceDays.value,
+      );
+    }
+    if (scoreAlgorithmStartedOn.present) {
+      map['score_algorithm_started_on'] = Variable<String>(
+        $SettingsRowsTable.$converterscoreAlgorithmStartedOnn.toSql(
+          scoreAlgorithmStartedOn.value,
+        ),
+      );
+    }
     return map;
   }
 
@@ -3823,7 +4291,10 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write(
             'notificationDeniedAcknowledged: $notificationDeniedAcknowledged, ',
           )
-          ..write('themeMode: $themeMode')
+          ..write('themeMode: $themeMode, ')
+          ..write('defaultShortCadenceDays: $defaultShortCadenceDays, ')
+          ..write('defaultLongCadenceDays: $defaultLongCadenceDays, ')
+          ..write('scoreAlgorithmStartedOn: $scoreAlgorithmStartedOn')
           ..write(')'))
         .toString();
   }
@@ -3868,6 +4339,10 @@ typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
   required String name,
   required GoalType goalType,
   required String iconKey,
+  Value<int?> progressCadenceDays,
+  Value<String?> categoryOverride,
+  Value<LocalDate?> targetDate,
+  Value<int?> habitTargetPerWeek,
   Value<String?> colorKey,
   required GoalStatus status,
   required LocalDate createdAt,
@@ -3883,6 +4358,10 @@ typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
   Value<String> name,
   Value<GoalType> goalType,
   Value<String> iconKey,
+  Value<int?> progressCadenceDays,
+  Value<String?> categoryOverride,
+  Value<LocalDate?> targetDate,
+  Value<int?> habitTargetPerWeek,
   Value<String?> colorKey,
   Value<GoalStatus> status,
   Value<LocalDate> createdAt,
@@ -4001,6 +4480,27 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
 
   ColumnFilters<String> get iconKey => $composableBuilder(
     column: $table.iconKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get progressCadenceDays => $composableBuilder(
+    column: $table.progressCadenceDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryOverride => $composableBuilder(
+    column: $table.categoryOverride,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<LocalDate?, LocalDate, String>
+  get targetDate => $composableBuilder(
+    column: $table.targetDate,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get habitTargetPerWeek => $composableBuilder(
+    column: $table.habitTargetPerWeek,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4178,6 +4678,26 @@ class $$GoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get progressCadenceDays => $composableBuilder(
+    column: $table.progressCadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryOverride => $composableBuilder(
+    column: $table.categoryOverride,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetDate => $composableBuilder(
+    column: $table.targetDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get habitTargetPerWeek => $composableBuilder(
+    column: $table.habitTargetPerWeek,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get colorKey => $composableBuilder(
     column: $table.colorKey,
     builder: (column) => ColumnOrderings(column),
@@ -4239,6 +4759,27 @@ class $$GoalsTableAnnotationComposer
 
   GeneratedColumn<String> get iconKey =>
       $composableBuilder(column: $table.iconKey, builder: (column) => column);
+
+  GeneratedColumn<int> get progressCadenceDays => $composableBuilder(
+    column: $table.progressCadenceDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get categoryOverride => $composableBuilder(
+    column: $table.categoryOverride,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<LocalDate?, String> get targetDate =>
+      $composableBuilder(
+        column: $table.targetDate,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get habitTargetPerWeek => $composableBuilder(
+    column: $table.habitTargetPerWeek,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get colorKey =>
       $composableBuilder(column: $table.colorKey, builder: (column) => column);
@@ -4410,6 +4951,10 @@ class $$GoalsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<GoalType> goalType = const Value.absent(),
                 Value<String> iconKey = const Value.absent(),
+                Value<int?> progressCadenceDays = const Value.absent(),
+                Value<String?> categoryOverride = const Value.absent(),
+                Value<LocalDate?> targetDate = const Value.absent(),
+                Value<int?> habitTargetPerWeek = const Value.absent(),
                 Value<String?> colorKey = const Value.absent(),
                 Value<GoalStatus> status = const Value.absent(),
                 Value<LocalDate> createdAt = const Value.absent(),
@@ -4424,6 +4969,10 @@ class $$GoalsTableTableManager
                 name: name,
                 goalType: goalType,
                 iconKey: iconKey,
+                progressCadenceDays: progressCadenceDays,
+                categoryOverride: categoryOverride,
+                targetDate: targetDate,
+                habitTargetPerWeek: habitTargetPerWeek,
                 colorKey: colorKey,
                 status: status,
                 createdAt: createdAt,
@@ -4440,6 +4989,10 @@ class $$GoalsTableTableManager
                 required String name,
                 required GoalType goalType,
                 required String iconKey,
+                Value<int?> progressCadenceDays = const Value.absent(),
+                Value<String?> categoryOverride = const Value.absent(),
+                Value<LocalDate?> targetDate = const Value.absent(),
+                Value<int?> habitTargetPerWeek = const Value.absent(),
                 Value<String?> colorKey = const Value.absent(),
                 required GoalStatus status,
                 required LocalDate createdAt,
@@ -4454,6 +5007,10 @@ class $$GoalsTableTableManager
                 name: name,
                 goalType: goalType,
                 iconKey: iconKey,
+                progressCadenceDays: progressCadenceDays,
+                categoryOverride: categoryOverride,
+                targetDate: targetDate,
+                habitTargetPerWeek: habitTargetPerWeek,
                 colorKey: colorKey,
                 status: status,
                 createdAt: createdAt,
@@ -5892,6 +6449,7 @@ typedef $$MilestoneStepsTableCreateCompanionBuilder =
       required String id,
       required String goalId,
       required String title,
+      Value<int> position,
       required bool isDone,
       Value<DateTime?> doneAt,
       Value<int> rowid,
@@ -5901,6 +6459,7 @@ typedef $$MilestoneStepsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> goalId,
       Value<String> title,
+      Value<int> position,
       Value<bool> isDone,
       Value<DateTime?> doneAt,
       Value<int> rowid,
@@ -5948,6 +6507,11 @@ class $$MilestoneStepsTableFilterComposer
 
   ColumnFilters<String> get title => $composableBuilder(
     column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6005,6 +6569,11 @@ class $$MilestoneStepsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isDone => $composableBuilder(
     column: $table.isDone,
     builder: (column) => ColumnOrderings(column),
@@ -6053,6 +6622,9 @@ class $$MilestoneStepsTableAnnotationComposer
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
 
   GeneratedColumn<bool> get isDone =>
       $composableBuilder(column: $table.isDone, builder: (column) => column);
@@ -6117,6 +6689,7 @@ class $$MilestoneStepsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> goalId = const Value.absent(),
                 Value<String> title = const Value.absent(),
+                Value<int> position = const Value.absent(),
                 Value<bool> isDone = const Value.absent(),
                 Value<DateTime?> doneAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6124,6 +6697,7 @@ class $$MilestoneStepsTableTableManager
                 id: id,
                 goalId: goalId,
                 title: title,
+                position: position,
                 isDone: isDone,
                 doneAt: doneAt,
                 rowid: rowid,
@@ -6133,6 +6707,7 @@ class $$MilestoneStepsTableTableManager
                 required String id,
                 required String goalId,
                 required String title,
+                Value<int> position = const Value.absent(),
                 required bool isDone,
                 Value<DateTime?> doneAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -6140,6 +6715,7 @@ class $$MilestoneStepsTableTableManager
                 id: id,
                 goalId: goalId,
                 title: title,
+                position: position,
                 isDone: isDone,
                 doneAt: doneAt,
                 rowid: rowid,
@@ -6758,6 +7334,9 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<bool> onboardingCompleted,
       Value<bool> notificationDeniedAcknowledged,
       Value<String?> themeMode,
+      Value<int?> defaultShortCadenceDays,
+      Value<int?> defaultLongCadenceDays,
+      Value<LocalDate?> scoreAlgorithmStartedOn,
     });
 typedef $$SettingsRowsTableUpdateCompanionBuilder =
     SettingsRowsCompanion Function({
@@ -6768,6 +7347,9 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<bool> onboardingCompleted,
       Value<bool> notificationDeniedAcknowledged,
       Value<String?> themeMode,
+      Value<int?> defaultShortCadenceDays,
+      Value<int?> defaultLongCadenceDays,
+      Value<LocalDate?> scoreAlgorithmStartedOn,
     });
 
 class $$SettingsRowsTableFilterComposer
@@ -6813,6 +7395,22 @@ class $$SettingsRowsTableFilterComposer
   ColumnFilters<String> get themeMode => $composableBuilder(
     column: $table.themeMode,
     builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get defaultShortCadenceDays => $composableBuilder(
+    column: $table.defaultShortCadenceDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get defaultLongCadenceDays => $composableBuilder(
+    column: $table.defaultLongCadenceDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<LocalDate?, LocalDate, String>
+  get scoreAlgorithmStartedOn => $composableBuilder(
+    column: $table.scoreAlgorithmStartedOn,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 }
 
@@ -6860,6 +7458,21 @@ class $$SettingsRowsTableOrderingComposer
     column: $table.themeMode,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get defaultShortCadenceDays => $composableBuilder(
+    column: $table.defaultShortCadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get defaultLongCadenceDays => $composableBuilder(
+    column: $table.defaultLongCadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scoreAlgorithmStartedOn => $composableBuilder(
+    column: $table.scoreAlgorithmStartedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsRowsTableAnnotationComposer
@@ -6899,6 +7512,22 @@ class $$SettingsRowsTableAnnotationComposer
 
   GeneratedColumn<String> get themeMode =>
       $composableBuilder(column: $table.themeMode, builder: (column) => column);
+
+  GeneratedColumn<int> get defaultShortCadenceDays => $composableBuilder(
+    column: $table.defaultShortCadenceDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get defaultLongCadenceDays => $composableBuilder(
+    column: $table.defaultLongCadenceDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<LocalDate?, String>
+  get scoreAlgorithmStartedOn => $composableBuilder(
+    column: $table.scoreAlgorithmStartedOn,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsRowsTableTableManager
@@ -6940,6 +7569,10 @@ class $$SettingsRowsTableTableManager
                 Value<bool> notificationDeniedAcknowledged =
                     const Value.absent(),
                 Value<String?> themeMode = const Value.absent(),
+                Value<int?> defaultShortCadenceDays = const Value.absent(),
+                Value<int?> defaultLongCadenceDays = const Value.absent(),
+                Value<LocalDate?> scoreAlgorithmStartedOn =
+                    const Value.absent(),
               }) => SettingsRowsCompanion(
                 id: id,
                 dailyBriefTime: dailyBriefTime,
@@ -6948,6 +7581,9 @@ class $$SettingsRowsTableTableManager
                 onboardingCompleted: onboardingCompleted,
                 notificationDeniedAcknowledged: notificationDeniedAcknowledged,
                 themeMode: themeMode,
+                defaultShortCadenceDays: defaultShortCadenceDays,
+                defaultLongCadenceDays: defaultLongCadenceDays,
+                scoreAlgorithmStartedOn: scoreAlgorithmStartedOn,
               ),
           createCompanionCallback:
               ({
@@ -6959,6 +7595,10 @@ class $$SettingsRowsTableTableManager
                 Value<bool> notificationDeniedAcknowledged =
                     const Value.absent(),
                 Value<String?> themeMode = const Value.absent(),
+                Value<int?> defaultShortCadenceDays = const Value.absent(),
+                Value<int?> defaultLongCadenceDays = const Value.absent(),
+                Value<LocalDate?> scoreAlgorithmStartedOn =
+                    const Value.absent(),
               }) => SettingsRowsCompanion.insert(
                 id: id,
                 dailyBriefTime: dailyBriefTime,
@@ -6967,6 +7607,9 @@ class $$SettingsRowsTableTableManager
                 onboardingCompleted: onboardingCompleted,
                 notificationDeniedAcknowledged: notificationDeniedAcknowledged,
                 themeMode: themeMode,
+                defaultShortCadenceDays: defaultShortCadenceDays,
+                defaultLongCadenceDays: defaultLongCadenceDays,
+                scoreAlgorithmStartedOn: scoreAlgorithmStartedOn,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

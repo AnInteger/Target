@@ -170,9 +170,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
     await tester.pumpAndSettle();
 
+    // 创建成功 pushReplacement 至详情（root push 页，shell 暂被遮挡）；
+    // 返回后回到 Today，新目标卡可见。
+    expect(find.byType(GoalDetailPage), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
+    await tester.pumpAndSettle();
     expect(find.byType(TodayView), findsOneWidget);
     expect(find.text('完成产品设计课程'), findsWidgets);
-    expect((await GoalRepository(db).getGoals()).single.progressCadenceDays, 7);
+    // 统一规划兼容值：名称-only（无日期无频率）→ 慢节奏 14 天。
+    expect((await GoalRepository(db).getGoals()).single.progressCadenceDays, 14);
     await _disposeTarget(tester, db);
   });
 

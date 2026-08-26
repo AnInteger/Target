@@ -399,7 +399,7 @@ class _NotificationRow extends StatelessWidget {
     return InkWell(
       onTap: item.goalId == null
           ? null
-          : () => context.go('/goal/${item.goalId}'),
+          : () => context.push('/goal/${item.goalId}'),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpace.s3),
         child: Row(

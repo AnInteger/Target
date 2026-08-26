@@ -1,5 +1,5 @@
-/// go_router 路由表：Today / Progress 两个壳层分支；我的、设置和全部目标
-/// 走同一根级全屏 push，进入后隐藏 dock。深链支持
+/// go_router 路由表：Today / Progress 两个壳层分支；我的、设置、全部目标、
+/// 目标编辑器与目标详情走同一根级全屏 push，进入后隐藏 dock。深链支持
 /// target://today|progress|goal/{id}，goal 无 id 兜底 /today。
 ///
 /// 导航壳层按 v2-today 冻结稿（004 T025 重做，R3 裁决 D2「黑色线条」）：
@@ -51,33 +51,32 @@ GoRouter _build() => GoRouter(
       path: '/goals-all',
       pageBuilder: (_, state) => buildRootPushPage(state, const GoalsAllPage()),
     ),
+    // 2026-08-26 产品结构重构（phase 1）：编辑器/详情从 today 分支上移到
+    // 根级 push——今日与目标列表可共用同一条动线且不切壳层分支；
+    // goals-all 等根级页打开它们时正确堆栈，保存/返回按 pop 语义回源页。
+    GoRoute(
+      path: '/goal-editor',
+      pageBuilder: (_, s) => buildRootPushPage(
+        s,
+        GoalEditorPage(goalId: s.uri.queryParameters['id']),
+      ),
+    ),
+    // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。
+    GoRoute(
+      path: '/goal/:id',
+      pageBuilder: (_, s) => buildRootPushPage(
+        s,
+        GoalDetailPage(goalId: s.pathParameters['id']!),
+      ),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (_, _, shell) => _AppShell(navigationShell: shell),
       branches: [
-        // today 分支：今日页 + 编辑器/详情/全部目标子页（D5：挂分支内
-        // 而非根路由，进入创建/详情动线时导航壳层不退场，FR-010 根因修复）。
+        // today 分支：仅承载今日页；编辑器/详情已上移根级（2026-08-26
+        // 产品结构重构 phase 1，替代旧 D5/FR-010 分支内挂载语义）。
         StatefulShellBranch(
           routes: [
             GoRoute(path: '/today', builder: (_, _) => const TodayView()),
-            GoRoute(
-              path: '/goal-editor',
-              // 2026-08-25：创建/详情动线与根级 push 页（我的/全部目标）
-              // 同款 fade+slide 转场——此前分支路由吃平台缺省转场
-              //（iOS 右滑入），与「我的」观感不一致；仍挂分支内，
-              // 导航壳层不退场（D5/FR-010 语义不变）。
-              pageBuilder: (context, s) => buildFadeSlidePage(
-                s,
-                GoalEditorPage(goalId: s.uri.queryParameters['id']),
-              ),
-            ),
-            // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。
-            GoRoute(
-              path: '/goal/:id',
-              pageBuilder: (context, s) => buildFadeSlidePage(
-                s,
-                GoalDetailPage(goalId: s.pathParameters['id']!),
-              ),
-            ),
           ],
         ),
         StatefulShellBranch(

@@ -429,7 +429,7 @@ class _GoalCard extends ConsumerWidget {
         icon: Icons.edit_outlined,
         label: Copy.goalEdit,
         hint: true,
-        onTap: () => context.go('/goal-editor?id=${goal.id}'),
+        onTap: () => context.push('/goal-editor?id=${goal.id}'),
       ),
       if (goal.canTransitTo(GoalStatus.paused))
         _SheetAction(
@@ -628,7 +628,7 @@ class _GoalCard extends ConsumerWidget {
         child: InkWell(
           // 004 T022 立下的行 key 契约：goalsAllRow-{id}（tap 进详情）。
           key: ValueKey('goalsAllRow-${goal.id}'),
-          onTap: () => context.go('/goal/${goal.id}'),
+          onTap: () => context.push('/goal/${goal.id}'),
           onLongPress: () => _showManageSheet(context, ref),
           borderRadius: AppRadius.rLg,
           child: Padding(

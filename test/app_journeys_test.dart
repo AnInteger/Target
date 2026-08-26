@@ -351,10 +351,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
     await tester.pumpAndSettle();
-    expect(find.byType(TodayView), findsOneWidget);
+    // 编辑保存按 pop 语义回到来源页（goals-all）。
+    expect(find.byType(GoalsAllPage), findsOneWidget);
     expect((await _goalById(app.db, 'manage'))!.name, '拿到 OW 潜水证');
-
-    await _openGoalsAll(tester);
 
     await tester.longPress(find.byKey(const ValueKey('goalCard-manage')));
     await tester.pumpAndSettle();

@@ -1331,7 +1331,9 @@ class _StepRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = TargetPalette.of(context);
     final theme = Theme.of(context);
-    final doneAt = step.doneAt;
+    // drift 以 UTC 存储 DateTime，读回为 DateTime.utc——渲染自然日前
+    // 必须转本地时区，否则本地 00:00–07:59 的勾选会显示成「前一天达成」。
+    final doneAt = step.doneAt?.toLocal();
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpace.s2),
       decoration: BoxDecoration(
@@ -1343,10 +1345,15 @@ class _StepRow extends ConsumerWidget {
           Expanded(
             child: InkWell(
               key: ValueKey('stepCheck-${step.id}'),
+              // 勾选时刻走注入时钟（D6 约定：业务不碰 DateTime.now()），
+              // 时间旅行测试与 Debug 时钟下「M月d日达成」副题才可复现。
               onTap: () => ref
                   .read(goalRepoProvider)
                   .updateStep(
-                    step.toggled(now: DateTime.now(), done: !step.isDone),
+                    step.toggled(
+                      now: ref.read(dateProviderProvider).now(),
+                      done: !step.isDone,
+                    ),
                   ),
               borderRadius: const BorderRadius.horizontal(
                 left: Radius.circular(12),

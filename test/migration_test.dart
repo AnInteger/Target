@@ -3,12 +3,14 @@
 // 断言改按 research D3 重映射口径（完整四分支对账见 T010 用例）。
 import 'dart:io';
 
-import 'package:drift/drift.dart' show MigrationStrategy, Variable;
+import 'package:drift/drift.dart' show MigrationStrategy, Value, Variable;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target/core/db/app_database.dart' show AppDatabase;
-import 'package:target/core/db/app_database.dart' as app_db show Goal;
+import 'package:target/core/db/app_database.dart'
+    as app_db
+    show Goal, GoalsCompanion;
 import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
@@ -344,6 +346,14 @@ void main() {
         "('old-archive','旧目标','longTerm','explore','archived',"
         "'2026-08-01',NULL,14,NULL)",
       );
+      await v6.customStatement(
+        "INSERT INTO frequency_versions "
+        "(id,goal_id,effective_from_week,pattern,source) VALUES "
+        "('habit-earlier','habit','2026-08-03',"
+        "'{\"type\":\"weekly\",\"timesPerWeek\":2}','initial'),"
+        "('habit-later','habit','2026-08-10',"
+        "'{\"type\":\"weekly\",\"timesPerWeek\":4}','userEdit')",
+      );
       await v6.close();
     }
 
@@ -354,10 +364,51 @@ void main() {
 
     expect(byId['dated']!.targetDate, const LocalDate(2026, 10, 1));
     expect(byId['dated']!.frequencyPattern, isNull);
-    expect(byId['habit']!.frequencyPattern, const WeeklyFrequency(3));
+    expect(byId['habit']!.frequencyPattern, const WeeklyFrequency(4));
     expect(byId['dated']!.categoryOverride, 'fitness');
     expect(byId['old-archive']!.archivedAt, isNotNull);
     expect(byId['old-archive']!.status, GoalStatus.paused);
+  });
+
+  test('v7 新建库：统一频率和归档时间列可空且经 Drift 往返', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final archivedAt = DateTime.utc(2026, 8, 26, 4, 30);
+
+    await db
+        .into(db.goals)
+        .insert(
+          app_db.GoalsCompanion.insert(
+            id: 'planned',
+            name: '已有统一计划字段',
+            goalType: GoalType.habit,
+            iconKey: 'directions_run',
+            status: GoalStatus.paused,
+            createdAt: const LocalDate(2026, 8, 1),
+            frequencyPattern: const Value(WeeklyFrequency(4)),
+            archivedAt: Value(archivedAt),
+          ),
+        );
+    await db
+        .into(db.goals)
+        .insert(
+          app_db.GoalsCompanion.insert(
+            id: 'empty',
+            name: '允许空统一计划字段',
+            goalType: GoalType.longTerm,
+            iconKey: 'explore',
+            status: GoalStatus.active,
+            createdAt: const LocalDate(2026, 8, 1),
+          ),
+        );
+
+    final byId = {
+      for (final row in await db.select(db.goals).get()) row.id: row,
+    };
+    expect(byId['planned']!.frequencyPattern, const WeeklyFrequency(4));
+    expect(byId['planned']!.archivedAt, archivedAt);
+    expect(byId['empty']!.frequencyPattern, isNull);
+    expect(byId['empty']!.archivedAt, isNull);
   });
 
   test('v1→v3：既有目标零丢失（值域按 D3 重映射），新列 NULL 可读写', () async {

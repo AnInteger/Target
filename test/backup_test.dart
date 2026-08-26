@@ -1,6 +1,8 @@
 /// T047：备份往返 / 冲突拒绝 / 损坏文件拒绝（contracts/backup-format.md）。
 library;
 
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target/core/backup/backup_exporter.dart';
@@ -381,7 +383,7 @@ void main() {
     final map = await BackupExporter(source)
         .exportMap(now: DateTime(2026, 8, 22, 8, 30));
     expect(map['format'], 'target-backup');
-    expect(map['version'], 5); // 规划字段、里程碑排序与评分算法边界
+    expect(map['version'], 6); // 统一规划字段与可逆归档时间
     expect(map['exportedAt'], contains('2026-08-22'));
     expect(
       backupFileName(DateTime(2026, 8, 22)),
@@ -590,7 +592,7 @@ void main() {
 
     final map = await BackupExporter(src)
         .exportMap(now: DateTime.utc(2026, 8, 25));
-    expect(map['version'], 5);
+    expect(map['version'], 6);
     final data = map['data']! as Map;
     final goalJson = (data['goals']! as List).single as Map;
     expect(goalJson['categoryOverride'], 'learning');
@@ -618,4 +620,143 @@ void main() {
       const LocalDate(2026, 8, 25),
     );
   });
+
+  test(
+    'v6 round-trip preserves frequency and reversible archive timestamp',
+    () async {
+      final src = db.AppDatabase(NativeDatabase.memory());
+      addTearDown(src.close);
+      final archivedAt = DateTime.utc(2026, 8, 26, 9, 30);
+      await GoalRepository(src).create(
+        Goal(
+          id: 'combined',
+          name: '21 天跑步计划',
+          goalType: GoalType.shortTerm,
+          iconKey: 'directions_run',
+          colorKey: '',
+          createdAt: const LocalDate(2026, 8, 1),
+          targetDate: const LocalDate(2026, 9, 1),
+          frequency: const WeekdaysFrequency({
+            Weekday.mon,
+            Weekday.wed,
+            Weekday.fri,
+          }, 1),
+          archivedAt: archivedAt,
+        ),
+      );
+
+      final encoded = await BackupExporter(src).exportString();
+      final map = jsonDecode(encoded) as Map<String, dynamic>;
+      expect(map['version'], 6);
+      final goalJson = ((map['data'] as Map)['goals'] as List).single as Map;
+      expect(goalJson['frequencyPattern'], {
+        'type': 'weekdays',
+        'days': [1, 3, 5],
+        'targetPerDay': 1,
+      });
+      expect(goalJson['archivedAt'], '2026-08-26T09:30:00.000Z');
+
+      final importer = BackupImporter(target);
+      await importer.apply(importer.parse(encoded), overwriteLocal: true);
+      final restored = (await GoalRepository(target).getGoals()).single;
+      expect(restored.frequency, isA<WeekdaysFrequency>());
+      expect(
+        restored.frequency,
+        const WeekdaysFrequency({Weekday.mon, Weekday.wed, Weekday.fri}, 1),
+      );
+      expect(restored.archivedAt, archivedAt);
+    },
+  );
+
+  test(
+    'v1-v5 imports derive unified frequency and legacy archived timestamp',
+    () async {
+      const legacyJson = '''
+    {
+      "format": "target-backup",
+      "version": 5,
+      "exportedAt": "2026-08-20T00:00:00.000Z",
+      "data": {
+        "goals": [
+          {"id": "versioned", "name": "保持跑步", "goalType": "habit",
+           "iconKey": "directions_run", "colorKey": null,
+           "status": "active", "createdAt": "2026-08-01",
+           "habitTargetPerWeek": 2},
+          {"id": "fallback", "name": "保持拉伸", "goalType": "habit",
+           "iconKey": "self_improvement", "colorKey": null,
+           "status": "active", "createdAt": "2026-08-01"},
+          {"id": "old-archive", "name": "旧目标", "goalType": "longTerm",
+           "iconKey": "explore", "colorKey": null,
+           "status": "archived", "createdAt": "2026-08-01"}
+        ],
+        "frequencyVersions": [
+          {"id": "fv-old", "goalId": "versioned",
+           "effectiveFromWeek": "2026-08-03",
+           "pattern": {"type": "weekly", "timesPerWeek": 2},
+           "source": "initial"},
+          {"id": "fv-new", "goalId": "versioned",
+           "effectiveFromWeek": "2026-08-10",
+           "pattern": {"type": "weekly", "timesPerWeek": 4},
+           "source": "userEdit"}
+        ],
+        "busySessions": [], "checkIns": [],
+        "milestoneSteps": [], "reminders": [], "weeklyReviews": [],
+        "settings": {"dailyBriefTime": "08:00",
+          "onboardingCompleted": true,
+          "notificationDeniedAcknowledged": false}
+      }
+    }''';
+
+      final importer = BackupImporter(target);
+      await importer.apply(importer.parse(legacyJson), overwriteLocal: true);
+
+      final goals = await GoalRepository(target).getGoals();
+      expect(
+        goals.firstWhere((g) => g.id == 'versioned').frequency,
+        const WeeklyFrequency(4),
+      );
+      expect(
+        goals.firstWhere((g) => g.id == 'fallback').frequency,
+        const WeeklyFrequency(5),
+      );
+      final archived = goals.firstWhere((g) => g.id == 'old-archive');
+      expect(archived.status, GoalStatus.paused);
+      expect(archived.archivedAt, DateTime.utc(2026, 8, 20));
+    },
+  );
+
+  test(
+    'malformed v6 goal frequency and archivedAt report exact index',
+    () async {
+      final exporter = BackupExporter(source);
+      final map = await exporter.exportMap(now: DateTime.utc(2026, 8, 26));
+      final goal = ((map['data'] as Map)['goals'] as List)[1] as Map;
+
+      goal['frequencyPattern'] = {'type': 'weekly', 'timesPerWeek': 'often'};
+      expect(
+        () => BackupImporter(target).parse(exporter.encode(map)),
+        throwsA(
+          isA<BackupFormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('goals[1].frequencyPattern'),
+          ),
+        ),
+      );
+
+      final map2 = await exporter.exportMap(now: DateTime.utc(2026, 8, 26));
+      final goal2 = ((map2['data'] as Map)['goals'] as List)[1] as Map;
+      goal2['archivedAt'] = 'tomorrow-ish';
+      expect(
+        () => BackupImporter(target).parse(exporter.encode(map2)),
+        throwsA(
+          isA<BackupFormatException>().having(
+            (e) => e.message,
+            'message',
+            contains('goals[1].archivedAt'),
+          ),
+        ),
+      );
+    },
+  );
 }

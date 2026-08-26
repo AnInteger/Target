@@ -16,8 +16,9 @@ const String kBackupFormat = 'target-backup';
 /// 备份格式版本（003 T037 · contracts/backup-format.md 定稿 v4）：
 /// v1 = 001/002 形态（kind 两值）；v4 = goals +goalType/+achievedAt、
 /// reminders +cadence、settings +nickname/avatarKey、checkIns +note、
-/// colorKey 导出 null；v5 增目标规划、里程碑排序与评分算法边界。
-const int kBackupVersion = 5;
+/// colorKey 导出 null；v5 增目标规划、里程碑排序与评分算法边界；
+/// v6 增统一频率模式与可逆归档时刻。
+const int kBackupVersion = 6;
 
 /// 文件名：`Target-备份-YYYYMMDD.targetbackup`。
 String backupFileName(DateTime now) =>
@@ -95,6 +96,9 @@ class BackupExporter {
     if (g.deadline != null) 'deadline': g.deadline!.isoString,
     // 短期达成时刻（D4）：恒导键，null = 未达成。
     'achievedAt': g.achievedAt?.toUtc().toIso8601String(),
+    if (g.frequencyPattern != null)
+      'frequencyPattern': g.frequencyPattern!.toJson(),
+    'archivedAt': g.archivedAt?.toUtc().toIso8601String(),
     // 002 B 案 envelope（T016）：可选键，NULL 不导出——001 备份缺键可导回。
     if (g.motivation != null) 'motivation': g.motivation,
     if (g.successCriterion != null) 'successCriterion': g.successCriterion,

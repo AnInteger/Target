@@ -32,6 +32,7 @@ class BackupConflictException implements Exception {
 
 class BackupData {
   const BackupData({
+    required this.exportedAt,
     required this.goals,
     required this.frequencyVersions,
     required this.busySessions,
@@ -42,6 +43,7 @@ class BackupData {
     required this.settings,
   });
 
+  final DateTime exportedAt;
   final List<Map<String, Object?>> goals;
   final List<Map<String, Object?>> frequencyVersions;
   final List<Map<String, Object?>> busySessions;
@@ -85,6 +87,7 @@ class BackupImporter {
     if (version > kBackupVersion) {
       throw const BackupFormatException('备份来自更新版本的应用，请先升级 Target 再导入');
     }
+    _instant(m, 'exportedAt', 'exportedAt');
     // v1..v4 全收（宽容解析双向）：v4 新键全部可选，v1 文件缺
     // goalType/cadence/note/nickname → 构造时按默认/映射推导（契约）。
     final data = m['data'];
@@ -134,6 +137,10 @@ class BackupImporter {
       _date(g, 'createdAt', 'goals[$i].createdAt');
       _dateOpt(g, 'deadline', 'goals[$i].deadline');
       _instantOpt(g, 'achievedAt', 'goals[$i].achievedAt');
+      if (g['frequencyPattern'] != null) {
+        _pattern(g, 'frequencyPattern', 'goals[$i].frequencyPattern');
+      }
+      _instantOpt(g, 'archivedAt', 'goals[$i].archivedAt');
       if (g['progressCadenceDays'] != null) {
         _intRange(
           g,
@@ -305,6 +312,7 @@ class BackupImporter {
     );
 
     return BackupData(
+      exportedAt: DateTime.parse(m['exportedAt']! as String),
       goals: lists['goals']!,
       frequencyVersions: lists['frequencyVersions']!,
       busySessions: lists['busySessions']!,
@@ -355,6 +363,7 @@ class BackupImporter {
       await _db.delete(_db.goals).go();
 
       for (final g in data.goals) {
+        final status = _statusOf(g);
         await _db
             .into(_db.goals)
             .insert(
@@ -366,7 +375,7 @@ class BackupImporter {
                 goalType: _goalTypeOf(g),
                 iconKey: g['iconKey']! as String,
                 colorKey: Value(g['colorKey'] as String?),
-                status: GoalStatus.values.byName(g['status']! as String),
+                status: status,
                 createdAt: LocalDate.parse(g['createdAt']! as String),
                 deadline: Value(
                   g['deadline'] == null
@@ -394,6 +403,10 @@ class BackupImporter {
                       : LocalDate.parse(g['targetDate']! as String),
                 ),
                 habitTargetPerWeek: Value(g['habitTargetPerWeek'] as int?),
+                frequencyPattern: Value(
+                  _frequencyOf(g, data.frequencyVersions),
+                ),
+                archivedAt: Value(_archivedAtOf(g, data.exportedAt)),
               ),
             );
       }
@@ -565,6 +578,39 @@ class BackupImporter {
     return (g['kind']! as String) == 'habit'
         ? GoalType.habit
         : (g['deadline'] == null ? GoalType.longTerm : GoalType.shortTerm);
+  }
+
+  static GoalStatus _statusOf(Map<String, Object?> g) {
+    final status = GoalStatus.values.byName(g['status']! as String);
+    return status == GoalStatus.archived ? GoalStatus.paused : status;
+  }
+
+  static DateTime? _archivedAtOf(Map<String, Object?> g, DateTime exportedAt) {
+    final archivedAt = g['archivedAt'];
+    if (archivedAt != null) return DateTime.parse(archivedAt as String);
+    return g['status'] == GoalStatus.archived.name ? exportedAt : null;
+  }
+
+  static FrequencyPattern? _frequencyOf(
+    Map<String, Object?> g,
+    List<Map<String, Object?>> versions,
+  ) {
+    final frequencyPattern = g['frequencyPattern'];
+    if (frequencyPattern != null) {
+      return FrequencyPattern.fromJson(
+        Map<String, dynamic>.from(frequencyPattern as Map),
+      );
+    }
+    final latest = versions.where((v) => v['goalId'] == g['id']).toList()
+      ..sort(
+        (a, b) =>
+            WeekStart.parse(a['effectiveFromWeek']! as String)
+                .compareTo(WeekStart.parse(b['effectiveFromWeek']! as String)),
+      );
+    if (latest.isNotEmpty) return _patternOf(latest.last, 'pattern');
+    return _goalTypeOf(g) == GoalType.habit
+        ? WeeklyFrequency(g['habitTargetPerWeek'] as int? ?? 5)
+        : null;
   }
 
   static Never _fail(String where) =>

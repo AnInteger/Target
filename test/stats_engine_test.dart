@@ -29,6 +29,7 @@ class EngineFixture {
     GoalStatus status = GoalStatus.active,
     LocalDate createdAt = const LocalDate(2026, 8, 3),
     LocalDate? deadline,
+    DateTime? archivedAt,
   }) {
     final g = Goal(
       id: id,
@@ -37,6 +38,7 @@ class EngineFixture {
       iconKey: 'star',
       colorKey: 'teal',
       status: status,
+      archivedAt: archivedAt,
       createdAt: createdAt,
       deadline: type == GoalType.shortTerm
           ? (deadline ?? const LocalDate(2026, 10, 1))
@@ -192,6 +194,17 @@ void main() {
     final f = EngineFixture()..addGoal('paused', status: GoalStatus.paused);
     f.checkIn('paused', _today);
     expect(f.evaluate().battery.percent, isNull);
+  });
+
+  test('归档的 active 目标不计入电量或全完成判定', () {
+    final f = EngineFixture()
+      ..addGoal('visible')
+      ..addGoal('archived-active', archivedAt: DateTime.utc(2026, 8, 18));
+    f.checkIn('visible', _today);
+
+    final result = f.evaluate();
+    expect(result.battery.percent, 100);
+    expect(result.allCompleteToday, isTrue);
   });
 
   group('周统计：留痕天数 + 记录数', () {

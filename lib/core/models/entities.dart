@@ -234,6 +234,15 @@ class Goal {
         habitTargetPerWeek != null ||
         frequency != null ||
         clearFrequency;
+    final effectiveTargetDate = clearTargetDate
+        ? null
+        : (targetDate ?? deadline ?? this.targetDate);
+    final effectiveFrequency = clearFrequency
+        ? null
+        : (frequency ??
+              (habitTargetPerWeek == null
+                  ? this.frequency
+                  : WeeklyFrequency(habitTargetPerWeek)));
     return Goal(
       id: id,
       name: name ?? this.name,
@@ -246,16 +255,10 @@ class Goal {
           (planningChanged ? null : this.progressCadenceDays),
       status: status ?? this.status,
       createdAt: createdAt,
-      deadline: clearTargetDate
-          ? null
-          : (targetDate ?? deadline ?? this.deadline),
-      targetDate: clearTargetDate ? null : (targetDate ?? this.targetDate),
-      habitTargetPerWeek: clearFrequency
-          ? null
-          : (_legacyWeeklyTargetOf(frequency) ??
-                habitTargetPerWeek ??
-                this.habitTargetPerWeek),
-      frequency: clearFrequency ? null : (frequency ?? this.frequency),
+      deadline: effectiveTargetDate,
+      targetDate: effectiveTargetDate,
+      habitTargetPerWeek: _legacyWeeklyTargetOf(effectiveFrequency),
+      frequency: effectiveFrequency,
       motivation: motivation ?? this.motivation,
       successCriterion: successCriterion ?? this.successCriterion,
       cueScene: cueScene ?? this.cueScene,

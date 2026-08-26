@@ -55,12 +55,25 @@ void main() {
     );
     await goals.create(
       Goal(
+        id: 'archived-active',
+        name: '刚归档的目标',
+        goalType: GoalType.longTerm,
+        iconKey: 'flag',
+        colorKey: '',
+        status: GoalStatus.active,
+        archivedAt: DateTime.utc(2026, 8, 21),
+        createdAt: const LocalDate(2026, 5, 1),
+      ),
+    );
+    await goals.create(
+      Goal(
         id: 'archived',
         name: '旧目标',
         goalType: GoalType.shortTerm,
         iconKey: 'flag',
         colorKey: '',
         status: GoalStatus.archived,
+        archivedAt: DateTime.utc(2026, 8, 20),
         createdAt: const LocalDate(2026, 5, 1),
         deadline: const LocalDate(2026, 6, 1),
       ),
@@ -92,6 +105,12 @@ void main() {
     expect(find.text('已归档'), findsOneWidget);
     expect(find.text('目标管理'), findsOneWidget);
     expect(find.text('设置'), findsOneWidget);
+    final labels = tester
+        .widgetList<Text>(find.byType(Text))
+        .map((text) => text.data)
+        .toList();
+    expect(labels[labels.indexOf('进行中') - 1], '1');
+    expect(labels[labels.indexOf('已归档') - 1], '2');
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle(const Duration(milliseconds: 1));

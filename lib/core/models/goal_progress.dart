@@ -146,10 +146,7 @@ GoalProgressEvaluation _evaluateAt({
   bool useCurrentMilestoneClarity = true,
 }) {
   final active = goals
-      .where(
-        (goal) =>
-            goal.status == GoalStatus.active && !day.isBefore(goal.createdAt),
-      )
+      .where((goal) => goal.isActive && !day.isBefore(goal.createdAt))
       .toList();
   final byGoal = <String, GoalScore>{};
   final attention = <AttentionItem>[];

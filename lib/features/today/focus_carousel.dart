@@ -55,9 +55,7 @@ class _FocusCarouselState extends State<FocusCarousel> {
         latest[check.goalId] = check.createdAt;
       }
     }
-    final active = widget.goals
-        .where((goal) => goal.status == GoalStatus.active)
-        .toList();
+    final active = widget.goals.where((goal) => goal.isActive).toList();
     active.sort((a, b) {
       final aDate = latest[a.id] ?? a.createdAt.atStartOfDay;
       final bDate = latest[b.id] ?? b.createdAt.atStartOfDay;

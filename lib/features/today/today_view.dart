@@ -39,9 +39,7 @@ class TodayView extends ConsumerWidget {
     }
 
     final today = ref.watch(todayProvider);
-    final active = goals
-        .where((goal) => goal.status == GoalStatus.active)
-        .toList();
+    final active = goals.where((goal) => goal.isActive).toList();
     final steps = <String, List<MilestoneStep>>{};
     for (final step in allSteps) {
       steps.putIfAbsent(step.goalId, () => []).add(step);

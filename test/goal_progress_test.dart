@@ -16,6 +16,7 @@ Goal goal({
   String iconKey = 'menu_book',
   GoalIconDomain? categoryOverride,
   GoalStatus status = GoalStatus.active,
+  DateTime? archivedAt,
 }) => Goal(
   id: id,
   name: '测试目标 $id',
@@ -25,6 +26,7 @@ Goal goal({
   categoryOverride: categoryOverride,
   progressCadenceDays: cadence,
   status: status,
+  archivedAt: archivedAt,
   createdAt: today.addDays(-ageDays),
   deadline: type == GoalType.shortTerm
       ? today.addDays(deadlineDays ?? 10)
@@ -146,6 +148,24 @@ void main() {
     );
     expect(result.byGoal.keys, ['active']);
     expect(result.byGoal['active']!.momentum, 0);
+  });
+
+  test('archived active goals do not affect scores or dimension counts', () {
+    final result = evaluateGoalProgress(
+      goals: [
+        goal(id: 'active'),
+        goal(id: 'archived-active', archivedAt: DateTime.utc(2026, 8, 24)),
+      ],
+      checkIns: [check('active', 0), check('archived-active', 0)],
+      milestones: {
+        'active': [openStep('active')],
+        'archived-active': [openStep('archived-active')],
+      },
+      today: today,
+    );
+
+    expect(result.byGoal.keys, ['active']);
+    expect(result.dimensions[ProgressDimension.goal]!.goalCount, 1);
   });
 
   test(

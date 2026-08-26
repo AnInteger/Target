@@ -115,9 +115,7 @@ class StatsEvaluation {
 
   /// 全完成日：当日全部活跃目标均留痕（无活跃目标 → false）。
   bool get allCompleteToday {
-    final active = _goals.values
-        .where((g) => g.status == GoalStatus.active)
-        .toList();
+    final active = _goals.values.where((g) => g.isActive).toList();
     if (active.isEmpty) return false;
     return active.every((g) => dayStatusOf(g.id, _today).done);
   }
@@ -169,7 +167,7 @@ class StatsEvaluation {
   LifeBattery get battery {
     var done = 0, n = 0;
     for (final g in _goals.values) {
-      if (g.status != GoalStatus.active) continue;
+      if (!g.isActive) continue;
       n++;
       if (dayStatusOf(g.id, _today).done) done++;
     }

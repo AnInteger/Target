@@ -95,6 +95,50 @@ void main() {
     expect(cleared.progressCadenceDays, 14);
   });
 
+  test('legacy copyWith 规划更新会替换已有统一字段', () {
+    final goal = Goal(
+      name: '兼容更新',
+      iconKey: 'explore',
+      colorKey: '',
+      createdAt: const LocalDate(2026, 8, 1),
+      deadline: const LocalDate(2026, 9, 1),
+      habitTargetPerWeek: 2,
+    );
+
+    final updated = goal.copyWith(
+      deadline: const LocalDate(2026, 11, 1),
+      habitTargetPerWeek: 6,
+    );
+
+    expect(updated.targetDate, const LocalDate(2026, 11, 1));
+    expect(updated.deadline, const LocalDate(2026, 11, 1));
+    expect(updated.frequency, const WeeklyFrequency(6));
+    expect(updated.habitTargetPerWeek, 6);
+  });
+
+  test('copyWith 显式统一规划优先于同次 legacy 更新', () {
+    final goal = Goal(
+      name: '显式优先',
+      iconKey: 'explore',
+      colorKey: '',
+      createdAt: const LocalDate(2026, 8, 1),
+      deadline: const LocalDate(2026, 9, 1),
+      habitTargetPerWeek: 2,
+    );
+
+    final updated = goal.copyWith(
+      deadline: const LocalDate(2026, 10, 1),
+      targetDate: const LocalDate(2026, 12, 1),
+      habitTargetPerWeek: 3,
+      frequency: const WeeklyFrequency(5),
+    );
+
+    expect(updated.targetDate, const LocalDate(2026, 12, 1));
+    expect(updated.deadline, const LocalDate(2026, 12, 1));
+    expect(updated.frequency, const WeeklyFrequency(5));
+    expect(updated.habitTargetPerWeek, 5);
+  });
+
   test('统一周频率仍保持 1–7 的 legacy 值域校验', () {
     expect(
       () => Goal(

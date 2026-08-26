@@ -27,8 +27,8 @@ class ProfileHubPage extends ConsumerWidget {
       );
     }
 
-    final active = goals.where((g) => g.status == GoalStatus.active).length;
-    final archived = goals.where((g) => g.status == GoalStatus.archived).length;
+    final active = goals.where((g) => g.isActive).length;
+    final archived = goals.where((g) => g.isArchived).length;
     final monthDone = steps.where((step) {
       final at = step.doneAt?.toLocal();
       return step.isDone &&

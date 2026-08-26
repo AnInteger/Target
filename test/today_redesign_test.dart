@@ -97,6 +97,32 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 1));
   });
 
+  testWidgets(
+    'archived active goals leave focus cards and Today active state',
+    (tester) async {
+      final db = await pumpToday(tester);
+      addTearDown(db.close);
+      final repo = GoalRepository(db);
+      final byId = {for (final goal in await repo.getGoals()) goal.id: goal};
+
+      await repo.update(
+        byId['g1']!.copyWith(archivedAt: DateTime.utc(2026, 8, 24)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('focusCard-g1')), findsNothing);
+      expect(find.byKey(const ValueKey('focusCard-g2')), findsOneWidget);
+
+      await repo.update(
+        byId['g2']!.copyWith(archivedAt: DateTime.utc(2026, 8, 24)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('还没有进行中的目标'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle(const Duration(milliseconds: 1));
+    },
+  );
+
   testWidgets('compact width scrolls without overflow', (tester) async {
     final db = await pumpToday(tester, size: const Size(320, 700));
     addTearDown(db.close);

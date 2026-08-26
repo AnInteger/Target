@@ -86,6 +86,24 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<FrequencyPattern?, String>
+  frequencyPattern = GeneratedColumn<String>(
+    'frequency_pattern',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  ).withConverter<FrequencyPattern?>($GoalsTable.$converterfrequencyPatternn);
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime?, String> archivedAt =
+      GeneratedColumn<String>(
+        'archived_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<DateTime?>($GoalsTable.$converterarchivedAtn);
   static const VerificationMeta _colorKeyMeta = const VerificationMeta(
     'colorKey',
   );
@@ -176,6 +194,8 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
     categoryOverride,
     targetDate,
     habitTargetPerWeek,
+    frequencyPattern,
+    archivedAt,
     colorKey,
     status,
     createdAt,
@@ -317,6 +337,18 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
         DriftSqlType.int,
         data['${effectivePrefix}habit_target_per_week'],
       ),
+      frequencyPattern: $GoalsTable.$converterfrequencyPatternn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}frequency_pattern'],
+        ),
+      ),
+      archivedAt: $GoalsTable.$converterarchivedAtn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}archived_at'],
+        ),
+      ),
       colorKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}color_key'],
@@ -370,6 +402,14 @@ class $GoalsTable extends Goals with TableInfo<$GoalsTable, Goal> {
       const LocalDateText();
   static TypeConverter<LocalDate?, String?> $convertertargetDaten =
       NullAwareTypeConverter.wrap($convertertargetDate);
+  static TypeConverter<FrequencyPattern, String> $converterfrequencyPattern =
+      const FrequencyPatternJson();
+  static TypeConverter<FrequencyPattern?, String?> $converterfrequencyPatternn =
+      NullAwareTypeConverter.wrap($converterfrequencyPattern);
+  static TypeConverter<DateTime, String> $converterarchivedAt =
+      const IsoDateTimeText();
+  static TypeConverter<DateTime?, String?> $converterarchivedAtn =
+      NullAwareTypeConverter.wrap($converterarchivedAt);
   static TypeConverter<GoalStatus, String> $converterstatus =
       goalStatusConverter;
   static TypeConverter<LocalDate, String> $convertercreatedAt =
@@ -393,6 +433,8 @@ class Goal extends DataClass implements Insertable<Goal> {
   final String? categoryOverride;
   final LocalDate? targetDate;
   final int? habitTargetPerWeek;
+  final FrequencyPattern? frequencyPattern;
+  final DateTime? archivedAt;
   final String? colorKey;
   final GoalStatus status;
   final LocalDate createdAt;
@@ -414,6 +456,8 @@ class Goal extends DataClass implements Insertable<Goal> {
     this.categoryOverride,
     this.targetDate,
     this.habitTargetPerWeek,
+    this.frequencyPattern,
+    this.archivedAt,
     this.colorKey,
     required this.status,
     required this.createdAt,
@@ -447,6 +491,16 @@ class Goal extends DataClass implements Insertable<Goal> {
     }
     if (!nullToAbsent || habitTargetPerWeek != null) {
       map['habit_target_per_week'] = Variable<int>(habitTargetPerWeek);
+    }
+    if (!nullToAbsent || frequencyPattern != null) {
+      map['frequency_pattern'] = Variable<String>(
+        $GoalsTable.$converterfrequencyPatternn.toSql(frequencyPattern),
+      );
+    }
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<String>(
+        $GoalsTable.$converterarchivedAtn.toSql(archivedAt),
+      );
     }
     if (!nullToAbsent || colorKey != null) {
       map['color_key'] = Variable<String>(colorKey);
@@ -501,6 +555,12 @@ class Goal extends DataClass implements Insertable<Goal> {
       habitTargetPerWeek: habitTargetPerWeek == null && nullToAbsent
           ? const Value.absent()
           : Value(habitTargetPerWeek),
+      frequencyPattern: frequencyPattern == null && nullToAbsent
+          ? const Value.absent()
+          : Value(frequencyPattern),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
       colorKey: colorKey == null && nullToAbsent
           ? const Value.absent()
           : Value(colorKey),
@@ -540,6 +600,10 @@ class Goal extends DataClass implements Insertable<Goal> {
       categoryOverride: serializer.fromJson<String?>(json['categoryOverride']),
       targetDate: serializer.fromJson<LocalDate?>(json['targetDate']),
       habitTargetPerWeek: serializer.fromJson<int?>(json['habitTargetPerWeek']),
+      frequencyPattern: serializer.fromJson<FrequencyPattern?>(
+        json['frequencyPattern'],
+      ),
+      archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
       colorKey: serializer.fromJson<String?>(json['colorKey']),
       status: serializer.fromJson<GoalStatus>(json['status']),
       createdAt: serializer.fromJson<LocalDate>(json['createdAt']),
@@ -562,6 +626,10 @@ class Goal extends DataClass implements Insertable<Goal> {
       'categoryOverride': serializer.toJson<String?>(categoryOverride),
       'targetDate': serializer.toJson<LocalDate?>(targetDate),
       'habitTargetPerWeek': serializer.toJson<int?>(habitTargetPerWeek),
+      'frequencyPattern': serializer.toJson<FrequencyPattern?>(
+        frequencyPattern,
+      ),
+      'archivedAt': serializer.toJson<DateTime?>(archivedAt),
       'colorKey': serializer.toJson<String?>(colorKey),
       'status': serializer.toJson<GoalStatus>(status),
       'createdAt': serializer.toJson<LocalDate>(createdAt),
@@ -582,6 +650,8 @@ class Goal extends DataClass implements Insertable<Goal> {
     Value<String?> categoryOverride = const Value.absent(),
     Value<LocalDate?> targetDate = const Value.absent(),
     Value<int?> habitTargetPerWeek = const Value.absent(),
+    Value<FrequencyPattern?> frequencyPattern = const Value.absent(),
+    Value<DateTime?> archivedAt = const Value.absent(),
     Value<String?> colorKey = const Value.absent(),
     GoalStatus? status,
     LocalDate? createdAt,
@@ -605,6 +675,10 @@ class Goal extends DataClass implements Insertable<Goal> {
     habitTargetPerWeek: habitTargetPerWeek.present
         ? habitTargetPerWeek.value
         : this.habitTargetPerWeek,
+    frequencyPattern: frequencyPattern.present
+        ? frequencyPattern.value
+        : this.frequencyPattern,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
     colorKey: colorKey.present ? colorKey.value : this.colorKey,
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
@@ -634,6 +708,12 @@ class Goal extends DataClass implements Insertable<Goal> {
       habitTargetPerWeek: data.habitTargetPerWeek.present
           ? data.habitTargetPerWeek.value
           : this.habitTargetPerWeek,
+      frequencyPattern: data.frequencyPattern.present
+          ? data.frequencyPattern.value
+          : this.frequencyPattern,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
       colorKey: data.colorKey.present ? data.colorKey.value : this.colorKey,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -662,6 +742,8 @@ class Goal extends DataClass implements Insertable<Goal> {
           ..write('categoryOverride: $categoryOverride, ')
           ..write('targetDate: $targetDate, ')
           ..write('habitTargetPerWeek: $habitTargetPerWeek, ')
+          ..write('frequencyPattern: $frequencyPattern, ')
+          ..write('archivedAt: $archivedAt, ')
           ..write('colorKey: $colorKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -684,6 +766,8 @@ class Goal extends DataClass implements Insertable<Goal> {
     categoryOverride,
     targetDate,
     habitTargetPerWeek,
+    frequencyPattern,
+    archivedAt,
     colorKey,
     status,
     createdAt,
@@ -705,6 +789,8 @@ class Goal extends DataClass implements Insertable<Goal> {
           other.categoryOverride == this.categoryOverride &&
           other.targetDate == this.targetDate &&
           other.habitTargetPerWeek == this.habitTargetPerWeek &&
+          other.frequencyPattern == this.frequencyPattern &&
+          other.archivedAt == this.archivedAt &&
           other.colorKey == this.colorKey &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
@@ -724,6 +810,8 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
   final Value<String?> categoryOverride;
   final Value<LocalDate?> targetDate;
   final Value<int?> habitTargetPerWeek;
+  final Value<FrequencyPattern?> frequencyPattern;
+  final Value<DateTime?> archivedAt;
   final Value<String?> colorKey;
   final Value<GoalStatus> status;
   final Value<LocalDate> createdAt;
@@ -742,6 +830,8 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     this.categoryOverride = const Value.absent(),
     this.targetDate = const Value.absent(),
     this.habitTargetPerWeek = const Value.absent(),
+    this.frequencyPattern = const Value.absent(),
+    this.archivedAt = const Value.absent(),
     this.colorKey = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -761,6 +851,8 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     this.categoryOverride = const Value.absent(),
     this.targetDate = const Value.absent(),
     this.habitTargetPerWeek = const Value.absent(),
+    this.frequencyPattern = const Value.absent(),
+    this.archivedAt = const Value.absent(),
     this.colorKey = const Value.absent(),
     required GoalStatus status,
     required LocalDate createdAt,
@@ -785,6 +877,8 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Expression<String>? categoryOverride,
     Expression<String>? targetDate,
     Expression<int>? habitTargetPerWeek,
+    Expression<String>? frequencyPattern,
+    Expression<String>? archivedAt,
     Expression<String>? colorKey,
     Expression<String>? status,
     Expression<String>? createdAt,
@@ -806,6 +900,8 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       if (targetDate != null) 'target_date': targetDate,
       if (habitTargetPerWeek != null)
         'habit_target_per_week': habitTargetPerWeek,
+      if (frequencyPattern != null) 'frequency_pattern': frequencyPattern,
+      if (archivedAt != null) 'archived_at': archivedAt,
       if (colorKey != null) 'color_key': colorKey,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
@@ -827,6 +923,8 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     Value<String?>? categoryOverride,
     Value<LocalDate?>? targetDate,
     Value<int?>? habitTargetPerWeek,
+    Value<FrequencyPattern?>? frequencyPattern,
+    Value<DateTime?>? archivedAt,
     Value<String?>? colorKey,
     Value<GoalStatus>? status,
     Value<LocalDate>? createdAt,
@@ -846,6 +944,8 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
       categoryOverride: categoryOverride ?? this.categoryOverride,
       targetDate: targetDate ?? this.targetDate,
       habitTargetPerWeek: habitTargetPerWeek ?? this.habitTargetPerWeek,
+      frequencyPattern: frequencyPattern ?? this.frequencyPattern,
+      archivedAt: archivedAt ?? this.archivedAt,
       colorKey: colorKey ?? this.colorKey,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -888,6 +988,16 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
     }
     if (habitTargetPerWeek.present) {
       map['habit_target_per_week'] = Variable<int>(habitTargetPerWeek.value);
+    }
+    if (frequencyPattern.present) {
+      map['frequency_pattern'] = Variable<String>(
+        $GoalsTable.$converterfrequencyPatternn.toSql(frequencyPattern.value),
+      );
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<String>(
+        $GoalsTable.$converterarchivedAtn.toSql(archivedAt.value),
+      );
     }
     if (colorKey.present) {
       map['color_key'] = Variable<String>(colorKey.value);
@@ -938,6 +1048,8 @@ class GoalsCompanion extends UpdateCompanion<Goal> {
           ..write('categoryOverride: $categoryOverride, ')
           ..write('targetDate: $targetDate, ')
           ..write('habitTargetPerWeek: $habitTargetPerWeek, ')
+          ..write('frequencyPattern: $frequencyPattern, ')
+          ..write('archivedAt: $archivedAt, ')
           ..write('colorKey: $colorKey, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -4343,6 +4455,8 @@ typedef $$GoalsTableCreateCompanionBuilder = GoalsCompanion Function({
   Value<String?> categoryOverride,
   Value<LocalDate?> targetDate,
   Value<int?> habitTargetPerWeek,
+  Value<FrequencyPattern?> frequencyPattern,
+  Value<DateTime?> archivedAt,
   Value<String?> colorKey,
   required GoalStatus status,
   required LocalDate createdAt,
@@ -4362,6 +4476,8 @@ typedef $$GoalsTableUpdateCompanionBuilder = GoalsCompanion Function({
   Value<String?> categoryOverride,
   Value<LocalDate?> targetDate,
   Value<int?> habitTargetPerWeek,
+  Value<FrequencyPattern?> frequencyPattern,
+  Value<DateTime?> archivedAt,
   Value<String?> colorKey,
   Value<GoalStatus> status,
   Value<LocalDate> createdAt,
@@ -4503,6 +4619,18 @@ class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
     column: $table.habitTargetPerWeek,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnWithTypeConverterFilters<FrequencyPattern?, FrequencyPattern, String>
+  get frequencyPattern => $composableBuilder(
+    column: $table.frequencyPattern,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DateTime?, DateTime, String> get archivedAt =>
+      $composableBuilder(
+        column: $table.archivedAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
 
   ColumnFilters<String> get colorKey => $composableBuilder(
     column: $table.colorKey,
@@ -4698,6 +4826,16 @@ class $$GoalsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get frequencyPattern => $composableBuilder(
+    column: $table.frequencyPattern,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get colorKey => $composableBuilder(
     column: $table.colorKey,
     builder: (column) => ColumnOrderings(column),
@@ -4780,6 +4918,18 @@ class $$GoalsTableAnnotationComposer
     column: $table.habitTargetPerWeek,
     builder: (column) => column,
   );
+
+  GeneratedColumnWithTypeConverter<FrequencyPattern?, String>
+  get frequencyPattern => $composableBuilder(
+    column: $table.frequencyPattern,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<DateTime?, String> get archivedAt =>
+      $composableBuilder(
+        column: $table.archivedAt,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<String> get colorKey =>
       $composableBuilder(column: $table.colorKey, builder: (column) => column);
@@ -4955,6 +5105,9 @@ class $$GoalsTableTableManager
                 Value<String?> categoryOverride = const Value.absent(),
                 Value<LocalDate?> targetDate = const Value.absent(),
                 Value<int?> habitTargetPerWeek = const Value.absent(),
+                Value<FrequencyPattern?> frequencyPattern =
+                    const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
                 Value<String?> colorKey = const Value.absent(),
                 Value<GoalStatus> status = const Value.absent(),
                 Value<LocalDate> createdAt = const Value.absent(),
@@ -4973,6 +5126,8 @@ class $$GoalsTableTableManager
                 categoryOverride: categoryOverride,
                 targetDate: targetDate,
                 habitTargetPerWeek: habitTargetPerWeek,
+                frequencyPattern: frequencyPattern,
+                archivedAt: archivedAt,
                 colorKey: colorKey,
                 status: status,
                 createdAt: createdAt,
@@ -4993,6 +5148,9 @@ class $$GoalsTableTableManager
                 Value<String?> categoryOverride = const Value.absent(),
                 Value<LocalDate?> targetDate = const Value.absent(),
                 Value<int?> habitTargetPerWeek = const Value.absent(),
+                Value<FrequencyPattern?> frequencyPattern =
+                    const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
                 Value<String?> colorKey = const Value.absent(),
                 required GoalStatus status,
                 required LocalDate createdAt,
@@ -5011,6 +5169,8 @@ class $$GoalsTableTableManager
                 categoryOverride: categoryOverride,
                 targetDate: targetDate,
                 habitTargetPerWeek: habitTargetPerWeek,
+                frequencyPattern: frequencyPattern,
+                archivedAt: archivedAt,
                 colorKey: colorKey,
                 status: status,
                 createdAt: createdAt,

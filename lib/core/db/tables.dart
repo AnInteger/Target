@@ -108,6 +108,9 @@ class Goals extends Table {
   TextColumn get categoryOverride => text().nullable()();
   TextColumn get targetDate => text().nullable().map(const LocalDateText())();
   IntColumn get habitTargetPerWeek => integer().nullable()();
+  TextColumn get frequencyPattern =>
+      text().nullable().map(const FrequencyPatternJson())();
+  TextColumn get archivedAt => text().nullable().map(const IsoDateTimeText())();
   // 003 v3 退役：可空化 + 存量置 NULL（零丢失惯例：只藏不删，不上界面）。
   TextColumn get colorKey => text().nullable()();
   TextColumn get status => text().map(goalStatusConverter)();

@@ -14,8 +14,10 @@ import 'package:drift/drift.dart';
 import '../models/calendar_types.dart';
 import '../models/entities.dart'
     show Cadence, CheckInStatus, FrequencySource, GoalStatus, GoalType, newId;
-import '../models/frequency_pattern.dart' show FrequencyPattern;
-import '../models/goal_icon_catalog.dart' show legacyIconKeyMap;
+import '../models/frequency_pattern.dart'
+    show FrequencyPattern, WeeklyFrequency;
+import '../models/goal_icon_catalog.dart'
+    show GoalIconCatalog, legacyIconKeyMap;
 import 'tables.dart';
 
 part 'app_database.g.dart';
@@ -37,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,8 +73,60 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6) {
         await _migrateV6(m);
       }
+      if (from < 7) {
+        await _migrateV7(m);
+      }
     },
   );
+
+  Future<void> _migrateV7(Migrator m) async {
+    await m.addColumn(goals, goals.frequencyPattern);
+    await m.addColumn(goals, goals.archivedAt);
+
+    await customUpdate(
+      'UPDATE goals SET target_date = deadline '
+      'WHERE target_date IS NULL AND deadline IS NOT NULL',
+      updates: {goals},
+    );
+
+    final rows = await customSelect(
+      'SELECT id, goal_type, icon_key, habit_target_per_week, status '
+      'FROM goals',
+      readsFrom: {goals},
+    ).get();
+    final versions = await select(frequencyVersions).get();
+
+    for (final row in rows) {
+      final id = row.read<String>('id');
+      final latest = versions.where((v) => v.goalId == id).toList()
+        ..sort((a, b) => a.effectiveFromWeek.compareTo(b.effectiveFromWeek));
+      FrequencyPattern? pattern = latest.isEmpty ? null : latest.last.pattern;
+      if (pattern == null && row.read<String>('goal_type') == 'habit') {
+        pattern = WeeklyFrequency(
+          row.readNullable<int>('habit_target_per_week') ?? 5,
+        );
+      }
+      final category = GoalIconCatalog.byKey(row.read<String>('icon_key'))
+          .domain
+          .name;
+      final archived = row.read<String>('status') == 'archived';
+      await customUpdate(
+        'UPDATE goals SET frequency_pattern = ?, '
+        'category_override = COALESCE(category_override, ?), '
+        'archived_at = CASE WHEN ? THEN ? ELSE archived_at END, '
+        "status = CASE WHEN status = 'archived' THEN 'paused' ELSE status END "
+        'WHERE id = ?',
+        variables: [
+          Variable(pattern?.toJsonString()),
+          Variable(category),
+          Variable(archived),
+          Variable(archived ? DateTime.now().toUtc().toIso8601String() : null),
+          Variable(id),
+        ],
+        updates: {goals},
+      );
+    }
+  }
 
   Future<void> _migrateV6(Migrator m) async {
     await m.addColumn(goals, goals.progressCadenceDays);

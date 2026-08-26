@@ -3,14 +3,17 @@
 // 断言改按 research D3 重映射口径（完整四分支对账见 T010 用例）。
 import 'dart:io';
 
-import 'package:drift/drift.dart' show MigrationStrategy;
+import 'package:drift/drift.dart' show MigrationStrategy, Variable;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target/core/db/app_database.dart' show AppDatabase;
+import 'package:target/core/db/app_database.dart' as app_db show Goal;
 import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
+import 'package:target/core/models/frequency_pattern.dart' show WeeklyFrequency;
+import 'package:target/core/models/goal_icon_catalog.dart' show GoalIconDomain;
 import 'package:target/core/stats/stats_engine.dart';
 import 'package:target/features/settings/reminder_service.dart';
 
@@ -91,6 +94,12 @@ const _v5MilestoneStepsDdl =
     '"title" TEXT NOT NULL, "is_done" INTEGER NOT NULL, '
     '"done_at" TEXT NULL);';
 
+const _frequencyVersionsDdl =
+    'CREATE TABLE IF NOT EXISTS "frequency_versions" ('
+    '"id" TEXT NOT NULL PRIMARY KEY, "goal_id" TEXT NOT NULL, '
+    '"effective_from_week" TEXT NOT NULL, "pattern" TEXT NOT NULL, '
+    '"source" TEXT NOT NULL)';
+
 /// v2 旧库（schemaVersion=2）：goals 带 envelope 列，关联表齐全——
 /// 003 T010 四分支对账的存量形态（升级只走 v2→v3 分支）。
 class _V2Database extends AppDatabase {
@@ -145,6 +154,7 @@ class _V3Database extends AppDatabase {
     onCreate: (m) async {
       await customStatement(_v5GoalsDdl);
       await customStatement(_v5MilestoneStepsDdl);
+      await customStatement(_frequencyVersionsDdl);
       await customStatement(
         'CREATE TABLE IF NOT EXISTS "check_ins" ("id" TEXT NOT NULL '
         'PRIMARY KEY, "goal_id" TEXT NOT NULL, "day" TEXT NOT NULL, '
@@ -178,6 +188,7 @@ class _V4Database extends AppDatabase {
     onCreate: (m) async {
       await customStatement(_v5GoalsDdl);
       await customStatement(_v5MilestoneStepsDdl);
+      await customStatement(_frequencyVersionsDdl);
       await customStatement(
         'CREATE TABLE IF NOT EXISTS "settings_rows" ("id" INTEGER NOT '
         'NULL PRIMARY KEY, "daily_brief_time" TEXT NOT NULL, '
@@ -201,6 +212,7 @@ class _V5Database extends AppDatabase {
     onCreate: (m) async {
       await customStatement(_v5GoalsDdl);
       await customStatement(_v5MilestoneStepsDdl);
+      await customStatement(_frequencyVersionsDdl);
       await customStatement(
         'CREATE TABLE IF NOT EXISTS "settings_rows" ("id" INTEGER NOT '
         'NULL PRIMARY KEY, "daily_brief_time" TEXT NOT NULL, '
@@ -212,6 +224,60 @@ class _V5Database extends AppDatabase {
     },
   );
 }
+
+/// v6 旧库：已有目标规划字段，尚无统一频率与归档时间字段。
+class _V6Database extends AppDatabase {
+  _V6Database(super.e);
+
+  @override
+  int get schemaVersion => 6;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async {
+      await customStatement(
+        'CREATE TABLE IF NOT EXISTS "goals" ('
+        '"id" TEXT NOT NULL PRIMARY KEY, "name" TEXT NOT NULL, '
+        '"goal_type" TEXT NOT NULL, "icon_key" TEXT NOT NULL, '
+        '"progress_cadence_days" INTEGER NULL, '
+        '"category_override" TEXT NULL, "target_date" TEXT NULL, '
+        '"habit_target_per_week" INTEGER NULL, "color_key" TEXT NULL, '
+        '"status" TEXT NOT NULL, "created_at" TEXT NOT NULL, '
+        '"deadline" TEXT NULL, "achieved_at" TEXT NULL, '
+        '"motivation" TEXT NULL, "success_criterion" TEXT NULL, '
+        '"cue_scene" TEXT NULL)',
+      );
+      await customStatement(_frequencyVersionsDdl);
+    },
+  );
+}
+
+/// Task 1 stores the unified target date before Task 2 expands the domain
+/// invariant beyond long-term goals. Historical behavior tests retain their
+/// legacy domain view while asserting the actual migrated Drift row directly.
+Goal _legacyDomainView(app_db.Goal row) => Goal(
+  id: row.id,
+  name: row.name,
+  goalType: row.goalType,
+  iconKey: row.iconKey,
+  colorKey: row.colorKey ?? '',
+  categoryOverride: row.categoryOverride == null
+      ? null
+      : GoalIconDomain.values.firstWhere(
+          (domain) => domain.name == row.categoryOverride,
+          orElse: () => GoalIconDomain.travel,
+        ),
+  progressCadenceDays: row.progressCadenceDays,
+  status: row.status,
+  createdAt: row.createdAt,
+  deadline: row.deadline,
+  targetDate: row.goalType == GoalType.longTerm ? row.targetDate : null,
+  habitTargetPerWeek: row.habitTargetPerWeek,
+  achievedAt: row.achievedAt,
+  motivation: row.motivation,
+  successCriterion: row.successCriterion,
+  cueScene: row.cueScene,
+);
 
 void main() {
   late Directory tmp;
@@ -248,9 +314,13 @@ void main() {
 
     final db = AppDatabase(NativeDatabase(file));
     addTearDown(db.close);
-    final goals = await GoalRepository(db).getGoals();
+    final goals = await db.select(db.goals).get();
     expect(goals.firstWhere((g) => g.id == 'long').progressCadenceDays, 14);
     expect(goals.firstWhere((g) => g.id == 'short').progressCadenceDays, 7);
+    expect(
+      goals.firstWhere((g) => g.id == 'short').targetDate,
+      const LocalDate(2026, 9, 1),
+    );
     final steps = await GoalRepository(db).stepsOf('long');
     expect(steps.map((s) => s.id), ['m2', 'm1']);
     expect(steps.map((s) => s.position), [0, 1]);
@@ -258,6 +328,36 @@ void main() {
     expect(settings.defaultShortCadenceDays, 7);
     expect(settings.defaultLongCadenceDays, 14);
     expect(settings.scoreAlgorithmStartedOn, isNotNull);
+  });
+
+  test('v6→v7：日期、频率、分类和归档语义迁移且历史不丢失', () async {
+    {
+      final v6 = _V6Database(NativeDatabase(file));
+      await v6.customStatement(
+        "INSERT INTO goals "
+        "(id,name,goal_type,icon_key,status,created_at,deadline,"
+        "progress_cadence_days,habit_target_per_week) VALUES "
+        "('dated','拿到潜水证','shortTerm','pool','active',"
+        "'2026-08-01','2026-10-01',7,NULL),"
+        "('habit','保持跑步','habit','directions_run','active',"
+        "'2026-08-01',NULL,7,3),"
+        "('old-archive','旧目标','longTerm','explore','archived',"
+        "'2026-08-01',NULL,14,NULL)",
+      );
+      await v6.close();
+    }
+
+    final db = AppDatabase(NativeDatabase(file));
+    addTearDown(db.close);
+    final rows = await db.select(db.goals).get();
+    final byId = {for (final row in rows) row.id: row};
+
+    expect(byId['dated']!.targetDate, const LocalDate(2026, 10, 1));
+    expect(byId['dated']!.frequencyPattern, isNull);
+    expect(byId['habit']!.frequencyPattern, const WeeklyFrequency(3));
+    expect(byId['dated']!.categoryOverride, 'fitness');
+    expect(byId['old-archive']!.archivedAt, isNotNull);
+    expect(byId['old-archive']!.status, GoalStatus.paused);
   });
 
   test('v1→v3：既有目标零丢失（值域按 D3 重映射），新列 NULL 可读写', () async {
@@ -278,37 +378,42 @@ void main() {
     // 2) v2 打开同一文件 → drift 按 PRAGMA user_version=1 走 onUpgrade。
     final db = AppDatabase(NativeDatabase(file));
     addTearDown(db.close);
-    final repo = GoalRepository(db);
+    final rows = await db.select(db.goals).get();
+    expect(rows, hasLength(2));
 
-    final goals = await repo.getGoals();
-    expect(goals, hasLength(2));
-
-    final meal = goals.firstWhere((g) => g.id == 'g1');
+    final meal = rows.firstWhere((g) => g.id == 'g1');
     expect(meal.name, '好好吃饭');
     // v3 重映射（D3）：无截止无频率的 habit → longTerm；
     // iconKey meal→restaurant；colorKey 退役置 NULL（实体 ''）。
     expect(meal.goalType, GoalType.longTerm);
-    expect(meal.colorKey, '');
+    expect(meal.colorKey, isNull);
     expect(meal.deadline, isNull);
     // 新列默认 NULL —— 即「补一句为什么」渐进补全入口的语义（T014）。
     expect(meal.motivation, isNull);
     expect(meal.successCriterion, isNull);
     expect(meal.cueScene, isNull);
 
-    final trek = goals.firstWhere((g) => g.id == 'g2');
+    final trek = rows.firstWhere((g) => g.id == 'g2');
     // 里程碑+截止 → shortTerm（D3 决策树第一支）。
     expect(trek.goalType, GoalType.shortTerm);
     expect(trek.deadline, LocalDate.parse('2026-10-01')); // 截止日不丢
+    expect(trek.targetDate, LocalDate.parse('2026-10-01'));
 
     // 3) 旧目标渐进补全：补写三字段 → 回读持久化。
-    await repo.update(
-      meal.copyWith(
-        motivation: '为了晚上不胃胀',
-        successCriterion: '晚饭吃八分饱',
-        cueScene: '晚饭后',
-      ),
+    await db.customUpdate(
+      'UPDATE goals SET motivation = ?, success_criterion = ?, cue_scene = ? '
+      'WHERE id = ?',
+      variables: const [
+        Variable('为了晚上不胃胀'),
+        Variable('晚饭吃八分饱'),
+        Variable('晚饭后'),
+        Variable('g1'),
+      ],
+      updates: {db.goals},
     );
-    final updated = (await repo.getGoals()).firstWhere((g) => g.id == 'g1');
+    final updated = (await db.select(db.goals).get()).firstWhere(
+      (g) => g.id == 'g1',
+    );
     expect(updated.motivation, '为了晚上不胃胀');
     expect(updated.successCriterion, '晚饭吃八分饱');
     expect(updated.cueScene, '晚饭后');
@@ -665,7 +770,10 @@ void main() {
 
     final db = AppDatabase(NativeDatabase(file));
     addTearDown(db.close);
-    final goals = await GoalRepository(db).getGoals();
+    final goalRows = await db.select(db.goals).get();
+    final rawById = {for (final g in goalRows) g.id: g};
+    expect(rawById['gs']!.targetDate, const LocalDate(2026, 10, 1));
+    final goals = goalRows.map(_legacyDomainView).toList();
     final checkIns = await CheckInRepository(db).all();
     final reminderRepo = ReminderRepository(db);
 
@@ -788,7 +896,10 @@ void main() {
 
     final db = AppDatabase(NativeDatabase(file));
     addTearDown(db.close);
-    final goals = await GoalRepository(db).getGoals();
+    final goalRows = await db.select(db.goals).get();
+    final rawById = {for (final g in goalRows) g.id: g};
+    expect(rawById['gdl']!.targetDate, const LocalDate(2026, 10, 1));
+    final goals = goalRows.map(_legacyDomainView).toList();
     final checkInRepo = CheckInRepository(db);
 
     // 场景 2：高频节律（每日 3 次）→ habit；既有计数连续不中断。

@@ -7,6 +7,9 @@ import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/frequency_pattern.dart';
 
+/// Allows this shared fixture to be invoked directly by `flutter test`.
+void main() {}
+
 Future<void> seedVersion(
   db.AppDatabase database,
   String goalId,

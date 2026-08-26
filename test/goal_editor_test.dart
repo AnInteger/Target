@@ -224,6 +224,12 @@ void main() {
       120,
       scrollable: find.byType(Scrollable).first,
     );
+    // scrollUntilVisible 只保证元素被构建；固定在底部的保存按钮会遮住
+    // 仍处于折叠线下方的控件，需要 ensureVisible 把开关完全滚入可视区。
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('goalReminderSwitch')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goalReminderSwitch')));
     await tester.pumpAndSettle();
     await tester.enterText(

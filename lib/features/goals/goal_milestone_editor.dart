@@ -105,10 +105,12 @@ class _GoalMilestoneEditorState extends State<GoalMilestoneEditor> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: widget.value.length,
-          onReorder: (oldIndex, newIndex) {
+          // onReorderItem 的 toIndex 已对「移除旧位后」的列表取值，
+          // 无需旧 onReorder 的 newIndex-1 手工校正。
+          onReorderItem: (fromIndex, toIndex) {
             final next = [...widget.value];
-            final item = next.removeAt(oldIndex);
-            next.insert(newIndex > oldIndex ? newIndex - 1 : newIndex, item);
+            final item = next.removeAt(fromIndex);
+            next.insert(toIndex, item);
             _emit(next);
           },
           itemBuilder: (context, index) {

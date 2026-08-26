@@ -83,7 +83,7 @@ class _FrequencySheet extends StatefulWidget {
 }
 
 class _FrequencySheetState extends State<_FrequencySheet> {
-  late Set<Weekday> _weekdays = widget.value is WeekdaysFrequency
+  late final Set<Weekday> _weekdays = widget.value is WeekdaysFrequency
       ? {...(widget.value as WeekdaysFrequency).days}
       : {Weekday.mon, Weekday.wed, Weekday.fri};
 

@@ -99,19 +99,30 @@ Future<_JourneyHarness> _pumpApp(
 
 Future<void> _createGoal(
   WidgetTester tester, {
-  required GoalType type,
   required String name,
+  bool withDate = false,
+  int? weeklyCount,
 }) async {
   await tester.tap(find.byKey(const ValueKey('dockFab')));
   await tester.pumpAndSettle();
-  if (type != GoalType.shortTerm) {
-    await tester.tap(find.text(type == GoalType.longTerm ? '长期' : '习惯'));
+  if (withDate) {
+    await tester.tap(find.byKey(const ValueKey('goalHasDateSwitch')));
+    await tester.pumpAndSettle();
+  }
+  if (weeklyCount != null) {
+    await tester.ensureVisible(find.byKey(const ValueKey('goalFrequencyField')));
+    await tester.tap(find.byKey(const ValueKey('goalFrequencyField')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('weeklyCount-$weeklyCount')));
     await tester.pumpAndSettle();
   }
   await tester.enterText(find.byKey(const ValueKey('goalNameField')), name);
   tester.testTextInput.hide();
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+  await tester.pumpAndSettle();
+  expect(find.byType(GoalDetailPage), findsOneWidget);
+  await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
   await tester.pumpAndSettle();
   expect(find.byType(TodayView), findsOneWidget);
 }
@@ -138,19 +149,19 @@ void main() {
   ) async {
     final app = await _pumpApp(tester);
 
-    await _createGoal(tester, type: GoalType.longTerm, name: '拿到 OW 潜水证');
-    await _createGoal(tester, type: GoalType.shortTerm, name: '完成作品集');
-    await _createGoal(tester, type: GoalType.habit, name: '每周骑行');
+    await _createGoal(tester, name: '拿到 OW 潜水证');
+    await _createGoal(tester, name: '完成作品集', withDate: true);
+    await _createGoal(tester, name: '每周骑行', weeklyCount: 3);
 
     final goals = await GoalRepository(app.db).getGoals();
     final long = _goalNamed(goals, '拿到 OW 潜水证');
     final short = _goalNamed(goals, '完成作品集');
     final habit = _goalNamed(goals, '每周骑行');
-    expect(long.targetDate, isNull, reason: '长期目标日期是可选项');
+    expect(long.targetDate, isNull, reason: '目标日期是可选项');
     expect(long.progressCadenceDays, 14);
-    expect(short.deadline, _today.addDays(39));
+    expect(short.targetDate, _today.addDays(90));
     expect(short.progressCadenceDays, 7);
-    expect(habit.habitTargetPerWeek, 5);
+    expect(habit.habitTargetPerWeek, 3);
 
     await _openGoalsAll(tester);
     for (final name in ['拿到 OW 潜水证', '完成作品集', '每周骑行']) {

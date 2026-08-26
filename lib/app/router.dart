@@ -23,7 +23,6 @@ import 'dock_glyphs.dart';
 import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
 import '../features/goals/goals_all_view.dart';
-import '../features/goals/goal_templates.dart';
 import '../features/goals/onboarding.dart';
 import '../features/profile/profile_hub.dart';
 import '../features/progress/progress_view.dart';
@@ -68,12 +67,7 @@ GoRouter _build() => GoRouter(
               // 导航壳层不退场（D5/FR-010 语义不变）。
               pageBuilder: (context, s) => buildFadeSlidePage(
                 s,
-                GoalEditorPage(
-                  goalId: s.uri.queryParameters['id'],
-                  template: s.extra is GoalTemplate
-                      ? s.extra as GoalTemplate
-                      : null,
-                ),
+                GoalEditorPage(goalId: s.uri.queryParameters['id']),
               ),
             ),
             // 统一目标详情（T018：里程碑视图并入；步骤/倒计时/达成在此管理）。

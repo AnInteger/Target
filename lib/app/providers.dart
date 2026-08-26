@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/db/app_database.dart' show AppDatabase;
 import '../core/db/connection.dart';
+import '../core/db/goal_plan_repository.dart';
 import '../core/db/repositories.dart';
 import '../core/db/progress_repository.dart';
 import '../core/models/calendar_types.dart';
@@ -41,6 +42,9 @@ final dbProvider = Provider<AppDatabase>((ref) {
 
 final goalRepoProvider = Provider(
   (ref) => GoalRepository(ref.watch(dbProvider)),
+);
+final goalPlanRepoProvider = Provider(
+  (ref) => GoalPlanRepository(ref.watch(dbProvider)),
 );
 final checkInRepoProvider = Provider(
   (ref) => CheckInRepository(ref.watch(dbProvider)),

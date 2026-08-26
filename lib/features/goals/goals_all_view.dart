@@ -443,7 +443,7 @@ class _GoalCard extends ConsumerWidget {
           actionKey: 'resume',
           icon: Icons.play_circle_outline,
           label: Copy.goalResumeAction,
-          onTap: () => resumeGoal(context, ref, goal),
+          onTap: () => resumeGoal(ref, goal),
         ),
       _SheetAction(
         actionKey: 'delete',

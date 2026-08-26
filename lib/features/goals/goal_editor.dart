@@ -18,7 +18,6 @@ import '../../app/design_tokens.dart';
 import '../../app/page_top_bar.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
-import '../../core/db/repositories.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/goal_icon_catalog.dart';
@@ -183,87 +182,69 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       }
     }
 
-    try {
-      if (_isEdit) {
-        final goal = (ref.read(goalsProvider).value ?? []).firstWhere(
-          (g) => g.id == widget.goalId,
+    if (_isEdit) {
+      final goal = (ref.read(goalsProvider).value ?? []).firstWhere(
+        (g) => g.id == widget.goalId,
+      );
+      // 编辑同构（类型锁定）：直构完整 Goal；退役字段原值继承
+      // （FR-016 存量保全，表单无写入路径）。
+      await repo.update(
+        Goal(
+          id: goal.id,
+          name: name,
+          goalType: _type,
+          iconKey: _iconKey,
+          categoryOverride: _categoryOverride,
+          progressCadenceDays: _type == GoalType.longTerm
+              ? _longCadenceDays
+              : _shortCadenceDays,
+          colorKey: goal.colorKey,
+          status: goal.status,
+          createdAt: goal.createdAt,
+          deadline: _type == GoalType.shortTerm ? _deadline : null,
+          targetDate: _type == GoalType.longTerm ? _targetDate : null,
+          habitTargetPerWeek: _type == GoalType.habit
+              ? _habitTargetPerWeek
+              : null,
+          motivation: goal.motivation,
+          successCriterion: goal.successCriterion,
+          cueScene: goal.cueScene,
+          achievedAt: goal.achievedAt,
+        ),
+      );
+      await syncReminder(goal.id);
+    } else {
+      final created = await repo.create(
+        Goal(
+          name: name,
+          goalType: _type,
+          iconKey: _iconKey,
+          categoryOverride: _categoryOverride,
+          progressCadenceDays: _type == GoalType.longTerm
+              ? _longCadenceDays
+              : _shortCadenceDays,
+          colorKey: 'teal', // 退役列兜底值，任何界面不再读取（FR-015/016）
+          createdAt: today,
+          deadline: _type == GoalType.shortTerm ? _deadline : null,
+          targetDate: _type == GoalType.longTerm ? _targetDate : null,
+          habitTargetPerWeek: _type == GoalType.habit
+              ? _habitTargetPerWeek
+              : null,
+        ),
+      );
+      final firstPlan = _firstPlans[_type]!.text.trim();
+      if (firstPlan.isNotEmpty) {
+        await repo.addStep(
+          MilestoneStep(goalId: created.id, title: firstPlan, position: 0),
         );
-        // 编辑同构（类型锁定）：直构完整 Goal（copyWith 不支持清
-        // deadline）；退役字段原值继承（FR-016 存量保全，表单无写入路径）。
-        await repo.update(
-          Goal(
-            id: goal.id,
-            name: name,
-            goalType: _type,
-            iconKey: _iconKey,
-            categoryOverride: _categoryOverride,
-            progressCadenceDays: _type == GoalType.longTerm
-                ? _longCadenceDays
-                : _shortCadenceDays,
-            colorKey: goal.colorKey,
-            status: goal.status,
-            createdAt: goal.createdAt,
-            deadline: _type == GoalType.shortTerm ? _deadline : null,
-            targetDate: _type == GoalType.longTerm ? _targetDate : null,
-            habitTargetPerWeek: _type == GoalType.habit
-                ? _habitTargetPerWeek
-                : null,
-            motivation: goal.motivation,
-            successCriterion: goal.successCriterion,
-            cueScene: goal.cueScene,
-            achievedAt: goal.achievedAt,
-          ),
-        );
-        await syncReminder(goal.id);
+      }
+    }
+    if (mounted) {
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop();
       } else {
-        final created = await repo.create(
-          Goal(
-            name: name,
-            goalType: _type,
-            iconKey: _iconKey,
-            categoryOverride: _categoryOverride,
-            progressCadenceDays: _type == GoalType.longTerm
-                ? _longCadenceDays
-                : _shortCadenceDays,
-            colorKey: 'teal', // 退役列兜底值，任何界面不再读取（FR-015/016）
-            createdAt: today,
-            deadline: _type == GoalType.shortTerm ? _deadline : null,
-            targetDate: _type == GoalType.longTerm ? _targetDate : null,
-            habitTargetPerWeek: _type == GoalType.habit
-                ? _habitTargetPerWeek
-                : null,
-          ),
-        );
-        final firstPlan = _firstPlans[_type]!.text.trim();
-        if (firstPlan.isNotEmpty) {
-          await repo.addStep(
-            MilestoneStep(goalId: created.id, title: firstPlan, position: 0),
-          );
-        }
-      }
-      if (mounted) {
-        final navigator = Navigator.of(context);
-        if (navigator.canPop()) {
-          navigator.pop();
-        } else {
-          GoRouter.maybeOf(context)?.go('/today');
-        }
-      }
-    } on ActiveGoalLimitException {
-      if (mounted) {
-        await showDialog<void>(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text(Copy.focusLimitTitle),
-            content: const Text(Copy.focusLimitBody),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text(Copy.notifAck),
-              ),
-            ],
-          ),
-        );
+        GoRouter.maybeOf(context)?.go('/today');
       }
     }
   }

@@ -10,7 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:target/core/db/app_database.dart' show AppDatabase;
 import 'package:target/core/db/app_database.dart'
     as app_db
-    show Goal, GoalsCompanion;
+    show GoalsCompanion;
 import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
@@ -254,33 +254,6 @@ class _V6Database extends AppDatabase {
   );
 }
 
-/// Task 1 stores the unified target date before Task 2 expands the domain
-/// invariant beyond long-term goals. Historical behavior tests retain their
-/// legacy domain view while asserting the actual migrated Drift row directly.
-Goal _legacyDomainView(app_db.Goal row) => Goal(
-  id: row.id,
-  name: row.name,
-  goalType: row.goalType,
-  iconKey: row.iconKey,
-  colorKey: row.colorKey ?? '',
-  categoryOverride: row.categoryOverride == null
-      ? null
-      : GoalIconDomain.values.firstWhere(
-          (domain) => domain.name == row.categoryOverride,
-          orElse: () => GoalIconDomain.travel,
-        ),
-  progressCadenceDays: row.progressCadenceDays,
-  status: row.status,
-  createdAt: row.createdAt,
-  deadline: row.deadline,
-  targetDate: row.goalType == GoalType.longTerm ? row.targetDate : null,
-  habitTargetPerWeek: row.habitTargetPerWeek,
-  achievedAt: row.achievedAt,
-  motivation: row.motivation,
-  successCriterion: row.successCriterion,
-  cueScene: row.cueScene,
-);
-
 void main() {
   late Directory tmp;
   late File file;
@@ -359,13 +332,13 @@ void main() {
 
     final db = AppDatabase(NativeDatabase(file));
     addTearDown(db.close);
-    final rows = await db.select(db.goals).get();
-    final byId = {for (final row in rows) row.id: row};
+    final goals = await GoalRepository(db).getGoals();
+    final byId = {for (final goal in goals) goal.id: goal};
 
     expect(byId['dated']!.targetDate, const LocalDate(2026, 10, 1));
-    expect(byId['dated']!.frequencyPattern, isNull);
-    expect(byId['habit']!.frequencyPattern, const WeeklyFrequency(4));
-    expect(byId['dated']!.categoryOverride, 'fitness');
+    expect(byId['dated']!.frequency, isNull);
+    expect(byId['habit']!.frequency, const WeeklyFrequency(4));
+    expect(byId['dated']!.categoryOverride, GoalIconDomain.fitness);
     expect(byId['old-archive']!.archivedAt, isNotNull);
     expect(byId['old-archive']!.status, GoalStatus.paused);
   });
@@ -821,10 +794,7 @@ void main() {
 
     final db = AppDatabase(NativeDatabase(file));
     addTearDown(db.close);
-    final goalRows = await db.select(db.goals).get();
-    final rawById = {for (final g in goalRows) g.id: g};
-    expect(rawById['gs']!.targetDate, const LocalDate(2026, 10, 1));
-    final goals = goalRows.map(_legacyDomainView).toList();
+    final goals = await GoalRepository(db).getGoals();
     final checkIns = await CheckInRepository(db).all();
     final reminderRepo = ReminderRepository(db);
 
@@ -947,10 +917,7 @@ void main() {
 
     final db = AppDatabase(NativeDatabase(file));
     addTearDown(db.close);
-    final goalRows = await db.select(db.goals).get();
-    final rawById = {for (final g in goalRows) g.id: g};
-    expect(rawById['gdl']!.targetDate, const LocalDate(2026, 10, 1));
-    final goals = goalRows.map(_legacyDomainView).toList();
+    final goals = await GoalRepository(db).getGoals();
     final checkInRepo = CheckInRepository(db);
 
     // 场景 2：高频节律（每日 3 次）→ habit；既有计数连续不中断。

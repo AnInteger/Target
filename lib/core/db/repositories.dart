@@ -1,7 +1,7 @@
 /// 仓储层：drift 表 ⇄ 领域实体映射 + 流式查询（tasks.md T011）。
 ///
 /// UI/业务只面向这里与领域模型，不触碰 drift 行类型（故 db 导入用别名，
-/// 领域类不加前缀直接使用）。业务规则（活跃上限、频率版本唯一性、
+/// 领域类不加前缀直接使用）。业务规则（频率版本唯一性、
 /// 撤销不删除）在本层把关；"今天/下周"由服务层按注入时钟算好传入。
 library;
 
@@ -12,18 +12,8 @@ import 'package:drift/drift.dart';
 import '../models/calendar_types.dart';
 import '../models/entities.dart';
 import '../models/frequency_pattern.dart';
-import '../models/goal_icon_catalog.dart';
 import 'app_database.dart' as db;
-
-/// 活跃目标已达上限（FR-011，UI 捕获后触发聚焦引导）。
-class ActiveGoalLimitException implements Exception {
-  const ActiveGoalLimitException(this.limit);
-
-  final int limit;
-
-  @override
-  String toString() => '活跃目标已达上限 $limit 个';
-}
+import 'goal_row_mapper.dart';
 
 // ---------------------------------------------------------------------------
 // GoalRepository（含 FrequencyVersion / BusyModeSession 管理）
@@ -36,50 +26,29 @@ class GoalRepository {
 
   // ---- Goal ----
 
-  Stream<List<Goal>> watchGoals() => _db.select(_db.goals).map(_toGoal).watch();
+  Stream<List<Goal>> watchGoals() =>
+      _db.select(_db.goals).map(GoalRowMapper.fromRow).watch();
 
-  /// active 目标（habit+milestone 合计，今日视图/上限校验用）。
+  /// 未归档的 active 目标。
   Stream<List<Goal>> watchActiveGoals() =>
-      (_db.select(_db.goals)
-            ..where((t) => t.status.equalsValue(GoalStatus.active)))
-          .map(_toGoal)
+      (_db.select(_db.goals)..where(
+            (t) =>
+                t.status.equalsValue(GoalStatus.active) & t.archivedAt.isNull(),
+          ))
+          .map(GoalRowMapper.fromRow)
           .watch();
 
-  Future<List<Goal>> getGoals() => _db.select(_db.goals).map(_toGoal).get();
+  Future<List<Goal>> getGoals() =>
+      _db.select(_db.goals).map(GoalRowMapper.fromRow).get();
 
-  /// 创建；active 数（两类合计）≥ 5 时拒绝（FR-011）。
   Future<Goal> create(Goal goal) async {
-    if (goal.status == GoalStatus.active) {
-      final active = await (_db.select(
-        _db.goals,
-      )..where((t) => t.status.equalsValue(GoalStatus.active))).get();
-      if (active.length >= kMaxActiveGoals) {
-        throw const ActiveGoalLimitException(kMaxActiveGoals);
-      }
-    }
-    await _db.into(_db.goals).insert(_fromGoal(goal));
+    await _db.into(_db.goals).insert(GoalRowMapper.toCompanion(goal));
     return goal;
   }
 
-  /// 更新；paused → active 的"恢复"同样受活跃上限约束（FR-011）。
-  Future<void> update(Goal goal) async {
-    final rows = await (_db.select(
-      _db.goals,
-    )..where((t) => t.id.equals(goal.id))).get();
-    final old = rows.isEmpty ? null : _toGoal(rows.first);
-    if (goal.status == GoalStatus.active &&
-        (old == null || old.status != GoalStatus.active)) {
-      final active = await (_db.select(
-        _db.goals,
-      )..where((t) => t.status.equalsValue(GoalStatus.active))).get();
-      if (active.length >= kMaxActiveGoals) {
-        throw const ActiveGoalLimitException(kMaxActiveGoals);
-      }
-    }
-    await (_db.update(
-      _db.goals,
-    )..where((t) => t.id.equals(goal.id))).write(_fromGoal(goal));
-  }
+  Future<void> update(Goal goal) => (_db.update(
+    _db.goals,
+  )..where((t) => t.id.equals(goal.id))).write(GoalRowMapper.toCompanion(goal));
 
   /// 物理删除（004 v2 详情「删除目标」）：连带打卡/步骤/提醒/频率版本
   /// 全部级联清行，事务保证不留悬空外键；周回顾快照自含 JSON 不受影响
@@ -99,50 +68,6 @@ class GoalRepository {
     )..where((t) => t.goalId.equals(goalId))).go();
     await (_db.delete(_db.goals)..where((t) => t.id.equals(goalId))).go();
   });
-
-  static Goal _toGoal(db.Goal r) => Goal(
-    id: r.id,
-    name: r.name,
-    goalType: r.goalType,
-    iconKey: r.iconKey,
-    // colorKey 003 退役：库 NULL ⇔ 实体 ''（只藏不删）。
-    colorKey: r.colorKey ?? '',
-    categoryOverride: r.categoryOverride == null
-        ? null
-        : GoalIconDomain.values.firstWhere(
-            (domain) => domain.name == r.categoryOverride,
-            orElse: () => GoalIconDomain.travel,
-          ),
-    progressCadenceDays: r.progressCadenceDays,
-    status: r.status,
-    createdAt: r.createdAt,
-    deadline: r.deadline,
-    targetDate: r.targetDate,
-    habitTargetPerWeek: r.habitTargetPerWeek,
-    achievedAt: r.achievedAt,
-    motivation: r.motivation,
-    successCriterion: r.successCriterion,
-    cueScene: r.cueScene,
-  );
-
-  static db.GoalsCompanion _fromGoal(Goal g) => db.GoalsCompanion.insert(
-    id: g.id,
-    name: g.name,
-    goalType: g.goalType,
-    iconKey: g.iconKey,
-    progressCadenceDays: Value(g.progressCadenceDays),
-    categoryOverride: Value(g.categoryOverride?.name),
-    targetDate: Value(g.targetDate),
-    habitTargetPerWeek: Value(g.habitTargetPerWeek),
-    colorKey: Value(g.colorKey.isEmpty ? null : g.colorKey),
-    status: g.status,
-    createdAt: g.createdAt,
-    deadline: Value(g.deadline),
-    achievedAt: Value(g.achievedAt),
-    motivation: Value(g.motivation),
-    successCriterion: Value(g.successCriterion),
-    cueScene: Value(g.cueScene),
-  );
 
   // ---- FrequencyVersion（003 T013 停写：整表只读保全）----
   // 003 起频率概念退役为提醒 cadence，App 不再创建/修改/删除版本行；

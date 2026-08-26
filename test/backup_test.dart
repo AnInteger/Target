@@ -554,7 +554,7 @@ void main() {
     );
   });
 
-  test('v5 双向：目标规划、里程碑顺序与评分算法边界完整保留', () async {
+  test('v5 双向：统一规划派生 cadence 且其余规划完整保留', () async {
     final src = db.AppDatabase(NativeDatabase.memory());
     addTearDown(src.close);
     final goals = GoalRepository(src);
@@ -594,7 +594,7 @@ void main() {
     final data = map['data']! as Map;
     final goalJson = (data['goals']! as List).single as Map;
     expect(goalJson['categoryOverride'], 'learning');
-    expect(goalJson['progressCadenceDays'], 21);
+    expect(goalJson['progressCadenceDays'], 7);
     expect(goalJson['targetDate'], '2026-12-31');
     expect(((data['milestoneSteps']! as List).single as Map)['position'], 3);
 
@@ -607,7 +607,7 @@ void main() {
     );
     final restored = (await GoalRepository(target).getGoals()).single;
     expect(restored.categoryOverride, GoalIconDomain.learning);
-    expect(restored.progressCadenceDays, 21);
+    expect(restored.progressCadenceDays, 7);
     expect(restored.targetDate, const LocalDate(2026, 12, 31));
     expect((await GoalRepository(target).stepsOf('g-plan')).single.position, 3);
     final restoredSettings = await SettingsRepository(target).get();

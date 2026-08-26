@@ -16,8 +16,6 @@ abstract final class Copy {
   static const editorNewGoal = '新建目标'; // 004 v2：标题随冻结稿（原「新的目标」退役）
   static const editorIconColor = '图标与颜色';
   static const editorSave = '保存';
-  static const focusLimitTitle = '先照顾好这 5 个';
-  static const focusLimitBody = '目标贵在聚焦。暂停或归档一个，再放新的进来。';
 
   // ---- 编辑器 · B 案动线（002 T014 定稿；004 v2 编辑器换装后界面
   //      退役，仅存 widget_test「002 句式残留」负向哨兵引用）----

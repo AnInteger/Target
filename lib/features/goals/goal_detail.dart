@@ -103,9 +103,7 @@ class GoalDetailPage extends ConsumerWidget {
                 ),
                 children: [
                   if (goal.status == GoalStatus.paused)
-                    _PausedBanner(
-                      onResume: () => resumeGoal(context, ref, goal),
-                    ),
+                    _PausedBanner(onResume: () => resumeGoal(ref, goal)),
                   _HeroCard(
                     goal: goal,
                     today: today,
@@ -195,7 +193,7 @@ class GoalDetailPage extends ConsumerWidget {
         _MenuRow(
           icon: Icons.play_circle_outline,
           label: Copy.goalResumeAction,
-          onTap: () => resumeGoal(context, ref, goal),
+          onTap: () => resumeGoal(ref, goal),
         ),
       _MenuRow(
         icon: Icons.delete_outline,

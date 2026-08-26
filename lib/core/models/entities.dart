@@ -1,6 +1,6 @@
 /// 领域实体（specs/001-life-goal-tracker/data-model.md）。
 ///
-/// 纯 Dart、无 Flutter/平台依赖；业务规则（状态机、活跃上限、频率版本序）
+/// 纯 Dart、无 Flutter/平台依赖；业务规则（状态机、频率版本序）
 /// 落在本层，drift 持久化层只做字段映射不添加规则。
 /// Instant 一律存 UTC DateTime；自然日/周锚点用 LocalDate/WeekStart。
 library;
@@ -37,29 +37,73 @@ enum Cadence { daily, threeDay, weekly }
 
 enum GoalStatus { active, paused, archived, achieved }
 
-/// 活跃目标上限（两类合计，FR-011）。
-const int kMaxActiveGoals = 5;
+LocalDate? _unifiedTargetDate(LocalDate? targetDate, LocalDate? deadline) =>
+    targetDate ?? deadline;
+
+FrequencyPattern? _unifiedFrequency(
+  FrequencyPattern? frequency,
+  int? habitTargetPerWeek,
+) =>
+    frequency ??
+    (habitTargetPerWeek == null ? null : WeeklyFrequency(habitTargetPerWeek));
+
+int? _legacyWeeklyTargetOf(FrequencyPattern? frequency) => switch (frequency) {
+  WeeklyFrequency(:final timesPerWeek) => timesPerWeek,
+  DailyFrequency() => 7,
+  WeekdaysFrequency(:final days) => days.length,
+  null => null,
+};
+
+bool _hasValidLegacyWeeklyTarget(
+  FrequencyPattern? frequency,
+  int? habitTargetPerWeek,
+) {
+  final target = _legacyWeeklyTargetOf(
+    _unifiedFrequency(frequency, habitTargetPerWeek),
+  );
+  return target == null || (target >= 1 && target <= 7);
+}
 
 class Goal {
   Goal({
     String? id,
     required this.name,
-    required this.goalType,
+    GoalType? goalType,
     required this.iconKey,
     required this.colorKey,
     this.categoryOverride,
     int? progressCadenceDays,
     this.status = GoalStatus.active,
     required this.createdAt,
-    this.deadline,
-    this.targetDate,
-    this.habitTargetPerWeek,
+    LocalDate? deadline,
+    LocalDate? targetDate,
+    int? habitTargetPerWeek,
+    FrequencyPattern? frequency,
     this.motivation,
     this.successCriterion,
     this.cueScene,
     this.achievedAt,
+    this.archivedAt,
   }) : id = id ?? newId(),
-       progressCadenceDays = progressCadenceDays ?? defaultCadenceFor(goalType),
+       goalType =
+           goalType ??
+           (_unifiedTargetDate(targetDate, deadline) != null
+               ? GoalType.shortTerm
+               : _unifiedFrequency(frequency, habitTargetPerWeek) != null
+               ? GoalType.habit
+               : GoalType.longTerm),
+       progressCadenceDays =
+           progressCadenceDays ??
+           (_unifiedTargetDate(targetDate, deadline) == null &&
+                   _unifiedFrequency(frequency, habitTargetPerWeek) == null
+               ? 14
+               : 7),
+       deadline = _unifiedTargetDate(targetDate, deadline),
+       targetDate = _unifiedTargetDate(targetDate, deadline),
+       habitTargetPerWeek = _legacyWeeklyTargetOf(
+         _unifiedFrequency(frequency, habitTargetPerWeek),
+       ),
+       frequency = _unifiedFrequency(frequency, habitTargetPerWeek),
        assert(name.trim().isNotEmpty && name.length <= 30, '目标名 1–30 字'),
        assert(
          progressCadenceDays == null ||
@@ -67,19 +111,7 @@ class Goal {
          '推进周期 1–365 天',
        ),
        assert(
-         goalType == GoalType.shortTerm || deadline == null,
-         '仅短期目标可有截止日期',
-       ),
-       assert(goalType != GoalType.shortTerm || deadline != null, '短期目标必填截止日期'),
-       assert(
-         targetDate == null || goalType == GoalType.longTerm,
-         '仅长期目标可有目标日期',
-       ),
-       assert(
-         habitTargetPerWeek == null ||
-             (goalType == GoalType.habit &&
-                 habitTargetPerWeek >= 1 &&
-                 habitTargetPerWeek <= 7),
+         _hasValidLegacyWeeklyTarget(frequency, habitTargetPerWeek),
          '习惯周频率须为 1–7',
        ),
        assert(
@@ -102,7 +134,7 @@ class Goal {
   final String id;
   final String name;
 
-  /// 003 v3 三类型；创建后不可变更（编辑器仅 deadline/提醒可续期调整）。
+  /// Legacy 兼容分类；新代码从 [targetDate]/[frequency] 派生。
   final GoalType goalType;
 
   /// 设计令牌表内置键（iconKey/colorKey 枚举集合见 lib/core/design/tokens.dart）。
@@ -112,25 +144,28 @@ class Goal {
   /// 图标会推断领域；用户手动更正后以覆盖值为准。
   final GoalIconDomain? categoryOverride;
 
-  /// 记录推进节奏的检查周期。短期默认 7 天，长期默认 14 天；习惯
-  /// 仍以频率完成度为主，但保留 7 天周期作为无记录提醒窗口。
+  /// Legacy 兼容推进节奏；新代码从统一规划设置派生。
   final int progressCadenceDays;
   final GoalStatus status;
   final LocalDate createdAt;
 
-  /// 仅 shortTerm 有值；倒计时 = deadline − 今天（FR-013）。
-  /// 改 deadline = 续期（D4：倒计时重置，不写 achievedAt）。
+  /// Legacy 兼容截止日；新代码使用 [targetDate]。
   final LocalDate? deadline;
 
-  /// 长期目标的可选目标日期；与短期目标的强制截止日期语义分离。
+  /// 统一的可选目标日期。
   final LocalDate? targetDate;
 
-  /// 习惯每周计划完成次数；旧目标迁移时回填，非习惯保持 null。
+  /// Legacy 兼容周目标；新代码使用 [frequency]。
   final int? habitTargetPerWeek;
 
-  /// 003 v3 手动达成时刻（D4；NULL=未达成）。shortTerm/longTerm 可手动
-  /// 标记达成；habit 持续型不完结。
+  /// 统一的可选频率计划。
+  final FrequencyPattern? frequency;
+
+  /// 手动达成时刻（UTC；NULL=未达成）。
   final DateTime? achievedAt;
+
+  /// 归档时刻（UTC）；归档与 active/paused/achieved 状态正交。
+  final DateTime? archivedAt;
 
   /// US3 定义模型（002 B 案 envelope，schema v2 起可空列）：旧目标为 NULL
   /// → 今日卡/列表卡出现「补一句为什么」渐进补全入口（T014 定稿）。
@@ -146,6 +181,8 @@ class Goal {
   bool get isHabit => goalType == GoalType.habit;
   bool get isShortTerm => goalType == GoalType.shortTerm;
   bool get isLongTerm => goalType == GoalType.longTerm;
+  bool get isArchived => archivedAt != null;
+  bool get isActive => status == GoalStatus.active && !isArchived;
 
   static int defaultCadenceFor(GoalType type) =>
       type == GoalType.longTerm ? 14 : 7;
@@ -158,20 +195,15 @@ class Goal {
   /// 大类，沿 byKey 兜底，结论与 data-model 一致）。
   MajorCategory get major => effectiveDomain.major;
 
-  /// 状态机（003 D4）：active ⇄ paused；active → achieved（habit 持续型
-  /// 不可达成）；active/paused → archived（终态）。创建后类型不可变更。
+  /// 状态机：未归档目标可暂停/恢复/达成，达成后可重新开启。
   bool canTransitTo(GoalStatus to) {
-    switch (status) {
-      case GoalStatus.active:
-        return to == GoalStatus.paused ||
-            to == GoalStatus.archived ||
-            (to == GoalStatus.achieved && !isHabit);
-      case GoalStatus.paused:
-        return to == GoalStatus.active || to == GoalStatus.archived;
-      case GoalStatus.archived:
-      case GoalStatus.achieved:
-        return false; // 终态（历史数据保留，不物理删除）
-    }
+    if (isArchived) return false;
+    return switch (status) {
+      GoalStatus.active => to == GoalStatus.paused || to == GoalStatus.achieved,
+      GoalStatus.paused => to == GoalStatus.active || to == GoalStatus.achieved,
+      GoalStatus.achieved => to == GoalStatus.active,
+      GoalStatus.archived => false,
+    };
   }
 
   Goal copyWith({
@@ -183,29 +215,54 @@ class Goal {
     int? progressCadenceDays,
     LocalDate? deadline,
     LocalDate? targetDate,
+    bool clearTargetDate = false,
     int? habitTargetPerWeek,
+    FrequencyPattern? frequency,
+    bool clearFrequency = false,
     String? motivation,
     String? successCriterion,
     String? cueScene,
     DateTime? achievedAt,
-  }) => Goal(
-    id: id,
-    name: name ?? this.name,
-    goalType: goalType,
-    iconKey: iconKey ?? this.iconKey,
-    colorKey: colorKey ?? this.colorKey,
-    categoryOverride: categoryOverride ?? this.categoryOverride,
-    progressCadenceDays: progressCadenceDays ?? this.progressCadenceDays,
-    status: status ?? this.status,
-    createdAt: createdAt,
-    deadline: deadline ?? this.deadline,
-    targetDate: targetDate ?? this.targetDate,
-    habitTargetPerWeek: habitTargetPerWeek ?? this.habitTargetPerWeek,
-    motivation: motivation ?? this.motivation,
-    successCriterion: successCriterion ?? this.successCriterion,
-    cueScene: cueScene ?? this.cueScene,
-    achievedAt: achievedAt ?? this.achievedAt,
-  );
+    bool clearAchievedAt = false,
+    DateTime? archivedAt,
+    bool clearArchivedAt = false,
+  }) {
+    final planningChanged =
+        deadline != null ||
+        targetDate != null ||
+        clearTargetDate ||
+        habitTargetPerWeek != null ||
+        frequency != null ||
+        clearFrequency;
+    return Goal(
+      id: id,
+      name: name ?? this.name,
+      goalType: planningChanged ? null : goalType,
+      iconKey: iconKey ?? this.iconKey,
+      colorKey: colorKey ?? this.colorKey,
+      categoryOverride: categoryOverride ?? this.categoryOverride,
+      progressCadenceDays:
+          progressCadenceDays ??
+          (planningChanged ? null : this.progressCadenceDays),
+      status: status ?? this.status,
+      createdAt: createdAt,
+      deadline: clearTargetDate
+          ? null
+          : (targetDate ?? deadline ?? this.deadline),
+      targetDate: clearTargetDate ? null : (targetDate ?? this.targetDate),
+      habitTargetPerWeek: clearFrequency
+          ? null
+          : (_legacyWeeklyTargetOf(frequency) ??
+                habitTargetPerWeek ??
+                this.habitTargetPerWeek),
+      frequency: clearFrequency ? null : (frequency ?? this.frequency),
+      motivation: motivation ?? this.motivation,
+      successCriterion: successCriterion ?? this.successCriterion,
+      cueScene: cueScene ?? this.cueScene,
+      achievedAt: clearAchievedAt ? null : (achievedAt ?? this.achievedAt),
+      archivedAt: clearArchivedAt ? null : (archivedAt ?? this.archivedAt),
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -222,10 +279,12 @@ class Goal {
       other.deadline == deadline &&
       other.targetDate == targetDate &&
       other.habitTargetPerWeek == habitTargetPerWeek &&
+      other.frequency == frequency &&
       other.motivation == motivation &&
       other.successCriterion == successCriterion &&
       other.cueScene == cueScene &&
-      other.achievedAt == achievedAt;
+      other.achievedAt == achievedAt &&
+      other.archivedAt == archivedAt;
 
   @override
   int get hashCode => Object.hash(
@@ -241,10 +300,12 @@ class Goal {
     deadline,
     targetDate,
     habitTargetPerWeek,
+    frequency,
     motivation,
     successCriterion,
     cueScene,
     achievedAt,
+    archivedAt,
   );
 }
 

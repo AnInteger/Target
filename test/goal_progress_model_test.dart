@@ -7,18 +7,16 @@ import 'package:target/core/models/entities.dart';
 import 'package:target/core/models/goal_icon_catalog.dart';
 
 void main() {
-  test('goal cadence defaults follow its type', () {
+  test('goal cadence defaults follow unified planning settings', () {
     final short = Goal(
       name: '拿到 OW 潜水证',
-      goalType: GoalType.shortTerm,
       iconKey: GoalIconCatalog.pool.key,
       colorKey: '',
       createdAt: const LocalDate(2026, 8, 25),
-      deadline: const LocalDate(2026, 10, 2),
+      targetDate: const LocalDate(2026, 10, 2),
     );
     final long = Goal(
       name: '完成个人作品集',
-      goalType: GoalType.longTerm,
       iconKey: GoalIconCatalog.palette.key,
       colorKey: '',
       createdAt: const LocalDate(2026, 8, 25),
@@ -92,48 +90,54 @@ void main() {
     expect(settings.scoreAlgorithmStartedOn, const LocalDate(2026, 8, 25));
   });
 
-  test('planning fields survive repository round trips', () async {
-    final db = AppDatabase(NativeDatabase.memory());
-    addTearDown(db.close);
-    final goals = GoalRepository(db);
-    final settings = SettingsRepository(db);
-    final goal = Goal(
-      id: 'goal-1',
-      name: '完成个人作品集',
-      goalType: GoalType.longTerm,
-      iconKey: GoalIconCatalog.palette.key,
-      colorKey: '',
-      categoryOverride: GoalIconDomain.learning,
-      progressCadenceDays: 21,
-      targetDate: const LocalDate(2027, 2, 1),
-      createdAt: const LocalDate(2026, 8, 25),
-    );
+  test(
+    'unified planning fields round trip and legacy cadence is derived',
+    () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final goals = GoalRepository(db);
+      final settings = SettingsRepository(db);
+      final goal = Goal(
+        id: 'goal-1',
+        name: '完成个人作品集',
+        goalType: GoalType.longTerm,
+        iconKey: GoalIconCatalog.palette.key,
+        colorKey: '',
+        categoryOverride: GoalIconDomain.learning,
+        progressCadenceDays: 21,
+        targetDate: const LocalDate(2027, 2, 1),
+        createdAt: const LocalDate(2026, 8, 25),
+      );
 
-    await goals.create(goal);
-    await goals.addStep(
-      MilestoneStep(
-        id: 'step-1',
-        goalId: goal.id,
-        title: '完成信息架构',
-        position: 20,
-      ),
-    );
-    await settings.update(
-      const Settings(
-        defaultShortCadenceDays: 9,
-        defaultLongCadenceDays: 21,
-        scoreAlgorithmStartedOn: LocalDate(2026, 8, 25),
-      ),
-    );
+      await goals.create(goal);
+      await goals.addStep(
+        MilestoneStep(
+          id: 'step-1',
+          goalId: goal.id,
+          title: '完成信息架构',
+          position: 20,
+        ),
+      );
+      await settings.update(
+        const Settings(
+          defaultShortCadenceDays: 9,
+          defaultLongCadenceDays: 21,
+          scoreAlgorithmStartedOn: LocalDate(2026, 8, 25),
+        ),
+      );
 
-    final savedGoal = (await goals.getGoals()).single;
-    expect(savedGoal.categoryOverride, GoalIconDomain.learning);
-    expect(savedGoal.progressCadenceDays, 21);
-    expect(savedGoal.targetDate, const LocalDate(2027, 2, 1));
-    expect((await goals.stepsOf(goal.id)).single.position, 20);
-    final savedSettings = await settings.get();
-    expect(savedSettings.defaultShortCadenceDays, 9);
-    expect(savedSettings.defaultLongCadenceDays, 21);
-    expect(savedSettings.scoreAlgorithmStartedOn, const LocalDate(2026, 8, 25));
-  });
+      final savedGoal = (await goals.getGoals()).single;
+      expect(savedGoal.categoryOverride, GoalIconDomain.learning);
+      expect(savedGoal.progressCadenceDays, 7);
+      expect(savedGoal.targetDate, const LocalDate(2027, 2, 1));
+      expect((await goals.stepsOf(goal.id)).single.position, 20);
+      final savedSettings = await settings.get();
+      expect(savedSettings.defaultShortCadenceDays, 9);
+      expect(savedSettings.defaultLongCadenceDays, 21);
+      expect(
+        savedSettings.scoreAlgorithmStartedOn,
+        const LocalDate(2026, 8, 25),
+      );
+    },
+  );
 }

@@ -77,8 +77,8 @@ void main() {
       expect(versions.last.pattern, const WeeklyFrequency(1));
     });
 
-    test('活跃上限 5：第 6 个 active 创建被拒', () async {
-      for (var i = 0; i < 5; i++) {
+    test('仓储允许创建超过 5 个 active 目标', () async {
+      for (var i = 0; i < 8; i++) {
         await repo.create(
           Goal(
             name: '目标$i',
@@ -89,29 +89,7 @@ void main() {
           ),
         );
       }
-      expect(
-        () => repo.create(
-          Goal(
-            name: '第六个',
-            goalType: GoalType.habit,
-            iconKey: 'star',
-            colorKey: 'teal',
-            createdAt: const LocalDate(2026, 8, 18),
-          ),
-        ),
-        throwsA(isA<ActiveGoalLimitException>()),
-      );
-      // paused 不占名额。
-      await repo.create(
-        Goal(
-          name: '暂停的不算',
-          goalType: GoalType.habit,
-          iconKey: 'star',
-          colorKey: 'teal',
-          status: GoalStatus.paused,
-          createdAt: const LocalDate(2026, 8, 18),
-        ),
-      );
+      expect(await repo.getGoals(), hasLength(8));
     });
   });
 

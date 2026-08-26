@@ -176,4 +176,120 @@ void main() {
       expect(loaded.milestones.single.doneAt, isNull);
     },
   );
+
+  test('create rejects milestone ids already owned by another goal without mutation', () async {
+    await repo.create(
+      GoalPlanInput(
+        goal: baseGoal('owner'),
+        milestones: const [
+          MilestoneDraft(id: 'shared', title: 'owner milestone'),
+        ],
+        reminder: const ReminderDraft(
+          id: 'owner-reminder',
+          enabled: true,
+          time: LocalTime(8, 0),
+          cadence: Cadence.daily,
+        ),
+      ),
+    );
+
+    final error = await _captureError(
+      repo.create(
+        GoalPlanInput(
+          goal: baseGoal('intruder'),
+          milestones: const [
+            MilestoneDraft(id: 'shared', title: 'intruder milestone'),
+          ],
+          reminder: const ReminderDraft(
+            id: 'intruder-reminder',
+            enabled: false,
+            time: LocalTime(18, 0),
+            cadence: Cadence.weekly,
+          ),
+        ),
+      ),
+    );
+
+    final owner = await repo.load('owner');
+    final intruder = await repo.load('intruder');
+    expect(owner!.milestones.single.id, 'shared');
+    expect(owner.milestones.single.goalId, 'owner');
+    expect(owner.milestones.single.title, 'owner milestone');
+    expect(owner.reminder!.time, const LocalTime(8, 0));
+    expect(intruder, isNull);
+    expect(error, isArgumentError);
+  });
+
+  test(
+    'update rejects milestone ids owned by another goal without mutation',
+    () async {
+      await repo.create(
+        GoalPlanInput(
+          goal: baseGoal('owner'),
+          milestones: const [
+            MilestoneDraft(id: 'shared', title: 'owner milestone'),
+          ],
+          reminder: const ReminderDraft(
+            id: 'owner-reminder',
+            enabled: true,
+            time: LocalTime(8, 0),
+            cadence: Cadence.daily,
+          ),
+        ),
+      );
+      final edited = await repo.create(
+        GoalPlanInput(
+          goal: baseGoal('edited'),
+          milestones: const [
+            MilestoneDraft(id: 'edited-step', title: 'edited milestone'),
+          ],
+          reminder: const ReminderDraft(
+            id: 'edited-reminder',
+            enabled: true,
+            time: LocalTime(9, 0),
+            cadence: Cadence.daily,
+          ),
+        ),
+      );
+
+      final error = await _captureError(
+        repo.update(
+          GoalPlanInput(
+            goal: edited.copyWith(name: '不应保存的新名称'),
+            milestones: const [
+              MilestoneDraft(id: 'shared', title: 'stolen milestone'),
+            ],
+            reminder: const ReminderDraft(
+              id: 'edited-reminder',
+              enabled: false,
+              time: LocalTime(18, 0),
+              cadence: Cadence.weekly,
+            ),
+          ),
+        ),
+      );
+
+      final owner = await repo.load('owner');
+      final unchanged = await repo.load('edited');
+      expect(owner!.milestones.single.id, 'shared');
+      expect(owner.milestones.single.goalId, 'owner');
+      expect(owner.milestones.single.title, 'owner milestone');
+      expect(owner.reminder!.time, const LocalTime(8, 0));
+      expect(unchanged!.goal.name, '21 天跑步计划');
+      expect(unchanged.milestones.single.id, 'edited-step');
+      expect(unchanged.milestones.single.title, 'edited milestone');
+      expect(unchanged.reminder!.isEnabled, isTrue);
+      expect(unchanged.reminder!.time, const LocalTime(9, 0));
+      expect(error, isArgumentError);
+    },
+  );
+}
+
+Future<Object?> _captureError(Future<void> operation) async {
+  try {
+    await operation;
+    return null;
+  } catch (error) {
+    return error;
+  }
 }

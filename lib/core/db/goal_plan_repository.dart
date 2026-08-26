@@ -43,6 +43,7 @@ class GoalPlanRepository {
 
   Future<Goal> create(GoalPlanInput input) async {
     final normalized = _normalize(input);
+    await _rejectExistingMilestoneIds(normalized.milestones);
     await _db.transaction(() async {
       await _db
           .into(_db.goals)
@@ -55,36 +56,35 @@ class GoalPlanRepository {
 
   Future<void> update(GoalPlanInput input) async {
     final normalized = _normalize(input);
+    final existing = await _milestonesOf(normalized.goal.id);
+    _rejectNonRetainedMilestoneIds(normalized.milestones, existing);
+
     await _db.transaction(() async {
       await (_db.update(_db.goals)
             ..where((t) => t.id.equals(normalized.goal.id)))
           .write(GoalRowMapper.toCompanion(normalized.goal));
 
-      final existing = await (_db.select(
-        _db.milestoneSteps,
-      )..where((t) => t.goalId.equals(normalized.goal.id))).map(_toStep).get();
       final existingById = {for (final step in existing) step.id: step};
       final retainedIds = normalized.milestones
           .map((draft) => draft.id)
           .nonNulls
           .toSet();
 
-      await (_db.delete(_db.milestoneSteps)..where(
-            (t) =>
-                t.goalId.equals(normalized.goal.id) & t.id.isNotIn(retainedIds),
-          ))
-          .go();
+      await _deleteOmittedMilestones(normalized.goal.id, retainedIds);
 
       for (final (position, draft) in normalized.milestones.indexed) {
         final existingStep = draft.id == null ? null : existingById[draft.id];
-        await _upsertMilestone(
-          _stepFromDraft(
-            goalId: normalized.goal.id,
-            draft: draft,
-            position: position,
-            existing: existingStep,
-          ),
+        final step = _stepFromDraft(
+          goalId: normalized.goal.id,
+          draft: draft,
+          position: position,
+          existing: existingStep,
         );
+        if (existingStep == null) {
+          await _insertMilestone(step);
+        } else {
+          await _updateMilestone(step);
+        }
       }
 
       await _replaceReminder(normalized.goal.id, normalized.reminder);
@@ -142,13 +142,59 @@ class GoalPlanRepository {
     List<MilestoneDraft> milestones,
   ) async {
     for (final (position, draft) in milestones.indexed) {
-      await _upsertMilestone(
+      await _insertMilestone(
         _stepFromDraft(goalId: goalId, draft: draft, position: position),
       );
     }
   }
 
-  Future<void> _upsertMilestone(MilestoneStep step) => _db
+  Future<void> _rejectExistingMilestoneIds(
+    List<MilestoneDraft> milestones,
+  ) async {
+    final explicitIds = milestones.map((draft) => draft.id).nonNulls.toList();
+    if (explicitIds.isEmpty) return;
+
+    final collisions =
+        await (_db.select(_db.milestoneSteps)
+              ..where((t) => t.id.isIn(explicitIds))
+              ..limit(1))
+            .get();
+    if (collisions.isNotEmpty) {
+      throw ArgumentError.value(
+        collisions.single.id,
+        'milestones.id',
+        '里程碑 id 已被其他目标使用',
+      );
+    }
+  }
+
+  void _rejectNonRetainedMilestoneIds(
+    List<MilestoneDraft> milestones,
+    List<MilestoneStep> existing,
+  ) {
+    final existingIds = existing.map((step) => step.id).toSet();
+    for (final id in milestones.map((draft) => draft.id).nonNulls) {
+      if (!existingIds.contains(id)) {
+        throw ArgumentError.value(id, 'milestones.id', '里程碑 id 不属于当前目标');
+      }
+    }
+  }
+
+  Future<List<MilestoneStep>> _milestonesOf(String goalId) => (_db.select(
+    _db.milestoneSteps,
+  )..where((t) => t.goalId.equals(goalId))).map(_toStep).get();
+
+  Future<void> _deleteOmittedMilestones(
+    String goalId,
+    Set<String> retainedIds,
+  ) {
+    final deletion = _db.delete(_db.milestoneSteps)
+      ..where((t) => t.goalId.equals(goalId));
+    if (retainedIds.isEmpty) return deletion.go();
+    return (deletion..where((t) => t.id.isNotIn(retainedIds))).go();
+  }
+
+  Future<void> _insertMilestone(MilestoneStep step) => _db
       .into(_db.milestoneSteps)
       .insert(
         db.MilestoneStepsCompanion.insert(
@@ -159,8 +205,19 @@ class GoalPlanRepository {
           isDone: step.isDone,
           doneAt: Value(step.doneAt),
         ),
-        mode: InsertMode.insertOrReplace,
       );
+
+  Future<void> _updateMilestone(MilestoneStep step) =>
+      (_db.update(_db.milestoneSteps)
+            ..where((t) => t.id.equals(step.id) & t.goalId.equals(step.goalId)))
+          .write(
+            db.MilestoneStepsCompanion(
+              title: Value(step.title),
+              position: Value(step.position),
+              isDone: Value(step.isDone),
+              doneAt: Value(step.doneAt),
+            ),
+          );
 
   Future<void> _replaceReminder(String goalId, ReminderDraft? draft) async {
     await (_db.delete(

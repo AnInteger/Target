@@ -14,11 +14,13 @@ import 'package:target/core/db/repositories.dart';
 import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/date_provider.dart';
 import 'package:target/core/models/entities.dart';
+import 'package:target/core/models/frequency_pattern.dart';
 import 'package:target/core/platform/gateways.dart';
 import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goals_view.dart';
 import 'package:target/features/progress/progress_view.dart';
 import 'package:target/features/today/today_view.dart';
+import 'package:target/core/db/goal_plan_repository.dart';
 
 const _today = LocalDate(2026, 8, 25);
 
@@ -180,6 +182,111 @@ void main() {
       );
       expect(find.text(name), findsOneWidget);
     }
+    await app.dispose(tester);
+  });
+
+  testWidgets('journey: create combined goal then manage lifecycle from Goals tab', (
+    tester,
+  ) async {
+    // Phase 1 收口旅程：名称 + 日期 + 每周频率 + 里程碑 + 提醒一次配齐，
+    // 再从目标页 overflow 走完 暂停→恢复→达成→重开→归档→反归档 全周期。
+    final app = await _pumpApp(tester);
+    await tester.tap(find.byKey(const ValueKey('navTab-/goals')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalsNewButton')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('goalNameField')),
+      '21 天跑步计划',
+    );
+    await tester.tap(find.byKey(const ValueKey('goalHasDateSwitch')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalTargetDateField')));
+    await tester.pumpAndSettle();
+    // 开关缺省 +90 天（2026-11-23），弹窗初始停在 11 月——回退三个月
+    // 到 8 月再选 30 日。
+    final dateDialog = find.byType(DatePickerDialog);
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(
+        find.descendant(of: dateDialog, matching: find.byIcon(Icons.chevron_left)).first,
+      );
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('30'));
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const ValueKey('goalFrequencyField')));
+    await tester.tap(find.byKey(const ValueKey('goalFrequencyField')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('每周若干次'));
+    await tester.tap(find.byKey(const ValueKey('weeklyCount-3')));
+    await tester.pumpAndSettle();
+
+    for (final title in ['坚持 7 天', '坚持 21 天']) {
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('milestoneDraftInput')),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('milestoneDraftInput')),
+        title,
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('milestoneDraftAdd')));
+      await tester.pumpAndSettle();
+    }
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('goalReminderSwitch')),
+      120,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('goalReminderSwitch')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalReminderSwitch')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
+    await tester.pumpAndSettle();
+
+    final goal = (await GoalRepository(app.db).getGoals()).singleWhere(
+      (g) => g.name == '21 天跑步计划',
+    );
+    final plan = await app.container.read(goalPlanRepoProvider).load(goal.id);
+    expect(goal.targetDate, const LocalDate(2026, 8, 30));
+    expect(goal.frequency, const WeeklyFrequency(3));
+    expect(plan!.milestones.map((m) => m.title), ['坚持 7 天', '坚持 21 天']);
+    expect(plan.reminder!.isEnabled, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('goalListRow-${goal.id}')), findsOneWidget);
+    expect(find.textContaining('当前：坚持 7 天'), findsOneWidget);
+
+    Future<void> action(String name) async {
+      await tester.tap(find.byKey(ValueKey('goalOverflow-${goal.id}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('goalAction-$name-${goal.id}')));
+      await tester.pumpAndSettle();
+    }
+
+    await action('pause');
+    expect((await _goalById(app.db, goal.id))!.status, GoalStatus.paused);
+    await action('resume');
+    expect((await _goalById(app.db, goal.id))!.status, GoalStatus.active);
+    await action('achieve');
+    expect((await _goalById(app.db, goal.id))!.status, GoalStatus.achieved);
+    await action('reopen');
+    expect((await _goalById(app.db, goal.id))!.status, GoalStatus.active);
+    await action('archive');
+    expect((await _goalById(app.db, goal.id))!.isArchived, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('goalFilter-archived')));
+    await tester.pumpAndSettle();
+    await action('unarchive');
+    final restored = await app.container.read(goalPlanRepoProvider).load(goal.id);
+    expect(restored!.goal.isArchived, isFalse);
+    expect(restored.milestones.map((m) => m.title), ['坚持 7 天', '坚持 21 天']);
+    expect(restored.reminder!.isEnabled, isTrue);
     await app.dispose(tester);
   });
 

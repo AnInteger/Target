@@ -49,7 +49,7 @@ The current phase is complete only when the app builds and existing Today/detail
 - Consumes: existing `FrequencyPatternJson`, `GoalIconCatalog.byKey`, v6 goal columns, and legacy `frequency_versions` rows.
 - Produces: nullable Drift columns `Goals.frequencyPattern` and `Goals.archivedAt`; schema version `7`.
 
-- [ ] **Step 1: Add a failing v6→v7 migration test**
+- [x] **Step 1: Add a failing v6→v7 migration test**
 
 Add a `_V6Database` fixture whose goal table matches schema v6, then add this test to `test/migration_test.dart`:
 
@@ -88,7 +88,7 @@ test('v6→v7：日期、频率、分类和归档语义迁移且历史不丢失'
 });
 ```
 
-- [ ] **Step 2: Run the migration test and verify it fails**
+- [x] **Step 2: Run the migration test and verify it fails**
 
 Run:
 
@@ -98,7 +98,7 @@ flutter test test/migration_test.dart --plain-name "v6→v7：日期、频率、
 
 Expected: FAIL because schema version 7 and the two new columns do not exist.
 
-- [ ] **Step 3: Add the Drift columns**
+- [x] **Step 3: Add the Drift columns**
 
 In `Goals` add:
 
@@ -110,7 +110,7 @@ TextColumn get archivedAt => text().nullable().map(const IsoDateTimeText())();
 
 Do not drop or rename legacy columns in this migration.
 
-- [ ] **Step 4: Implement `_migrateV7`**
+- [x] **Step 4: Implement `_migrateV7`**
 
 Set `schemaVersion => 7`, call `_migrateV7(m)` from `onUpgrade` when `from < 7`, and implement the migration with these exact rules:
 
@@ -167,7 +167,7 @@ Future<void> _migrateV7(Migrator m) async {
 
 Import `FrequencyPattern`, `WeeklyFrequency`, and `GoalIconCatalog`. Keep migration time UTC and test only non-nullness because the exact upgrade instant is environment-dependent.
 
-- [ ] **Step 5: Regenerate Drift code**
+- [x] **Step 5: Regenerate Drift code**
 
 Run:
 
@@ -177,7 +177,7 @@ dart run build_runner build --delete-conflicting-outputs
 
 Expected: `lib/core/db/app_database.g.dart` contains nullable `frequencyPattern` and `archivedAt` members and no generator errors.
 
-- [ ] **Step 6: Run migration and schema tests**
+- [x] **Step 6: Run migration and schema tests**
 
 Run:
 
@@ -187,7 +187,7 @@ flutter test test/migration_test.dart test/version_seed.dart
 
 Expected: PASS, including all v1–v6 upgrade paths.
 
-- [ ] **Step 7: Commit the schema slice**
+- [x] **Step 7: Commit the schema slice**
 
 ```bash
 git add lib/core/db/tables.dart lib/core/db/app_database.dart lib/core/db/app_database.g.dart test/migration_test.dart test/version_seed.dart
@@ -210,7 +210,7 @@ git commit -m "feat: add unified goal planning schema"
 - Consumes: Task 1 columns and existing `FrequencyPattern` subclasses.
 - Produces: `Goal.frequency`, `Goal.archivedAt`, `Goal.isArchived`, `Goal.isActive`, clearable `Goal.copyWith`, unrestricted active-goal repository writes, and lifecycle functions `archiveGoal`, `unarchiveGoal`, `reopenGoal`.
 
-- [ ] **Step 1: Write failing domain tests**
+- [x] **Step 1: Write failing domain tests**
 
 Create `test/goal_lifecycle_v7_test.dart`:
 
@@ -269,7 +269,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Run the domain tests and verify failure**
+- [x] **Step 2: Run the domain tests and verify failure**
 
 Run:
 
@@ -279,7 +279,7 @@ flutter test test/goal_lifecycle_v7_test.dart
 
 Expected: FAIL because `frequency`, `archivedAt`, and clear flags do not exist and the sixth active goal throws.
 
-- [ ] **Step 3: Extend `Goal` without breaking legacy consumers**
+- [x] **Step 3: Extend `Goal` without breaking legacy consumers**
 
 Make the constructor's existing `goalType` parameter optional and derive its compatibility value when omitted:
 
@@ -330,7 +330,7 @@ Goal copyWith({
 
 Use `clearX ? null : (x ?? this.x)` for nullable fields and include new fields in equality and `hashCode`.
 
-- [ ] **Step 4: Expand lifecycle semantics**
+- [x] **Step 4: Expand lifecycle semantics**
 
 Change `canTransitTo` so every non-archived goal can be achieved, including legacy habits:
 
@@ -350,7 +350,7 @@ bool canTransitTo(GoalStatus to) {
 
 `GoalStatus.archived` remains only to decode old rows and backups; repositories must not write it after schema v7.
 
-- [ ] **Step 5: Centralize row mapping and remove the active cap**
+- [x] **Step 5: Centralize row mapping and remove the active cap**
 
 Create `goal_row_mapper.dart` with one shared mapper used by both repositories:
 
@@ -388,7 +388,7 @@ static int? legacyWeeklyTargetOf(Goal goal) => switch (goal.frequency) {
 
 Write `deadline = targetDate` for compatibility and write the explicit category to the existing `category_override` column.
 
-- [ ] **Step 6: Add lifecycle orchestration functions**
+- [x] **Step 6: Add lifecycle orchestration functions**
 
 In `goal_lifecycle.dart` add:
 
@@ -414,7 +414,7 @@ Future<void> reopenGoal(WidgetRef ref, Goal goal) => ref
 
 Update `achieveGoal` to work for every goal and write UTC. Remove focus-limit dialogs and exception handling.
 
-- [ ] **Step 7: Run lifecycle and affected repository tests**
+- [x] **Step 7: Run lifecycle and affected repository tests**
 
 Run:
 
@@ -424,7 +424,7 @@ flutter test test/goal_lifecycle_v7_test.dart test/frequency_version_test.dart t
 
 Expected: PASS. Update old “sixth active goal is rejected” assertions to expect successful creation; do not simply delete the coverage.
 
-- [ ] **Step 8: Commit the domain slice**
+- [x] **Step 8: Commit the domain slice**
 
 ```bash
 git add lib/core/models/entities.dart lib/core/db/goal_row_mapper.dart lib/core/db/repositories.dart lib/features/goals/goal_lifecycle.dart test/goal_lifecycle_v7_test.dart test/frequency_version_test.dart test/goal_progress_model_test.dart
@@ -445,7 +445,7 @@ git commit -m "refactor: unify goal planning and lifecycle semantics"
 - Consumes: `Goal`, `MilestoneStep`, `Reminder`, `FrequencyPattern`, and Task 2 repository mapping.
 - Produces: `GoalPlanInput`, `GoalPlanSnapshot`, `GoalPlanRepository.load`, `GoalPlanRepository.create`, and `GoalPlanRepository.update`.
 
-- [ ] **Step 1: Write failing atomic-persistence tests**
+- [x] **Step 1: Write failing atomic-persistence tests**
 
 Create `test/goal_plan_repository_test.dart` with this fixture and these three cases:
 
@@ -595,7 +595,7 @@ test('invalid update leaves goal milestones and reminder unchanged', () async {
 }
 ```
 
-- [ ] **Step 2: Run the repository test and verify failure**
+- [x] **Step 2: Run the repository test and verify failure**
 
 Run:
 
@@ -605,7 +605,7 @@ flutter test test/goal_plan_repository_test.dart
 
 Expected: FAIL because the model and repository do not exist.
 
-- [ ] **Step 3: Define the plan models**
+- [x] **Step 3: Define the plan models**
 
 Create `goal_plan.dart`:
 
@@ -659,7 +659,7 @@ class GoalPlanSnapshot {
 }
 ```
 
-- [ ] **Step 4: Implement transactional create/load/update**
+- [x] **Step 4: Implement transactional create/load/update**
 
 `GoalPlanRepository` owns an `AppDatabase` and uses one Drift transaction per create or update.
 
@@ -682,7 +682,7 @@ Future<void> update(GoalPlanInput input);
 
 Use `GoalRowMapper.toCompanion` and `GoalRowMapper.fromRow` from Task 2; do not duplicate compatibility derivation.
 
-- [ ] **Step 5: Add the provider**
+- [x] **Step 5: Add the provider**
 
 In `providers.dart` add:
 
@@ -692,7 +692,7 @@ final goalPlanRepoProvider = Provider(
 );
 ```
 
-- [ ] **Step 6: Run repository and transaction tests**
+- [x] **Step 6: Run repository and transaction tests**
 
 Run:
 
@@ -702,7 +702,7 @@ flutter test test/goal_plan_repository_test.dart test/progress_record_test.dart
 
 Expected: PASS, including rejection-before-mutation coverage and the transaction-backed valid writes.
 
-- [ ] **Step 7: Commit the persistence boundary**
+- [x] **Step 7: Commit the persistence boundary**
 
 ```bash
 git add lib/core/models/goal_plan.dart lib/core/db/goal_plan_repository.dart lib/app/providers.dart test/goal_plan_repository_test.dart
@@ -722,7 +722,7 @@ git commit -m "feat: persist complete goal plans atomically"
 - Consumes: schema-v7 `frequencyPattern`, `archivedAt`, legacy backup versions 1–5.
 - Produces: backup version `6`, `frequencyPattern` JSON, and `archivedAt` ISO-8601 round-trip.
 
-- [ ] **Step 1: Add failing v6 backup round-trip tests**
+- [x] **Step 1: Add failing v6 backup round-trip tests**
 
 Add to `test/backup_test.dart`:
 
@@ -759,7 +759,7 @@ test('v6 round-trip preserves frequency and reversible archive timestamp', () as
 
 Retain existing tests that import backup versions 1–5.
 
-- [ ] **Step 2: Run the backup test and verify failure**
+- [x] **Step 2: Run the backup test and verify failure**
 
 Run:
 
@@ -769,7 +769,7 @@ flutter test test/backup_test.dart --plain-name "v6 round-trip preserves frequen
 
 Expected: FAIL because backup version is 5 and the fields are missing.
 
-- [ ] **Step 3: Export the new fields**
+- [x] **Step 3: Export the new fields**
 
 Set `kBackupVersion = 6` and add:
 
@@ -781,7 +781,7 @@ if (g.frequencyPattern != null)
 
 Continue exporting legacy fields for backward inspection and current-version recovery.
 
-- [ ] **Step 4: Validate and import the new fields**
+- [x] **Step 4: Validate and import the new fields**
 
 - Accept absent `frequencyPattern` and `archivedAt` for versions 1–5.
 - Validate `frequencyPattern` by calling `FrequencyPattern.fromJson` inside a guarded parse and report the exact goal index on failure.
@@ -790,7 +790,7 @@ Continue exporting legacy fields for backward inspection and current-version rec
 - When a legacy goal status is `archived`, write `status = paused` plus a non-null archive timestamp using the backup `exportedAt` instant.
 - Write both new columns in the import transaction.
 
-- [ ] **Step 5: Run all backup tests**
+- [x] **Step 5: Run all backup tests**
 
 Run:
 
@@ -800,7 +800,7 @@ flutter test test/backup_test.dart
 
 Expected: PASS for versions 1–6, corrupt-field rejection, and atomic replacement.
 
-- [ ] **Step 6: Commit backup compatibility**
+- [x] **Step 6: Commit backup compatibility**
 
 ```bash
 git add lib/core/backup/backup_exporter.dart lib/core/backup/backup_importer.dart test/backup_test.dart
@@ -826,7 +826,7 @@ git commit -m "feat: back up unified goal planning fields"
 - Consumes: `GoalPlanRepository`, `GoalPlanInput`, `FrequencyPattern`, `GoalIconDomain`, and the existing icon picker.
 - Produces: a single-page create/edit flow with stable test keys and no product-facing goal type or template API.
 
-- [ ] **Step 1: Write failing unified-editor widget tests**
+- [x] **Step 1: Write failing unified-editor widget tests**
 
 Replace type-specific assertions in `test/goal_editor_test.dart` with these behaviors:
 
@@ -875,7 +875,7 @@ testWidgets('milestones are editable for every goal configuration', (
 
 Add create persistence and edit-clear tests that assert the database snapshot returned by `GoalPlanRepository.load`.
 
-- [ ] **Step 2: Run the editor tests and verify failure**
+- [x] **Step 2: Run the editor tests and verify failure**
 
 Run:
 
@@ -885,7 +885,7 @@ flutter test test/goal_editor_test.dart
 
 Expected: FAIL because the old segmented type editor and first-plan field are still present.
 
-- [ ] **Step 3: Implement `GoalEditorDraft`**
+- [x] **Step 3: Implement `GoalEditorDraft`**
 
 The draft owns form state independent of widgets:
 
@@ -916,14 +916,14 @@ class GoalEditorDraft {
 
 `toInput` preserves existing ids, status, created/achieved/archive timestamps, and legacy envelope fields. For a new goal, use the `explore` icon with a null category and do not set a date, frequency, milestone, or reminder.
 
-- [ ] **Step 4: Build focused optional-field widgets**
+- [x] **Step 4: Build focused optional-field widgets**
 
 - `GoalFrequencyField` returns `FrequencyPattern?` and offers: none, daily, weekly 1–7, and weekdays with at least one selected day.
 - `GoalMilestoneEditor` edits `List<MilestoneDraft>`, supports add, rename, remove, and reorder, and preserves ids/completion metadata for existing rows.
 - `GoalReminderField` returns `ReminderDraft?`, with enabled, time, and the existing daily/three-day/weekly reminder cadence. Its switch key is `goalReminderSwitch`.
 - Each interactive control has a minimum 44dp hit target and the test keys used above.
 
-- [ ] **Step 5: Rewrite the page composition**
+- [x] **Step 5: Rewrite the page composition**
 
 Use this fixed section order:
 
@@ -939,14 +939,14 @@ Use this fixed section order:
 
 Remove `GoalType` segments, template parameters, `_firstPlans`, `progressCadenceDays` controls, and all type-conditioned fields. Category selection writes explicit nullable `GoalIconDomain`; changing the icon must not silently change an already selected category.
 
-- [ ] **Step 6: Save through `GoalPlanRepository` and navigate correctly**
+- [x] **Step 6: Save through `GoalPlanRepository` and navigate correctly**
 
 - Create: `final created = await repo.create(draft.toInput(...)); context.pushReplacement('/goal/${created.id}')`, preserving the Goals page beneath the editor/detail stack.
 - Edit: `await repo.update(draft.toInput(existing: goal, ...)); context.pop()`.
 - On persistence failure, keep the form values and show one retryable inline error.
 - Remove the `GoalTemplate?` route extra and constructor parameter.
 
-- [ ] **Step 7: Run editor, icon, and app-journey tests**
+- [x] **Step 7: Run editor, icon, and app-journey tests**
 
 Run:
 
@@ -956,7 +956,7 @@ flutter test test/goal_editor_test.dart test/goal_icon_catalog_test.dart test/ap
 
 Expected: PASS after updating creation journeys to fill the unified controls instead of selecting a type.
 
-- [ ] **Step 8: Commit the editor slice**
+- [x] **Step 8: Commit the editor slice**
 
 ```bash
 git add lib/features/goals/goal_editor.dart lib/features/goals/goal_editor_draft.dart lib/features/goals/goal_frequency_field.dart lib/features/goals/goal_milestone_editor.dart lib/features/goals/goal_reminder_field.dart lib/features/goals/goal_templates.dart lib/app/router.dart lib/core/copy.dart test/goal_editor_test.dart test/app_journeys_test.dart
@@ -980,7 +980,7 @@ git commit -m "feat: redesign unified goal editor"
 - Consumes: goals, check-ins, all milestones, Task 2 lifecycle functions, and `/goal/:id` plus `/goal-editor?id=...` routes.
 - Produces: `GoalsView`, `GoalListFilter`, compact `GoalListItem`, and `showGoalManagementMenu`.
 
-- [ ] **Step 1: Write failing list and menu tests**
+- [x] **Step 1: Write failing list and menu tests**
 
 Create `test/goals_management_view_test.dart` with a real in-memory database and router. Cover:
 
@@ -1019,7 +1019,7 @@ testWidgets('overflow menu exposes state-valid actions', (tester) async {
 
 Also test pause, resume, achieve, reopen, archive, unarchive, and confirmed delete against repository state.
 
-- [ ] **Step 2: Run the new view tests and verify failure**
+- [x] **Step 2: Run the new view tests and verify failure**
 
 Run:
 
@@ -1029,7 +1029,7 @@ flutter test test/goals_management_view_test.dart
 
 Expected: FAIL because the new classes and visible menu keys do not exist.
 
-- [ ] **Step 3: Implement compact row view data**
+- [x] **Step 3: Implement compact row view data**
 
 Define:
 
@@ -1060,7 +1060,7 @@ Summary priority:
 
 Sort archived rows after non-archived rows, then active, paused, achieved, and finally by `lastActivity ?? goal.createdAt` descending.
 
-- [ ] **Step 4: Implement the compact management page**
+- [x] **Step 4: Implement the compact management page**
 
 Page structure:
 
@@ -1072,7 +1072,7 @@ Page structure:
 
 Each row contains a 40–44dp icon, one-line name, status badge, one-line summary, and visible overflow button. The whole row opens detail. Do not add a record button or gradient background in this phase.
 
-- [ ] **Step 5: Implement the state-aware menu**
+- [x] **Step 5: Implement the state-aware menu**
 
 `showGoalManagementMenu` must use explicit row buttons, not long-press discovery:
 
@@ -1095,7 +1095,7 @@ The record-progress menu action belongs to the phase-2 simplified-record flow an
 
 Close the menu before executing actions. Delete uses the existing destructive confirmation copy and must delete only after explicit confirmation.
 
-- [ ] **Step 6: Replace old Goals-all tests and journeys**
+- [x] **Step 6: Replace old Goals-all tests and journeys**
 
 - Replace long-press steps with taps on `goalOverflow-<id>`.
 - Assert archive preserves check-ins and milestones.
@@ -1103,7 +1103,7 @@ Close the menu before executing actions. Delete uses the existing destructive co
 - Assert reopen clears `achievedAt`.
 - Assert the list form never renders `FocusCarousel` or a Today `focusCard-*` key.
 
-- [ ] **Step 7: Run view and lifecycle journeys**
+- [x] **Step 7: Run view and lifecycle journeys**
 
 Run:
 
@@ -1113,7 +1113,7 @@ flutter test test/goals_management_view_test.dart test/app_journeys_test.dart te
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit the Goals page**
+- [x] **Step 8: Commit the Goals page**
 
 ```bash
 git add lib/features/goals/goals_view.dart lib/features/goals/goal_list_item.dart lib/features/goals/goal_management_menu.dart lib/features/goals/goals_all_view.dart lib/core/copy.dart test/goals_management_view_test.dart test/app_journeys_test.dart
@@ -1137,7 +1137,7 @@ git commit -m "feat: add compact goal management page"
 - Consumes: `GoalsView` from Task 6 and existing Today/Progress branches.
 - Produces: three dock destinations `/today`, `/goals`, `/progress`, a `target://goals` deep link, and `/goals-all` compatibility redirect.
 
-- [ ] **Step 1: Write failing three-tab navigation tests**
+- [x] **Step 1: Write failing three-tab navigation tests**
 
 Update `test/navigation_redesign_test.dart`:
 
@@ -1160,7 +1160,7 @@ testWidgets('dock contains Today Goals and Progress without a center FAB', (
 
 Add a tab-state test that enters Goals, opens and returns from edit/detail, and verifies the selected tab remains Goals.
 
-- [ ] **Step 2: Run navigation tests and verify failure**
+- [x] **Step 2: Run navigation tests and verify failure**
 
 Run:
 
@@ -1170,7 +1170,7 @@ flutter test test/navigation_redesign_test.dart
 
 Expected: FAIL because `/goals` and the three-slot dock do not exist.
 
-- [ ] **Step 3: Rebuild the route tree**
+- [x] **Step 3: Rebuild the route tree**
 
 - Add a shell branch at `/goals` rendering `GoalsView`.
 - Move `/goal-editor` and `/goal/:id` to root push routes so Today and Goals can open the same pages without switching shell branches.
@@ -1178,7 +1178,7 @@ Expected: FAIL because `/goals` and the three-slot dock do not exist.
 - Map `target://goals` to `/goals`.
 - Preserve `/today`, `/progress`, and existing invalid-goal fallback behavior.
 
-- [ ] **Step 4: Replace the dock with three equal destinations**
+- [x] **Step 4: Replace the dock with three equal destinations**
 
 Use `_navDests = [today, goals, progress]`. Remove `_DockFab`, its overhang math, and its tooltip. Add a Goals glyph using the existing custom-painter style or a semantically equivalent compact flag/list painter in `dock_glyphs.dart`.
 
@@ -1191,11 +1191,11 @@ Keep:
 
 Update geometry assertions to the new non-overhanging three-tab dock instead of preserving obsolete FAB measurements.
 
-- [ ] **Step 5: Route temporary duplicate links to the new tab**
+- [x] **Step 5: Route temporary duplicate links to the new tab**
 
 Until phase 2 removes Today “查看全部”, route it with `context.go('/goals')` rather than pushing a duplicate page. Until phase 3 removes Profile goal-management/new-goal rows, route goal management to `/goals` and new goal to the root `/goal-editor`.
 
-- [ ] **Step 6: Run navigation, profile, and accessibility tests**
+- [x] **Step 6: Run navigation, profile, and accessibility tests**
 
 Run:
 
@@ -1205,7 +1205,7 @@ flutter test test/navigation_redesign_test.dart test/profile_settings_redesign_t
 
 Expected: PASS at 320/375/430 widths, light/dark themes, and bottom safe-area variants.
 
-- [ ] **Step 7: Commit navigation**
+- [x] **Step 7: Commit navigation**
 
 ```bash
 git add lib/app/router.dart lib/app/dock_glyphs.dart lib/core/copy.dart lib/features/today/today_view.dart lib/features/profile/profile_hub.dart test/navigation_redesign_test.dart test/profile_settings_redesign_test.dart test/responsive_accessibility_test.dart
@@ -1237,7 +1237,7 @@ git commit -m "feat: promote goals to primary navigation"
 - Consumes: all Task 1–7 interfaces.
 - Produces: a green analyzer/test/build gate and a documented phase-1 user journey.
 
-- [ ] **Step 1: Add one end-to-end unified-goal journey**
+- [x] **Step 1: Add one end-to-end unified-goal journey**
 
 Add to `test/app_journeys_test.dart`:
 
@@ -1322,7 +1322,7 @@ testWidgets('create combined goal then manage lifecycle from Goals tab', (
 });
 ```
 
-- [ ] **Step 2: Run the focused phase-1 regression set**
+- [x] **Step 2: Run the focused phase-1 regression set**
 
 Run:
 
@@ -1332,7 +1332,7 @@ flutter test test/migration_test.dart test/backup_test.dart test/goal_lifecycle_
 
 Expected: PASS.
 
-- [ ] **Step 3: Run static analysis and fix only phase-related diagnostics**
+- [x] **Step 3: Run static analysis and fix only phase-related diagnostics**
 
 Run:
 
@@ -1342,7 +1342,7 @@ flutter analyze
 
 Expected: no diagnostics. Remove dead template imports, obsolete focus-limit catches, old Goals-all imports, and unused type-form copy. Replace product-semantic `status == GoalStatus.active` checks with `goal.isActive` so archived goals stay out of Today, scoring, widgets, reminders, notifications, Profile counts, and Settings counts while their underlying lifecycle status remains recoverable. Do not refactor unrelated files.
 
-- [ ] **Step 4: Run the complete test suite**
+- [x] **Step 4: Run the complete test suite**
 
 Run:
 
@@ -1352,7 +1352,7 @@ flutter test --reporter expanded
 
 Expected: all tests pass. Any legacy test that asserts a removed product behavior must be rewritten to assert the new behavior, not deleted without replacement.
 
-- [ ] **Step 5: Build the web verification surface**
+- [x] **Step 5: Build the web verification surface**
 
 Run:
 
@@ -1373,11 +1373,11 @@ Using the web build or a connected device, verify:
 5. Archive/unarchive preserves history; delete requires confirmation.
 6. Today, detail, and Progress still render newly created unified goals without crashing.
 
-- [ ] **Step 7: Update README navigation and data-model notes**
+- [x] **Step 7: Update README navigation and data-model notes**
 
 Document the three primary tabs, unified optional goal settings, schema v7 migration, and backup version 6. Do not describe phase-2 or phase-3 UI as already implemented.
 
-- [ ] **Step 8: Commit phase-1 closure**
+- [x] **Step 8: Commit phase-1 closure**
 
 ```bash
 git add README.md lib test

@@ -1,13 +1,12 @@
-/// go_router 路由表：Today / Progress 两个壳层分支；我的、设置、全部目标、
+/// go_router 路由表：Today / Goals / Progress 三个壳层分支；我的、设置、
 /// 目标编辑器与目标详情走同一根级全屏 push，进入后隐藏 dock。深链支持
-/// target://today|progress|goal/{id}，goal 无 id 兜底 /today。
+/// target://today|goals|progress|goal/{id}，goal 无 id 兜底 /today。
 ///
 /// 导航壳层按 v2-today 冻结稿（004 T025 重做，R3 裁决 D2「黑色线条」）：
-/// 底部全宽 dock = 今日 | 中央凸起圆形＋ | 回顾，当前页签黑字加粗 +
-/// 16×3 短横线、FAB 中性墨面；壳层画四段底幕渐变，今日页透明叠在其上。
-///
-/// /goals 页签与路由退役（目标页职能并入今日卡与详情，T015/T016）——
-/// 存量入口（今日页旧「查看全部」、书签深链）经 redirect 落 /today。
+/// 底部全宽 dock 承等宽页签，当前页签黑字加粗 + 16×3 短横线；
+/// 壳层画四段底幕渐变，今日页透明叠在其上。
+/// 2026-08-26 phase 1（Task 7）：dock 改三页签（今日 | 目标 | 进展），
+/// 中央 FAB 退役；/goals-all 经 redirect 落 /goals。
 ///
 /// Provider 形式：每个 ProviderScope（测试/应用）独立实例，避免跨用例状态残留。
 library;
@@ -22,7 +21,7 @@ import '../core/copy.dart';
 import 'dock_glyphs.dart';
 import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
-import '../features/goals/goals_all_view.dart';
+import '../features/goals/goals_view.dart';
 import '../features/goals/onboarding.dart';
 import '../features/profile/profile_hub.dart';
 import '../features/progress/progress_view.dart';
@@ -34,8 +33,9 @@ final routerProvider = Provider<GoRouter>((ref) => _build());
 
 GoRouter _build() => GoRouter(
   initialLocation: '/today',
-  // /goals 退役兜底：任何存量入口改落今日页（目标浏览即卡片列表）。
-  redirect: (context, state) => state.uri.path == '/goals' ? '/today' : null,
+  // /goals-all 退役兜底：存量入口（我的页、旧书签）改落目标页签。
+  redirect: (context, state) =>
+      state.uri.path == '/goals-all' ? '/goals' : null,
   routes: [
     GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingPage()),
     GoRoute(
@@ -46,10 +46,6 @@ GoRouter _build() => GoRouter(
     GoRoute(
       path: '/settings',
       pageBuilder: (_, state) => buildRootPushPage(state, const SettingsView()),
-    ),
-    GoRoute(
-      path: '/goals-all',
-      pageBuilder: (_, state) => buildRootPushPage(state, const GoalsAllPage()),
     ),
     // 2026-08-26 产品结构重构（phase 1）：编辑器/详情从 today 分支上移到
     // 根级 push——今日与目标列表可共用同一条动线且不切壳层分支；
@@ -72,11 +68,16 @@ GoRouter _build() => GoRouter(
     StatefulShellRoute.indexedStack(
       builder: (_, _, shell) => _AppShell(navigationShell: shell),
       branches: [
-        // today 分支：仅承载今日页；编辑器/详情已上移根级（2026-08-26
-        // 产品结构重构 phase 1，替代旧 D5/FR-010 分支内挂载语义）。
         StatefulShellBranch(
           routes: [
             GoRoute(path: '/today', builder: (_, _) => const TodayView()),
+          ],
+        ),
+        // 目标页签（2026-08-26 phase 1）：紧凑管理行 + 状态筛选；
+        // 新建/编辑/详情走根级 push（dock 保持在位）。
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
           ],
         ),
         StatefulShellBranch(
@@ -237,19 +238,18 @@ class _NavDest {
 }
 
 /// 页签字形（v2 冻结稿 dock 内嵌 SVG；今日为手绘点阵，非 Icons 字形）。
-enum _DockGlyph { targetRing, progressTrend }
+enum _DockGlyph { targetRing, goalFlag, progressTrend }
 
 const _navDests = [
   _NavDest('/today', Copy.todayNav, _DockGlyph.targetRing),
+  _NavDest('/goals', Copy.goalsNav, _DockGlyph.goalFlag),
   _NavDest('/progress', Copy.progressNav, _DockGlyph.progressTrend),
 ];
 
-/// 底部 dock（004 T025 重做，v2-today 冻结稿 D2「黑色线条」定稿）：
-/// 全宽近实卡底条（glass-card + 顶缘发丝线，.dock 84px · 顶 padding 8），
-/// 今日 | 中央凸起圆形＋ | 回顾 三槽——两页签 Expanded 对称、FAB 恰在
-/// 屏中线；当前页签 on-surface 加粗 + 标签下 16×3 短横线（深色自动
-/// 反白，全条无彩色）；FAB 56px 中性（浅色墨底白＋/深色反白），上缘
-/// 凸出底条 22px、带 glass-card 4px 描边环；任意壳层页恒定（FR-010）。
+/// 底部 dock（2026-08-26 phase 1 · Task 7 三等分重做）：
+/// 全宽近实卡底条（glass-card + 顶缘发丝线）承今日 | 目标 | 进展
+/// 三个等宽页签——中央 FAB 退役（新建入口移目标页/今日页头部）；
+/// 当前页签 on-surface 加粗 + 标签下 16×3 短横线（深色自动反白）。
 ///
 /// 安全区几何（005 D1 → 2026-08-25 三次收敛）：底条高度随 inset 动态
 /// 计算 = 顶垫 8 + 页签带 ~45 + max(底距 8, inset)。有 inset 的环境
@@ -262,9 +262,6 @@ class _Dock extends StatelessWidget {
   const _Dock({required this.shell});
 
   final StatefulNavigationShell shell;
-
-  /// FAB 上缘凸出量（冻结稿 .fab margin-top: -22px）。
-  static const double _fabOverhang = 22;
 
   /// 底条顶垫（冻结稿 dock padding-top 8）。
   static const double _barTopPad = 8;
@@ -292,27 +289,21 @@ class _Dock extends StatelessWidget {
     final barExtent =
         _barTopPad + _tabBand + math.max(_barBottomPad, bottomInset);
     Widget tab(int i) => Expanded(
-      child: Padding(
-        // 页签起于底条顶 padding 8 之后（22 + 8 = 30）。
-        padding: const EdgeInsets.only(top: _fabOverhang + AppSpace.s2),
-        child: _NavTab(
-          dest: _navDests[i],
-          selected: shell.currentIndex == i,
-          onTap: () =>
-              shell.goBranch(i, initialLocation: shell.currentIndex == i),
-        ),
+      child: _NavTab(
+        dest: _navDests[i],
+        selected: shell.currentIndex == i,
+        onTap: () =>
+            shell.goBranch(i, initialLocation: shell.currentIndex == i),
       ),
     );
     return SizedBox(
-      // 高出底条的 22px = FAB 凸出带：视觉透明但占位命中（凸出部分
-      // 的点击须落在 dock 自身区域而非 body，才能稳定命中 FAB）。
-      height: barExtent + _fabOverhang + gap,
+      height: barExtent + gap,
       child: Stack(
         children: [
           // 底条本体：近实卡底（冻结稿 .dock）。贴底环境 = 顶缘发丝线
           // 全宽；悬浮环境 = 四缘发丝线 + 圆角的独立胶囊。
           Positioned(
-            top: _fabOverhang,
+            top: 0,
             left: side,
             right: side,
             bottom: gap,
@@ -327,56 +318,19 @@ class _Dock extends StatelessWidget {
               ),
             ),
           ),
-          // 三槽行：FAB 起于 0（凸出 22），两页签起于 30；整行止于
-          // inset + 悬浮距之上（Home 指示条避让，命中区不缩小）。
+          // 三等分页签行（今日 | 目标 | 进展）；整行止于 inset + 悬浮距
+          // 之上（Home 指示条避让，44dp 命中区不缩小）。
           Positioned(
-            top: 0,
+            top: _barTopPad,
             left: side,
             right: side,
             bottom: bottomInset + gap,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                tab(0),
-                _DockFab(onTap: () => context.push('/goal-editor')),
-                tab(1),
-              ],
+              children: [for (var i = 0; i < _navDests.length; i++) tab(i)],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 中央凸起圆形＋（冻结稿 .fab）：56px 墨面圆 + glass-card 4px 描边环 +
-/// 中层投影；直达 /goal-editor（SC-004 ≤1 交互）。Tooltip 沿用「新建目标」
-/// ——今日页头部过渡＋退役（T025），测试动线无感迁移。
-class _DockFab extends StatelessWidget {
-  const _DockFab({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return Tooltip(
-      message: Copy.todayNewGoal,
-      child: InkWell(
-        key: const ValueKey('dockFab'),
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: palette.onSurface,
-            border: Border.all(color: palette.glassCard, width: 4),
-            boxShadow: palette.shadowMid,
-          ),
-          child: Icon(Icons.add, size: 24, color: palette.surface),
-        ),
       ),
     );
   }
@@ -404,6 +358,10 @@ class _NavTab extends StatelessWidget {
       _DockGlyph.targetRing => CustomPaint(
         size: const Size.square(22),
         painter: TargetRingGlyphPainter(color: color),
+      ),
+      _DockGlyph.goalFlag => CustomPaint(
+        size: const Size.square(22),
+        painter: GoalFlagGlyphPainter(color: color),
       ),
       _DockGlyph.progressTrend => CustomPaint(
         size: const Size.square(22),
@@ -459,6 +417,8 @@ String? mapDeepLink(Uri uri) {
   switch (uri.host.isEmpty ? uri.path : uri.host) {
     case 'today':
       return '/today';
+    case 'goals':
+      return '/goals';
     case 'progress':
       return '/progress';
     case 'goal':

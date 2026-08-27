@@ -17,6 +17,7 @@ import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/platform/gateways.dart';
 import 'package:target/features/goals/goal_detail.dart';
+import 'package:target/features/goals/goals_view.dart';
 import 'package:target/features/goals/goal_editor.dart';
 import 'package:target/features/profile/profile.dart';
 import 'package:target/features/profile/profile_hub.dart';
@@ -157,7 +158,10 @@ void main() {
     final db = await _pumpTarget(tester);
 
     expect(find.text('还没有进行中的目标'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('dockFab')));
+    // 中央 FAB 退役：空态动线改走目标页签 → 新建。
+    await tester.tap(find.byKey(const ValueKey('navTab-/goals')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalsNewButton')));
     await tester.pumpAndSettle();
     expect(find.byType(GoalEditorPage), findsOneWidget);
 
@@ -171,9 +175,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // 创建成功 pushReplacement 至详情（root push 页，shell 暂被遮挡）；
-    // 返回后回到 Today，新目标卡可见。
+    // 返回后回到目标页签，切回今日见新目标卡。
     expect(find.byType(GoalDetailPage), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalsView), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('navTab-/today')));
     await tester.pumpAndSettle();
     expect(find.byType(TodayView), findsOneWidget);
     expect(find.text('完成产品设计课程'), findsWidgets);

@@ -21,6 +21,7 @@ class PageTopBar extends StatelessWidget {
     this.titleAccessory,
     this.trailing,
     this.onBack,
+    this.showBack = true,
   });
 
   /// 标题（titleM；四页标题皆短，不做溢出处理）。
@@ -37,6 +38,9 @@ class PageTopBar extends StatelessWidget {
 
   /// 返回动作；null = `Navigator.maybePop` 默认（编辑器可注入等价语义）。
   final VoidCallback? onBack;
+
+  /// 是否渲染返回钮；dock 页签页（目标页）无上层可回，置 false。
+  final bool showBack;
 
   @override
   Widget build(BuildContext context) {
@@ -61,25 +65,29 @@ class PageTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // D6 触达 44：InkWell 铺满 44×44 槽、内 Center 38 视觉钮
-          // （命中区 ≥44、视觉零变化）。
-          SizedBox(
-            width: 44,
-            height: 44,
-            child: InkWell(
-              key: const ValueKey('pageTopBarBack'),
-              onTap: onBack ?? () => Navigator.of(context).maybePop(),
-              customBorder: const CircleBorder(),
-              child: Center(
-                child: Tooltip(
-                  // 无障碍语义与 AppBar 返回钮同源（读屏可寻）。
-                  message: MaterialLocalizations.of(context).backButtonTooltip,
-                  child: button,
+          if (showBack) ...[
+            // D6 触达 44：InkWell 铺满 44×44 槽、内 Center 38 视觉钮
+            // （命中区 ≥44、视觉零变化）。
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: InkWell(
+                key: const ValueKey('pageTopBarBack'),
+                onTap: onBack ?? () => Navigator.of(context).maybePop(),
+                customBorder: const CircleBorder(),
+                child: Center(
+                  child: Tooltip(
+                    // 无障碍语义与 AppBar 返回钮同源（读屏可寻）。
+                    message: MaterialLocalizations.of(
+                      context,
+                    ).backButtonTooltip,
+                    child: button,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: AppSpace.s3),
+            const SizedBox(width: AppSpace.s3),
+          ],
           Text(title, key: titleKey, style: Theme.of(context).textTheme.titleM),
           if (titleAccessory != null) ...[
             const SizedBox(width: AppSpace.s1),

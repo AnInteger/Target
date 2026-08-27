@@ -74,7 +74,7 @@ class ProfileHubPage extends ConsumerWidget {
                         icon: Icons.flag_outlined,
                         title: '目标管理',
                         subtitle: '查看、筛选与维护所有目标',
-                        onTap: () => context.push('/goals-all'),
+                        onTap: () => context.go('/goals'),
                       ),
                       _HubRow(
                         icon: Icons.add_circle_outline,

@@ -16,7 +16,7 @@ import 'package:target/core/models/date_provider.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/platform/gateways.dart';
 import 'package:target/features/goals/goal_detail.dart';
-import 'package:target/features/goals/goals_all_view.dart';
+import 'package:target/features/goals/goals_view.dart';
 import 'package:target/features/progress/progress_view.dart';
 import 'package:target/features/today/today_view.dart';
 
@@ -103,7 +103,10 @@ Future<void> _createGoal(
   bool withDate = false,
   int? weeklyCount,
 }) async {
-  await tester.tap(find.byKey(const ValueKey('dockFab')));
+  // 中央 FAB 退役（phase 1 · Task 7）：新建走目标页签头部按钮。
+  await tester.tap(find.byKey(const ValueKey('navTab-/goals')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('goalsNewButton')));
   await tester.pumpAndSettle();
   if (withDate) {
     await tester.tap(find.byKey(const ValueKey('goalHasDateSwitch')));
@@ -124,13 +127,15 @@ Future<void> _createGoal(
   expect(find.byType(GoalDetailPage), findsOneWidget);
   await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
   await tester.pumpAndSettle();
-  expect(find.byType(TodayView), findsOneWidget);
+  // 新建动线自目标页签出发：返回后仍停留目标页签。
+  expect(find.byType(GoalsView), findsOneWidget);
 }
 
 Future<void> _openGoalsAll(WidgetTester tester) async {
-  await tester.tap(find.text('查看全部'));
+  // 目标页已是 dock 页签：直接切页签（任意分支下可用）。
+  await tester.tap(find.byKey(const ValueKey('navTab-/goals')));
   await tester.pumpAndSettle();
-  expect(find.byType(GoalsAllPage), findsOneWidget);
+  expect(find.byType(GoalsView), findsOneWidget);
 }
 
 Goal _goalNamed(List<Goal> goals, String name) =>
@@ -169,7 +174,7 @@ void main() {
         find.text(name),
         180,
         scrollable: find.descendant(
-          of: find.byKey(const ValueKey('goalsAllList')),
+          of: find.byKey(const ValueKey('goalsList')),
           matching: find.byType(Scrollable),
         ),
       );
@@ -338,8 +343,7 @@ void main() {
     );
     await _openGoalsAll(tester);
 
-    final managedCard = find.byKey(const ValueKey('goalCard-manage'));
-    await tester.longPress(managedCard);
+    await tester.tap(find.byKey(const ValueKey('goalOverflow-manage')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goalAction-edit-manage')));
     await tester.pumpAndSettle();
@@ -352,23 +356,30 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('goalSaveButton')));
     await tester.pumpAndSettle();
     // 编辑保存按 pop 语义回到来源页（goals-all）。
-    expect(find.byType(GoalsAllPage), findsOneWidget);
+    expect(find.byType(GoalsView), findsOneWidget);
     expect((await _goalById(app.db, 'manage'))!.name, '拿到 OW 潜水证');
 
-    await tester.longPress(find.byKey(const ValueKey('goalCard-manage')));
+    await tester.tap(find.byKey(const ValueKey('goalOverflow-manage')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goalAction-pause-manage')));
     await tester.pumpAndSettle();
     expect((await _goalById(app.db, 'manage'))!.status, GoalStatus.paused);
-    expect(find.text('已暂停'), findsOneWidget);
+    // 行内徽章（筛选 chips 有同文「已暂停」，须限定行范围断言）。
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('goalListRow-manage')),
+        matching: find.text('已暂停'),
+      ),
+      findsOneWidget,
+    );
 
-    await tester.longPress(find.byKey(const ValueKey('goalCard-manage')));
+    await tester.tap(find.byKey(const ValueKey('goalOverflow-manage')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goalAction-resume-manage')));
     await tester.pumpAndSettle();
     expect((await _goalById(app.db, 'manage'))!.status, GoalStatus.active);
 
-    await tester.tap(find.byKey(const ValueKey('goalCard-manage')));
+    await tester.tap(find.byKey(const ValueKey('goalListRow-manage')));
     await tester.pumpAndSettle();
     final detailList = find.descendant(
       of: find.byType(GoalDetailPage),
@@ -400,9 +411,14 @@ void main() {
       app.container.read(goalProgressProvider)!.evaluation.byGoal,
       isNot(contains('manage')),
     );
+    // 达成庆祝 SnackBar 由真实 Timer 驱动 ~4s 自退（pumpAndSettle 只等
+    // 帧）；浮在 root overlay 会遮住后续底部弹层菜单的末尾条目——
+    // 快进使其退场再继续删除动线。
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
 
     await _openGoalsAll(tester);
-    await tester.longPress(find.byKey(const ValueKey('goalCard-delete')));
+    await tester.tap(find.byKey(const ValueKey('goalOverflow-delete')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('goalAction-delete-delete')));
     await tester.pumpAndSettle();
@@ -410,9 +426,10 @@ void main() {
     await tester.tap(find.descendant(of: dialog, matching: find.text('删除')));
     await tester.pumpAndSettle();
     expect(await _goalById(app.db, 'delete'), isNull);
-    expect(find.byKey(const ValueKey('goalCard-delete')), findsNothing);
+    expect(find.byKey(const ValueKey('goalListRow-delete')), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
+    // 目标页签无返回钮（dock 顶层）：切回今日验证收敛。
+    await tester.tap(find.byKey(const ValueKey('navTab-/today')));
     await tester.pumpAndSettle();
     expect(find.byType(TodayView), findsOneWidget);
     expect(find.text('待删除目标'), findsNothing);

@@ -83,7 +83,7 @@ class TodayView extends ConsumerWidget {
                       child: _SectionHeader(
                         title: '关注',
                         trailing: '查看全部',
-                        route: '/goals-all',
+                        route: '/goals',
                       ),
                     ),
                     SliverToBoxAdapter(
@@ -404,7 +404,8 @@ class _SectionHeader extends StatelessWidget {
         const Spacer(),
         TextButton(
           key: const ValueKey('todayViewAllGoals'),
-          onPressed: () => context.push(route),
+          // 切目标页签而非 push 重复页（phase 1 · Task 7 Step 5）。
+          onPressed: () => context.go(route),
           child: Text(trailing),
         ),
       ],

@@ -16,7 +16,7 @@ import 'package:target/core/models/calendar_types.dart';
 import 'package:target/core/models/entities.dart';
 import 'package:target/core/platform/gateways.dart';
 import 'package:target/features/goals/goal_editor.dart';
-import 'package:target/features/goals/goals_all_view.dart';
+import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/profile/profile.dart';
 
 class _NotificationGateway implements NotificationGateway {
@@ -84,19 +84,23 @@ Future<void> _disposeTarget(WidgetTester tester, AppDatabase db) async {
 }
 
 void main() {
-  test('deep links recognize progress and reject review', () {
+  test('deep links recognize goals progress and reject review', () {
+    expect(mapDeepLink(Uri.parse('target://goals')), '/goals');
     expect(mapDeepLink(Uri.parse('target://progress')), '/progress');
     expect(mapDeepLink(Uri.parse('target://review')), isNull);
   });
 
-  testWidgets('dock contains today and progress with compact geometry', (
+  testWidgets('dock contains today goals and progress without a center FAB', (
     tester,
   ) async {
     final db = await _pumpTarget(tester);
 
     expect(find.byKey(const ValueKey('navTab-/today')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTab-/goals')), findsOneWidget);
     expect(find.byKey(const ValueKey('navTab-/progress')), findsOneWidget);
     expect(find.byKey(const ValueKey('navTab-/review')), findsNothing);
+    // 中央 FAB 退役（phase 1 · Task 7）：新建入口在目标页头部。
+    expect(find.byKey(const ValueKey('dockFab')), findsNothing);
     // 无 inset 机型：底条 = 8 + 45 + max(8, 0) = 61，且悬浮胶囊离底 10、
     // 两侧收 12（2026-08-25 三次收敛——贴死窗口底边观感过重，往上
     // 收出呼吸位；几何断言同步改悬浮口径）。
@@ -144,19 +148,18 @@ void main() {
     await _disposeTarget(tester, db);
   });
 
-  testWidgets('goals all and profile share the root push transition', (
+  testWidgets('goals tab switch keeps the dock; root pages hide it', (
     tester,
   ) async {
+    // 分支切换（今日「查看全部」→ 目标页签）：dock 恒在，不叠加重复页。
     final goalsDb = await _pumpTarget(tester);
     await tester.tap(find.text('查看全部'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 80));
-    final goalsOffset = tester.getTopLeft(find.byType(GoalsAllPage));
-    expect(goalsOffset.dx, greaterThan(0));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('dockBar')), findsNothing);
+    expect(find.byKey(const ValueKey('dockBar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTabMark-/goals')), findsOneWidget);
     await _disposeTarget(tester, goalsDb);
 
+    // 根级 push（我的）：dock 退场。
     final profileDb = await _pumpTarget(tester);
     await tester.tap(find.byType(ProfileAvatar));
     await tester.pump();
@@ -164,7 +167,7 @@ void main() {
     final profileOffset = tester.getTopLeft(
       find.byKey(const ValueKey('profileHub')),
     );
-    expect(profileOffset.dx, closeTo(goalsOffset.dx, .5));
+    expect(profileOffset.dx, greaterThan(0));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('dockBar')), findsNothing);
     await _disposeTarget(tester, profileDb);
@@ -173,10 +176,12 @@ void main() {
   testWidgets('goal editor and detail use the shared fade-slide transition', (
     tester,
   ) async {
-    // 2026-08-25：分支内创建/详情动线与根级 push 同款转场——同一时刻
+    // 2026-08-25：创建/详情动线与根级 push 同款转场——同一时刻
     // 的横向位移一致（此前编辑器吃平台缺省转场，与「我的」不一致）。
     final editorDb = await _pumpTarget(tester);
-    await tester.tap(find.byKey(const ValueKey('dockFab')));
+    await tester.tap(find.byKey(const ValueKey('navTab-/goals')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goalsNewButton')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 80));
     final editorOffset = tester.getTopLeft(find.byType(GoalEditorPage));
@@ -192,30 +197,30 @@ void main() {
     expect(editorScaffold.backgroundColor, TargetPalette.light.background);
     await _disposeTarget(tester, editorDb);
 
-    final goalsDb = await _pumpTarget(tester);
-    await tester.tap(find.text('查看全部'));
+    // 目标页行进详情与编辑器同款根级转场。
+    final detailDb = await _pumpTarget(tester);
+    await tester.tap(find.byKey(const ValueKey('focusCard-g1')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 80));
-    final goalsOffset = tester.getTopLeft(find.byType(GoalsAllPage));
-    expect(goalsOffset.dx, closeTo(editorOffset.dx, .5));
-    await _disposeTarget(tester, goalsDb);
+    final detailOffset = tester.getTopLeft(find.byType(GoalDetailPage));
+    expect(detailOffset.dx, closeTo(editorOffset.dx, .5));
+    await _disposeTarget(tester, detailDb);
   });
 
-  testWidgets('goals all page paints an opaque background over the shell', (
+  testWidgets('goals branch keeps selected tab through detail roundtrip', (
     tester,
   ) async {
-    // root 级 push：转场结束后下层 shell 不再绘制——透明底会露原始
-    // 画布（iOS 黑屏感）。契约：底色 = palette.background（同我的/设置）。
+    // 页签状态：目标页签进出详情/编辑器后仍停留目标页（分支索引保持）。
     final db = await _pumpTarget(tester);
-    await tester.tap(find.text('查看全部'));
+    await tester.tap(find.byKey(const ValueKey('navTab-/goals')));
     await tester.pumpAndSettle();
-
-    final scaffold = tester.widget<Scaffold>(
-      find
-          .descendant(of: find.byType(GoalsAllPage), matching: find.byType(Scaffold))
-          .first,
-    );
-    expect(scaffold.backgroundColor, TargetPalette.light.background);
+    await tester.tap(find.byKey(const ValueKey('goalListRow-g1')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalDetailPage), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('pageTopBarBack')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('navTabMark-/goals')), findsOneWidget);
+    expect(find.byKey(const ValueKey('navTabMark-/today')), findsNothing);
     await _disposeTarget(tester, db);
   });
 

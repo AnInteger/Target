@@ -72,6 +72,29 @@ abstract final class Copy {
   static const menuPauseGoal = '暂停目标';
   static const menuDeleteGoal = '删除目标';
 
+  // ---- 目标管理页（2026-08-26 phase 1，Task 6/7）----
+
+  /// 页标题与状态筛选 chips（dock 页签；全部/进行中/已暂停/已达成/已归档）。
+  static const goalsTitle = '目标';
+  static const goalsFilterActive = '进行中';
+  static const goalsFilterPaused = '已暂停';
+  static const goalsFilterAchieved = '已达成';
+  static const goalsFilterArchived = '已归档';
+  static const goalsNewButtonLabel = '新建';
+
+  /// 管理菜单动作（按状态显隐；归档可逆，删除走二次确认）。
+  static const menuResumeGoal = '恢复目标';
+  static const menuAchieveGoal = '标记达成';
+  static const menuReopenGoal = '重新打开';
+  static const menuArchiveGoal = '归档目标';
+  static const menuUnarchiveGoal = '取消归档';
+
+  /// 紧凑行摘要（优先级：当前里程碑 → 最近进展 → 空态）。
+  static String goalSummaryCurrent(String title, int done, int total) =>
+      '当前：$title · $done/$total';
+  static String goalSummaryRecent(int month, int day) => '最近进展：$month月$day日';
+  static const goalSummaryEmpty = '尚无进展记录';
+
   /// 徽章状态尾缀（冻结稿板 5：「长期 · 创作 · 目标 · 已暂停」）。
   static const goalStatusPausedSuffix = '已暂停';
   static const goalStatusAchievedSuffix = '已达成';

@@ -20,7 +20,6 @@ import 'package:target/features/goals/goal_detail.dart';
 import 'package:target/features/goals/goals_view.dart';
 import 'package:target/features/progress/progress_view.dart';
 import 'package:target/features/today/today_view.dart';
-import 'package:target/core/db/goal_plan_repository.dart';
 
 const _today = LocalDate(2026, 8, 25);
 

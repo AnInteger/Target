@@ -140,7 +140,7 @@ String _goalBody(Goal g) {
 String _briefBody(List<Goal> goals, StatsEvaluation stats) {
   final unmet = goals
       .where(
-        (g) => g.status == GoalStatus.active && !stats.dayStatusOf(g.id).done,
+        (g) => g.isActive && !stats.dayStatusOf(g.id).done,
       )
       .length;
   return unmet == 0 ? Copy.dailyBriefAllDone : Copy.dailyBriefSummary(unmet);

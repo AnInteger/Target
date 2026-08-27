@@ -14,7 +14,6 @@ import '../../db/app_database.dart';
 import '../../db/connection.dart';
 import '../../db/repositories.dart';
 import '../../models/calendar_types.dart';
-import '../../models/entities.dart';
 import '../../stats/stats_engine.dart';
 import '../widget_ios.dart';
 import 'widget_snapshot.dart';
@@ -46,7 +45,7 @@ Future<void> widgetCheckInCallback(Uri? uri) async {
     final goal = goals.where((g) => g.id == goalId).firstOrNull;
     final eligible =
         goal != null &&
-        goal.status == GoalStatus.active &&
+        goal.isActive &&
         !evaluate().dayStatusOf(goalId).done;
     if (eligible) {
       await checkInRepo.add(goalId, today, now);

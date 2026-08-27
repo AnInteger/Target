@@ -67,7 +67,7 @@ class GoalDetailPage extends ConsumerWidget {
               : b.createdAt.compareTo(a.createdAt),
         );
     final days = goal.deadline?.differenceInDays(today) ?? 0;
-    final active = goal.status == GoalStatus.active;
+    final active = goal.isActive;
     final icon = GoalIconCatalog.byKey(goal.iconKey);
     final majorColor = MajorColors.byKey(icon.domain.major.name).of(context);
 
@@ -514,7 +514,7 @@ class _HeroCard extends StatelessWidget {
   /// meta 胶囊组：活跃习惯/长期 = 连续（大类点）+ 本周 + 提醒；
   /// 活跃短期 = 倒计时（大类点）+ 截止日；非活跃 = 历史条数 + 创建日。
   List<Widget> _pills() {
-    final active = goal.status == GoalStatus.active;
+    final active = goal.isActive;
     if (active && goal.isShortTerm) {
       return [
         _MetaPill(dot: majorColor, text: Copy.deadlineCountdownMeta(days)),

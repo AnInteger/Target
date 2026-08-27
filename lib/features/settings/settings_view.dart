@@ -67,7 +67,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     final settings = ref.watch(settingsProvider).value;
     final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
     final activeCount = goals
-        .where((g) => g.status == GoalStatus.active)
+        .where((g) => g.isActive)
         .length;
     final themeMode = settings?.themeMode ?? AppThemeMode.system;
 
@@ -79,7 +79,7 @@ class _SettingsViewState extends ConsumerState<SettingsView> {
     // 按目标提醒二级列表：只列活跃目标的行（排程器同口径跳过暂停/孤儿行）。
     final activeById = {
       for (final g in goals)
-        if (g.status == GoalStatus.active) g.id: g,
+        if (g.isActive) g.id: g,
     };
     final goalRows = [
       for (final r in reminders)

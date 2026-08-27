@@ -21,7 +21,7 @@ Map<String, Object?> buildTodaySnapshot({
   List<MilestoneStep> Function(String goalId)? stepsOf,
 }) {
   final active =
-      goals.where((g) => g.status == GoalStatus.active).toList();
+      goals.where((g) => g.isActive).toList();
   final rows = <Map<String, Object?>>[];
   var metGoals = 0;
   for (final g in active) {

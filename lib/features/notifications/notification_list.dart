@@ -106,7 +106,7 @@ List<NotificationItem> deriveNotifications({
     // 全完成日：当日已存在的全部活跃目标均留痕。
     final active = goals
         .where(
-          (g) => g.status == GoalStatus.active && !g.createdAt.isAfter(day),
+          (g) => g.isActive && !g.createdAt.isAfter(day),
         )
         .toList();
     if (active.isNotEmpty &&

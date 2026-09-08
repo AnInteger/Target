@@ -13,7 +13,7 @@
      - 结构：头部渐变 + 大标题「目标」+ 玻璃 ＋ 钮；
        置顶分组（大卡：分类彩标 / 名称 / 最近记录 / 下个里程碑）；
        其他目标（紧凑列表行）；Liquid Glass 底栏（双 tab + 记录钮）
-     - 画板：①浅色主版 ②深色 ③空态 ④管理菜单浮层（长按/⋯）
+     - 画板：①浅色主版 ②深色 ③空态 ④管理菜单（长按） ⑤编辑置顶（拖拽排序，R2）
      ============================================================ */
 
   [hidden] { display: none !important; }
@@ -150,33 +150,25 @@
                 font: 600 17px/1 var(--font-stack); padding: 14px var(--space-6);
                 border-radius: var(--radius-full); box-shadow: var(--shadow-cta); }
 
-  /* ---- 底部导航（R1 裁定：参照 iOS 玻璃导航条——深蓝玻璃胶囊 +
-       大圆角近胶囊形；选中 = 白色玻璃透镜 + 白色内容） ---- */
+  /* ---- 底部导航（R2 裁定：参照 iOS 健康悬浮 tab bar——全浅玻璃材质，
+       选中=蓝色着色（无底色块）；胶囊圆角 30px） ---- */
   .dock { position: absolute; left: 0; right: 0; bottom: 0;
           display: flex; justify-content: space-between; gap: 10px;
           padding: 4px var(--space-4) 28px; }
-  .dock .tabs { flex: 1; display: flex; gap: 4px; padding: 4px;
+  .dock .tabs { flex: 1; display: flex; padding: 4px;
                 border-radius: 30px;
-                background: var(--glass-dock);
+                background: var(--glass-shell);
                 backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
                 -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-                border: 0.5px solid rgba(255, 255, 255, 0.38);
-                box-shadow: 0 4px 18px rgba(0, 32, 90, 0.28),
-                            inset 0 0.5px 0 rgba(255, 255, 255, 0.45); }
-  .dock .tab { flex: 1; position: relative; border: none; background: none; cursor: pointer;
+                border: 0.5px solid var(--glass-border);
+                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight); }
+  .dock .tab { flex: 1; border: none; background: none; cursor: pointer;
                display: flex; flex-direction: column; align-items: center; gap: 2px;
-               padding: 10px 0; color: rgba(255, 255, 255, 0.72);
-               border-radius: 26px; }
+               padding: 10px 0; color: var(--on-surface); }
   .dock .tab svg { width: 22px; height: 22px; }
   .dock .tab span { font: 500 10px/1 var(--font-stack); }
-  .dock .tab.on { color: #ffffff; }
+  .dock .tab.on { color: var(--accent); }
   .dock .tab.on span { font-weight: 600; }
-  .dock .tab.on::before { content: ""; position: absolute; inset: 3px 6px;
-                           border-radius: 23px;
-                           background: rgba(255, 255, 255, 0.22);
-                           box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.55),
-                                       0 1px 4px rgba(0, 20, 60, 0.18); }
-  .dock .tab > * { position: relative; }
   .dock .rec { width: 56px; flex: none; border-radius: 30px; cursor: pointer;
                background: var(--glass-shell); border: 0.5px solid var(--glass-border);
                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight);
@@ -184,6 +176,30 @@
                -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
                display: flex; align-items: center; justify-content: center; }
   .dock .rec svg { width: 20px; height: 20px; color: var(--on-surface); }
+
+  /* ---- 编辑置顶模式（R2 裁定：健康「编辑列表」参照，画板⑤） ---- */
+  .edtop { flex: none; display: flex; justify-content: space-between; align-items: center;
+           padding: var(--space-2) var(--space-5) var(--space-4); }
+  .edtop .tt { font: var(--font-title-m); color: var(--on-surface); }
+  .edtop .ok { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+               background: var(--accent); cursor: pointer;
+               display: flex; align-items: center; justify-content: center; }
+  .edtop .ok svg { width: 16px; height: 16px; color: var(--accent-on); }
+  .pinrow { display: flex; align-items: center; gap: var(--space-3);
+            padding: 13px var(--space-4); }
+  .pinrow + .pinrow { border-top: 0.5px solid var(--divider); }
+  .pinrow .rm { width: 28px; height: 28px; border-radius: var(--radius-full); border: none;
+                background: var(--surface-alt); cursor: pointer; flex: none;
+                display: flex; align-items: center; justify-content: center;
+                font: 400 18px/1 var(--font-stack); color: var(--on-surface-variant); }
+  .pinrow .nm { flex: 1; font: 500 17px/1.3 var(--font-stack); color: var(--on-surface); }
+  .pinrow .drag { width: 22px; height: 22px; color: var(--on-surface-tertiary);
+                  flex: none; cursor: grab; }
+  .orow { display: flex; align-items: center; gap: var(--space-3);
+          padding: 13px var(--space-4); }
+  .orow + .orow { border-top: 0.5px solid var(--divider); }
+  .orow .pin { width: 20px; height: 20px; color: var(--accent); flex: none; }
+  .orow .nm { flex: 1; font: 400 17px/1.3 var(--font-stack); color: var(--on-surface); }
 
   /* ---- 管理菜单浮层（画板④） ---- */
   .menu-wrap { position: absolute; inset: 0; background: var(--scrim); z-index: 30; }
@@ -439,8 +455,8 @@
 </div>
 
 <div class="board">
-  <h3>④ 管理菜单（长按卡片 / ⋯）</h3>
-  <p class="desc">玻璃浮层 · 三组：推进 / 管理 / 危险——按目标状态显隐（phase 1 语义）</p>
+  <h3>④ 管理菜单（长按目标卡进入，R2 裁定）</h3>
+  <p class="desc">长按目标卡弹出 · 三组：推进 / 管理 / 危险——按目标状态显隐（phase 1 语义）</p>
   <div class="phone">
     <div class="island"></div>
     <div class="sb"><span>9:41</span><span class="r">
@@ -513,6 +529,54 @@
         </button>
       </div>
       <button class="rec" title="记录进展"><svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════ 画板 ⑤ 编辑置顶（R2：拖拽排序模式，健康「编辑列表」参照） ═══════════ -->
+<div class="row">
+<div class="board">
+  <h3>⑤ 编辑置顶 · 拖拽排序模式</h3>
+  <p class="desc">置顶区行 = 移出「−」+ 名称 + 拖拽手柄「≡」；其他目标行 = 图钉加入置顶；右上蓝 ✓ 完成保存</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb"><span>9:41</span><span class="r">
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="0.5" opacity="0.3"/><rect x="4.5" y="4.5" width="3" height="7.5" rx="0.5" opacity="0.5"/><rect x="9" y="2" width="3" height="10" rx="0.5" opacity="0.7"/><rect x="13.5" y="0" width="3" height="12" rx="0.5"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="edtop">
+      <span style="width:36px"></span>
+      <span class="tt">编辑置顶</span>
+      <button class="ok" title="完成">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="scroll">
+      <section>
+        <div class="sec"><span class="t">置顶</span></div>
+        <div class="lcard">
+          <div class="pinrow">
+            <button class="rm" title="移出置顶">−</button>
+            <span class="nm">自在地游泳</span>
+            <svg class="drag" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="2"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+          </div>
+          <div class="pinrow">
+            <button class="rm" title="移出置顶">−</button>
+            <span class="nm">让阅读成为日常</span>
+            <svg class="drag" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="2"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div class="sec"><span class="t">其他目标 · 点图钉加入置顶</span></div>
+        <div class="lcard">
+          <div class="orow">
+            <svg class="pin" viewBox="0 0 24 24" fill="none"><path d="M14 3l7 7-4 1-3 7-3-3-4 4-1-1 4-4-3-3 7-3z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            <span class="nm">自信地用英语交流</span>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>

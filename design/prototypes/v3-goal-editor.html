@@ -115,14 +115,6 @@
               box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22); transition: transform var(--motion-base) var(--ease-standard); }
   .toggle.on i { transform: translateX(20px); }
 
-  /* 分段选择（日期有无 / 节奏） */
-  .seg { display: flex; background: var(--surface-alt); border-radius: var(--radius-md);
-         padding: 2px; margin-bottom: var(--space-3); }
-  .seg button { flex: 1; border: none; background: none; cursor: pointer;
-                padding: 8px 0; border-radius: 10px;
-                font: 500 15px/1 var(--font-stack); color: var(--on-surface-variant); }
-  .seg button.on { background: var(--surface); color: var(--on-surface);
-                   box-shadow: var(--shadow-low); font-weight: 600; }
 
   .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .chip { border: 1px solid var(--divider); background: var(--surface); cursor: pointer;
@@ -221,31 +213,18 @@
                 <span class="lb">置顶目标</span>
                 <span class="rt"><button class="toggle on"><i></i></button></span>
               </div>
+              <button class="row-btn">
+                <span class="lb">目标日期</span>
+                <span class="rt"><span class="vl">不设日期</span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </button>
+              <button class="row-btn">
+                <span class="lb">执行节奏</span>
+                <span class="rt"><span class="vl">不设节奏</span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </button>
             </div>
           </div>
 
-          <div class="blk">
-            <span class="flabel">时间设置（全部可选）</span>
-            <div class="card pad">
-              <div class="field">
-                <label>目标日期</label>
-                <div class="seg">
-                  <button class="on">不设日期</button>
-                  <button>指定日期</button>
-                </div>
-              </div>
-              <div class="field">
-                <label>执行节奏</label>
-                <div class="chips">
-                  <button class="chip on">不设节奏</button>
-                  <button class="chip">每天</button>
-                  <button class="chip">每周 N 次</button>
-                  <button class="chip">指定星期</button>
-                </div>
-              </div>
-            </div>
-            <p class="fnote">不设日期与节奏也可以——只靠里程碑和记录推进。</p>
-          </div>
+          <p class="fnote">只填名称即可保存；日期、节奏、提醒与里程碑都可创建后随时补充。</p>
         </div>
       </div>
     </div>
@@ -254,8 +233,8 @@
 
 <!-- ═══════════ 画板 ② 节奏选择展开 ═══════════ -->
 <div class="board">
-  <h3>② 节奏展开（每周 N 次 / 指定星期）</h3>
-  <p class="desc">与 phase 1 frequency_pattern 语义一致</p>
+  <h3>② 执行节奏 · 选择 sheet（R2：行入口进选择器）</h3>
+  <p class="desc">四档单选 + 每周 N 次步进 + 指定星期多选；日期用系统滚轮（略）</p>
   <div class="phone">
     <div class="island"></div>
     <div class="sb dim"><span>9:41</span><span class="r">
@@ -266,12 +245,12 @@
         <div class="grab"><i></i></div>
         <div class="sh-head">
           <button class="cancel">取消</button>
-          <span class="t">添加目标</span>
-          <button class="done">保存</button>
+          <span class="t">执行节奏</span>
+          <button class="done">完成</button>
         </div>
         <div class="sh-body">
           <div class="blk" style="margin-top:0">
-            <span class="flabel">执行节奏 · 每周 N 次</span>
+            <span class="flabel">多久推进一次？</span>
             <div class="card pad">
               <div class="chips">
                 <button class="chip">不设节奏</button>
@@ -285,18 +264,6 @@
                 <button>＋</button>
                 <span style="font:400 15px/1 var(--font-stack);color:var(--on-surface-variant)">次 / 周</span>
               </div>
-            </div>
-          </div>
-
-          <div class="blk">
-            <span class="flabel">执行节奏 · 指定星期</span>
-            <div class="card pad">
-              <div class="chips">
-                <button class="chip">不设节奏</button>
-                <button class="chip">每天</button>
-                <button class="chip">每周 N 次</button>
-                <button class="chip on">指定星期</button>
-              </div>
               <div class="chips" style="margin-top:var(--space-3)">
                 <button class="chip day">一</button>
                 <button class="chip day on">三</button>
@@ -304,18 +271,7 @@
                 <button class="chip day">六</button>
                 <button class="chip day">日</button>
               </div>
-              <p class="fnote">所选星期将参与提醒排程与节奏呈现。</p>
-            </div>
-          </div>
-
-          <div class="blk">
-            <span class="flabel">目标日期 · 指定日期</span>
-            <div class="card">
-              <button class="row-btn">
-                <span class="lb">目标日期</span>
-                <span class="rt"><span class="vl">2026年10月1日</span>
-                  <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-              </button>
+              <p class="fnote">选「指定星期」时按星期多选；节奏只影响提醒排程与呈现，不做硬性考核。</p>
             </div>
           </div>
         </div>
@@ -439,19 +395,13 @@
                 <span class="lb">置顶目标</span>
                 <span class="rt"><button class="toggle on"><i></i></button></span>
               </div>
-            </div>
-          </div>
-          <div class="blk">
-            <span class="flabel">时间设置（全部可选）</span>
-            <div class="card pad">
-              <div class="field">
-                <label>执行节奏</label>
-                <div class="chips">
-                  <button class="chip">不设节奏</button>
-                  <button class="chip on">每天</button>
-                  <button class="chip">每周 N 次</button>
-                  <button class="chip">指定星期</button>
-                </div>
+              <div class="row-btn">
+                <span class="lb">目标日期</span>
+                <span class="rt"><span class="vl">不设日期</span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <div class="row-btn">
+                <span class="lb">执行节奏</span>
+                <span class="rt"><span class="vl">每天</span><svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
               </div>
             </div>
           </div>

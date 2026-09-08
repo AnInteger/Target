@@ -7,7 +7,7 @@ const BASE = 'http://127.0.0.1:8390/prototypes/';
 // [selector, expectedMax, mode, label]  —— max=所有画板中该选择器计数的最大值
 const PAGES = {
   'v3-goals.html': {
-    phones: 4,
+    phones: 5,
     checks: [
       ['.dock .tabs .tab', 2, 'eq', 'dock 双 tab'],
       ['.dock .tab.on', 1, 'eq', '目标页签选中/板'],
@@ -16,16 +16,18 @@ const PAGES = {
       ['.empty .cta', 1, 'eq', '空态 CTA'],
       ['.menu button', 7, 'eq', '管理菜单 7 项'],
       ['.menu button.danger', 1, 'eq', '危险组删除'],
+      ['.pinrow', 2, 'gte', '置顶排序行（画板⑤）'],
+      ['.pinrow .drag', 2, 'gte', '拖拽手柄'],
+      ['.orow .pin', 1, 'gte', '其他目标图钉行'],
+      ['.edtop .ok', 1, 'eq', '编辑完成钮'],
     ],
   },
   'v3-activity.html': {
-    phones: 5,
+    phones: 4,
     checks: [
       ['.bars .col', 7, 'eq', '柱状图 7 柱'],
       ['.msrow .n', 2, 'eq', '里程碑汇总双计数'],
       ['.frow', 2, 'gte', 'feed 条目'],
-      ['.opt', 4, 'eq', '筛选 4 档'],
-      ['.filter-sum .v', 1, 'eq', '筛选投入汇总卡'],
       ['.cal .grid .day', 13, 'gte', '日历格'],
       ['.cal .ring .val', 7, 'gte', '日历投入环'],
       ['.cal-day-sum', 1, 'eq', '点选日摘要'],
@@ -68,8 +70,7 @@ const PAGES = {
   'v3-goal-editor.html': {
     phones: 4,
     checks: [
-      ['.seg', 1, 'gte', '日期分段控件'],
-      ['.seg button', 2, 'eq', '分段两项'],
+      ['.row-btn', 5, 'gte', '属性行（分类/图标/置顶/日期/节奏）'],
       ['.chips .chip', 4, 'gte', '节奏四档 chips'],
       ['.ms-item', 2, 'gte', '里程碑列表项'],
       ['.toggle.on', 1, 'gte', '开关开态'],

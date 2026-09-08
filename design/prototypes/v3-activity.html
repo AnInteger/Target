@@ -13,8 +13,8 @@
      - 结构：周切换器 / 本周投入卡（时长 + 柱状图 + 记录数）/
        里程碑汇总卡（本周达成 / 待达成）/ 最近动态 feed（记录 +
        里程碑达成混排）
-     - 画板：①浅色主版 ②深色 ③筛选 sheet（聚焦最近一周投入）
-       ④日历视图（每日投入圆环，参考 iOS 健康） ⑤空周
+     - 画板：①浅色主版 ②深色 ③日历视图（每日投入圆环，所有日期）
+       ④空周（R2：筛选档退役，「日历」直达；头部改设置入口）
      ============================================================ */
 
   [hidden] { display: none !important; }
@@ -94,7 +94,7 @@
 
   /* 本周投入 */
   .stat .k { font: var(--font-body-s); color: var(--on-surface-tertiary); margin: 0; }
-  .stat .v { font: 700 34px/1.1 var(--font-stack); letter-spacing: -0.5px;
+  .stat .v { font: 600 34px/1.1 var(--font-stack); letter-spacing: -0.5px;
              color: var(--on-surface); margin: 2px 0 0; font-variant-numeric: tabular-nums; }
   .stat .m { font: var(--font-body-s); color: var(--on-surface-tertiary);
              margin: 3px 0 16px; }
@@ -120,7 +120,7 @@
   .msrow .nums { display: flex; align-items: stretch; }
   .msrow .n { text-align: center; font-variant-numeric: tabular-nums; }
   .msrow .n .k { font: var(--font-label); color: var(--on-surface-tertiary); margin: 0; }
-  .msrow .n .v { font: 700 22px/1.1 var(--font-stack); color: var(--on-surface); margin: 0; }
+  .msrow .n .v { font: 600 22px/1.1 var(--font-stack); color: var(--on-surface); margin: 0; }
   .msrow .n + .n { border-left: 0.5px solid var(--divider); margin-left: 16px; padding-left: 16px; }
 
   /* feed */
@@ -148,32 +148,24 @@
   .empty .d { font: var(--font-body-m); color: var(--on-surface-variant);
               margin: 0; line-height: 1.6; }
 
-  /* dock（R1 裁定：iOS 玻璃导航条——深蓝胶囊+白色玻璃选中透镜，与 v3-goals 同构） */
+  /* dock（R2 裁定：iOS 健康 floating tab bar——全浅玻璃、蓝 tint 选中，与 v3-goals 同构） */
   .dock { position: absolute; left: 0; right: 0; bottom: 0;
           display: flex; justify-content: space-between; gap: 10px;
           padding: 4px var(--space-4) 28px; }
-  .dock .tabs { flex: 1; display: flex; gap: 4px; padding: 4px;
+  .dock .tabs { flex: 1; display: flex; padding: 4px;
                 border-radius: 30px;
-                background: var(--glass-dock);
+                background: var(--glass-shell);
                 backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
                 -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-                border: 0.5px solid rgba(255, 255, 255, 0.38);
-                box-shadow: 0 4px 18px rgba(0, 32, 90, 0.28),
-                            inset 0 0.5px 0 rgba(255, 255, 255, 0.45); }
-  .dock .tab { flex: 1; position: relative; border: none; background: none; cursor: pointer;
+                border: 0.5px solid var(--glass-border);
+                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight); }
+  .dock .tab { flex: 1; border: none; background: none; cursor: pointer;
                display: flex; flex-direction: column; align-items: center; gap: 2px;
-               padding: 10px 0; color: rgba(255, 255, 255, 0.72);
-               border-radius: 26px; }
+               padding: 10px 0; color: var(--on-surface); }
   .dock .tab svg { width: 22px; height: 22px; }
   .dock .tab span { font: 500 10px/1 var(--font-stack); }
-  .dock .tab.on { color: #ffffff; }
+  .dock .tab.on { color: var(--accent); }
   .dock .tab.on span { font-weight: 600; }
-  .dock .tab.on::before { content: ""; position: absolute; inset: 3px 6px;
-                           border-radius: 23px;
-                           background: rgba(255, 255, 255, 0.22);
-                           box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.55),
-                                       0 1px 4px rgba(0, 20, 60, 0.18); }
-  .dock .tab > * { position: relative; }
   .dock .rec { width: 56px; flex: none; border-radius: 30px; cursor: pointer;
                background: var(--glass-shell); border: 0.5px solid var(--glass-border);
                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight);
@@ -182,7 +174,7 @@
                display: flex; align-items: center; justify-content: center; }
   .dock .rec svg { width: 20px; height: 20px; color: var(--on-surface); }
 
-  /* ---- sheet（筛选 / 日历 共用骨架） ---- */
+  /* ---- sheet（日历） ---- */
   .sheet-wrap { position: absolute; inset: 0; z-index: 30; display: flex; align-items: flex-end;
                 background: var(--scrim); }
   .sheet { width: 100%; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -201,22 +193,6 @@
   .sh-head .t { font: var(--font-title-m); color: var(--on-surface); }
   .sh-body { overflow-y: auto; padding: 0 var(--space-5) var(--space-8); }
 
-  /* 筛选选项 */
-  .opt { width: 100%; display: flex; justify-content: space-between; align-items: center;
-         background: var(--surface); border: none; cursor: pointer;
-         padding: var(--space-3) var(--space-4); text-align: left; }
-  .opt + .opt { border-top: 0.5px solid var(--divider); }
-  .opt .t { font: var(--font-body-l); color: var(--on-surface); }
-  .opt .s { font: var(--font-body-s); color: var(--on-surface-tertiary); margin-top: 2px; }
-  .opt svg { width: 16px; height: 16px; color: var(--accent); }
-  .opt-group { border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-low); }
-  .filter-sum { margin-top: var(--space-4); background: var(--surface);
-                border-radius: var(--radius-lg); box-shadow: var(--shadow-low);
-                padding: var(--space-4); }
-  .filter-sum .k { font: var(--font-body-s); color: var(--on-surface-tertiary); margin: 0; }
-  .filter-sum .v { font: 700 22px/1.2 var(--font-stack); color: var(--on-surface);
-                   margin: 2px 0 0; font-variant-numeric: tabular-nums; }
-  .filter-sum .m { font: var(--font-body-s); color: var(--on-surface-tertiary); margin: 2px 0 0; }
 
   /* 日历（iOS 健康参考：每格投入圆环） */
   .cal { background: var(--surface); border-radius: var(--radius-lg);
@@ -265,8 +241,8 @@
 </head>
 <body>
 <h2 class="pt-title">v3-activity · 动态页</h2>
-<p class="pt-sub">投入时长统计 + 里程碑汇总 + 活动 feed；「筛选」聚焦最近一周投入，
-   「日历」展示每日投入圆环（参考 iOS 健康）。</p>
+<p class="pt-sub">投入时长统计 + 里程碑汇总 + 活动 feed；头部人形钮进合并设置页（R2 裁定），
+   「日历」直达每日投入圆环（范围所有日期，参考 iOS 健康）。</p>
 
 <!-- ═══════════ 画板 ① 浅色主版 ═══════════ -->
 <div class="row">
@@ -284,8 +260,8 @@
         <h1>动态</h1>
         <p class="sub">记录行动，见证改变。</p>
       </div>
-      <button class="hbtn" title="日历">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <button class="hbtn" title="设置">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4.5 20.5c1.2-3.4 4.2-5 7.5-5s6.3 1.6 7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
     <div class="weeknav">
@@ -318,7 +294,7 @@
           <span class="n"><p class="k">待达成</p><p class="v">4 个</p></span>
         </span>
       </div>
-      <div class="sec"><span class="t">最近动态</span><button class="link">筛选</button></div>
+      <div class="sec"><span class="t">最近动态</span><button class="link">日历</button></div>
       <div class="feed">
         <button class="frow">
           <span class="ic" style="background: rgba(0, 122, 255, 0.10); color: var(--palette-blue)">
@@ -377,8 +353,8 @@
         <h1>动态</h1>
         <p class="sub">记录行动，见证改变。</p>
       </div>
-      <button class="hbtn" title="日历">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <button class="hbtn" title="设置">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4.5 20.5c1.2-3.4 4.2-5 7.5-5s6.3 1.6 7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
     <div class="weeknav">
@@ -411,7 +387,7 @@
           <span class="n"><p class="k">待达成</p><p class="v">4 个</p></span>
         </span>
       </div>
-      <div class="sec"><span class="t">最近动态</span><button class="link">筛选</button></div>
+      <div class="sec"><span class="t">最近动态</span><button class="link">日历</button></div>
       <div class="feed">
         <button class="frow">
           <span class="ic" style="background: rgba(10, 132, 255, 0.20); color: var(--palette-blue)">
@@ -442,81 +418,12 @@
 </div>
 </div>
 
-<!-- ═══════════ 画板 ③ 筛选 sheet ④ 日历 sheet ═══════════ -->
+<!-- ═══════════ 画板 ③ 日历 sheet（原筛选档 R2 裁定退役，点击「日历」直达） ═══════════ -->
 <div class="row">
-<div class="board">
-  <h3>③ 筛选 · 聚焦最近一周投入</h3>
-  <p class="desc">范围单选 + 所选范围投入汇总（feed 与统计随选）</p>
-  <div class="phone">
-    <div class="island"></div>
-    <div class="sb"><span>9:41</span><span class="r">
-      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
-    </span></div>
-    <div class="head">
-      <div>
-        <h1>动态</h1>
-        <p class="sub">记录行动，见证改变。</p>
-      </div>
-      <button class="hbtn" title="日历">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="weeknav">
-      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      <span class="lab">8月31日 — 9月6日</span>
-      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    </div>
-    <div class="sheet-wrap">
-      <div class="sheet">
-        <div class="grab"><i></i></div>
-        <div class="sh-head">
-          <button class="cancel">取消</button>
-          <span class="t">筛选</span>
-          <button class="done">完成</button>
-        </div>
-        <div class="sh-body">
-          <div class="opt-group">
-            <button class="opt">
-              <span><span class="t" style="display:block">本周</span><span class="s" style="display:block">周一至今</span></span>
-            </button>
-            <button class="opt">
-              <span><span class="t" style="display:block;font-weight:600">最近 7 天</span><span class="s" style="display:block">9月1日 — 9月7日</span></span>
-              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <button class="opt">
-              <span><span class="t" style="display:block">本月</span><span class="s" style="display:block">9月1日 — 9月30日</span></span>
-            </button>
-            <button class="opt">
-              <span><span class="t" style="display:block">全部</span><span class="s" style="display:block">所有记录</span></span>
-            </button>
-          </div>
-          <div class="filter-sum">
-            <p class="k">所选范围投入</p>
-            <p class="v">5 小时 30 分钟</p>
-            <p class="m">共 8 条记录 · 推进了 3 个目标</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="dock">
-      <div class="tabs">
-        <button class="tab">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
-          <span>目标</span>
-        </button>
-        <button class="tab on">
-          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="3" height="9" rx="1"/><rect x="9" y="7" width="3" height="14" rx="1"/><rect x="15" y="3" width="3" height="18" rx="1"/><rect x="21" y="9" width="3" height="12" rx="1"/></svg>
-          <span>动态</span>
-        </button>
-      </div>
-      <button class="rec" title="记录进展"><svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    </div>
-  </div>
-</div>
 
 <div class="board">
-  <h3>④ 日历 · 每日投入（iOS 健康参考）</h3>
-  <p class="desc">月历每格圆环 = 当日投入 / 当月峰值；点选日看当日摘要</p>
+  <h3>③ 日历 · 每日投入（点「日历」直达 · 范围所有日期）</h3>
+  <p class="desc">月切换覆盖所有日期；每格环 = 当日投入 / 当月峰值；点选日看当日摘要</p>
   <div class="phone">
     <div class="island"></div>
     <div class="sb"><span>9:41</span><span class="r">
@@ -527,8 +434,8 @@
         <h1>动态</h1>
         <p class="sub">记录行动，见证改变。</p>
       </div>
-      <button class="hbtn" title="日历">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <button class="hbtn" title="设置">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4.5 20.5c1.2-3.4 4.2-5 7.5-5s6.3 1.6 7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
     <div class="weeknav">
@@ -603,7 +510,7 @@
 <!-- ═══════════ 画板 ⑤ 空周 ═══════════ -->
 <div class="row">
 <div class="board">
-  <h3>⑤ 空周（无记录）</h3>
+  <h3>④ 空周（无记录）</h3>
   <p class="desc">统计卡零态 + feed 空文案（无 CTA 打扰）</p>
   <div class="phone">
     <div class="island"></div>
@@ -615,8 +522,8 @@
         <h1>动态</h1>
         <p class="sub">记录行动，见证改变。</p>
       </div>
-      <button class="hbtn" title="日历">
-        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <button class="hbtn" title="设置">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4.5 20.5c1.2-3.4 4.2-5 7.5-5s6.3 1.6 7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
     </div>
     <div class="weeknav">
@@ -639,7 +546,7 @@
           <div class="col today"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">日</span></div>
         </div>
       </div>
-      <div class="sec" style="margin-top: var(--space-6)"><span class="t">最近动态</span><button class="link">筛选</button></div>
+      <div class="sec" style="margin-top: var(--space-6)"><span class="t">最近动态</span><button class="link">日历</button></div>
       <div class="empty">
         <p class="t">本周还没有记录</p>
         <p class="d">从目标页或右下角记录按钮，留下第一次进展。</p>

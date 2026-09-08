@@ -96,7 +96,6 @@
   /* ---- Liquid Glass 材质（浅色：底栏胶囊/悬浮钮/头部控件） ---- */
   --glass-shell: rgba(242, 242, 247, 0.72);  /* 底栏记录钮 */
   --glass-card: rgba(255, 255, 255, 0.62);   /* 头部圆形控件/玻璃卡 */
-  --glass-dock: rgba(0, 61, 153, 0.62);      /* R1 裁定：tab 胶囊深蓝玻璃 */
   --glass-blur: 24px;
   --glass-blur-soft: 12px;
   --glass-saturate: 180%;
@@ -136,11 +135,13 @@
 
   /* ============================================================
      三、字阶 · iOS SF 阶梯（34/32/26/22/17/15/13/11）
+     （R2 裁定：标题族字重统一 600 Semibold——PingFang 真实字重止于
+      Semibold，700 会触发合成加粗显重；700 仅在确有真实字重的场景使用）
      ============================================================ */
-  --font-display-l: 700 34px/1.15 var(--font-stack); /* tab 屏大标题（目标/动态） */
-  --font-display-m: 700 32px/1.15 var(--font-stack); /* 次级屏题（详情/里程碑） */
-  --font-display-s: 700 26px/1.2 var(--font-stack);  /* sheet 主标题 */
-  --font-title-l: 700 22px/1.3 var(--font-stack);    /* 置顶卡题/大数字 22 */
+  --font-display-l: 600 34px/1.15 var(--font-stack); /* tab 屏大标题（目标/动态） */
+  --font-display-m: 600 32px/1.15 var(--font-stack); /* 次级屏题（详情/里程碑） */
+  --font-display-s: 600 26px/1.2 var(--font-stack);  /* sheet 主标题 */
+  --font-title-l: 600 22px/1.3 var(--font-stack);    /* 置顶卡题/大数字 22 */
   --font-title-m: 600 17px/1.4 var(--font-stack);    /* 区块头/行主文 17 */
   --font-title-s: 600 15px/1.4 var(--font-stack);    /* 行内强调 15 */
   --font-body-l: 400 17px/1.5 var(--font-stack);     /* 行主文（iOS body） */
@@ -247,7 +248,6 @@
   /* Liquid Glass · 暗档 */
   --glass-shell: rgba(28, 28, 30, 0.72);
   --glass-card: rgba(44, 44, 46, 0.62);
-  --glass-dock: rgba(16, 96, 214, 0.60);
   --glass-blur: 24px;
   --glass-blur-soft: 12px;
   --glass-saturate: 160%;

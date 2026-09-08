@@ -136,7 +136,15 @@ class GoalRepository {
           .watch();
 
   Future<List<Goal>> getGoals() async =>
-      (await (_db.select(_db.goals).get())).map(goalFromRow).toList();
+      (await (_db.select(_db.goals)
+            ..orderBy([
+              (g) => OrderingTerm.desc(g.pinned),
+              (g) => OrderingTerm.asc(g.pinnedOrder),
+              (g) => OrderingTerm.desc(g.createdAt),
+            ]))
+          .get())
+          .map(goalFromRow)
+          .toList();
 
   Future<Goal> goalById(String id) async =>
       goalFromRow(await (_db.select(_db.goals)..where((g) => g.id.equals(id)))

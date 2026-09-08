@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>动态 · Target（v3 · iOS 原生 / 006 门禁稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=v3a">
+<style>
+  /* ============================================================
+     v3-activity · 动态页（tab 2）
+     ------------------------------------------------------------
+     - Figma 定稿 7 屏之一（参照图 40）
+     - 结构：周切换器 / 本周投入卡（时长 + 柱状图 + 记录数）/
+       里程碑汇总卡（本周达成 / 待达成）/ 最近动态 feed（记录 +
+       里程碑达成混排）
+     - 画板：①浅色主版 ②深色 ③筛选 sheet（聚焦最近一周投入）
+       ④日历视图（每日投入圆环，参考 iOS 健康） ⑤空周
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 720px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+  .chips { display: flex; gap: var(--space-1); flex-wrap: wrap; justify-content: center; }
+  .chip { font: var(--font-label); padding: var(--space-1) var(--space-2);
+          border-radius: var(--radius-full);
+          background: rgba(255, 255, 255, .06); color: rgba(242, 242, 247, .7); }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: linear-gradient(var(--bg-grad-angle), var(--bg-grad-1) var(--bg-grad-mid-1),
+                var(--bg-grad-2) var(--bg-grad-mid-2), var(--bg-grad-3) var(--bg-grad-mid-3),
+                var(--bg-grad-4));
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+  .sb { height: 52px; flex: none; display: flex; align-items: flex-end;
+        justify-content: space-between; padding: 0 var(--space-5) var(--space-1);
+        font: 600 15px/1 var(--font-stack); color: var(--on-surface); }
+  .sb .r { display: flex; gap: 6px; align-items: center; }
+
+  .head { flex: none; display: flex; justify-content: space-between; align-items: flex-start;
+          padding: var(--space-2) var(--space-5) var(--space-5); }
+  .head h1 { font: var(--font-display-l); letter-spacing: var(--ls-display-l);
+             margin: 0; color: var(--on-surface); }
+  .head .sub { font: var(--font-body-m); color: var(--on-surface-variant); margin: 2px 0 0; }
+  .hbtn { width: 44px; height: 44px; border-radius: var(--radius-full); border: 0.5px solid var(--glass-border);
+          background: var(--glass-card); color: var(--on-surface); cursor: pointer;
+          backdrop-filter: blur(var(--glass-blur-soft)) saturate(var(--glass-saturate));
+          -webkit-backdrop-filter: blur(var(--glass-blur-soft)) saturate(var(--glass-saturate));
+          box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+          display: flex; align-items: center; justify-content: center; margin-top: var(--space-2); }
+  .hbtn svg { width: 18px; height: 18px; }
+
+  .scroll { flex: 1; overflow-y: auto; scrollbar-width: none;
+            padding: 0 var(--space-4) 128px; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  /* 周切换 */
+  .weeknav { flex: none; display: flex; justify-content: center; align-items: center;
+             gap: var(--space-4); padding: 0 var(--space-4) var(--space-4); }
+  .weeknav .nav { width: 32px; height: 32px; border-radius: var(--radius-full); border: none;
+                  background: var(--surface); cursor: pointer; box-shadow: var(--shadow-low);
+                  display: flex; align-items: center; justify-content: center; }
+  .weeknav .nav svg { width: 13px; height: 13px; color: var(--on-surface-tertiary); }
+  .weeknav .lab { font: 500 15px/1 var(--font-stack); color: var(--on-surface); }
+
+  .card { background: var(--surface); border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-low); padding: var(--space-4); }
+  .sec { display: flex; justify-content: space-between; align-items: center;
+         margin: var(--space-4) var(--space-1) var(--space-3); }
+  .sec .t { font: var(--font-title-m); color: var(--on-surface); }
+  .sec .link { font: var(--font-body-m); color: var(--accent-text);
+               background: none; border: none; cursor: pointer; padding: 0; }
+
+  /* 本周投入 */
+  .stat .k { font: var(--font-body-s); color: var(--on-surface-tertiary); margin: 0; }
+  .stat .v { font: 700 34px/1.1 var(--font-stack); letter-spacing: -0.5px;
+             color: var(--on-surface); margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+  .stat .m { font: var(--font-body-s); color: var(--on-surface-tertiary);
+             margin: 3px 0 16px; }
+  .bars { display: flex; align-items: flex-end; gap: 4px; height: 88px; }
+  .bars .col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bars .num { font: 400 10px/1 var(--font-stack); color: var(--on-surface-tertiary);
+               font-variant-numeric: tabular-nums; }
+  .bars .bar { width: 100%; border-radius: 3px 3px 2px 2px;
+               background: rgba(0, 122, 255, 0.32); min-height: 0; }
+  .bars .col.today .bar { background: var(--accent); }
+  .bars .d { font: 400 11px/1 var(--font-stack); color: var(--on-surface-tertiary); }
+  [data-theme="dark"] .bars .bar { background: rgba(10, 132, 255, 0.38); }
+
+  /* 里程碑汇总行卡 */
+  .msrow { display: flex; align-items: center; gap: var(--space-3);
+           background: var(--surface); border-radius: var(--radius-lg);
+           box-shadow: var(--shadow-low); padding: 14px var(--space-4); }
+  .msrow .ic { width: 40px; height: 40px; border-radius: var(--radius-full); flex: none;
+               background: var(--milestone-tint); color: var(--milestone);
+               display: flex; align-items: center; justify-content: center; }
+  .msrow .ic svg { width: 22px; height: 22px; }
+  .msrow .t { flex: 1; font: var(--font-title-m); color: var(--on-surface); }
+  .msrow .nums { display: flex; align-items: stretch; }
+  .msrow .n { text-align: center; font-variant-numeric: tabular-nums; }
+  .msrow .n .k { font: var(--font-label); color: var(--on-surface-tertiary); margin: 0; }
+  .msrow .n .v { font: 700 22px/1.1 var(--font-stack); color: var(--on-surface); margin: 0; }
+  .msrow .n + .n { border-left: 0.5px solid var(--divider); margin-left: 16px; padding-left: 16px; }
+
+  /* feed */
+  .feed { background: var(--surface); border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-low); overflow: hidden; }
+  .frow { width: 100%; display: flex; align-items: flex-start; gap: var(--space-3);
+          padding: 14px var(--space-4); background: none; border: none; cursor: pointer;
+          text-align: left; }
+  .frow + .frow { border-top: 0.5px solid var(--divider); }
+  .frow .ic { width: 36px; height: 36px; border-radius: var(--radius-md); flex: none;
+              display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .frow .ic svg { width: 17px; height: 17px; }
+  .frow .bd { flex: 1; min-width: 0; }
+  .frow .g { font: 500 15px/1.3 var(--font-stack); color: var(--on-surface); }
+  .frow .when { font: var(--font-body-s); color: var(--on-surface-tertiary); margin-top: 1px; }
+  .frow .what { font: var(--font-body-m); color: var(--on-surface); margin-top: 3px; }
+  .frow .dur { font: var(--font-body-s); color: var(--on-surface-tertiary); margin-top: 2px;
+               font-variant-numeric: tabular-nums; }
+
+  /* 空周 */
+  .empty { background: var(--surface); border-radius: var(--radius-lg);
+           box-shadow: var(--shadow-low); padding: var(--space-8) var(--space-6);
+           text-align: center; }
+  .empty .t { font: var(--font-title-m); color: var(--on-surface); margin: 0 0 4px; }
+  .empty .d { font: var(--font-body-m); color: var(--on-surface-variant);
+              margin: 0; line-height: 1.6; }
+
+  /* dock（与 v3-goals 同构） */
+  .dock { position: absolute; left: 0; right: 0; bottom: 0;
+          display: flex; justify-content: space-between; gap: 10px;
+          padding: 4px var(--space-4) 28px; }
+  .dock .tabs { flex: 1; display: flex; border-radius: var(--radius-lg); overflow: hidden;
+                background: var(--glass-shell);
+                backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+                -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+                border: 0.5px solid var(--glass-border);
+                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight); }
+  .dock .tab { flex: 1; position: relative; border: none; background: none; cursor: pointer;
+               display: flex; flex-direction: column; align-items: center; gap: 2px;
+               padding: 10px 0; color: var(--on-surface-tertiary); }
+  .dock .tab svg { width: 22px; height: 22px; }
+  .dock .tab span { font: 500 10px/1 var(--font-stack); }
+  .dock .tab.on { color: var(--accent); }
+  .dock .tab.on::before { content: ""; position: absolute; inset: 4px 8px;
+                           border-radius: var(--radius-md); background: var(--accent-tint); }
+  .dock .tab > * { position: relative; }
+  .dock .rec { width: 56px; flex: none; border-radius: var(--radius-lg); cursor: pointer;
+               background: var(--glass-shell); border: 0.5px solid var(--glass-border);
+               box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight);
+               backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+               -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+               display: flex; align-items: center; justify-content: center; }
+  .dock .rec svg { width: 20px; height: 20px; color: var(--on-surface); }
+
+  /* ---- sheet（筛选 / 日历 共用骨架） ---- */
+  .sheet-wrap { position: absolute; inset: 0; z-index: 30; display: flex; align-items: flex-end;
+                background: var(--scrim); }
+  .sheet { width: 100%; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+           background: var(--background); box-shadow: var(--shadow-high);
+           max-height: 92%; display: flex; flex-direction: column; overflow: hidden; }
+  .grab { display: flex; justify-content: center; padding: 10px 0 4px; flex: none; }
+  .grab i { width: 40px; height: 5px; border-radius: var(--radius-full);
+            background: var(--divider); }
+  .sh-head { display: flex; justify-content: space-between; align-items: center;
+             padding: var(--space-3) var(--space-5); flex: none; }
+  .sh-head .x { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+                background: var(--surface); box-shadow: var(--shadow-low); cursor: pointer;
+                display: flex; align-items: center; justify-content: center; }
+  .sh-head .x svg { width: 13px; height: 13px; color: var(--on-surface); }
+  .sh-head .t { font: var(--font-title-m); color: var(--on-surface); }
+  .sh-head .ok { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+                 background: var(--accent); cursor: pointer;
+                 display: flex; align-items: center; justify-content: center; }
+  .sh-head .ok svg { width: 16px; height: 16px; color: var(--accent-on); }
+  .sh-body { overflow-y: auto; padding: 0 var(--space-5) var(--space-8); }
+
+  /* 筛选选项 */
+  .opt { width: 100%; display: flex; justify-content: space-between; align-items: center;
+         background: var(--surface); border: none; cursor: pointer;
+         padding: var(--space-3) var(--space-4); text-align: left; }
+  .opt + .opt { border-top: 0.5px solid var(--divider); }
+  .opt .t { font: var(--font-body-l); color: var(--on-surface); }
+  .opt .s { font: var(--font-body-s); color: var(--on-surface-tertiary); margin-top: 2px; }
+  .opt svg { width: 16px; height: 16px; color: var(--accent); }
+  .opt-group { border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-low); }
+  .filter-sum { margin-top: var(--space-4); background: var(--surface);
+                border-radius: var(--radius-lg); box-shadow: var(--shadow-low);
+                padding: var(--space-4); }
+  .filter-sum .k { font: var(--font-body-s); color: var(--on-surface-tertiary); margin: 0; }
+  .filter-sum .v { font: 700 22px/1.2 var(--font-stack); color: var(--on-surface);
+                   margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+  .filter-sum .m { font: var(--font-body-s); color: var(--on-surface-tertiary); margin: 2px 0 0; }
+
+  /* 日历（iOS 健康参考：每格投入圆环） */
+  .cal { background: var(--surface); border-radius: var(--radius-lg);
+         box-shadow: var(--shadow-low); padding: var(--space-4); }
+  .cal .nav { display: flex; justify-content: space-between; align-items: center;
+              margin-bottom: var(--space-3); }
+  .cal .nav .m { font: var(--font-title-m); color: var(--on-surface); }
+  .cal .nav button { width: 30px; height: 30px; border-radius: var(--radius-full);
+                     border: none; background: var(--surface-alt); cursor: pointer;
+                     display: flex; align-items: center; justify-content: center; }
+  .cal .nav svg { width: 12px; height: 12px; color: var(--on-surface-tertiary); }
+  .cal .wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+             margin-bottom: 6px; }
+  .cal .wk span { text-align: center; font: 400 11px/1 var(--font-stack);
+                  color: var(--on-surface-tertiary); }
+  .cal .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cal .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+              position: relative; border-radius: var(--radius-full); }
+  .cal .day.sel { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+  .cal .day.empty { color: transparent; }
+  .cal .ring { width: 34px; height: 34px; }
+  .cal .ring circle { fill: none; stroke-width: 3.5; }
+  .cal .ring .trk { stroke: var(--divider); }
+  .cal .ring .val { stroke: var(--accent); stroke-linecap: round;
+                    transform: rotate(-90deg); transform-origin: 50% 50%; }
+  .cal .ring .mid { fill: var(--on-surface); font: 500 9px/1 var(--font-stack);
+                    text-anchor: middle; dominant-baseline: central;
+                    font-variant-numeric: tabular-nums; stroke: none; }
+  .cal-day-sum { display: flex; align-items: center; gap: var(--space-3);
+                 margin-top: var(--space-4); background: var(--surface);
+                 border-radius: var(--radius-lg); box-shadow: var(--shadow-low);
+                 padding: var(--space-3) var(--space-4); }
+  .cal-day-sum .ic { width: 36px; height: 36px; border-radius: var(--radius-md); flex: none;
+                     background: var(--accent-tint); color: var(--accent);
+                     display: flex; align-items: center; justify-content: center; }
+  .cal-day-sum .ic svg { width: 16px; height: 16px; }
+  .cal-day-sum .d { flex: 1; font: var(--font-body-m); color: var(--on-surface); }
+  .cal-day-sum .d small { display: block; font: var(--font-body-s);
+                          color: var(--on-surface-tertiary); margin-top: 1px; }
+  .cal-legend { display: flex; gap: var(--space-4); justify-content: center;
+                margin-top: var(--space-3); }
+  .cal-legend span { display: flex; align-items: center; gap: 6px;
+                     font: var(--font-body-s); color: var(--on-surface-variant); }
+  .cal-legend i { width: 10px; height: 10px; border-radius: var(--radius-full); }
+</style>
+</head>
+<body>
+<h2 class="pt-title">v3-activity · 动态页</h2>
+<p class="pt-sub">投入时长统计 + 里程碑汇总 + 活动 feed；「筛选」聚焦最近一周投入，
+   「日历」展示每日投入圆环（参考 iOS 健康）。</p>
+
+<!-- ═══════════ 画板 ① 浅色主版 ═══════════ -->
+<div class="row">
+<div class="board">
+  <h3>① 浅色 · 主版</h3>
+  <p class="desc">周切换 / 本周投入（柱状图）/ 里程碑汇总 / 最近动态</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb"><span>9:41</span><span class="r">
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="0.5" opacity="0.3"/><rect x="4.5" y="4.5" width="3" height="7.5" rx="0.5" opacity="0.5"/><rect x="9" y="2" width="3" height="10" rx="0.5" opacity="0.7"/><rect x="13.5" y="0" width="3" height="12" rx="0.5"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="head">
+      <div>
+        <h1>动态</h1>
+        <p class="sub">记录行动，见证改变。</p>
+      </div>
+      <button class="hbtn" title="日历">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="weeknav">
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="lab">8月31日 — 9月6日</span>
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="scroll">
+      <div class="card stat">
+        <p class="k">本周投入</p>
+        <p class="v">5 小时 30 分钟</p>
+        <p class="m">共 8 条记录</p>
+        <div class="bars tnum">
+          <div class="col"><span class="num">30</span><div class="bar" style="height:21px"></div><span class="d">一</span></div>
+          <div class="col"><span class="num">60</span><div class="bar" style="height:43px"></div><span class="d">二</span></div>
+          <div class="col"><span class="num">45</span><div class="bar" style="height:32px"></div><span class="d">三</span></div>
+          <div class="col"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">四</span></div>
+          <div class="col"><span class="num">75</span><div class="bar" style="height:53px"></div><span class="d">五</span></div>
+          <div class="col"><span class="num">90</span><div class="bar" style="height:64px"></div><span class="d">六</span></div>
+          <div class="col today"><span class="num">30</span><div class="bar" style="height:21px"></div><span class="d">日</span></div>
+        </div>
+      </div>
+      <div class="msrow" style="margin-top: var(--space-4)">
+        <span class="ic">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="t">里程碑</span>
+        <span class="nums">
+          <span class="n"><p class="k">本周达成</p><p class="v">1 个</p></span>
+          <span class="n"><p class="k">待达成</p><p class="v">4 个</p></span>
+        </span>
+      </div>
+      <div class="sec"><span class="t">最近动态</span><button class="link">筛选</button></div>
+      <div class="feed">
+        <button class="frow">
+          <span class="ic" style="background: rgba(0, 122, 255, 0.10); color: var(--palette-blue)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="bd">
+            <span class="g" style="display:block">自在地游泳</span>
+            <span class="when" style="display:block">今天 16:30</span>
+            <span class="what" style="display:block">找到换气的节奏</span>
+            <span class="dur" style="display:block">投入 30 分钟</span>
+          </span>
+          <svg viewBox="0 0 24 24" fill="none" style="width:14px;height:14px;color:var(--on-surface-tertiary);opacity:.55;flex:none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="frow">
+          <span class="ic" style="background: var(--milestone-tint); color: var(--milestone)">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="bd">
+            <span class="g" style="display:block">达成：独立游完 25 米</span>
+            <span class="when" style="display:block">昨天 · 自在地游泳</span>
+          </span>
+          <svg viewBox="0 0 24 24" fill="none" style="width:14px;height:14px;color:var(--on-surface-tertiary);opacity:.55;flex:none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="tabs">
+        <button class="tab">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+          <span>目标</span>
+        </button>
+        <button class="tab on">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="3" height="9" rx="1"/><rect x="9" y="7" width="3" height="14" rx="1"/><rect x="15" y="3" width="3" height="18" rx="1"/><rect x="21" y="9" width="3" height="12" rx="1"/></svg>
+          <span>动态</span>
+        </button>
+      </div>
+      <button class="rec" title="记录进展">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 画板 ② 深色 ═══════════ -->
+<div class="board">
+  <h3>② 深色 · 同构</h3>
+  <p class="desc">暗紫渐变头部 + 暗卡 + 提亮柱</p>
+  <div class="phone" data-theme="dark">
+    <div class="island"></div>
+    <div class="sb"><span>9:41</span><span class="r">
+      <svg width="17" height="12" viewBox="0 0 17 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="0.5" opacity="0.3"/><rect x="13.5" y="0" width="3" height="12" rx="0.5"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="head">
+      <div>
+        <h1>动态</h1>
+        <p class="sub">记录行动，见证改变。</p>
+      </div>
+      <button class="hbtn" title="日历">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="weeknav">
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="lab">8月31日 — 9月6日</span>
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="scroll">
+      <div class="card stat">
+        <p class="k">本周投入</p>
+        <p class="v">5 小时 30 分钟</p>
+        <p class="m">共 8 条记录</p>
+        <div class="bars tnum">
+          <div class="col"><span class="num">30</span><div class="bar" style="height:21px"></div><span class="d">一</span></div>
+          <div class="col"><span class="num">60</span><div class="bar" style="height:43px"></div><span class="d">二</span></div>
+          <div class="col"><span class="num">45</span><div class="bar" style="height:32px"></div><span class="d">三</span></div>
+          <div class="col"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">四</span></div>
+          <div class="col"><span class="num">75</span><div class="bar" style="height:53px"></div><span class="d">五</span></div>
+          <div class="col"><span class="num">90</span><div class="bar" style="height:64px"></div><span class="d">六</span></div>
+          <div class="col today"><span class="num">30</span><div class="bar" style="height:21px"></div><span class="d">日</span></div>
+        </div>
+      </div>
+      <div class="msrow" style="margin-top: var(--space-4)">
+        <span class="ic">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <span class="t">里程碑</span>
+        <span class="nums">
+          <span class="n"><p class="k">本周达成</p><p class="v">1 个</p></span>
+          <span class="n"><p class="k">待达成</p><p class="v">4 个</p></span>
+        </span>
+      </div>
+      <div class="sec"><span class="t">最近动态</span><button class="link">筛选</button></div>
+      <div class="feed">
+        <button class="frow">
+          <span class="ic" style="background: rgba(10, 132, 255, 0.20); color: var(--palette-blue)">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          <span class="bd">
+            <span class="g" style="display:block">自在地游泳</span>
+            <span class="when" style="display:block">今天 16:30</span>
+            <span class="what" style="display:block">找到换气的节奏</span>
+          </span>
+        </button>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="tabs">
+        <button class="tab">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+          <span>目标</span>
+        </button>
+        <button class="tab on">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="3" height="9" rx="1"/><rect x="9" y="7" width="3" height="14" rx="1"/><rect x="15" y="3" width="3" height="18" rx="1"/><rect x="21" y="9" width="3" height="12" rx="1"/></svg>
+          <span>动态</span>
+        </button>
+      </div>
+      <button class="rec" title="记录进展"></button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════ 画板 ③ 筛选 sheet ④ 日历 sheet ═══════════ -->
+<div class="row">
+<div class="board">
+  <h3>③ 筛选 · 聚焦最近一周投入</h3>
+  <p class="desc">范围单选 + 所选范围投入汇总（feed 与统计随选）</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="head">
+      <div>
+        <h1>动态</h1>
+        <p class="sub">记录行动，见证改变。</p>
+      </div>
+      <button class="hbtn" title="日历">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="weeknav">
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="lab">8月31日 — 9月6日</span>
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">筛选</span>
+          <button class="ok"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <div class="opt-group">
+            <button class="opt">
+              <span><span class="t" style="display:block">本周</span><span class="s" style="display:block">周一至今</span></span>
+            </button>
+            <button class="opt">
+              <span><span class="t" style="display:block;font-weight:600">最近 7 天</span><span class="s" style="display:block">9月1日 — 9月7日</span></span>
+              <svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="opt">
+              <span><span class="t" style="display:block">本月</span><span class="s" style="display:block">9月1日 — 9月30日</span></span>
+            </button>
+            <button class="opt">
+              <span><span class="t" style="display:block">全部</span><span class="s" style="display:block">所有记录</span></span>
+            </button>
+          </div>
+          <div class="filter-sum">
+            <p class="k">所选范围投入</p>
+            <p class="v">5 小时 30 分钟</p>
+            <p class="m">共 8 条记录 · 推进了 3 个目标</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="tabs">
+        <button class="tab">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+          <span>目标</span>
+        </button>
+        <button class="tab on">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="3" height="9" rx="1"/><rect x="9" y="7" width="3" height="14" rx="1"/><rect x="15" y="3" width="3" height="18" rx="1"/><rect x="21" y="9" width="3" height="12" rx="1"/></svg>
+          <span>动态</span>
+        </button>
+      </div>
+      <button class="rec"></button>
+    </div>
+  </div>
+</div>
+
+<div class="board">
+  <h3>④ 日历 · 每日投入（iOS 健康参考）</h3>
+  <p class="desc">月历每格圆环 = 当日投入 / 当月峰值；点选日看当日摘要</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="head">
+      <div>
+        <h1>动态</h1>
+        <p class="sub">记录行动，见证改变。</p>
+      </div>
+      <button class="hbtn" title="日历">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="weeknav">
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="lab">8月31日 — 9月6日</span>
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">每日投入</span>
+          <span style="width:36px"></span>
+        </div>
+        <div class="sh-body">
+          <div class="cal">
+            <div class="nav">
+              <button><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+              <span class="m">2026年9月</span>
+              <button><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </div>
+            <div class="wk"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+            <div class="grid tnum">
+              <!-- 9月1日(二)起；环填充 = 当日投入/当月峰值 90 -->
+              <span class="day empty"></span><span class="day empty"></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/><circle class="val" cx="18" cy="18" r="15" stroke-dasharray="31.4 94.2"/><text class="mid" x="18" y="19">15</text></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/><circle class="val" cx="18" cy="18" r="15" stroke-dasharray="52 94.2"/><text class="mid" x="18" y="19">25</text></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/><circle class="val" cx="18" cy="18" r="15" stroke-dasharray="47 94.2"/><text class="mid" x="18" y="19">45</text></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/><circle class="val" cx="18" cy="18" r="15" stroke-dasharray="63 94.2"/><text class="mid" x="18" y="19">60</text></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/><circle class="val" cx="18" cy="18" r="15" stroke-dasharray="78 94.2"/><text class="mid" x="18" y="19">75</text></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/><circle class="val" cx="18" cy="18" r="15" stroke-dasharray="94.2 94.2"/><text class="mid" x="18" y="19">90</text></svg></span>
+              <span class="day sel"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/><circle class="val" cx="18" cy="18" r="15" stroke-dasharray="31.4 94.2"/><text class="mid" x="18" y="19">30</text></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/></svg></span>
+              <span class="day"><svg class="ring" viewBox="0 0 36 36"><circle class="trk" cx="18" cy="18" r="15"/></svg></span>
+            </div>
+          </div>
+          <div class="cal-day-sum">
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <span class="d">9月7日 · 30 分钟<small>2 条记录 · 自在地游泳 / 让阅读成为日常</small></span>
+          </div>
+          <div class="cal-legend">
+            <span><i style="background: var(--divider)"></i>无投入</span>
+            <span><i style="background: var(--accent)"></i>环 = 当日投入 / 当月峰值</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="tabs">
+        <button class="tab">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+          <span>目标</span>
+        </button>
+        <button class="tab on">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="3" height="9" rx="1"/><rect x="9" y="7" width="3" height="14" rx="1"/><rect x="15" y="3" width="3" height="18" rx="1"/><rect x="21" y="9" width="3" height="12" rx="1"/></svg>
+          <span>动态</span>
+        </button>
+      </div>
+      <button class="rec"></button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════ 画板 ⑤ 空周 ═══════════ -->
+<div class="row">
+<div class="board">
+  <h3>⑤ 空周（无记录）</h3>
+  <p class="desc">统计卡零态 + feed 空文案（无 CTA 打扰）</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="head">
+      <div>
+        <h1>动态</h1>
+        <p class="sub">记录行动，见证改变。</p>
+      </div>
+      <button class="hbtn" title="日历">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="weeknav">
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <span class="lab">9月7日 — 9月13日</span>
+      <button class="nav"><svg viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+    <div class="scroll">
+      <div class="card stat">
+        <p class="k">本周投入</p>
+        <p class="v">0 分钟</p>
+        <p class="m">共 0 条记录</p>
+        <div class="bars tnum">
+          <div class="col"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">一</span></div>
+          <div class="col"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">二</span></div>
+          <div class="col"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">三</span></div>
+          <div class="col"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">四</span></div>
+          <div class="col"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">五</span></div>
+          <div class="col"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">六</span></div>
+          <div class="col today"><span class="num">0</span><div class="bar" style="height:0"></div><span class="d">日</span></div>
+        </div>
+      </div>
+      <div class="sec" style="margin-top: var(--space-6)"><span class="t">最近动态</span><button class="link">筛选</button></div>
+      <div class="empty">
+        <p class="t">本周还没有记录</p>
+        <p class="d">从目标页或右下角记录按钮，留下第一次进展。</p>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="tabs">
+        <button class="tab">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+          <span>目标</span>
+        </button>
+        <button class="tab on">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="12" width="3" height="9" rx="1"/><rect x="9" y="7" width="3" height="14" rx="1"/><rect x="15" y="3" width="3" height="18" rx="1"/><rect x="21" y="9" width="3" height="12" rx="1"/></svg>
+          <span>动态</span>
+        </button>
+      </div>
+      <button class="rec"></button>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

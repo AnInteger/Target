@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>目标编辑器 · Target（v3 · iOS 原生 / 006 门禁稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=v3a">
+<style>
+  /* ============================================================
+     v3-goal-editor · 添加 / 编辑目标（sheet，完整字段版）
+     ------------------------------------------------------------
+     - Figma 添加目标 sheet（参照图 39）+ 006 补画三组字段：
+       执行节奏（不设/每天/每周 N 次/指定星期）· 目标日期 · 提醒
+     - 新建与编辑同构（标题互异）；保存=✓，只填名称即可
+     - 画板：①基础+属性+时间 ②节奏选择展开 ③提醒+里程碑管理 ④深色
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 720px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: var(--background);
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+  .sb { height: 52px; flex: none; display: flex; align-items: flex-end;
+        justify-content: space-between; padding: 0 var(--space-5) var(--space-1);
+        font: 600 15px/1 var(--font-stack); color: var(--on-surface); }
+  .sb .r { display: flex; gap: 6px; align-items: center; }
+  .dim { opacity: .4; pointer-events: none; }
+
+  .sheet-wrap { position: absolute; inset: 0; z-index: 30; display: flex; align-items: flex-end;
+                background: var(--scrim); }
+  .sheet { width: 100%; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+           background: var(--background); box-shadow: var(--shadow-high);
+           max-height: 92%; display: flex; flex-direction: column; overflow: hidden; }
+  .grab { display: flex; justify-content: center; padding: 10px 0 4px; flex: none; }
+  .grab i { width: 40px; height: 5px; border-radius: var(--radius-full);
+            background: var(--divider); }
+  .sh-head { display: flex; justify-content: space-between; align-items: center;
+             padding: var(--space-3) var(--space-5); flex: none; }
+  .sh-head .x { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+                background: var(--surface); box-shadow: var(--shadow-low); cursor: pointer;
+                display: flex; align-items: center; justify-content: center; }
+  .sh-head .x svg { width: 13px; height: 13px; color: var(--on-surface); }
+  .sh-head .t { font: var(--font-title-m); color: var(--on-surface); }
+  .sh-head .ok { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+                 cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .sh-head .ok.on { background: var(--accent); }
+  .sh-head .ok.off { background: var(--divider); }
+  .sh-head .ok svg { width: 16px; height: 16px; color: var(--accent-on); }
+  .sh-body { overflow-y: auto; padding: 0 var(--space-5) 40px; scrollbar-width: none; }
+  .sh-body::-webkit-scrollbar { display: none; }
+
+  .hero { padding: var(--space-2) 0 var(--space-4); }
+  .hero h2 { font: var(--font-display-s); letter-spacing: -0.3px;
+             margin: 0; color: var(--on-surface); }
+  .hero p { font: var(--font-body-m); color: var(--on-surface-variant); margin: 4px 0 0; }
+
+  .card { background: var(--surface); border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-low); overflow: hidden; }
+  .card + .card, .blk + .blk { margin-top: var(--space-4); }
+  .blk { margin-top: var(--space-5); }
+
+  .flabel { font: var(--font-body-s); color: var(--on-surface-variant);
+            margin: 0 0 var(--space-2) var(--space-1); display: block; }
+
+  .pad { padding: var(--space-4); }
+  .field + .field { margin-top: var(--space-4); }
+  .field label { font: var(--font-body-s); color: var(--on-surface-variant);
+                 display: block; margin-bottom: 6px; }
+  .field input, .field textarea {
+    width: 100%; border: 1px solid var(--divider); border-radius: var(--radius-md);
+    padding: 10px var(--space-3); outline: none;
+    font: 400 17px/1.4 var(--font-stack); color: var(--on-surface);
+    background: var(--surface); }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); }
+  .field input::placeholder, .field textarea::placeholder { color: var(--on-surface-tertiary); }
+  .field textarea { resize: none; }
+
+  .row-btn { width: 100%; display: flex; align-items: center; justify-content: space-between;
+             gap: var(--space-2); padding: 14px var(--space-4); background: none;
+             border: none; cursor: pointer; text-align: left; }
+  .row-btn + .row-btn { border-top: 0.5px solid var(--divider); }
+  .row-btn .lb { font: 400 17px/1 var(--font-stack); color: var(--on-surface); }
+  .row-btn .rt { display: flex; align-items: center; gap: 6px; }
+  .row-btn .vl { font: var(--font-body-m); color: var(--on-surface-variant); }
+  .row-btn svg.chev { width: 14px; height: 14px; color: var(--on-surface-tertiary); opacity: .55; }
+  .dot { width: 24px; height: 24px; border-radius: var(--radius-full); }
+
+  .toggle { position: relative; width: 51px; height: 31px; border-radius: var(--radius-full);
+            border: none; cursor: pointer; background: var(--divider); flex: none; }
+  .toggle.on { background: var(--positive-fill); }
+  .toggle i { position: absolute; top: 2px; left: 2px; width: 27px; height: 27px;
+              border-radius: var(--radius-full); background: #fff;
+              box-shadow: 0 2px 5px rgba(0, 0, 0, 0.22); transition: transform var(--motion-base) var(--ease-standard); }
+  .toggle.on i { transform: translateX(20px); }
+
+  /* 分段选择（日期有无 / 节奏） */
+  .seg { display: flex; background: var(--surface-alt); border-radius: var(--radius-md);
+         padding: 2px; margin-bottom: var(--space-3); }
+  .seg button { flex: 1; border: none; background: none; cursor: pointer;
+                padding: 8px 0; border-radius: 10px;
+                font: 500 15px/1 var(--font-stack); color: var(--on-surface-variant); }
+  .seg button.on { background: var(--surface); color: var(--on-surface);
+                   box-shadow: var(--shadow-low); font-weight: 600; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .chip { border: 1px solid var(--divider); background: var(--surface); cursor: pointer;
+          border-radius: var(--radius-full); padding: 9px var(--space-4);
+          font: 400 15px/1 var(--font-stack); color: var(--on-surface); }
+  .chip.on { background: var(--accent); border-color: var(--accent);
+             color: var(--accent-on); font-weight: 600; }
+  .chip.day { min-width: 44px; text-align: center; padding: 9px 0; }
+
+  .stepper { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-3); }
+  .stepper button { width: 34px; height: 34px; border-radius: var(--radius-full);
+                    border: 1px solid var(--divider); background: var(--surface); cursor: pointer;
+                    font: 600 17px/1 var(--font-stack); color: var(--on-surface); }
+  .stepper .n { font: 600 17px/1 var(--font-stack); color: var(--on-surface);
+                min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+
+  /* 里程碑列表 */
+  .ms-item { display: flex; align-items: center; gap: var(--space-3);
+             padding: 12px var(--space-4); }
+  .ms-item + .ms-item { border-top: 0.5px solid var(--divider); }
+  .ms-item .h { width: 20px; height: 20px; color: var(--on-surface-tertiary); flex: none;
+                cursor: grab; }
+  .ms-item .t { flex: 1; font: 400 15px/1.4 var(--font-stack); color: var(--on-surface); }
+  .ms-item .t small { display: block; font: var(--font-body-s);
+                      color: var(--on-surface-variant); margin-top: 1px; }
+  .ms-item .del { width: 28px; height: 28px; border-radius: var(--radius-full); border: none;
+                  background: var(--surface-alt); cursor: pointer; flex: none;
+                  display: flex; align-items: center; justify-content: center; }
+  .ms-item .del svg { width: 13px; height: 13px; color: var(--danger); }
+  .ms-add { width: 100%; display: flex; align-items: center; gap: var(--space-3);
+            padding: 12px var(--space-4); background: none; border: none; cursor: pointer; }
+  .ms-item + .ms-add, .card .ms-add { border-top: 0.5px solid var(--divider); }
+  .ms-add svg { width: 18px; height: 18px; color: var(--on-surface-variant); }
+  .ms-add span { font: 400 17px/1 var(--font-stack); color: var(--on-surface-variant); }
+
+  .fnote { font: var(--font-body-s); color: var(--on-surface-variant);
+           margin: var(--space-3) 0 0 var(--space-1); line-height: 1.6; }
+</style>
+</head>
+<body>
+<h2 class="pt-title">v3-goal-editor · 目标编辑器（完整字段）</h2>
+<p class="pt-sub">新建 / 编辑同构。Figma 简版三字段 + 补画「目标日期 / 执行节奏 / 提醒」
+   三组（沿用 phase 1 语义：全部可选、互不排斥）；里程碑在本页增删排序。</p>
+
+<div class="row">
+<!-- ═══════════ 画板 ① 基础 + 属性 + 时间 ═══════════ -->
+<div class="board">
+  <h3>① 基础 / 属性 / 时间</h3>
+  <p class="desc">sheet 可滚动；只填名称即可保存 ✓</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb dim"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">添加目标</span>
+          <button class="ok on"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <div class="hero">
+            <h2>你想朝什么方向前进？</h2>
+            <p>目标可以是一件事，也可以是一种生活方式。</p>
+          </div>
+
+          <div class="card pad">
+            <div class="field">
+              <label>目标名称</label>
+              <input value="自在地游泳" placeholder="例如：自在地游泳">
+            </div>
+            <div class="field">
+              <label>为什么想做？（可选）</label>
+              <textarea rows="3" placeholder="例如：放松地呼吸，享受在水里的感觉。"></textarea>
+            </div>
+          </div>
+
+          <div class="blk">
+            <div class="card">
+              <button class="row-btn">
+                <span class="lb">分类</span>
+                <span class="rt"><span class="vl">运动与健康</span>
+                  <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </button>
+              <button class="row-btn">
+                <span class="lb">图标与颜色</span>
+                <span class="rt">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color:var(--palette-blue)"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <span class="dot" style="background: var(--palette-blue)"></span>
+                  <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </button>
+              <button class="row-btn">
+                <span class="lb">置顶目标</span>
+                <span class="rt"><button class="toggle on"><i></i></button></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="blk">
+            <span class="flabel">时间设置（全部可选）</span>
+            <div class="card pad">
+              <div class="field">
+                <label>目标日期</label>
+                <div class="seg">
+                  <button class="on">不设日期</button>
+                  <button>指定日期</button>
+                </div>
+              </div>
+              <div class="field">
+                <label>执行节奏</label>
+                <div class="chips">
+                  <button class="chip on">不设节奏</button>
+                  <button class="chip">每天</button>
+                  <button class="chip">每周 N 次</button>
+                  <button class="chip">指定星期</button>
+                </div>
+              </div>
+            </div>
+            <p class="fnote">不设日期与节奏也可以——只靠里程碑和记录推进。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 画板 ② 节奏选择展开 ═══════════ -->
+<div class="board">
+  <h3>② 节奏展开（每周 N 次 / 指定星期）</h3>
+  <p class="desc">与 phase 1 frequency_pattern 语义一致</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb dim"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">添加目标</span>
+          <button class="ok on"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <div class="blk" style="margin-top:0">
+            <span class="flabel">执行节奏 · 每周 N 次</span>
+            <div class="card pad">
+              <div class="chips">
+                <button class="chip">不设节奏</button>
+                <button class="chip">每天</button>
+                <button class="chip on">每周 N 次</button>
+                <button class="chip">指定星期</button>
+              </div>
+              <div class="stepper">
+                <button>−</button>
+                <span class="n">3</span>
+                <button>＋</button>
+                <span style="font:400 15px/1 var(--font-stack);color:var(--on-surface-variant)">次 / 周</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="blk">
+            <span class="flabel">执行节奏 · 指定星期</span>
+            <div class="card pad">
+              <div class="chips">
+                <button class="chip">不设节奏</button>
+                <button class="chip">每天</button>
+                <button class="chip">每周 N 次</button>
+                <button class="chip on">指定星期</button>
+              </div>
+              <div class="chips" style="margin-top:var(--space-3)">
+                <button class="chip day">一</button>
+                <button class="chip day on">三</button>
+                <button class="chip day">五</button>
+                <button class="chip day">六</button>
+                <button class="chip day">日</button>
+              </div>
+              <p class="fnote">所选星期将参与提醒排程与节奏呈现。</p>
+            </div>
+          </div>
+
+          <div class="blk">
+            <span class="flabel">目标日期 · 指定日期</span>
+            <div class="card">
+              <button class="row-btn">
+                <span class="lb">目标日期</span>
+                <span class="rt"><span class="vl">2026年10月1日</span>
+                  <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 画板 ③ 提醒 + 里程碑管理 ═══════════ -->
+<div class="board">
+  <h3>③ 提醒 + 里程碑管理</h3>
+  <p class="desc">提醒=开关+时刻+频率档；里程碑可增删、拖拽排序</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb dim"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">添加目标</span>
+          <button class="ok on"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <div class="blk" style="margin-top:0">
+            <span class="flabel">提醒（可选）</span>
+            <div class="card">
+              <button class="row-btn">
+                <span class="lb">提醒</span>
+                <span class="rt"><button class="toggle on"><i></i></button></span>
+              </button>
+              <button class="row-btn">
+                <span class="lb">时间</span>
+                <span class="rt"><span class="vl">08:30</span>
+                  <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </button>
+              <button class="row-btn">
+                <span class="lb">频率</span>
+                <span class="rt"><span class="vl">一天一次</span>
+                  <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </button>
+            </div>
+            <p class="fnote">频率档：一天一次 / 三天一次 / 一周一次；到点推送目标名与轻推文案。</p>
+          </div>
+
+          <div class="blk">
+            <span class="flabel">里程碑（可选）</span>
+            <div class="card">
+              <div class="ms-item">
+                <svg class="h" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="2"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+                <span class="t">连续游完 500 米<small>不扶池边，按自己的节奏完成。</small></span>
+                <button class="del" title="删除"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+              </div>
+              <div class="ms-item">
+                <svg class="h" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="2"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+                <span class="t">尝试开放水域游泳<small>在有人陪同的情况下体验。</small></span>
+                <button class="del" title="删除"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+              </div>
+              <button class="ms-add">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <span>添加里程碑</span>
+              </button>
+            </div>
+            <p class="fnote">第一条未达成的里程碑即为「下个路标」，顺序可拖拽调整。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 画板 ④ 深色 ═══════════ -->
+<div class="board">
+  <h3>④ 深色 · 完整表单</h3>
+  <p class="desc">暗卡 + 暗档分段与 chips</p>
+  <div class="phone" data-theme="dark">
+    <div class="island"></div>
+    <div class="sb dim"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">添加目标</span>
+          <button class="ok on"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <div class="hero">
+            <h2>你想朝什么方向前进？</h2>
+            <p>目标可以是一件事，也可以是一种生活方式。</p>
+          </div>
+          <div class="card pad">
+            <div class="field">
+              <label>目标名称</label>
+              <input value="自在地游泳" placeholder="例如：自在地游泳">
+            </div>
+            <div class="field">
+              <label>为什么想做？（可选）</label>
+              <textarea rows="3" placeholder="例如：放松地呼吸，享受在水里的感觉。"></textarea>
+            </div>
+          </div>
+          <div class="blk">
+            <div class="card">
+              <button class="row-btn">
+                <span class="lb">分类</span>
+                <span class="rt"><span class="vl">运动与健康</span>
+                  <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </button>
+              <button class="row-btn">
+                <span class="lb">图标与颜色</span>
+                <span class="rt">
+                  <span class="dot" style="background: var(--palette-blue)"></span>
+                  <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </button>
+              <button class="row-btn">
+                <span class="lb">置顶目标</span>
+                <span class="rt"><button class="toggle on"><i></i></button></span>
+              </button>
+            </div>
+          </div>
+          <div class="blk">
+            <span class="flabel">时间设置（全部可选）</span>
+            <div class="card pad">
+              <div class="field">
+                <label>执行节奏</label>
+                <div class="chips">
+                  <button class="chip">不设节奏</button>
+                  <button class="chip on">每天</button>
+                  <button class="chip">每周 N 次</button>
+                  <button class="chip">指定星期</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

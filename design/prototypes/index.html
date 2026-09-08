@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Target · 原型评审入口</title>
-<link rel="stylesheet" href="../tokens.css?v=0820f">
+<link rel="stylesheet" href="../tokens.css?v=v3a">
 <style>
   body {
     margin: 0; background: var(--background); color: var(--on-surface);
@@ -83,7 +83,19 @@
     <li><a href="direction-c.html">方向 C · 贴纸收集册<span class="status">已否决</span></a></li>
   </ul>
 
-  <h2>② 核心屏原型（方向定稿后逐屏深化）</h2>
+  <h2>⓪ v3 · App 全面重构（006 送审中 · 两 Tab + 富记录 + iOS 原生风）</h2>
+  <ul>
+    <li><a href="v3-goals.html">v3 目标页（置顶卡 + 列表 + 空态 + 管理菜单）<span class="status wait">送审 09-08</span></a></li>
+    <li><a href="v3-activity.html">v3 动态页（周统计 + 里程碑汇总 + feed + 筛选 + 日历投入）<span class="status wait">送审 09-08</span></a></li>
+    <li><a href="v3-goal-detail.html">v3 目标详情（时间线 + 生命周期菜单）<span class="status wait">送审 09-08</span></a></li>
+    <li><a href="v3-milestones.html">v3 里程碑页（管理 + 添加 sheet）<span class="status wait">送审 09-08</span></a></li>
+    <li><a href="v3-record-sheet.html">v3 记录进展 sheet（富记录表单 + 目标切换 + 时长）<span class="status wait">送审 09-08</span></a></li>
+    <li><a href="v3-goal-editor.html">v3 目标编辑器（完整字段：+日期/节奏/提醒/里程碑管理）<span class="status wait">送审 09-08</span></a></li>
+    <li><a href="v3-settings.html">v3 设置（与我的合并 + 备份冲突弹层）<span class="status wait">送审 09-08</span></a></li>
+    <li><a href="v3-widget.html">v3 桌面小组件（浅深两档 × small/medium）<span class="status wait">送审 09-08</span></a></li>
+  </ul>
+
+  <h2>② 核心屏原型（v2 · 已被 006 重构取代，留档）</h2>
   <ul>
     <li><a href="screen-today.html">今日（打卡动线）<span class="status pass">✅ 通过 08-20</span></a></li>
     <li><a href="screen-editor.html">目标编辑器（定义模型候选）<span class="status pass">✅ 通过 08-20（选 B）</span></a></li>
@@ -97,7 +109,7 @@
     <li><a href="../brand/icon-proposal.html">品牌图标三案（今日之环 / 墨梅一瓣 / 今字印）<span class="status wait">候选送审 08-21</span></a></li>
   </ul>
 
-  <h2>③ 设计令牌总览 ·「柔彩仪表盘」<button class="theme-toggle" id="themeBtn" type="button">切换深色</button></h2>
+  <h2>③ 设计令牌总览 ·「v3 iOS 原生 + 局部 Liquid Glass」<button class="theme-toggle" id="themeBtn" type="button">切换深色</button></h2>
 
   <div class="tok-group">
     <h3>语义色（浅/深成对，深色点右上角切换）</h3>
@@ -116,16 +128,17 @@
   </div>
 
   <div class="tok-group">
-    <h3>目标色板（8 色键名冻结 · Goal.colorKey）</h3>
+    <h3>v3 分类色板（iOS 系统色 · 浅深成对）</h3>
     <div class="swatches">
-      <div class="sw"><i style="background:var(--goal-coral)"></i><b>coral</b></div>
-      <div class="sw"><i style="background:var(--goal-amber)"></i><b>amber</b></div>
-      <div class="sw"><i style="background:var(--goal-sage)"></i><b>sage</b></div>
-      <div class="sw"><i style="background:var(--goal-teal)"></i><b>teal</b></div>
-      <div class="sw"><i style="background:var(--goal-sky)"></i><b>sky</b></div>
-      <div class="sw"><i style="background:var(--goal-indigo)"></i><b>indigo</b></div>
-      <div class="sw"><i style="background:var(--goal-plum)"></i><b>plum</b></div>
-      <div class="sw"><i style="background:var(--goal-stone)"></i><b>stone</b></div>
+      <div class="sw"><i style="background:var(--palette-blue)"></i><b>blue</b></div>
+      <div class="sw"><i style="background:var(--palette-green)"></i><b>green</b></div>
+      <div class="sw"><i style="background:var(--palette-orange)"></i><b>orange</b></div>
+      <div class="sw"><i style="background:var(--palette-purple)"></i><b>purple</b></div>
+      <div class="sw"><i style="background:var(--palette-pink)"></i><b>pink</b></div>
+      <div class="sw"><i style="background:var(--palette-indigo)"></i><b>indigo</b></div>
+      <div class="sw"><i style="background:var(--palette-teal)"></i><b>teal</b></div>
+      <div class="sw"><i style="background:var(--palette-red)"></i><b>red</b></div>
+      <div class="sw"><i style="background:var(--milestone)"></i><b>milestone 橙</b></div>
     </div>
   </div>
 

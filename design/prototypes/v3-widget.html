@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>桌面小组件 · Target（v3 · iOS 原生 / 006 门禁稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=v3a">
+<style>
+  /* ============================================================
+     v3-widget · iOS 桌面小组件（WidgetKit，浅深两档）
+     ------------------------------------------------------------
+     - 006 裁定：小组件保留，按 iOS 风重新设计；数据快照适配富记录
+     - 内容：今日记录数 + 最近记录标题（浅深两档 × small/medium）
+     - 交互：tap → target://record（记录进展 sheet）
+     ============================================================ */
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 720px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+
+  /* 壁纸画布 */
+  .wall { width: 390px; height: 480px; border-radius: 44px; padding: 40px var(--space-5);
+          background: linear-gradient(160deg, #2b2b33, #17181c 60%);
+          display: flex; flex-direction: column; gap: var(--space-4);
+          box-shadow: var(--shadow-high); }
+  .wall.light { background: linear-gradient(160deg, #e8e4f0, #d9d4e4 60%); }
+
+  /* 小组件通用（iOS 圆角连续曲率近似 22px） */
+  .wg { border-radius: 22px; padding: 14px; display: flex; flex-direction: column;
+        background: var(--glass-shell);
+        backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+        -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+        border: 0.5px solid var(--glass-border);
+        box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight); }
+  .wg .hd { display: flex; align-items: center; gap: 6px;
+            font: 600 12px/1 var(--font-stack); color: var(--on-surface-variant); }
+  .wg .hd svg { width: 12px; height: 12px; color: var(--accent); }
+
+  .small { width: 158px; height: 158px; align-self: flex-start; }
+  .small .big { font: 700 34px/1.05 var(--font-stack); color: var(--on-surface);
+                margin-top: 8px; letter-spacing: -0.5px;
+                font-variant-numeric: tabular-nums; }
+  .small .big small { font: 500 15px/1 var(--font-stack);
+                      color: var(--on-surface-variant); margin-left: 4px; }
+  .small .sub { font: 400 13px/1.35 var(--font-stack); color: var(--on-surface-variant);
+                margin-top: 2px; }
+
+  .medium { width: 338px; height: 158px; }
+  .medium .row { display: flex; gap: var(--space-4); margin: 0; }
+  .medium .nums { flex: none; }
+  .medium .nums .big { font: 700 30px/1.05 var(--font-stack); color: var(--on-surface);
+                       margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .medium .nums .big small { font: 500 14px/1 var(--font-stack);
+                             color: var(--on-surface-variant); margin-left: 3px; }
+  .medium .nums .sub { font: 400 12px/1.3 var(--font-stack);
+                       color: var(--on-surface-variant); }
+  .medium .div { width: 0.5px; background: var(--divider); }
+  .medium .latest { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .medium .latest .lb { font: 400 11px/1 var(--font-stack); color: var(--on-surface-tertiary); }
+  .medium .latest .t { font: 600 15px/1.35 var(--font-stack); color: var(--on-surface);
+                       margin-top: 5px; overflow: hidden; text-overflow: ellipsis;
+                       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .medium .latest .g { display: flex; align-items: center; gap: 6px; margin-top: auto;
+                       font: 400 12px/1 var(--font-stack); color: var(--on-surface-variant); }
+  .medium .latest .g i { width: 8px; height: 8px; border-radius: var(--radius-full);
+                         background: var(--palette-blue); }
+  .medium .cta { margin-top: 10px; align-self: flex-start;
+                 font: 600 12px/1 var(--font-stack); color: var(--accent-on);
+                 background: var(--accent); border-radius: var(--radius-full);
+                 padding: 8px 14px; box-shadow: var(--shadow-cta); }
+</style>
+</head>
+<body>
+<h2 class="pt-title">v3-widget · 桌面小组件</h2>
+<p class="pt-sub">数据快照改富记录口径：今日记录数 + 最近记录标题；
+   tap 深链 target://record 直接打开记录进展 sheet。</p>
+
+<div class="row">
+<div class="board">
+  <h3>① 浅色档 · small + medium</h3>
+  <p class="desc">Liquid Glass 材质贴壁纸</p>
+  <div class="wall light" data-theme="light">
+    <div class="wg small">
+      <span class="hd">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+        Target
+      </span>
+      <span class="big">2<small>条</small></span>
+      <span class="sub">今天的进展记录</span>
+    </div>
+    <div class="wg medium">
+      <span class="hd">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+        Target · 今日
+      </span>
+      <div class="row">
+        <div class="nums">
+          <span class="big">2<small>条</small></span>
+          <span class="sub">投入 45 分钟</span>
+        </div>
+        <div class="div"></div>
+        <div class="latest">
+          <span class="lb">最近记录</span>
+          <span class="t">找到换气的节奏</span>
+          <span class="g"><i></i>自在地游泳 · 今天</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="board">
+  <h3>② 深色档 · small + medium</h3>
+  <p class="desc">暗档玻璃 + 记录 CTA</p>
+  <div class="wall" data-theme="dark">
+    <div class="wg small" data-theme="dark">
+      <span class="hd">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+        Target
+      </span>
+      <span class="big">2<small>条</small></span>
+      <span class="sub">今天的进展记录</span>
+    </div>
+    <div class="wg medium" data-theme="dark">
+      <span class="hd">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+        Target · 今日
+      </span>
+      <div class="row">
+        <div class="nums">
+          <span class="big">2<small>条</small></span>
+          <span class="sub">投入 45 分钟</span>
+        </div>
+        <div class="div"></div>
+        <div class="latest">
+          <span class="lb">最近记录</span>
+          <span class="t">找到换气的节奏</span>
+          <span class="cta">记录一笔</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

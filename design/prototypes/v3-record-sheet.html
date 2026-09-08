@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>记录进展 · Target（v3 · iOS 原生 / 006 门禁稿）</title>
+<link rel="stylesheet" href="../tokens.css?v=v3a">
+<style>
+  /* ============================================================
+     v3-record-sheet · 记录进展 sheet（全局记录钮 / 详情 CTA 共用）
+     ------------------------------------------------------------
+     - Figma 定稿 7 屏之三（参照图 44），按 006 裁定修订：
+       无图片/麦克风（本期媒体附件退役）；正文=唯一心得字段
+     - 结构：关联目标（可切换）/ 标题（必填）+ 正文（选填）/
+       投入时间（快捷档）/ 日期（今天/改日=补记）/ 关联里程碑（可选）
+     - 画板：①主表单 ②目标切换展开 ③投入时间选择 ④深色
+     ============================================================ */
+
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+
+  body {
+    margin: 0; min-height: 100vh; background: #17181c;
+    font-family: var(--font-stack); color: #f2f2f7;
+    display: flex; flex-direction: column; align-items: center;
+    padding: var(--space-12) var(--space-6) var(--space-12);
+  }
+  .pt-title { font: var(--font-display-m); margin: 0; }
+  .pt-sub { font: var(--font-body-m); color: rgba(242, 242, 247, .6);
+            margin: var(--space-2) 0 var(--space-8); text-align: center;
+            max-width: 720px; line-height: 1.7; }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-8); justify-content: center;
+         margin-bottom: var(--space-12); }
+  .board { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
+  .board h3 { font: var(--font-title-s); margin: 0; }
+  .board .desc { font: var(--font-body-s); color: rgba(242, 242, 247, .55);
+                 max-width: 390px; text-align: center; margin: 0; line-height: 1.7; }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 44px;
+    background: var(--background);
+    box-shadow: var(--shadow-high); overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .island { position: absolute; top: var(--space-3); left: 50%;
+            transform: translateX(-50%); width: 112px; height: 32px;
+            background: #000; border-radius: var(--radius-full); z-index: 40; }
+  .sb { height: 52px; flex: none; display: flex; align-items: flex-end;
+        justify-content: space-between; padding: 0 var(--space-5) var(--space-1);
+        font: 600 15px/1 var(--font-stack); color: var(--on-surface); }
+  .sb .r { display: flex; gap: 6px; align-items: center; }
+  .dim { opacity: .4; pointer-events: none; }
+
+  .sheet-wrap { position: absolute; inset: 0; z-index: 30; display: flex; align-items: flex-end;
+                background: var(--scrim); }
+  .sheet { width: 100%; border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+           background: var(--background); box-shadow: var(--shadow-high);
+           max-height: 92%; display: flex; flex-direction: column; overflow: hidden; }
+  .grab { display: flex; justify-content: center; padding: 10px 0 4px; flex: none; }
+  .grab i { width: 40px; height: 5px; border-radius: var(--radius-full);
+            background: var(--divider); }
+  .sh-head { display: flex; justify-content: space-between; align-items: center;
+             padding: var(--space-3) var(--space-5); flex: none; }
+  .sh-head .x { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+                background: var(--surface); box-shadow: var(--shadow-low); cursor: pointer;
+                display: flex; align-items: center; justify-content: center; }
+  .sh-head .x svg { width: 13px; height: 13px; color: var(--on-surface); }
+  .sh-head .t { font: var(--font-title-m); color: var(--on-surface); }
+  .sh-head .ok { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+                 cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .sh-head .ok.on { background: var(--accent); }
+  .sh-head .ok.off { background: var(--divider); }
+  .sh-head .ok svg { width: 16px; height: 16px; color: var(--accent-on); }
+  .sh-body { overflow-y: auto; padding: 0 var(--space-5) 40px; }
+
+  .flabel { font: var(--font-body-s); color: var(--on-surface-variant);
+            margin: var(--space-4) 0 var(--space-2) var(--space-1); display: block; }
+
+  /* 关联目标 */
+  .goal-sel { background: var(--surface); border-radius: var(--radius-lg);
+              box-shadow: var(--shadow-low); overflow: hidden; }
+  .gs-row { width: 100%; display: flex; align-items: center; gap: var(--space-3);
+            padding: 14px var(--space-4); background: none; border: none; cursor: pointer;
+            text-align: left; }
+  .gs-row .ic { width: 36px; height: 36px; border-radius: var(--radius-md); flex: none;
+                display: flex; align-items: center; justify-content: center; }
+  .gs-row .ic svg { width: 18px; height: 18px; }
+  .gs-row .nm { font: 600 17px/1.3 var(--font-stack); color: var(--on-surface); flex: 1; }
+  .gs-row .swap { width: 14px; height: 14px; color: var(--on-surface-tertiary); flex: none; }
+  .gs-row + .gs-row { border-top: 0.5px solid var(--divider); }
+  .gs-row.on { background: var(--accent-tint); }
+  .gs-row.on .nm { color: var(--accent-text); }
+
+  /* 标题 + 正文卡 */
+  .editor { background: var(--surface); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-low); padding: var(--space-4); }
+  .editor .t-in { width: 100%; border: none; outline: none;
+                  font: 600 17px/1.4 var(--font-stack); color: var(--on-surface);
+                  padding: 0 0 10px; border-bottom: 0.5px solid var(--divider);
+                  background: none; }
+  .editor .t-in::placeholder { color: var(--on-surface-tertiary); font-weight: 400; }
+  .editor .b-in { width: 100%; border: none; outline: none; resize: none;
+                  font: 400 15px/1.6 var(--font-stack); color: var(--on-surface);
+                  padding: 10px 0 0; background: none; }
+  .editor .b-in::placeholder { color: var(--on-surface-tertiary); }
+
+  /* 元信息行卡 */
+  .meta { background: var(--surface); border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-low); overflow: hidden; }
+  .mrow { width: 100%; display: flex; align-items: center; gap: var(--space-3);
+          padding: 14px var(--space-4); background: none; border: none; cursor: pointer;
+          text-align: left; }
+  .mrow + .mrow { border-top: 0.5px solid var(--divider); }
+  .mrow svg.lead { width: 17px; height: 17px; color: var(--on-surface); flex: none; }
+  .mrow .lb { font: 400 17px/1 var(--font-stack); color: var(--on-surface); flex: 1; }
+  .mrow .vl { font: var(--font-body-m); color: var(--on-surface-variant); }
+  .mrow svg.chev { width: 14px; height: 14px; color: var(--on-surface-tertiary); opacity: .55; }
+  .slogon { font: var(--font-body-s); color: var(--on-surface-variant); text-align: center;
+            margin: var(--space-4) 0 0; }
+
+  /* 时长快捷档 */
+  .durs { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .dur { border: 1px solid var(--divider); background: var(--surface); cursor: pointer;
+         border-radius: var(--radius-full); padding: 10px var(--space-4);
+         font: 400 15px/1 var(--font-stack); color: var(--on-surface);
+         font-variant-numeric: tabular-nums; }
+  .dur.on { background: var(--accent); border-color: var(--accent);
+            color: var(--accent-on); font-weight: 600; }
+  .dur.custom { color: var(--accent-text); }
+  .dur-sum { margin-top: var(--space-3); font: var(--font-body-s);
+             color: var(--on-surface-variant); font-variant-numeric: tabular-nums; }
+  .note { font: var(--font-body-s); color: var(--on-surface-variant);
+          margin: var(--space-2) 0 0; line-height: 1.6; }
+</style>
+</head>
+<body>
+<h2 class="pt-title">v3-record-sheet · 记录进展</h2>
+<p class="pt-sub">富记录表单：标题必填 + 正文（心得，引用样式入时间线）+ 时长 + 日期（可补记）+
+   关联里程碑。媒体附件本期退役。</p>
+
+<div class="row">
+<!-- ═══════════ 画板 ① 主表单 ═══════════ -->
+<div class="board">
+  <h3>① 主表单（详情 CTA 进入）</h3>
+  <p class="desc">✓ 可用态=标题非空；正文/时长/里程碑全部可选</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb dim"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">记录进展</span>
+          <button class="ok on"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <span class="flabel">关联目标</span>
+          <div class="goal-sel">
+            <button class="gs-row">
+              <span class="ic" style="background: rgba(0, 122, 255, 0.10); color: var(--palette-blue)">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="nm">自在地游泳</span>
+              <svg class="swap" viewBox="0 0 24 24" fill="none"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+
+          <span class="flabel">今天为目标做了什么？</span>
+          <div class="editor">
+            <input class="t-in" value="找到换气的节奏" placeholder="一句话标题（必填）">
+            <textarea class="b-in" rows="4" placeholder="经过与心得（选填）。写下当时的感受或发现，回看时最有价值。">试着把动作放慢，终于能从容地换气了。</textarea>
+          </div>
+
+          <span class="flabel">投入与关联</span>
+          <div class="meta">
+            <button class="mrow">
+              <svg class="lead" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="lb">投入时间</span>
+              <span class="vl">30 分钟</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="mrow">
+              <svg class="lead" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="lb">日期</span>
+              <span class="vl">今天 16:30</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="mrow">
+              <svg class="lead" viewBox="0 0 24 24" fill="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="lb">关联里程碑</span>
+              <span class="vl">选择（可选）</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <p class="slogon">每一次尝试，都值得留下。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 画板 ② 目标切换（全局记录钮进入） ═══════════ -->
+<div class="board">
+  <h3>② 目标切换展开（全局记录钮）</h3>
+  <p class="desc">从底栏记录钮进入时先选目标；已暂停/归档目标不可选</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb dim"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">记录进展</span>
+          <button class="ok off"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <span class="flabel">关联目标</span>
+          <div class="goal-sel">
+            <button class="gs-row on">
+              <span class="ic" style="background: rgba(0, 122, 255, 0.10); color: var(--palette-blue)">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="nm">自在地游泳</span>
+              <svg viewBox="0 0 24 24" fill="none" style="width:16px;height:16px;color:var(--accent);flex:none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="gs-row">
+              <span class="ic" style="background: rgba(255, 149, 0, 0.12); color: var(--palette-orange)">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2h7v16H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M13 2h7a1 1 0 011 1v14a1 1 0 01-1 1h-7V2z"/><path d="M3 20h18v2H3z"/></svg>
+              </span>
+              <span class="nm">让阅读成为日常</span>
+            </button>
+            <button class="gs-row">
+              <span class="ic" style="background: rgba(52, 199, 89, 0.12); color: var(--palette-green)">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="nm">自信地用英语交流</span>
+            </button>
+          </div>
+          <p class="note">选择目标后继续填写；已归档目标不在此列。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ 画板 ③ 投入时间选择 ④ 深色 ═══════════ -->
+<div class="board">
+  <h3>③ 投入时间 · 快捷档</h3>
+  <p class="desc">常用档一键 + 自定义分钟数；日期选择复用系统滚轮（略）</p>
+  <div class="phone">
+    <div class="island"></div>
+    <div class="sb dim"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">投入时间</span>
+          <button class="ok on"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <span class="flabel">大约投入了多久？</span>
+          <div class="durs">
+            <button class="dur">15 分钟</button>
+            <button class="dur on">30 分钟</button>
+            <button class="dur">45 分钟</button>
+            <button class="dur">1 小时</button>
+            <button class="dur">1.5 小时</button>
+            <button class="dur">2 小时</button>
+            <button class="dur custom">自定义…</button>
+          </div>
+          <p class="dur-sum">本周累计将变为 6 小时 0 分钟。</p>
+          <p class="note">不填也可以——记录本身比数字更重要。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="board">
+  <h3>④ 深色 · 主表单</h3>
+  <p class="desc">暗卡 + 暗档控件色</p>
+  <div class="phone" data-theme="dark">
+    <div class="island"></div>
+    <div class="sb dim"><span>9:41</span><span class="r">
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="currentColor" stroke-opacity="0.35"/><rect x="2" y="2" width="19" height="9" rx="2" fill="currentColor"/><path d="M24 4.5v4a2.5 2.5 0 000-4z" fill="currentColor" fill-opacity="0.45"/></svg>
+    </span></div>
+    <div class="sheet-wrap">
+      <div class="sheet">
+        <div class="grab"><i></i></div>
+        <div class="sh-head">
+          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <span class="t">记录进展</span>
+          <button class="ok on"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sh-body">
+          <span class="flabel">关联目标</span>
+          <div class="goal-sel">
+            <button class="gs-row">
+              <span class="ic" style="background: rgba(10, 132, 255, 0.20); color: var(--palette-blue)">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="nm">自在地游泳</span>
+              <svg class="swap" viewBox="0 0 24 24" fill="none"><path d="M7 10l5-5 5 5M7 14l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <span class="flabel">今天为目标做了什么？</span>
+          <div class="editor">
+            <input class="t-in" value="找到换气的节奏" placeholder="一句话标题（必填）">
+            <textarea class="b-in" rows="4" placeholder="经过与心得（选填）。">试着把动作放慢，终于能从容地换气了。</textarea>
+          </div>
+          <span class="flabel">投入与关联</span>
+          <div class="meta">
+            <button class="mrow">
+              <svg class="lead" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="lb">投入时间</span>
+              <span class="vl">30 分钟</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="mrow">
+              <svg class="lead" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="lb">日期</span>
+              <span class="vl">今天 16:30</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="mrow">
+              <svg class="lead" viewBox="0 0 24 24" fill="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <span class="lb">关联里程碑</span>
+              <span class="vl">选择（可选）</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <p class="slogon">每一次尝试，都值得留下。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

@@ -96,7 +96,7 @@ class GoalDetailPage extends ConsumerWidget {
           ),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
               children: [
                 if (next.isNotEmpty)
                   AppCard(
@@ -164,7 +164,7 @@ class GoalDetailPage extends ConsumerWidget {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               child: SizedBox(
                 width: double.infinity,
                 child: CupertinoButton(

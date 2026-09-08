@@ -84,12 +84,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                 children: [
                   if (!editing) ...[
                     Text(Copy.editorHeroTitle, style: text.displayS),
-                    const SizedBox(height: 4),
-                    Text(
-                      Copy.editorHeroSubtitle,
-                      style:
-                          text.bodyM.copyWith(color: p.onSurfaceVariant),
-                    ),
                     const SizedBox(height: 20),
                   ],
                   _card(
@@ -489,8 +483,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(Copy.frequencyQuestion),
-                    const SizedBox(height: 12),
                     CupertinoSlidingSegmentedControl<int>(
                       groupValue: mode,
                       onValueChanged: (m) => setSheet(() => mode = m!),
@@ -508,59 +500,64 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                           ),
                       },
                     ),
-                    if (mode == 2)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Row(
-                          children: [
-                            CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.square(36),
-                              onPressed: () => setSheet(() =>
-                                  weeklyTimes = (weeklyTimes - 1).clamp(1, 7)),
-                              child: const Icon(
-                                  CupertinoIcons.minus_circled,
-                                  size: 26),
-                            ),
-                            SizedBox(
-                              width: 120,
-                              child: Center(
-                                child: Text('$weeklyTimes 次 / 周',
-                                    style: text.titleM),
-                              ),
-                            ),
-                            CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              minimumSize: Size.square(36),
-                              onPressed: () => setSheet(() =>
-                                  weeklyTimes = (weeklyTimes + 1).clamp(1, 7)),
-                              child: const Icon(
-                                  CupertinoIcons.add_circled,
-                                  size: 26),
-                            ),
-                          ],
-                        ),
+                    // 参数区定高（覆盖每周N次/指定星期/空三态），高度恒定
+                    // → 切换选项时上方控件不再位移。
+                    SizedBox(
+                      height: 84,
+                      child: Center(
+                        child: mode == 2
+                            ? Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.square(36),
+                                    onPressed: () => setSheet(() =>
+                                        weeklyTimes =
+                                            (weeklyTimes - 1).clamp(1, 7)),
+                                    child: const Icon(
+                                        CupertinoIcons.minus_circled,
+                                        size: 26),
+                                  ),
+                                  SizedBox(
+                                    width: 120,
+                                    child: Center(
+                                      child: Text('$weeklyTimes 次 / 周',
+                                          style: text.titleM),
+                                    ),
+                                  ),
+                                  CupertinoButton(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.square(36),
+                                    onPressed: () => setSheet(() =>
+                                        weeklyTimes =
+                                            (weeklyTimes + 1).clamp(1, 7)),
+                                    child: const Icon(
+                                        CupertinoIcons.add_circled,
+                                        size: 26),
+                                  ),
+                                ],
+                              )
+                            : mode == 3
+                                ? Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final d in [1, 2, 3, 4, 5, 6, 7])
+                                        PillSelectButton<void>(
+                                          label: '一二三四五六日'[d - 1],
+                                          selected: weekdays.contains(d),
+                                          onTap: () => setSheet(() {
+                                            weekdays.contains(d)
+                                                ? weekdays.remove(d)
+                                                : weekdays.add(d);
+                                          }),
+                                        ),
+                                    ],
+                                  )
+                                : const SizedBox.shrink(),
                       ),
-                    if (mode == 3)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            for (final d in [1, 2, 3, 4, 5, 6, 7])
-                              PillSelectButton<void>(
-                                label: '一二三四五六日'[d - 1],
-                                selected: weekdays.contains(d),
-                                onTap: () => setSheet(() {
-                                  weekdays.contains(d)
-                                      ? weekdays.remove(d)
-                                      : weekdays.add(d);
-                                }),
-                              ),
-                          ],
-                        ),
-                      ),
+                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -595,15 +592,37 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   }
 
   Future<void> _pickCadence() async {
-    final chosen = await showAppChoiceSheet<Cadence>(
+    // 与执行节奏同款（CupertinoSlidingSegmentedControl 弹层）；
+    // 点选即回填关闭，无需确认钮。
+    var chosen = _reminderCadence;
+    final confirmed = await showAppSheet<Cadence>(
       context,
-      title: Copy.reminderCadence,
-      selected: _reminderCadence,
-      options: [
-        for (final c in Cadence.values) (c, _cadenceLabel(c)),
-      ],
+      builder: (sheetContext) => AppSheet(
+        title: Copy.reminderCadence,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+            child: CupertinoSlidingSegmentedControl<Cadence>(
+              groupValue: _reminderCadence,
+              onValueChanged: (v) {
+                chosen = v!;
+                Navigator.of(sheetContext).pop(chosen);
+              },
+              children: {
+                for (final c in Cadence.values)
+                  c: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 6, horizontal: 4),
+                    child: Text(_cadenceLabel(c)),
+                  ),
+              },
+            ),
+          ),
+        ),
+      ),
     );
-    if (chosen != null) setState(() => _reminderCadence = chosen);
+    if (confirmed != null) setState(() => _reminderCadence = confirmed);
   }
 
   // ---- 加载 / 保存 ----

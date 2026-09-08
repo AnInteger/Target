@@ -56,7 +56,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
         onTap: _save,
       ),
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         children: [
           _sectionTitle(context, Copy.pinnedSection),
           if (pinned.isEmpty)

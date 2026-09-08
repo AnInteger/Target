@@ -69,12 +69,6 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(Copy.activityTitle, style: text.displayL),
-                          const SizedBox(height: 2),
-                          Text(
-                            Copy.activitySubtitle,
-                            style:
-                                text.bodyM.copyWith(color: p.onSurfaceVariant),
-                          ),
                         ],
                       ),
                     ),
@@ -105,14 +99,14 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               sliver: SliverToBoxAdapter(
                 child: _WeekCard(
                     week: week, weekStart: _week, today: today),
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               sliver: SliverToBoxAdapter(
                 child: _MilestoneCard(summary: summary),
               ),
@@ -145,7 +139,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
             ),
             if (feed.isEmpty)
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 sliver: SliverToBoxAdapter(
                   child: _EmptyCard(
                     title: week.recordCount == 0
@@ -157,7 +151,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 sliver: SliverList.builder(
                   itemCount: feed.length,
                   itemBuilder: (_, i) => _FeedRow(
@@ -369,9 +363,6 @@ class _MilestoneCard extends StatelessWidget {
               width: 0.5, height: 28, color: p.divider, margin: const EdgeInsets.symmetric(horizontal: 16)),
           _stat(context, Copy.milestonePending,
               Copy.milestoneCount(summary.pendingAll)),
-          Icon(CupertinoIcons.chevron_forward,
-              size: 14,
-              color: p.onSurfaceTertiary.withValues(alpha: 0.6)),
         ],
       ),
     );

@@ -74,7 +74,7 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                     ),
                   ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                   sliver: SliverList.builder(
                     itemCount: pinned.length,
                     itemBuilder: (_, i) => Padding(
@@ -97,7 +97,7 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                   ),
                 if (others.isNotEmpty)
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     sliver: SliverList.builder(
                       itemCount: others.length,
                       itemBuilder: (_, i) => OthersRow(
@@ -129,7 +129,6 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = TargetPalette.of(context);
     final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -141,11 +140,6 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(Copy.goalsTitle, style: text.displayL),
-                const SizedBox(height: 2),
-                Text(
-                  Copy.goalsSubtitle,
-                  style: text.bodyM.copyWith(color: p.onSurfaceVariant),
-                ),
               ],
             ),
           ),
@@ -176,10 +170,7 @@ class _SectionHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              title,
-              style: text.titleS.copyWith(color: p.onSurfaceVariant),
-            ),
+            child: Text(title, style: text.titleS),
           ),
           if (trailing != null)
             CupertinoButton(

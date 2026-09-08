@@ -75,18 +75,12 @@ class MilestonesPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(Copy.milestonesTitle, style: text.displayM),
-                  const SizedBox(height: 4),
-                  Text(
-                    Copy.milestonesSubtitle,
-                    style:
-                        text.bodyM.copyWith(color: p.onSurfaceVariant),
-                  ),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                 children: [
                   if (pending.isNotEmpty) ...[
                     Padding(

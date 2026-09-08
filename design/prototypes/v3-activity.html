@@ -224,11 +224,11 @@
                      border: none; background: var(--surface-alt); cursor: pointer;
                      display: flex; align-items: center; justify-content: center; }
   .cal .nav svg { width: 12px; height: 12px; color: var(--on-surface-tertiary); }
-  .cal .wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+  .cal .wk { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px;
              margin-bottom: 6px; }
   .cal .wk span { text-align: center; font: 400 11px/1 var(--font-stack);
                   color: var(--on-surface-tertiary); }
-  .cal .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .cal .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
   .cal .day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
               position: relative; border-radius: var(--radius-full); }
   .cal .day.sel { outline: 1.5px solid var(--accent); outline-offset: 2px; }

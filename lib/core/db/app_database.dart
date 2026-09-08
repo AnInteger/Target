@@ -7,6 +7,10 @@ library;
 
 import 'package:drift/drift.dart';
 
+import '../models/calendar_types.dart';
+import '../models/entities.dart';
+import '../models/frequency_pattern.dart';
+
 import 'tables.dart';
 
 part 'app_database.g.dart';
@@ -27,8 +31,11 @@ class AppDatabase extends _$AppDatabase {
       await _ensureSettingsRow();
     },
     onUpgrade: (m, from, to) async {
-      // D10：不考虑存量——任何 v<8 库直接清库重建。
-      await m.deleteAll();
+      // D10：不考虑存量——任何 v<8 库直接清库重建（子表先删）。
+      final ordered = allTables.toList().reversed;
+      for (final t in ordered) {
+        await m.deleteTable(t.actualTableName);
+      }
       await m.createAll();
       await _ensureSettingsRow();
     },

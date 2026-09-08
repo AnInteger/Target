@@ -1,217 +1,161 @@
+/// v3 图标与颜色选择器（sheet）：38 枚目录图标 + 9 色板单选。
 library;
 
 import 'package:flutter/material.dart';
 
 import '../../app/design_tokens.dart';
 import '../../core/models/goal_icon_catalog.dart';
+import '../shared/goal_card.dart' show goalIconData;
 
-Future<GoalIconCatalog?> showGoalIconPicker(
+/// 返回 (iconKey, colorKey)；取消返回 null。
+Future<(String, String)?> showGoalIconPicker(
   BuildContext context, {
-  required String selectedKey,
+  required String initialIconKey,
+  required String initialColorKey,
 }) {
-  final palette = TargetPalette.of(context);
-  return showModalBottomSheet<GoalIconCatalog>(
+  return showModalBottomSheet<(String, String)>(
     context: context,
     isScrollControlled: true,
-    useSafeArea: true,
-    // 编辑器为分支页：整屏 sheet（3.47 起缺省 useRootNavigator=false）。
     useRootNavigator: true,
     backgroundColor: Colors.transparent,
-    barrierColor: palette.scrim,
-    builder: (_) => _GoalIconPicker(selectedKey: selectedKey),
+    builder: (_) => _IconPickerSheet(
+      initialIconKey: initialIconKey,
+      initialColorKey: initialColorKey,
+    ),
   );
 }
 
-class _GoalIconPicker extends StatelessWidget {
-  const _GoalIconPicker({required this.selectedKey});
+class _IconPickerSheet extends StatefulWidget {
+  const _IconPickerSheet({
+    required this.initialIconKey,
+    required this.initialColorKey,
+  });
 
-  final String selectedKey;
+  final String initialIconKey;
+  final String initialColorKey;
+
+  @override
+  State<_IconPickerSheet> createState() => _IconPickerSheetState();
+}
+
+class _IconPickerSheetState extends State<_IconPickerSheet> {
+  late String _iconKey = widget.initialIconKey;
+  late String _colorKey = widget.initialColorKey;
 
   @override
   Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    final theme = Theme.of(context);
-    return DraggableScrollableSheet(
-      initialChildSize: .78,
-      minChildSize: .55,
-      maxChildSize: .94,
-      expand: false,
-      builder: (context, controller) => Container(
-        decoration: BoxDecoration(
-          color: palette.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: palette.shadowHigh,
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
+    final brightness = Theme.of(context).brightness;
+    final color = GoalPalette.byKey(_colorKey, brightness: brightness);
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: BoxDecoration(
+        color: p.background,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.xl),
         ),
-        child: CustomScrollView(
-          controller: controller,
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: palette.divider,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '选择目标图标',
-                            style: theme.textTheme.titleLarge,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: '关闭',
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 10, bottom: 4),
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(
+              color: p.divider,
+              borderRadius: BorderRadius.circular(3),
             ),
-            for (final domain in GoalIconDomain.values) ...[
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: MajorColors.byKey(domain.major.name)
-                              .of(context),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(domain.zhLabel, style: theme.textTheme.titleSmall),
-                      const SizedBox(width: 8),
-                      Text(
-                        domain.major.zhLabel,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: palette.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: Text(
+                    '取消',
+                    style: text.bodyL.copyWith(color: p.accentText),
                   ),
                 ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverGrid(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: .92,
+                Expanded(
+                  child: Center(
+                    child: Text('图标与颜色', style: text.titleM),
                   ),
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final icon = GoalIconCatalog.byDomain[domain]![index];
-                    final selected = icon.key == selectedKey;
-                    final label = goalIconLabel(icon);
-                    return Semantics(
-                      label: '$label，${domain.zhLabel}分类',
-                      selected: selected,
-                      button: true,
-                      child: InkWell(
-                        onTap: () => Navigator.of(context).pop(icon),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? palette.accent.withValues(alpha: .10)
-                                : palette.surfaceAlt,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: selected
-                                  ? palette.accent
-                                  : Colors.transparent,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                icon.icon,
-                                color: selected
-                                    ? palette.accent
-                                    : palette.onSurface,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }, childCount: GoalIconCatalog.byDomain[domain]!.length),
                 ),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop((_iconKey, _colorKey)),
+                  child: Text(
+                    '完成',
+                    style: text.bodyL
+                        .copyWith(color: p.accentText, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 6,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
               ),
-            ],
-            const SliverToBoxAdapter(child: SizedBox(height: 28)),
-          ],
-        ),
+              itemCount: GoalIconCatalog.values.length,
+              itemBuilder: (_, i) {
+                final entry = GoalIconCatalog.values[i];
+                final selected = entry.key == _iconKey;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  onTap: () => setState(() => _iconKey = entry.key),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? color.withValues(alpha: 0.14)
+                          : p.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: selected
+                          ? Border.all(color: color, width: 1.5)
+                          : null,
+                    ),
+                    child: Icon(
+                      goalIconData(entry.key),
+                      size: 22,
+                      color: selected ? color : p.onSurfaceVariant,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                for (final key in GoalPalette.light.keys)
+                  GestureDetector(
+                    onTap: () => setState(() => _colorKey = key),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: GoalPalette.byKey(key, brightness: brightness),
+                        shape: BoxShape.circle,
+                        border: _colorKey == key
+                            ? Border.all(
+                                color: p.onSurface, width: 2.5, strokeAlign: BorderSide.strokeAlignOutside)
+                            : null,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
-
-String goalIconLabel(GoalIconCatalog icon) => switch (icon) {
-  GoalIconCatalog.directionsBike => '骑行',
-  GoalIconCatalog.directionsRun => '跑步',
-  GoalIconCatalog.pool => '游泳',
-  GoalIconCatalog.hiking => '徒步',
-  GoalIconCatalog.fitnessCenter => '力量训练',
-  GoalIconCatalog.menuBook => '阅读',
-  GoalIconCatalog.school => '学习',
-  GoalIconCatalog.translate => '语言',
-  GoalIconCatalog.autoStories => '课程',
-  GoalIconCatalog.favorite => '健康',
-  GoalIconCatalog.monitorHeart => '心率',
-  GoalIconCatalog.bedtime => '睡眠',
-  GoalIconCatalog.waterDrop => '饮水',
-  GoalIconCatalog.brush => '绘画',
-  GoalIconCatalog.camera => '摄影',
-  GoalIconCatalog.palette => '创作',
-  GoalIconCatalog.musicNote => '音乐',
-  GoalIconCatalog.flight => '飞行',
-  GoalIconCatalog.luggage => '旅行',
-  GoalIconCatalog.map => '地图',
-  GoalIconCatalog.cabin => '度假',
-  GoalIconCatalog.explore => '探索',
-  GoalIconCatalog.savings => '储蓄',
-  GoalIconCatalog.trendingUp => '增长',
-  GoalIconCatalog.accountBalanceWallet => '预算',
-  GoalIconCatalog.paid => '收入',
-  GoalIconCatalog.home => '居家',
-  GoalIconCatalog.restaurant => '饮食',
-  GoalIconCatalog.cleaningServices => '清洁',
-  GoalIconCatalog.eco => '生活方式',
-  GoalIconCatalog.selfImprovement => '冥想',
-  GoalIconCatalog.spa => '放松',
-  GoalIconCatalog.air => '呼吸',
-  GoalIconCatalog.forest => '自然',
-  GoalIconCatalog.groups => '家人与朋友',
-  GoalIconCatalog.volunteerActivism => '公益',
-  GoalIconCatalog.forum => '交流',
-  GoalIconCatalog.pets => '宠物',
-};

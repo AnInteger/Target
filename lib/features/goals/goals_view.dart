@@ -1,9 +1,5 @@
-/// GoalsView · 目标管理页（2026-08-26 phase 1 · Task 6/7）。
-///
-/// dock 主页签之一：标题「目标」+ 新建钮、状态筛选 chips
-/// （全部/进行中/已暂停/已达成/已归档）、紧凑管理行列表。
-/// 排序：非归档在前 → active/paused/achieved → 最近进展（无则创建日）
-/// 降序。行进详情；overflow 出状态感知菜单（编辑/生命周期/删除）。
+/// v3 目标页（tab 1）：置顶大卡（两栏）+ 其他目标列表 + 空态 +
+/// 长按管理菜单 + 编辑置顶模式（R1–R3 定稿）。
 library;
 
 import 'package:flutter/material.dart';
@@ -11,13 +7,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
-import '../../app/page_top_bar.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
-import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
-import 'goal_list_item.dart';
-import 'goal_management_menu.dart';
+import '../shared/goal_card.dart';
+import 'edit_pinned_sheet.dart';
+import 'goal_menu.dart';
 
 class GoalsView extends ConsumerStatefulWidget {
   const GoalsView({super.key});
@@ -27,230 +22,227 @@ class GoalsView extends ConsumerStatefulWidget {
 }
 
 class _GoalsViewState extends ConsumerState<GoalsView> {
-  GoalListFilter _filter = GoalListFilter.all;
-
   @override
   Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    final theme = Theme.of(context);
-    final goals = ref.watch(goalsProvider).value;
-    final checkIns = ref.watch(checkInsProvider).value;
-    final steps = ref.watch(allStepsProvider).value;
+    final p = TargetPalette.of(context);
+    final goalsAsync = ref.watch(goalsProvider);
+    final records = ref.watch(recordsProvider).value ?? const <ProgressRecord>[];
+    final milestones =
+        ref.watch(milestonesProvider).value ?? const <Milestone>[];
+    final today = ref.watch(todayProvider);
 
-    if (goals == null || checkIns == null || steps == null) {
-      return Scaffold(
-        backgroundColor: palette.background,
-        body: Center(child: CircularProgressIndicator(color: palette.accent)),
-      );
-    }
-
-    final rows = _assemble(goals, checkIns, steps);
-    final shown = rows.where((row) => _filter.matches(row.goal)).toList();
-
-    return Scaffold(
-      backgroundColor: palette.background,
-      body: SafeArea(
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          stops: const [0, 0.18, 0.42, 1],
+          colors: p.headerGrad,
+        ),
+      ),
+      child: SafeArea(
         bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            PageTopBar(
-              // dock 页签页：无上层可回，不渲染返回钮。
-              showBack: false,
-              title: Copy.goalsTitle,
-              titleKey: const ValueKey('goalsTitle'),
-              titleAccessory: Text(
-                '${shown.length}',
-                key: const ValueKey('goalsCount'),
-                style: theme.textTheme.bodyS.copyWith(
-                  color: palette.onSurfaceVariant,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              trailing: _NewButton(onTap: () => context.push('/goal-editor')),
-            ),
-            _FilterRow(
-              selected: _filter,
-              onSelect: (next) => setState(() => _filter = next),
-            ),
-            Expanded(
-              child: shown.isEmpty
-                  ? _Empty(filter: _filter)
-                  : ListView.builder(
-                      key: const ValueKey('goalsList'),
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpace.s4,
-                        0,
-                        AppSpace.s4,
-                        AppSpace.s6,
-                      ),
-                      itemCount: shown.length,
-                      itemBuilder: (context, index) => GoalListItem(
-                        data: shown[index],
-                        onOverflow: () => showGoalManagementMenu(
-                          context,
-                          ref,
-                          shown[index].goal,
-                        ),
+        child: goalsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('$e')),
+          data: (goals) {
+            if (goals.isEmpty) return _EmptyState(onCreate: () => _openEditor());
+            final pinned =
+                goals.where((g) => g.pinned).toList(growable: false);
+            final others =
+                goals.where((g) => !g.pinned).toList(growable: false);
+            return CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _Header(onCreate: _openEditor)),
+                if (pinned.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: _SectionHeader(
+                      title: Copy.pinnedSection,
+                      trailing: Copy.pinnedEdit,
+                      onTrailing: () => showEditPinned(context),
+                    ),
+                  ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  sliver: SliverList.builder(
+                    itemCount: pinned.length,
+                    itemBuilder: (_, i) => Padding(
+                      padding: EdgeInsets.only(bottom: i == pinned.length - 1 ? 0 : 12),
+                      child: GoalCard(
+                        goal: pinned[i],
+                        records: records,
+                        milestones: milestones,
+                        today: today,
+                        onTap: () => context.go('/goal/${pinned[i].id}'),
+                        onLongPress: () =>
+                            showGoalMenu(context, ref, pinned[i]),
                       ),
                     ),
-            ),
-          ],
+                  ),
+                ),
+                if (others.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: _SectionHeader(title: Copy.othersSection),
+                  ),
+                if (others.isNotEmpty)
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    sliver: SliverList.builder(
+                      itemCount: others.length,
+                      itemBuilder: (_, i) => OthersRow(
+                        goal: others[i],
+                        records: records,
+                        today: today,
+                        onTap: () => context.go('/goal/${others[i].id}'),
+                        onLongPress: () =>
+                            showGoalMenu(context, ref, others[i]),
+                      ),
+                    ),
+                  ),
+                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  /// 行快照组装 + 全局排序（Task 6 Step 3）。
-  List<GoalListItemData> _assemble(
-    List<Goal> goals,
-    List<CheckIn> checkIns,
-    List<MilestoneStep> steps,
-  ) {
-    final stepsByGoal = <String, List<MilestoneStep>>{};
-    for (final step in steps) {
-      stepsByGoal.putIfAbsent(step.goalId, () => []).add(step);
-    }
-    for (final list in stepsByGoal.values) {
-      list.sort((a, b) => a.position.compareTo(b.position));
-    }
-
-    final lastValidByGoal = <String, LocalDate>{};
-    for (final c in checkIns) {
-      if (!c.isValid) continue;
-      final known = lastValidByGoal[c.goalId];
-      if (known == null || c.day.isAfter(known)) {
-        lastValidByGoal[c.goalId] = c.day;
-      }
-    }
-
-    final rows = <GoalListItemData>[];
-    for (final goal in goals) {
-      final goalSteps = stepsByGoal[goal.id] ?? const <MilestoneStep>[];
-      final last = lastValidByGoal[goal.id];
-      var summary = summarizeGoal(
-        milestones: goalSteps,
-        latestValidRecordMonth: last?.month ?? 0,
-        latestValidRecordDay: last?.day ?? 0,
-        hasValidRecord: last != null,
-      );
-      // 里程碑全完成（无待办）时优先展示最近进展日。
-      if (goalSteps.isNotEmpty &&
-          goalSteps.every((s) => s.isDone) &&
-          last != null) {
-        summary = Copy.goalSummaryRecent(last.month, last.day);
-      }
-      rows.add(
-        GoalListItemData(
-          goal: goal,
-          summary: summary,
-          completedMilestones: goalSteps.where((s) => s.isDone).length,
-          totalMilestones: goalSteps.length,
-          lastActivity: last,
-        ),
-      );
-    }
-
-    int lifecycleRank(Goal g) => g.isArchived
-        ? 3
-        : switch (g.status) {
-            GoalStatus.active => 0,
-            GoalStatus.paused => 1,
-            GoalStatus.achieved || GoalStatus.archived => 2,
-          };
-    rows.sort((a, b) {
-      final byLifecycle = lifecycleRank(a.goal).compareTo(
-        lifecycleRank(b.goal),
-      );
-      if (byLifecycle != 0) return byLifecycle;
-      final aKey = a.lastActivity ?? a.goal.createdAt;
-      final bKey = b.lastActivity ?? b.goal.createdAt;
-      return bKey.compareTo(aKey);
-    });
-    return rows;
-  }
+  void _openEditor() => context.push('/goal-editor');
 }
 
-/// 新建钮（右缘；44dp 命中区）。
-class _NewButton extends StatelessWidget {
-  const _NewButton({required this.onTap});
+class _Header extends StatelessWidget {
+  const _Header({required this.onCreate});
 
-  final VoidCallback onTap;
+  final VoidCallback onCreate;
 
   @override
   Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return SizedBox(
-      width: 44,
-      height: 44,
-      child: IconButton(
-        key: const ValueKey('goalsNewButton'),
-        onPressed: onTap,
-        icon: Icon(Icons.add_rounded, color: palette.onSurface),
-        tooltip: Copy.goalsNewButtonLabel,
-      ),
-    );
-  }
-}
-
-class _FilterRow extends StatelessWidget {
-  const _FilterRow({required this.selected, required this.onSelect});
-
-  final GoalListFilter selected;
-  final ValueChanged<GoalListFilter> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final filter in GoalListFilter.values) ...[
-            ActionChip(
-              key: ValueKey('goalFilter-${filter.name}'),
-              label: Text(filter.label),
-              visualDensity: VisualDensity.compact,
-              backgroundColor: filter == selected
-                  ? palette.onSurface
-                  : palette.surfaceAlt,
-              labelStyle: Theme.of(context).textTheme.labelS.copyWith(
-                color: filter == selected
-                    ? palette.background
-                    : palette.onSurface,
-              ),
-              onPressed: () => onSelect(filter),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(Copy.goalsTitle, style: text.displayL),
+                const SizedBox(height: 2),
+                Text(
+                  Copy.goalsSubtitle,
+                  style: text.bodyM.copyWith(color: p.onSurfaceVariant),
+                ),
+              ],
             ),
-            const SizedBox(width: AppSpace.s2),
-          ],
+          ),
+          const SizedBox(height: 8),
+          GlassCircleButton(
+            icon: Icons.add,
+            onTap: onCreate,
+          ),
         ],
       ),
     );
   }
 }
 
-class _Empty extends StatelessWidget {
-  const _Empty({required this.filter});
+/// 头部玻璃圆钮（新增/日历/设置等共用）。
+class GlassCircleButton extends StatelessWidget {
+  const GlassCircleButton({super.key, required this.icon, required this.onTap, this.tooltip});
 
-  final GoalListFilter filter;
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    final theme = Theme.of(context);
+    final p = TargetPalette.of(context);
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Material(
+        color: p.glassCard,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(22),
+          child: Icon(icon, size: 20, color: p.onSurface),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, this.trailing, this.onTrailing});
+
+  final String title;
+  final String? trailing;
+  final VoidCallback? onTrailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      child: Row(
+        children: [
+          Expanded(child: Text(title, style: text.titleM)),
+          if (trailing != null)
+            GestureDetector(
+              onTap: onTrailing,
+              child: Text(
+                trailing!,
+                style: text.bodyM.copyWith(color: p.accentText),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onCreate});
+
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '「${filter.label}」暂无目标',
-            key: const ValueKey('goalsEmptyTitle'),
-            style: theme.textTheme.bodyM.copyWith(
-              color: palette.onSurfaceVariant,
+          Container(
+            width: 88,
+            height: 88,
+            decoration: BoxDecoration(
+              color: p.glassCard,
+              shape: BoxShape.circle,
+              border: Border.all(color: p.glassBorder, width: 0.5),
+            ),
+            child: Icon(Icons.track_changes_outlined,
+                size: 36, color: p.accent),
+          ),
+          const SizedBox(height: 12),
+          Text(Copy.goalsEmptyTitle, style: text.titleM),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              Copy.goalsEmptyBody,
+              textAlign: TextAlign.center,
+              style: text.bodyM.copyWith(color: p.onSurfaceVariant),
             ),
           ),
+          const SizedBox(height: 16),
+          FilledButton(onPressed: onCreate, child: Text(Copy.goalsEmptyCta)),
         ],
       ),
     );

@@ -79,6 +79,30 @@ class NativeNotificationGateway implements NotificationGateway {
   }
 
   @override
+  Future<void> scheduleOccurrences({
+    required int baseId,
+    required List<DateTime> fireOns,
+    required String title,
+    required String body,
+  }) async {
+    await _ensureInit();
+    for (final (i, at) in fireOns.indexed) {
+      final id = baseId + i;
+      await cancel(id);
+      await _plugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: tz.TZDateTime.from(at, tz.local),
+        notificationDetails: const fln.NotificationDetails(
+          iOS: fln.DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: fln.AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    }
+  }
+
+  @override
   Future<void> cancel(int id) => _plugin.cancel(id: id);
 
   @override

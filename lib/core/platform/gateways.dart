@@ -38,6 +38,15 @@ abstract class NotificationGateway {
 
   Future<void> cancelAll();
 
+  /// v3 频率档排程：未来若干次一次性提醒（daily/threeDay/weekly 由
+  /// 调用方算好落点；id = baseId + 序号）。
+  Future<void> scheduleOccurrences({
+    required int baseId,
+    required List<DateTime> fireOns,
+    required String title,
+    required String body,
+  });
+
   /// Web 模拟通道：到点的"通知"以页内横幅呈现；原生实现恒为空流。
   Stream<NotificationBanner> get banners;
 }

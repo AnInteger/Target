@@ -44,6 +44,25 @@ class SimulatedNotificationGateway implements NotificationGateway {
   }
 
   @override
+  Future<void> scheduleOccurrences({
+    required int baseId,
+    required List<DateTime> fireOns,
+    required String title,
+    required String body,
+  }) async {
+    // Web 模拟：每个落点一个 Timer（长时段页面近似；cancelAll 清理）。
+    for (final (i, at) in fireOns.indexed) {
+      final id = baseId + i;
+      await cancel(id);
+      final delay = at.difference(DateTime.now());
+      if (delay.isNegative) continue;
+      _timers[id] = Timer(delay, () {
+        _banners.add(NotificationBanner(id: id, title: title, body: body));
+      });
+    }
+  }
+
+  @override
   Future<void> cancel(int id) async {
     _timers.remove(id)?.cancel();
   }

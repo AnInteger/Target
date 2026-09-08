@@ -1,21 +1,19 @@
+/// v3 目标编辑器（R2 定稿：属性行 + 选择器 sheet；名称必填即可保存）。
 library;
+
+import 'dart:async' show unawaited;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
-import '../../app/page_top_bar.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
-import '../../core/models/goal_icon_catalog.dart';
-import 'goal_editor_draft.dart';
-import 'goal_frequency_field.dart';
+import '../../core/models/frequency_pattern.dart';
 import 'goal_icon_picker.dart';
-import 'goal_milestone_editor.dart';
-import 'goal_reminder_field.dart';
+import '../shared/goal_card.dart' show goalIconData;
 
 class GoalEditorPage extends ConsumerStatefulWidget {
   const GoalEditorPage({super.key, this.goalId});
@@ -28,490 +26,753 @@ class GoalEditorPage extends ConsumerStatefulWidget {
 
 class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   final _name = TextEditingController();
-  GoalEditorDraft _draft = GoalEditorDraft.empty();
-  Goal? _existing;
-  bool _loading = false;
-  bool _saving = false;
-  String? _error;
-
-  bool get _isEdit => widget.goalId != null;
-
-  @override
-  void initState() {
-    super.initState();
-    _name.addListener(() {
-      _draft.name = _name.text;
-      setState(() {});
-    });
-    if (_isEdit) {
-      _loading = true;
-      _load();
-    }
-  }
-
-  Future<void> _load() async {
-    final snapshot = await ref.read(goalPlanRepoProvider).load(widget.goalId!);
-    if (!mounted) return;
-    if (snapshot == null) {
-      setState(() {
-        _loading = false;
-        _error = Copy.goalMissing;
-      });
-      return;
-    }
-    setState(() {
-      _existing = snapshot.goal;
-      _draft = GoalEditorDraft.fromSnapshot(snapshot);
-      _name.text = _draft.name;
-      _loading = false;
-    });
-  }
+  final _why = TextEditingController();
+  GoalCategory? _category;
+  String _iconKey = 'target';
+  String? _colorKey;
+  bool _pinned = false;
+  LocalDate? _targetDate;
+  FrequencyPattern? _frequency;
+  bool _reminderEnabled = false;
+  LocalTime _reminderTime = const LocalTime(9, 0);
+  Cadence _reminderCadence = Cadence.daily;
+  final _milestones = <(TextEditingController, TextEditingController)>[];
+  bool _loaded = false;
 
   @override
   void dispose() {
     _name.dispose();
+    _why.dispose();
+    for (final (t, d) in _milestones) {
+      t.dispose();
+      d.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _save() async {
-    if (!_draft.canSave || _saving) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      final repo = ref.read(goalPlanRepoProvider);
-      final input = _draft.toInput(
-        existing: _existing,
-        today: ref.read(todayProvider),
-      );
-      if (_existing == null) {
-        final created = await repo.create(input);
-        if (mounted) context.pushReplacement('/goal/${created.id}');
-      } else {
-        await repo.update(input);
-        if (mounted) context.pop();
-      }
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _error = '保存失败，请重试';
-        _saving = false;
-      });
-    }
-  }
-
-  void _updateDraft(void Function(GoalEditorDraft draft) change) {
-    setState(() {
-      change(_draft);
-      _error = null;
-    });
-  }
+  bool get _canSave => _name.text.trim().isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
+    final editing = widget.goalId != null;
+    if (editing && !_loaded) _loadExisting();
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: TargetPalette.of(context).background,
+      backgroundColor: p.background,
       body: SafeArea(
         bottom: false,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            PageTopBar(title: _isEdit ? Copy.goalEdit : Copy.editorNewGoal),
+            _header(context, editing),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpace.s3,
-                  AppSpace.s1,
-                  AppSpace.s3,
-                  AppSpace.s3,
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                 children: [
-                  _Section(
-                    title: '目标名称',
-                    badge: const _Tag(Copy.editorRequiredTag, emphasized: true),
-                    child: _nameField(),
-                  ),
-                  const SizedBox(height: AppSpace.s2),
-                  _Section(title: '图标与分类', child: _iconSection()),
-                  const SizedBox(height: AppSpace.s2),
-                  _Section(title: '目标日期', child: _dateSection()),
-                  const SizedBox(height: AppSpace.s2),
-                  _Section(
-                    title: '执行节奏',
-                    badge: const _Tag(Copy.editorOptionalTag, emphasized: false),
-                    child: GoalFrequencyField(
-                      value: _draft.frequency,
-                      onChanged: (value) =>
-                          _updateDraft((draft) => draft.frequency = value),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpace.s2),
-                  _Section(
-                    title: '里程碑',
-                    badge: const _Tag(Copy.editorOptionalTag, emphasized: false),
-                    child: GoalMilestoneEditor(
-                      value: _draft.milestones,
-                      onChanged: (value) =>
-                          _updateDraft((draft) => draft.milestones = value),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpace.s2),
-                  _Section(
-                    title: '提醒',
-                    badge: const _Tag(Copy.editorOptionalTag, emphasized: false),
-                    child: GoalReminderField(
-                      value: _draft.reminder,
-                      onChanged: (value) =>
-                          _updateDraft((draft) => draft.reminder = value),
-                    ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: AppSpace.s3),
+                  if (!editing) ...[
+                    Text(Copy.editorHeroTitle, style: text.displayS),
+                    const SizedBox(height: 4),
                     Text(
-                      _error!,
-                      key: const ValueKey('goalSaveError'),
-                      style: Theme.of(context).textTheme.bodyM.copyWith(
-                        color: Theme.of(context).colorScheme.error,
+                      Copy.editorHeroSubtitle,
+                      style:
+                          text.bodyM.copyWith(color: p.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  _card(
+                    child: Column(
+                      children: [
+                        _field(Copy.fieldName, _name, Copy.fieldNameHint,
+                            onChanged: (_) => setState(() {})),
+                        const SizedBox(height: 16),
+                        _field(Copy.fieldWhy, _why, Copy.fieldWhyHint,
+                            maxLines: 3),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _card(
+                    child: Column(
+                      children: [
+                        _row(
+                          Copy.fieldCategory,
+                          _category == null
+                              ? Copy.categoryUncategorized
+                              : Copy.categoryOf(_category!.name),
+                          onTap: _pickCategory,
+                        ),
+                        _divider(),
+                        _row(
+                          Copy.fieldIconColor,
+                          '',
+                          onTap: _pickIcon,
+                          trailing: Row(
+                            children: [
+                              Icon(
+                                goalIconData(_iconKey),
+                                size: 18,
+                                color: GoalPalette.byKey(
+                                  _colorKey ??
+                                      (_category?.defaultColorKey ??
+                                          'gray'),
+                                  brightness: Theme.of(context).brightness,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _colorDot(context),
+                            ],
+                          ),
+                        ),
+                        _divider(),
+                        _row(
+                          Copy.fieldPinned,
+                          '',
+                          trailing: Switch(
+                            value: _pinned,
+                            onChanged: (v) => setState(() => _pinned = v),
+                          ),
+                        ),
+                        _divider(),
+                        _row(
+                          Copy.fieldTargetDate,
+                          _targetDate == null
+                              ? Copy.dateNone
+                              : _targetDate!.isoString,
+                          onTap: _pickDate,
+                        ),
+                        _divider(),
+                        _row(
+                          Copy.fieldFrequency,
+                          _frequency == null
+                              ? Copy.freqNone
+                              : _frequencyLabel(_frequency!),
+                          onTap: _pickFrequency,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _label(Copy.reminderGroup),
+                  _card(
+                    child: Column(
+                      children: [
+                        _row(
+                          Copy.reminderToggle,
+                          '',
+                          trailing: Switch(
+                            value: _reminderEnabled,
+                            onChanged: (v) =>
+                                setState(() => _reminderEnabled = v),
+                          ),
+                        ),
+                        if (_reminderEnabled) ...[
+                          _divider(),
+                          _row(
+                            Copy.reminderTime,
+                            _reminderTime.isoString,
+                            onTap: _pickTime,
+                          ),
+                          _divider(),
+                          _row(
+                            Copy.reminderCadence,
+                            _cadenceLabel(_reminderCadence),
+                            onTap: _pickCadence,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _label(
+                      editing ? Copy.milestoneGroup : Copy.firstMilestoneGroup),
+                  for (final (i, (t, d)) in _milestones.indexed) ...[
+                    _card(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: t,
+                                  style: text.bodyL
+                                      .copyWith(fontWeight: FontWeight.w600),
+                                  decoration: InputDecoration(
+                                    hintText: Copy.milestoneFieldTitle,
+                                    border: InputBorder.none,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.close,
+                                    size: 16, color: p.danger),
+                                onPressed: () =>
+                                    setState(() => _milestones.removeAt(i)),
+                              ),
+                            ],
+                          ),
+                          TextField(
+                            controller: d,
+                            style: text.bodyM,
+                            decoration: InputDecoration(
+                              hintText: Copy.milestoneFieldDesc,
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 8),
                   ],
+                  _card(
+                    onTap: () => setState(() => _milestones.add((
+                          TextEditingController(),
+                          TextEditingController(),
+                        ))),
+                    child: Row(
+                      children: [
+                        Icon(Icons.flag_outlined,
+                            size: 18, color: p.onSurfaceVariant),
+                        const SizedBox(width: 12),
+                        Text(
+                          Copy.milestonesAdd,
+                          style:
+                              text.bodyL.copyWith(color: p.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    Copy.editorNote,
+                    style:
+                        text.bodyS.copyWith(color: p.onSurfaceVariant),
+                  ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpace.s4,
-                AppSpace.s2,
-                AppSpace.s4,
-                AppSpace.s3,
-              ),
-              child: FilledButton(
-                key: const ValueKey('goalSaveButton'),
-                onPressed: _saving ? null : _save,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                child: Text(_saving ? '保存中...' : Copy.editorSave),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _nameField() {
-    final palette = TargetPalette.of(context);
-    return TextField(
-      key: const ValueKey('goalNameField'),
-      controller: _name,
-      maxLength: 30,
-      decoration: InputDecoration(
-        hintText: '例如：学习摄影',
-        counterText: '',
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpace.s3,
-          vertical: AppSpace.s2,
-        ),
-        filled: true,
-        fillColor: palette.surfaceAlt,
-      ),
-    );
-  }
+  // ---- 头部（系统样式文本按钮） ----
 
-  Widget _iconSection() {
-    final palette = TargetPalette.of(context);
-    final icon = GoalIconCatalog.byKey(_draft.iconKey);
-    final domain = _draft.category ?? icon.domain;
-    final majorColor = MajorColors.byKey(domain.major.name).of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: AppSpace.s2,
-          runSpacing: AppSpace.s2,
-          children: [
-            for (final item in _commonIcons)
-              _IconCell(
-                icon: item.icon,
-                selected: item.key == _draft.iconKey,
-                semanticLabel: goalIconLabel(item),
-                onTap: () => _updateDraft((draft) => draft.iconKey = item.key),
-              ),
-            _MoreCell(onTap: _openPicker),
-          ],
-        ),
-        const SizedBox(height: AppSpace.s1),
-        Row(
-          children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(color: majorColor, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: AppSpace.s2),
-            Expanded(
-              child: Text(
-                '${_draft.category == null ? '自动分类' : '已更正'}：'
-                '${domain.zhLabel} · ${domain.major.zhLabel}',
-                style: Theme.of(context).textTheme.bodyS.copyWith(
-                  color: palette.onSurfaceVariant,
-                ),
-              ),
-            ),
-            TextButton(onPressed: _correctCategory, child: const Text('更正')),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _dateSection() {
-    final palette = TargetPalette.of(context);
-    final hasDate = _draft.targetDate != null;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SwitchListTile(
-          key: const ValueKey('goalHasDateSwitch'),
-          contentPadding: EdgeInsets.zero,
-          title: const Text('设置目标日期'),
-          value: hasDate,
-          onChanged: (value) => _updateDraft(
-            (draft) =>
-                draft.targetDate = value ? ref.read(todayProvider).addDays(90) : null,
-          ),
-        ),
-        if (hasDate)
-          InkWell(
-            key: const ValueKey('goalTargetDateField'),
-            onTap: _pickTargetDate,
-            borderRadius: AppRadius.rMd,
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 44),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4),
-              alignment: Alignment.centerLeft,
-              decoration: BoxDecoration(
-                color: palette.surfaceAlt,
-                borderRadius: AppRadius.rMd,
-              ),
-              child: Text(_draft.targetDate!.isoString),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Future<void> _pickTargetDate() async {
-    final today = ref.read(todayProvider);
-    final picked = await showDatePicker(
-      context: context,
-      firstDate: DateTime(2020, 1, 1),
-      lastDate: DateTime(today.year + 10, 12, 31),
-      initialDate: (_draft.targetDate ?? today.addDays(90)).atStartOfDay,
-    );
-    if (picked != null) {
-      _updateDraft(
-        (draft) => draft.targetDate = LocalDate.fromDateTime(picked),
-      );
-    }
-  }
-
-  Future<void> _openPicker() async {
-    final picked = await showGoalIconPicker(context, selectedKey: _draft.iconKey);
-    if (picked != null) {
-      _updateDraft((draft) => draft.iconKey = picked.key);
-    }
-  }
-
-  Future<void> _correctCategory() async {
-    final picked = await showModalBottomSheet<GoalIconDomain>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final palette = TargetPalette.of(context);
-        return Container(
-          padding: EdgeInsets.fromLTRB(
-            AppSpace.s5,
-            AppSpace.s4,
-            AppSpace.s5,
-            AppSpace.s5 + MediaQuery.paddingOf(context).bottom,
-          ),
-          decoration: BoxDecoration(
-            color: palette.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              for (final domain in GoalIconDomain.values)
-                ListTile(
-                  minTileHeight: 44,
-                  leading: Icon(
-                    GoalIconCatalog.byDomain[domain]!.first.icon,
-                    color: MajorColors.byKey(domain.major.name).of(context),
-                  ),
-                  title: Text(domain.zhLabel),
-                  subtitle: Text(domain.major.zhLabel),
-                  onTap: () => Navigator.of(context).pop(domain),
-                ),
-            ],
-          ),
-        );
-      },
-    );
-    if (picked != null) _updateDraft((draft) => draft.category = picked);
-  }
-
-  static const _commonIcons = [
-    GoalIconCatalog.explore,
-    GoalIconCatalog.menuBook,
-    GoalIconCatalog.camera,
-    GoalIconCatalog.directionsBike,
-    GoalIconCatalog.favorite,
-    GoalIconCatalog.savings,
-  ];
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.child, this.badge});
-
-  final String title;
-  final Widget child;
-  final Widget? badge;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
+  Widget _header(BuildContext context, bool editing) {
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s1),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.labelS.copyWith(
-                  color: palette.onSurfaceVariant,
-                  letterSpacing: .8,
-                ),
-              ),
-              if (badge != null) ...[
-                const SizedBox(width: AppSpace.s2),
-                badge!,
-              ],
-            ],
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Text(
+              Copy.cancel,
+              style: text.bodyL.copyWith(color: p.accentText),
+            ),
           ),
-          const SizedBox(height: 2),
-          child,
+          Expanded(
+            child: Center(
+              child: Text(
+                editing ? Copy.editorEditTitle : Copy.editorAddTitle,
+                style: text.titleM,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: _canSave ? _save : null,
+            child: Text(
+              Copy.save,
+              style: text.bodyL.copyWith(
+                color: _canSave ? p.accentText : p.onSurfaceTertiary,
+                fontWeight: _canSave ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
-}
 
-class _Tag extends StatelessWidget {
-  const _Tag(this.text, {required this.emphasized});
+  // ---- 组件 ----
 
-  final String text;
-  final bool emphasized;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s2, vertical: 1),
-      decoration: BoxDecoration(
-        color: emphasized ? palette.accent : palette.surfaceAlt,
-        borderRadius: AppRadius.rFull,
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.labelS.copyWith(
-          color: emphasized ? palette.accentOn : palette.onSurfaceVariant,
-          letterSpacing: 0,
+  Widget _card({required Widget child, VoidCallback? onTap}) {
+    final p = TargetPalette.of(context);
+    return Material(
+      color: p.surface,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(AppSpace.s4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: p.shadowLow,
+          ),
+          child: child,
         ),
       ),
     );
   }
-}
 
-class _IconCell extends StatelessWidget {
-  const _IconCell({
-    required this.icon,
-    required this.selected,
-    required this.semanticLabel,
-    required this.onTap,
-  });
+  Widget _divider() {
+    final p = TargetPalette.of(context);
+    return Divider(height: 1, color: p.divider);
+  }
 
-  final IconData icon;
-  final bool selected;
-  final String semanticLabel;
-  final VoidCallback onTap;
+  Widget _label(String s) {
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child:
+          Text(s, style: text.bodyS.copyWith(color: p.onSurfaceVariant)),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return Semantics(
-      label: semanticLabel,
-      button: true,
-      selected: selected,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: AppRadius.rMd,
-        child: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: palette.surfaceAlt,
-            borderRadius: AppRadius.rMd,
-            border: Border.all(
-              color: selected ? palette.accent : Colors.transparent,
-              width: 1.5,
+  Widget _field(
+    String label,
+    TextEditingController controller,
+    String hint, {
+    int maxLines = 1,
+    ValueChanged<String>? onChanged,
+  }) {
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: text.bodyS.copyWith(color: p.onSurfaceVariant)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          onChanged: onChanged,
+          style: text.bodyL,
+          decoration: InputDecoration(
+            hintText: hint,
+            isDense: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: BorderSide(color: p.divider),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: BorderSide(color: p.divider),
             ),
           ),
-          child: Icon(
-            icon,
-            size: 22,
-            color: selected ? palette.accent : palette.onSurface,
+        ),
+      ],
+    );
+  }
+
+  Widget _row(
+    String label,
+    String value, {
+    VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    final p = TargetPalette.of(context);
+    final text = Theme.of(context).textTheme;
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        child: Row(
+          children: [
+            Expanded(child: Text(label, style: text.bodyL)),
+            if (value.isNotEmpty)
+              Text(
+                value,
+                style: text.bodyM.copyWith(color: p.onSurfaceVariant),
+              ),
+            if (trailing != null) ...[
+              const SizedBox(width: 8),
+              trailing,
+            ],
+            if (trailing == null)
+              Icon(Icons.chevron_right,
+                  size: 14,
+                  color: p.onSurfaceTertiary.withValues(alpha: 0.6)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _colorDot(BuildContext context) {
+    final color = GoalPalette.byKey(
+      _colorKey ?? (_category?.defaultColorKey ?? 'gray'),
+      brightness: Theme.of(context).brightness,
+    );
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+
+  // ---- 选择器 ----
+
+  Future<void> _pickCategory() async {
+    final p = TargetPalette.of(context);
+    final chosen = await showModalBottomSheet<GoalCategory>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: p.background,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl),
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 14),
+              for (final c in GoalCategory.values)
+                ListTile(
+                  title: Text(Copy.categoryOf(c.name)),
+                  onTap: () => Navigator.of(context).pop(c),
+                ),
+              const SizedBox(height: 12),
+            ],
           ),
         ),
       ),
     );
+    if (chosen != null) {
+      setState(() {
+        _category = chosen;
+        _colorKey = chosen.defaultColorKey;
+      });
+    }
   }
-}
 
-class _MoreCell extends StatelessWidget {
-  const _MoreCell({required this.onTap});
+  Future<void> _pickIcon() async {
+    final result = await showGoalIconPicker(
+      context,
+      initialIconKey: _iconKey,
+      initialColorKey: _colorKey ?? _category?.defaultColorKey ?? 'gray',
+    );
+    if (result != null) {
+      setState(() {
+        _iconKey = result.$1;
+        _colorKey = result.$2;
+      });
+    }
+  }
 
-  final VoidCallback onTap;
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate:
+          _targetDate == null
+              ? DateTime.now()
+              : DateTime(_targetDate!.year, _targetDate!.month, _targetDate!.day),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    );
+    if (picked != null) setState(() => _targetDate = LocalDate.fromDateTime(picked));
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final palette = TargetPalette.of(context);
-    return InkWell(
-      key: const ValueKey('goalIconMoreButton'),
-      onTap: onTap,
-      borderRadius: AppRadius.rMd,
-      child: Container(
-        width: 40,
-        height: 40,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: palette.surfaceAlt,
-          borderRadius: AppRadius.rMd,
-          border: Border.all(color: palette.divider),
+  Future<void> _pickFrequency() async {
+    final p = TargetPalette.of(context);
+    var weeklyTimes = 3;
+    final weekdays = <int>{1, 3};
+    var mode = 0; // 0 不设 1 每天 2 每周N次 3 指定星期
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (sheetContext, setSheet) => Container(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+          decoration: BoxDecoration(
+            color: p.background,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(AppRadius.xl),
+            ),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Center(
+                    child: Text(
+                      Copy.frequencySheetTitle,
+                      style: Theme.of(sheetContext).textTheme.titleM,
+                    ),
+                  ),
+                ),
+                Text(Copy.frequencyQuestion),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final (i, label) in [
+                      Copy.freqNone,
+                      Copy.freqDaily,
+                      Copy.freqWeekly,
+                      Copy.freqWeekdays,
+                    ].indexed)
+                      ChoiceChip(
+                        label: Text(label),
+                        selected: mode == i,
+                        onSelected: (_) => setSheet(() => mode = i),
+                      ),
+                  ],
+                ),
+                if (mode == 2)
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: () => setSheet(
+                            () => weeklyTimes = (weeklyTimes - 1).clamp(1, 7)),
+                      ),
+                      Text('$weeklyTimes 次 / 周'),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: () => setSheet(
+                            () => weeklyTimes = (weeklyTimes + 1).clamp(1, 7)),
+                      ),
+                    ],
+                  ),
+                if (mode == 3)
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final d in [1, 2, 3, 4, 5, 6, 7])
+                        FilterChip(
+                          label: Text('一二三四五六日'[d - 1]),
+                          selected: weekdays.contains(d),
+                          onSelected: (on) => setSheet(() {
+                            on ? weekdays.add(d) : weekdays.remove(d);
+                          }),
+                        ),
+                    ],
+                  ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(false),
+                      child: const Text(Copy.cancel),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.of(sheetContext).pop(true),
+                      child: const Text(Copy.done),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-        child: const Icon(Icons.more_horiz_rounded),
       ),
     );
+    if (confirmed != true) return;
+    setState(() {
+      _frequency = switch (mode) {
+        1 => const DailyFrequency(1),
+        2 => WeeklyFrequency(weeklyTimes),
+        3 => WeekdaysFrequency(
+            weekdays.map(Weekday.fromIso).toSet(),
+            1,
+          ),
+        _ => null,
+      };
+    });
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: _reminderTime.hour, minute: _reminderTime.minute),
+    );
+    if (picked != null) {
+      setState(
+          () => _reminderTime = LocalTime(picked.hour, picked.minute));
+    }
+  }
+
+  Future<void> _pickCadence() async {
+    final p = TargetPalette.of(context);
+    final chosen = await showModalBottomSheet<Cadence>(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: p.background,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl),
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 14),
+              for (final c in Cadence.values)
+                ListTile(
+                  title: Text(_cadenceLabel(c)),
+                  onTap: () => Navigator.of(context).pop(c),
+                ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (chosen != null) setState(() => _reminderCadence = chosen);
+  }
+
+  // ---- 加载 / 保存 ----
+
+  void _loadExisting() {
+    final goal = ref
+        .read(goalsProvider)
+        .valueOrNull
+        ?.where((g) => g.id == widget.goalId)
+        .firstOrNull;
+    if (goal == null) {
+      _loaded = true;
+      return;
+    }
+    _name.text = goal.name;
+    _why.text = goal.why ?? '';
+    _category = goal.categoryKey;
+    _iconKey = goal.iconKey;
+    _colorKey = goal.colorKey;
+    _pinned = goal.pinned;
+    _targetDate = goal.targetDate;
+    _frequency = goal.frequency;
+    _loaded = true;
+    unawaited(
+        ref.read(reminderRepoProvider).of(goal.id).then((r) {
+      if (r != null && mounted) {
+        setState(() {
+          _reminderEnabled = r.isEnabled;
+          _reminderTime = r.time;
+          _reminderCadence = r.cadence;
+        });
+      }
+    }));
+    unawaited(
+        ref.read(milestonesOfProvider(goal.id).future).then((ms) {
+      if (!mounted) return;
+      setState(() {
+        for (final m in ms) {
+          final t = TextEditingController(text: m.title);
+          final d = TextEditingController(text: m.description ?? '');
+          _milestones.add((t, d));
+        }
+      });
+    }));
+  }
+
+  Future<void> _save() async {
+    if (!_canSave) return;
+    final today = ref.read(todayProvider);
+    final editing = widget.goalId != null;
+    final existing = editing
+        ? ref.read(goalsProvider).valueOrNull
+        ?.where((g) => g.id == widget.goalId)
+            .firstOrNull
+        : null;
+
+    final goal = Goal(
+      id: existing?.id,
+      name: _name.text.trim(),
+      why: _why.text.trim().isEmpty ? null : _why.text.trim(),
+      categoryKey: _category,
+      iconKey: _iconKey,
+      colorKey: _colorKey,
+      pinned: _pinned,
+      pinnedOrder: existing?.pinnedOrder,
+      targetDate: _targetDate,
+      frequency: _frequency,
+      status: existing?.status ?? GoalStatus.active,
+      achievedAt: existing?.achievedAt,
+      archivedAt: existing?.archivedAt,
+      createdAt: existing?.createdAt ?? today,
+    );
+
+    final milestones = [
+      for (final (t, d) in _milestones)
+        if (t.text.trim().isNotEmpty)
+          Milestone(
+            goalId: goal.id,
+            title: t.text.trim(),
+            description: d.text.trim().isEmpty ? null : d.text.trim(),
+            position: 0,
+          ),
+    ];
+
+    if (editing) {
+      await ref.read(goalRepoProvider).update(goal);
+      await ref.read(milestoneRepoProvider).reorderFromEditor(
+            goal.id,
+            milestones,
+          );
+      await ref.read(reminderRepoProvider).upsert(Reminder(
+            goalId: goal.id,
+            time: _reminderTime,
+            isEnabled: _reminderEnabled,
+            cadence: _reminderCadence,
+          ));
+    } else {
+      await ref.read(goalRepoProvider).createPlan(
+            goal,
+            milestones,
+            reminder: _reminderEnabled
+                ? Reminder(
+                    goalId: goal.id,
+                    time: _reminderTime,
+                    isEnabled: true,
+                    cadence: _reminderCadence,
+                  )
+                : null,
+          );
+      if (_pinned) {
+        await ref.read(goalRepoProvider).setPinned(goal.id, true);
+      }
+    }
+
+    if (mounted) {
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text(Copy.editorGoalSavedToast)));
+    }
   }
 }
+
+String _frequencyLabel(FrequencyPattern f) => switch (f) {
+      DailyFrequency() => Copy.freqDaily,
+      WeeklyFrequency(:final timesPerWeek) =>
+        '${Copy.freqWeekly}（${timesPerWeek}）',
+      WeekdaysFrequency() => Copy.freqWeekdays,
+    };
+
+String _cadenceLabel(Cadence c) => switch (c) {
+      Cadence.daily => Copy.cadenceDaily,
+      Cadence.threeDay => Copy.cadenceThreeDay,
+      Cadence.weekly => Copy.cadenceWeekly,
+    };

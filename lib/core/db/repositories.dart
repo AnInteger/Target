@@ -317,6 +317,31 @@ class MilestoneRepository {
         await (_db.delete(_db.milestones)..where((x) => x.id.equals(id))).go();
       });
 
+  /// 编辑器保存：整组替换（按位匹配保留既有 id/达成态；多余删除、
+  /// 新增补位），维护「结构编辑只在编辑器」边界。
+  Future<void> reorderFromEditor(
+    String goalId,
+    List<Milestone> drafted,
+  ) =>
+      _db.transaction(() async {
+        final existing = await of(goalId);
+        for (final (i, m) in drafted.indexed) {
+          if (i < existing.length) {
+            final keep = existing[i];
+            await update(
+              keep.copyWith(title: m.title, description: m.description),
+            );
+          } else {
+            await _db
+                .into(_db.milestones)
+                .insert(milestoneCompanion(m, position: i));
+          }
+        }
+        for (final extra in existing.skip(drafted.length)) {
+          await remove(extra.id);
+        }
+      });
+
   /// 按目标重排（编辑器拖拽）。
   Future<void> reorder(String goalId, List<String> orderedIds) =>
       _db.transaction(() async {

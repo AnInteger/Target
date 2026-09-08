@@ -14,6 +14,7 @@ import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/relative_time.dart';
+import '../shared/record_meta.dart';
 import '../../core/stats/stats_engine.dart';
 import 'daily_calendar_sheet.dart';
 
@@ -25,9 +26,7 @@ class ActivityView extends ConsumerStatefulWidget {
 }
 
 class _ActivityViewState extends ConsumerState<ActivityView> {
-  late WeekStart _week = WeekStart.containing(
-    ref.read(todayProvider),
-  );
+  late WeekStart _week = WeekStart.containing(ref.read(todayProvider));
 
   @override
   Widget build(BuildContext context) {
@@ -77,8 +76,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                       children: [
                         CircleIconButton(
                           icon: CupertinoIcons.calendar,
-                          onTap: () =>
-                              showDailyCalendarSheet(context, records),
+                          onTap: () => showDailyCalendarSheet(context, records),
                         ),
                         const SizedBox(width: 8),
                         const SizedBox(height: 8),
@@ -101,8 +99,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               sliver: SliverToBoxAdapter(
-                child: _WeekCard(
-                    week: week, weekStart: _week, today: today),
+                child: _WeekCard(week: week, weekStart: _week, today: today),
               ),
             ),
             SliverPadding(
@@ -119,15 +116,13 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                     Expanded(
                       child: Text(
                         Copy.recentFeed,
-                        style: text.titleS
-                            .copyWith(color: p.onSurfaceVariant),
+                        style: text.titleS.copyWith(color: p.onSurfaceVariant),
                       ),
                     ),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
                       minimumSize: Size.square(32),
-                      onPressed: () =>
-                          showDailyCalendarSheet(context, records),
+                      onPressed: () => showDailyCalendarSheet(context, records),
                       child: Text(
                         Copy.calendarEntry,
                         style: text.bodyM.copyWith(color: p.accentText),
@@ -158,6 +153,10 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                     item: feed[i],
                     goals: goals,
                     today: today,
+                    linkedMilestoneTitle: milestones
+                        .where((m) => m.id == feed[i].record.milestoneId)
+                        .firstOrNull
+                        ?.title,
                   ),
                 ),
               ),
@@ -238,8 +237,10 @@ class _WeekCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(Copy.weekInvestment,
-              style: text.bodyS.copyWith(color: p.onSurfaceTertiary)),
+          Text(
+            Copy.weekInvestment,
+            style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
+          ),
           const SizedBox(height: 2),
           Text(
             Copy.weekInvestmentValue(week.hours, week.remainderMinutes),
@@ -272,8 +273,7 @@ class _WeekCard extends StatelessWidget {
                                 fontSize: 10,
                                 height: 1,
                                 color: week.perDayMinutes[d] == 0
-                                    ? p.onSurfaceTertiary
-                                        .withValues(alpha: 0.6)
+                                    ? p.onSurfaceTertiary.withValues(alpha: 0.6)
                                     : p.onSurfaceTertiary,
                               ),
                             ),
@@ -284,8 +284,8 @@ class _WeekCard extends StatelessWidget {
                           height: maxMin == 0
                               ? 0
                               : (week.perDayMinutes[d] / maxMin * 64)
-                                  .clamp(6, 64)
-                                  .toDouble(),
+                                    .clamp(6, 64)
+                                    .toDouble(),
                           decoration: BoxDecoration(
                             color: weekStart.monday.addDays(d) == today
                                 ? p.accent
@@ -357,12 +357,22 @@ class _MilestoneCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(Copy.milestoneCardTitle, style: text.titleM)),
-          _stat(context, Copy.milestoneAchievedThisWeek,
-              Copy.milestoneCount(summary.achievedThisWeek)),
+          _stat(
+            context,
+            Copy.milestoneAchievedThisWeek,
+            Copy.milestoneCount(summary.achievedThisWeek),
+          ),
           Container(
-              width: 0.5, height: 28, color: p.divider, margin: const EdgeInsets.symmetric(horizontal: 16)),
-          _stat(context, Copy.milestonePending,
-              Copy.milestoneCount(summary.pendingAll)),
+            width: 0.5,
+            height: 28,
+            color: p.divider,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+          ),
+          _stat(
+            context,
+            Copy.milestonePending,
+            Copy.milestoneCount(summary.pendingAll),
+          ),
         ],
       ),
     );
@@ -384,22 +394,44 @@ class _FeedRow extends StatelessWidget {
     required this.item,
     required this.goals,
     required this.today,
+    this.linkedMilestoneTitle,
   });
 
   final FeedItem item;
   final List<Goal> goals;
   final LocalDate today;
 
+  /// 关联里程碑标题（无关联为 null）。
+  final String? linkedMilestoneTitle;
+
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
-    final goal =
-        goals.where((g) => g.id == item.goalId).firstOrNull;
+    final record = item.record;
+    final isMs = item.isMilestone;
+    final linked =
+        linkedMilestoneTitle != null && linkedMilestoneTitle!.isNotEmpty;
+    final goal = goals.where((g) => g.id == item.goalId).firstOrNull;
     final color = goal == null
         ? p.onSurfaceVariant
         : GoalPalette.byKey(
-            goal.colorKey, brightness: TargetPalette.brightnessOf(context));
+            goal.colorKey,
+            brightness: TargetPalette.brightnessOf(context),
+          );
+
+    // 节点图标：里程碑系橙色调，其余随目标色。
+    final icon = recordNodeIcon(
+      milestone: isMs,
+      linkedMilestone: linked,
+      hasDuration: record.durationMinutes != null,
+      hasBody: record.body != null && record.body!.trim().isNotEmpty,
+    );
+    final iconColor = isMs || linked ? p.milestone : color;
+    final iconBg = isMs || linked
+        ? p.milestoneTint
+        : color.withValues(alpha: 0.10);
+
     return AppCard(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -411,44 +443,41 @@ class _FeedRow extends StatelessWidget {
             height: 36,
             margin: const EdgeInsets.only(top: 2),
             decoration: BoxDecoration(
-              color: item.isMilestone
-                  ? p.milestoneTint
-                  : color.withValues(alpha: 0.10),
+              color: iconBg,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: Icon(
-              item.isMilestone ? CupertinoIcons.flag_fill : CupertinoIcons.square_pencil,
-              size: 17,
-              color: item.isMilestone ? p.milestone : color,
-            ),
+            child: Icon(icon, size: 17, color: iconColor),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 行 1：进展标题（里程碑达成 = 达成：里程碑名）。
                 Text(
-                  item.isMilestone
-                      ? Copy.feedMilestone(item.record.title)
-                      : item.goalName,
-                  style: text.bodyL
-                      .copyWith(fontWeight: FontWeight.w500),
+                  isMs ? Copy.feedMilestone(record.title) : record.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.bodyL.copyWith(fontWeight: FontWeight.w500),
                 ),
+                const SizedBox(height: 3),
+                // 行 2：目标 · 秒级时间 · 投入 · 里程碑状态。
                 Text(
-                  relativeDayLabel(item.record.day, today),
-                  style:
-                      text.bodyS.copyWith(color: p.onSurfaceTertiary),
-                ),
-                if (!item.isMilestone) ...[
-                  const SizedBox(height: 3),
-                  Text(item.record.title, style: text.bodyM),
-                  if (item.record.durationMinutes != null)
-                    Text(
-                      Copy.feedDuration(item.record.durationMinutes!),
-                      style: text.bodyS.copyWith(
-                          color: p.onSurfaceTertiary),
+                  [
+                    item.goalName,
+                    timestampLabel(
+                      record.day,
+                      today,
+                      record.createdAt.toLocal(),
                     ),
-                ],
+                    if (record.durationMinutes != null)
+                      Copy.feedDuration(record.durationMinutes!),
+                    if (linked) Copy.recordMilestoneLink(linkedMilestoneTitle!),
+                  ].join(' · '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
+                ),
               ],
             ),
           ),
@@ -472,8 +501,7 @@ class _EmptyCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       child: Column(
         children: [
-          Text(title,
-              style: text.titleM.copyWith(color: p.onSurface)),
+          Text(title, style: text.titleM.copyWith(color: p.onSurface)),
           const SizedBox(height: 4),
           Text(
             body,

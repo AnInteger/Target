@@ -15,6 +15,8 @@ import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/frequency_pattern.dart';
+import '../../core/models/relative_time.dart';
+import '../shared/record_meta.dart';
 import '../shared/record_sheet.dart';
 import 'goal_menu.dart';
 import 'milestones_view.dart';
@@ -369,17 +371,14 @@ class _TimelineRow extends StatelessWidget {
     final hasBody = !isMilestone && body != null && body.trim().isNotEmpty;
     final hasDuration = record.durationMinutes != null;
 
-    // 节点图形多样化：里程碑达成/关联 > 时长 > 心得 > 默认记录。
+    // 节点图形多样化（与动态 feed 共用 recordNodeIcon）。
     final milestoneNode = isMilestone || linkedMilestone;
-    final nodeIcon = isMilestone
-        ? CupertinoIcons.flag_fill
-        : milestoneNode
-        ? CupertinoIcons.flag
-        : hasDuration
-        ? CupertinoIcons.clock
-        : hasBody
-        ? CupertinoIcons.doc_text
-        : CupertinoIcons.square_pencil;
+    final nodeIcon = recordNodeIcon(
+      milestone: isMilestone,
+      linkedMilestone: linkedMilestone,
+      hasDuration: hasDuration,
+      hasBody: hasBody,
+    );
     final nodeColor = milestoneNode
         ? p.milestone
         : (isLast ? p.accent : p.onSurfaceVariant);
@@ -457,23 +456,10 @@ class _TimelineRow extends StatelessWidget {
 
   /// 元信息行：日期时间（精确到秒）· 时长 · 关联里程碑。
   String _metaLine(bool hasDuration, bool linkedMilestone) {
-    final local = record.createdAt.toLocal();
-    final time =
-        '${_two(local.hour)}:${_two(local.minute)}:${_two(local.second)}';
-    final String dayLabel;
-    if (record.day == today) {
-      dayLabel = '${Copy.today} $time';
-    } else if (record.day == today.addDays(-1)) {
-      dayLabel = '${Copy.yesterday} $time';
-    } else {
-      dayLabel = '${local.month}月${local.day}日 $time';
-    }
     return [
-      dayLabel,
+      timestampLabel(record.day, today, record.createdAt.toLocal()),
       if (hasDuration) Copy.durationMinutes(record.durationMinutes!),
       if (linkedMilestone) Copy.recordMilestoneLink(milestoneTitle!),
     ].join(' · ');
   }
 }
-
-String _two(int n) => n.toString().padLeft(2, '0');

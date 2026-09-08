@@ -15,8 +15,7 @@ import '../../../core/models/relative_time.dart';
 /// 目标图标（iconKey → 目录自带图形；未知键回退靶心）。
 /// 注：域图形目录（38 枚）沿用内置 Material Rounded 字形——内容图形
 /// 而非 UI 骨架，Cupertino 图标库无对应域覆盖面。
-IconData goalIconData(String iconKey) =>
-    GoalIconCatalog.byKey(iconKey).icon;
+IconData goalIconData(String iconKey) => GoalIconCatalog.byKey(iconKey).icon;
 
 /// 置顶大卡（两栏；R1/R2 定稿）。
 class GoalCard extends StatelessWidget {
@@ -43,13 +42,14 @@ class GoalCard extends StatelessWidget {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
     final color = GoalPalette.byKey(
-        goal.colorKey, brightness: TargetPalette.brightnessOf(context));
+      goal.colorKey,
+      brightness: TargetPalette.brightnessOf(context),
+    );
     final latest = records.where((r) => r.goalId == goal.id).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final next = milestones
-        .where((m) => m.goalId == goal.id && !m.isDone)
-        .toList()
-      ..sort((a, b) => a.position.compareTo(b.position));
+    final next =
+        milestones.where((m) => m.goalId == goal.id && !m.isDone).toList()
+          ..sort((a, b) => a.position.compareTo(b.position));
 
     return AppCard(
       padding: const EdgeInsets.all(AppSpace.s4),
@@ -74,9 +74,11 @@ class GoalCard extends StatelessWidget {
                         style: text.titleS.copyWith(color: color),
                       ),
                     ),
-                    Icon(CupertinoIcons.chevron_forward,
-                        size: 16,
-                        color: p.onSurfaceTertiary.withValues(alpha: 0.6)),
+                    Icon(
+                      CupertinoIcons.chevron_forward,
+                      size: 16,
+                      color: p.onSurfaceTertiary.withValues(alpha: 0.6),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -86,17 +88,16 @@ class GoalCard extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
                       Copy.noRecordYet,
-                      style:
-                          text.bodyS.copyWith(color: p.onSurfaceTertiary),
+                      style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
                     ),
                   )
                 else ...[
                   const SizedBox(height: 10),
                   Text(
                     Copy.lastRecordAt(
-                        relativeDayLabel(latest.first.day, today)),
-                    style:
-                        text.bodyS.copyWith(color: p.onSurfaceTertiary),
+                      relativeDayLabel(latest.first.day, today),
+                    ),
+                    style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
                   ),
                   const SizedBox(height: 2),
                   Text(latest.first.title, style: text.bodyM),
@@ -106,8 +107,7 @@ class GoalCard extends StatelessWidget {
                       latest.first.body!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: text.bodyM
-                          .copyWith(color: p.onSurfaceVariant),
+                      style: text.bodyM.copyWith(color: p.onSurfaceVariant),
                     ),
                 ],
                 if (next.isNotEmpty) ...[
@@ -121,16 +121,16 @@ class GoalCard extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        Icon(CupertinoIcons.flag,
-                            size: 15, color: p.onSurfaceTertiary),
+                        Icon(
+                          CupertinoIcons.flag,
+                          size: 15,
+                          color: p.onSurfaceTertiary,
+                        ),
                         const SizedBox(width: 10),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              Copy.nextMilestoneLabel,
-                              style: text.labelS,
-                            ),
+                            Text(Copy.nextMilestoneLabel, style: text.labelS),
                             Text(next.first.title, style: text.bodyM),
                           ],
                         ),
@@ -169,12 +169,18 @@ class OthersRow extends StatelessWidget {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
     final color = GoalPalette.byKey(
-        goal.colorKey, brightness: TargetPalette.brightnessOf(context));
+      goal.colorKey,
+      brightness: TargetPalette.brightnessOf(context),
+    );
     final latest = records.where((r) => r.goalId == goal.id).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpace.s4, vertical: 13),
+      margin: const EdgeInsets.only(bottom: AppSpace.s3),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpace.s4,
+        vertical: 13,
+      ),
       onTap: onTap,
       onLongPress: onLongPress,
       child: Row(
@@ -186,32 +192,32 @@ class OthersRow extends StatelessWidget {
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child:
-                Icon(goalIconData(goal.iconKey), size: 18, color: color),
+            child: Icon(goalIconData(goal.iconKey), size: 18, color: color),
           ),
           const SizedBox(width: AppSpace.s3),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(goal.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.bodyL.copyWith(
-                        fontWeight: FontWeight.w500)),
+                Text(
+                  goal.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.bodyL.copyWith(fontWeight: FontWeight.w500),
+                ),
                 if (latest.isNotEmpty)
                   Text(
-                    Copy.hasRecordAt(relativeDayLabel(
-                        latest.first.day, today)),
-                    style:
-                        text.bodyS.copyWith(color: p.onSurfaceTertiary),
+                    Copy.hasRecordAt(relativeDayLabel(latest.first.day, today)),
+                    style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
                   ),
               ],
             ),
           ),
-          Icon(CupertinoIcons.chevron_forward,
-              size: 14,
-              color: p.onSurfaceTertiary.withValues(alpha: 0.6)),
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 14,
+            color: p.onSurfaceTertiary.withValues(alpha: 0.6),
+          ),
         ],
       ),
     );

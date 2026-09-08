@@ -9,10 +9,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
+import '../../app/sheet.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
+import '../../core/models/frequency_pattern.dart';
 import '../../core/models/relative_time.dart';
 import '../shared/record_sheet.dart';
 import 'goal_menu.dart';
@@ -58,14 +60,12 @@ class GoalDetailPage extends ConsumerWidget {
             bottom: false,
             minimum: const EdgeInsets.only(top: 12),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              padding: const EdgeInsets.fromLTRB(8, 8, 20, 16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CircleIconButton(
-                    size: 40,
-                    iconSize: 16,
-                    icon: CupertinoIcons.chevron_back,
+                  HeaderTextButton(
+                    label: Copy.back,
                     onTap: () => Navigator.of(context).pop(),
                   ),
                   CircleIconButton(
@@ -98,6 +98,15 @@ class GoalDetailPage extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
               children: [
+                _contextChips(
+                  context,
+                  goal,
+                  milestones.length,
+                  milestones.where((m) => m.isDone).length,
+                ),
+                const SizedBox(height: 12),
+                _statCard(context, goal, records.length, today),
+                const SizedBox(height: 16),
                 if (next.isNotEmpty)
                   AppCard(
                     padding: const EdgeInsets.all(14),
@@ -189,6 +198,131 @@ class GoalDetailPage extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 上下文 chips：分类 / 状态 / 执行节奏 / 里程碑进度。
+Widget _contextChips(
+  BuildContext context,
+  Goal goal,
+  int milestoneTotal,
+  int milestoneDone,
+) {
+  final p = TargetPalette.of(context);
+  final color = GoalPalette.byKey(
+    goal.colorKey,
+    brightness: TargetPalette.brightnessOf(context),
+  );
+  final (statusLabel, statusColor) = switch (goal.status) {
+    GoalStatus.active => (Copy.statusActive, p.accent),
+    GoalStatus.paused => (Copy.statusPaused, p.onSurfaceTertiary),
+    GoalStatus.achieved => (Copy.statusAchieved, p.positive),
+    GoalStatus.archived => (Copy.statusArchived, p.onSurfaceTertiary),
+  };
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+    child: Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _InfoChip(
+          label: goal.categoryKey == null
+              ? Copy.categoryUncategorized
+              : Copy.categoryOf(goal.categoryKey!.name),
+          color: color,
+        ),
+        _InfoChip(label: statusLabel, color: statusColor),
+        if (goal.frequency != null)
+          _InfoChip(label: _freqLabel(goal.frequency!), color: p.milestone),
+        if (milestoneTotal > 0)
+          _InfoChip(
+            label: Copy.detailMilestonesDone(milestoneDone, milestoneTotal),
+            color: p.onSurfaceTertiary,
+          ),
+      ],
+    ),
+  );
+}
+
+/// 统计卡：坚持天数 / 剩余时间 / 累计记录。
+Widget _statCard(
+  BuildContext context,
+  Goal goal,
+  int recordCount,
+  LocalDate today,
+) {
+  final p = TargetPalette.of(context);
+  final text = AppText.of(context);
+  final dayN = (_daysBetween(goal.createdAt, today) + 1).clamp(1, 999999);
+  final String deadline;
+  if (goal.targetDate == null) {
+    deadline = Copy.detailNoDeadline;
+  } else {
+    final left = _daysBetween(today, goal.targetDate!);
+    deadline = left >= 0 ? Copy.detailDaysLeft(left) : Copy.detailNoDeadline;
+  }
+  return AppCard(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    child: Row(
+      children: [
+        Expanded(child: _stat(text, Copy.detailDayN(dayN), Copy.detailStatDay)),
+        Container(width: 0.5, height: 28, color: p.divider),
+        Expanded(child: _stat(text, deadline, Copy.detailStatDeadline)),
+        Container(width: 0.5, height: 28, color: p.divider),
+        Expanded(
+          child: _stat(
+            text,
+            Copy.detailRecordCount(recordCount),
+            Copy.detailStatRecord,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _stat(AppText text, String value, String label) {
+  return Column(
+    children: [
+      Text(value, style: text.titleM),
+      const SizedBox(height: 2),
+      Text(label, style: text.labelS),
+    ],
+  );
+}
+
+int _daysBetween(LocalDate a, LocalDate b) => DateTime(
+  b.year,
+  b.month,
+  b.day,
+).difference(DateTime(a.year, a.month, a.day)).inDays;
+
+String _freqLabel(FrequencyPattern f) => switch (f) {
+  DailyFrequency() => Copy.freqDaily,
+  WeeklyFrequency(:final timesPerWeek) => '每周$timesPerWeek次',
+  WeekdaysFrequency() => Copy.freqWeekdays,
+};
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = AppText.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Text(
+        label,
+        style: text.bodyS.copyWith(color: color, fontWeight: FontWeight.w500),
       ),
     );
   }

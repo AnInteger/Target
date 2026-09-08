@@ -198,4 +198,24 @@ abstract final class Copy {
   static const today = '今天';
   static const yesterday = '昨天';
   static String daysAgo(int n) => '$n 天前';
+
+  // ---- 通用导航 ----
+  static const back = '返回';
+
+  // ---- 详情信息流顶部（v3.1：无记录目标也有基本盘）----
+  static String detailDayN(int n) => '第 $n 天';
+  static String detailDaysLeft(int n) => '剩 $n 天';
+  static const detailNoDeadline = '无期限';
+  static String detailRecordCount(int n) => '$n 条记录';
+  static const detailStatDay = '坚持天数';
+  static const detailStatDeadline = '剩余时间';
+  static const detailStatRecord = '累计记录';
+  static String detailMilestonesDone(int done, int total) => '里程碑 $done/$total';
+
+  // ---- 头像与权限 ----
+  static const profileEditNickname = '修改昵称';
+  static const profileAvatarFromGallery = '从相册选择头像';
+  static const profileAvatarFromCamera = '拍照设置头像';
+  static const profileAvatarRemove = '移除头像';
+  static const notifyPermissionDenied = '通知权限未开启，提醒将无法送达，请在系统设置中允许';
 }

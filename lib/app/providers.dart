@@ -17,6 +17,7 @@ import '../core/models/date_provider.dart';
 import '../core/models/entities.dart';
 import '../core/platform/file_pick_gateway.dart';
 import '../core/platform/gateways.dart';
+import '../core/platform/image_pick_gateway.dart';
 import '../core/platform/notification_gateway.dart';
 import '../core/platform/share_gateway.dart';
 import '../core/platform/widget_gateway.dart';
@@ -151,3 +152,6 @@ final shareGatewayProvider = Provider<ShareGateway>(
 final filePickGatewayProvider = Provider<FilePickGateway>(
   (ref) => createFilePickGateway(),
 );
+
+/// 头像选图（相册/拍照；settings.avatarKey 存 base64 data URL）。
+final imagePickGatewayProvider = Provider((ref) => ImagePickGateway());

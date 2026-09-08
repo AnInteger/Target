@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
+import '../../app/sheet.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/entities.dart';
@@ -41,13 +42,11 @@ class MilestonesPage extends ConsumerWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 20, 16),
+              padding: const EdgeInsets.fromLTRB(8, 8, 20, 16),
               child: Row(
                 children: [
-                  CircleIconButton(
-                    size: 40,
-                    iconSize: 16,
-                    icon: CupertinoIcons.chevron_back,
+                  HeaderTextButton(
+                    label: Copy.back,
                     onTap: () => Navigator.of(context).pop(),
                   ),
                   Expanded(
@@ -197,14 +196,18 @@ class MilestonesPage extends ConsumerWidget {
 
   Widget _card(BuildContext context, {required Widget child}) {
     final p = TargetPalette.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
+    // ClipRRect：CupertinoListTile 背景为直角，需裁出容器圆角。
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: p.shadowLow,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: child,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: child,
     );
   }
 

@@ -5,7 +5,7 @@
 /// CupertinoAlertDialog、AppToast。
 library;
 
-import 'dart:convert';
+import 'dart:convert' show base64Decode, base64Encode, utf8;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
+import '../../app/sheet.dart';
 import '../../app/toast.dart';
 import '../../core/backup/backup_exporter.dart';
 import '../../core/backup/backup_importer.dart';
@@ -26,8 +27,7 @@ class SettingsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
-    final settings = ref.watch(settingsProvider).value ??
-        const AppSettings();
+    final settings = ref.watch(settingsProvider).value ?? const AppSettings();
     final mode = settings.themeMode ?? 'system';
 
     return CupertinoPageScaffold(
@@ -38,20 +38,19 @@ class SettingsView extends ConsumerWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 20, 16),
+              padding: const EdgeInsets.fromLTRB(8, 8, 20, 16),
               child: Row(
                 children: [
-                  CircleIconButton(
-                    size: 40,
-                    iconSize: 14,
-                    icon: CupertinoIcons.chevron_back,
+                  HeaderTextButton(
+                    label: Copy.back,
                     onTap: () => Navigator.of(context).pop(),
                   ),
                   Expanded(
                     child: Center(
-                        child: Text(Copy.settingsTitle, style: text.titleM)),
+                      child: Text(Copy.settingsTitle, style: text.titleM),
+                    ),
                   ),
-                  const SizedBox(width: 40),
+                  const SizedBox(width: 56),
                 ],
               ),
             ),
@@ -62,37 +61,14 @@ class SettingsView extends ConsumerWidget {
                   // ---- 资料卡 ----
                   AppCard(
                     padding: const EdgeInsets.all(AppSpace.s4),
-                    onTap: () => _editProfile(context, ref, settings),
+                    onTap: () => _openProfileMenu(context, ref, settings),
                     child: Row(
                       children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Color(0xFFAF52DE),
-                                Color(0xFFFF2D55),
-                              ],
-                            ),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              (settings.nickname == null ||
-                                      settings.nickname!.isEmpty)
-                                  ? '我'
-                                  : settings.nickname!.characters.first,
-                              style: text.titleL
-                                  .copyWith(color: CupertinoColors.white),
-                            ),
-                          ),
-                        ),
+                        _avatar(context, settings),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 settings.nickname == null ||
@@ -104,15 +80,17 @@ class SettingsView extends ConsumerWidget {
                               Text(
                                 Copy.editProfileHint,
                                 style: text.bodyS.copyWith(
-                                    color: p.onSurfaceVariant),
+                                  color: p.onSurfaceVariant,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(CupertinoIcons.chevron_forward,
-                            size: 14,
-                            color: p.onSurfaceTertiary
-                                .withValues(alpha: 0.6)),
+                        Icon(
+                          CupertinoIcons.chevron_forward,
+                          size: 14,
+                          color: p.onSurfaceTertiary.withValues(alpha: 0.6),
+                        ),
                       ],
                     ),
                   ),
@@ -120,29 +98,36 @@ class SettingsView extends ConsumerWidget {
                   _section(
                     context,
                     child: Padding(
-                      padding:
-                          const EdgeInsets.fromLTRB(16, 13, 16, 13),
+                      padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
                       child: CupertinoSlidingSegmentedControl<String>(
                         groupValue: mode,
                         onValueChanged: (s) => ref
                             .read(settingsRepoProvider)
-                            .update(settings.copyWith(
-                                themeMode:
-                                    s == 'system' ? null : s)),
+                            .update(
+                              settings.copyWith(
+                                themeMode: s == 'system' ? null : s,
+                              ),
+                            ),
                         children: {
                           'system': Padding(
                             padding: const EdgeInsets.symmetric(
-                                vertical: 4, horizontal: 2),
+                              vertical: 4,
+                              horizontal: 2,
+                            ),
                             child: Text(Copy.themeSystem),
                           ),
                           'light': Padding(
                             padding: const EdgeInsets.symmetric(
-                                vertical: 4, horizontal: 2),
+                              vertical: 4,
+                              horizontal: 2,
+                            ),
                             child: Text(Copy.themeLight),
                           ),
                           'dark': Padding(
                             padding: const EdgeInsets.symmetric(
-                                vertical: 4, horizontal: 2),
+                              vertical: 4,
+                              horizontal: 2,
+                            ),
                             child: Text(Copy.themeDark),
                           ),
                         },
@@ -156,27 +141,47 @@ class SettingsView extends ConsumerWidget {
                       children: [
                         CupertinoListTile(
                           title: Text(Copy.reminderPush),
-                          leading: Icon(CupertinoIcons.bell,
-                              size: 20, color: p.onSurface),
+                          leading: Icon(
+                            CupertinoIcons.bell,
+                            size: 20,
+                            color: p.onSurface,
+                          ),
                           trailing: CupertinoSwitch(
                             value: settings.remindersEnabled,
                             activeTrackColor: p.accent,
-                            onChanged: (v) => ref
-                                .read(settingsRepoProvider)
-                                .update(
-                                    settings.copyWith(remindersEnabled: v)),
+                            onChanged: (v) async {
+                              await ref
+                                  .read(settingsRepoProvider)
+                                  .update(
+                                    settings.copyWith(remindersEnabled: v),
+                                  );
+                              if (!v || !context.mounted) return;
+                              // 开启即申请通知权限（拒绝给出口径提示）。
+                              final granted = await ref
+                                  .read(notificationGatewayProvider)
+                                  .requestPermission();
+                              if (!granted && context.mounted) {
+                                AppToast.show(
+                                  context,
+                                  Copy.notifyPermissionDenied,
+                                );
+                              }
+                            },
                           ),
                           backgroundColor: p.surface,
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 13),
+                            horizontal: 16,
+                            vertical: 13,
+                          ),
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
                               Copy.reminderPerGoalHint,
                               style: text.bodyM.copyWith(
-                                  color: p.onSurfaceVariant),
+                                color: p.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         ),
@@ -190,15 +195,21 @@ class SettingsView extends ConsumerWidget {
                       children: [
                         CupertinoListTile(
                           title: Text(Copy.backupExport),
-                          leading: Icon(CupertinoIcons.tray_arrow_up,
-                              size: 20, color: p.onSurface),
+                          leading: Icon(
+                            CupertinoIcons.tray_arrow_up,
+                            size: 20,
+                            color: p.onSurface,
+                          ),
                           backgroundColor: p.surface,
                           onTap: () => _export(context, ref),
                         ),
                         CupertinoListTile(
                           title: Text(Copy.backupImport),
-                          leading: Icon(CupertinoIcons.tray_arrow_down,
-                              size: 20, color: p.onSurface),
+                          leading: Icon(
+                            CupertinoIcons.tray_arrow_down,
+                            size: 20,
+                            color: p.onSurface,
+                          ),
                           backgroundColor: p.surface,
                           onTap: () => _import(context, ref),
                         ),
@@ -210,10 +221,7 @@ class SettingsView extends ConsumerWidget {
                     context,
                     child: CupertinoListTile(
                       title: Text(Copy.versionRow),
-                      additionalInfo: Text(
-                        '3.0.0',
-                        style: text.bodyM,
-                      ),
+                      additionalInfo: Text('3.0.0', style: text.bodyM),
                       backgroundColor: p.surface,
                     ),
                   ),
@@ -221,8 +229,7 @@ class SettingsView extends ConsumerWidget {
                   Center(
                     child: Text(
                       Copy.settingsFoot,
-                      style: text.bodyS
-                          .copyWith(color: p.onSurfaceTertiary),
+                      style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
                     ),
                   ),
                 ],
@@ -253,25 +260,137 @@ class SettingsView extends ConsumerWidget {
 
   Widget _section(BuildContext context, {required Widget child}) {
     final p = TargetPalette.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
+    // ClipRRect：CupertinoListTile 背景为直角，需裁出容器圆角。
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Container(
+        decoration: BoxDecoration(
+          color: p.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: p.shadowLow,
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 
   // ---- 动作 ----
+
+  /// 头像：图片（avatarKey = data URL）优先，否则渐变 + 首字。
+  Widget _avatar(BuildContext context, AppSettings settings) {
+    final key = settings.avatarKey;
+    if (key != null && key.startsWith('data:')) {
+      try {
+        final bytes = base64Decode(key.split(',').last);
+        return Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            image: DecorationImage(
+              image: MemoryImage(bytes),
+              fit: BoxFit.cover,
+            ),
+          ),
+        );
+      } on FormatException {
+        // 损坏数据回退默认头像。
+      }
+    }
+    final text = AppText.of(context);
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFAF52DE), Color(0xFFFF2D55)],
+        ),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          (settings.nickname == null || settings.nickname!.isEmpty)
+              ? '我'
+              : settings.nickname!.characters.first,
+          style: text.titleL.copyWith(color: CupertinoColors.white),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openProfileMenu(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) async {
+    final action = await showCupertinoModalPopup<String>(
+      context: context,
+      useRootNavigator: true,
+      builder: (sheetContext) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(sheetContext).pop('nickname'),
+            child: const Text(Copy.profileEditNickname),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(sheetContext).pop('gallery'),
+            child: const Text(Copy.profileAvatarFromGallery),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(sheetContext).pop('camera'),
+            child: const Text(Copy.profileAvatarFromCamera),
+          ),
+          if (settings.avatarKey != null)
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.of(sheetContext).pop('remove'),
+              child: const Text(Copy.profileAvatarRemove),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(sheetContext).pop(),
+          child: const Text(Copy.cancel),
+        ),
+      ),
+    );
+    if (action == null || !context.mounted) return;
+    switch (action) {
+      case 'nickname':
+        await _editProfile(context, ref, settings);
+      case 'gallery':
+        await _pickAvatar(context, ref, settings, fromCamera: false);
+      case 'camera':
+        await _pickAvatar(context, ref, settings, fromCamera: true);
+      case 'remove':
+        await ref
+            .read(settingsRepoProvider)
+            .update(settings.copyWith(avatarKey: null));
+    }
+  }
+
+  Future<void> _pickAvatar(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings, {
+    required bool fromCamera,
+  }) async {
+    final gateway = ref.read(imagePickGatewayProvider);
+    final bytes = fromCamera
+        ? await gateway.fromCamera()
+        : await gateway.fromGallery();
+    if (bytes == null) return;
+    final dataUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    await ref
+        .read(settingsRepoProvider)
+        .update(settings.copyWith(avatarKey: dataUrl));
+  }
 
   Future<void> _editProfile(
     BuildContext context,
     WidgetRef ref,
     AppSettings settings,
   ) async {
-    final controller =
-        TextEditingController(text: settings.nickname ?? '');
+    final controller = TextEditingController(text: settings.nickname ?? '');
     final saved = await showCupertinoDialog<bool>(
       context: context,
       barrierDismissible: true,
@@ -330,9 +449,7 @@ class SettingsView extends ConsumerWidget {
         context: context,
         builder: (dialogContext) => CupertinoAlertDialog(
           title: Text(Copy.restoreConfirmTitle),
-          content: const Text(
-            '当前设备数据将被备份内容覆盖，此操作不可撤销。',
-          ),
+          content: const Text('当前设备数据将被备份内容覆盖，此操作不可撤销。'),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(dialogContext).pop(false),

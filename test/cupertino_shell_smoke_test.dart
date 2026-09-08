@@ -164,8 +164,8 @@ void main() {
     expect(find.text('登顶测试目标'), findsOneWidget);
     expect(find.text(Copy.recordProgress), findsOneWidget);
 
-    // 返回：主页完好（置顶卡仍在，无白屏）。
-    await tester.tap(find.byType(CircleIconButton).first);
+    // 返回（v3.1 起详情左上为文字返回钮）：主页完好（置顶卡仍在，无白屏）。
+    await tester.tap(find.text(Copy.back));
     await tester.pumpAndSettle();
     expect(find.text('登顶测试目标'), findsOneWidget);
     expect(find.text(Copy.recordProgress), findsNothing);

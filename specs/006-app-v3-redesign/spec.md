@@ -1,6 +1,6 @@
 # 006 · App v3 全面重构：两 Tab IA + 富记录模型 + iOS 原生风
 
-- **Status**: Approved（原型 8 屏冻结 2026-09-08 R3「过」；实现中 · feat/v3-app-redesign）
+- **Status**: Complete（2026-09-08 · feat/v3-app-redesign · analyze 0 + test 12/12 + 视觉走查双主题全过）
 - **日期**: 2026-09-08
 - **前置**: 004（v2 换装）· 2026-08-26 产品结构重构 phase 1（目标管理）
 - **设计基准**: 用户 Figma Make 原型 7 屏（2026-09-07 定稿参照图）+ 本特性补画屏

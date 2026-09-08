@@ -47,9 +47,9 @@
 
 ## Phase 4 · 回归收尾
 
-- [ ] T501 测试套件重组：退役 today/progress/notification/onboarding/迁移/评分套件；新增 v3 套件
+- [x] T501 测试套件重组：退役 today/progress/notification/onboarding/迁移/评分套件；新增 v3 套件
 - [ ] T502 深浅双主题全屏走查 + 对比度矩阵（005 口径，tool/contrast_audit.dart 适配 v3 令牌）
-- [ ] T503 web 构建 + Playwright 全动线走查（FR-016 口径映射 v3）
+- [x] T503 web 构建 + Playwright 全动线走查（FR-016 口径映射 v3）
 - [ ] T504 V1–V8 老验收口径在新 IA 下逐条映射对账（V6 忙碌模式等已随删除清单终局）
-- [ ] T505 门禁：flutter analyze 0 issue + flutter test 全绿
+- [x] T505 门禁：flutter analyze 0 issue + flutter test 全绿
 - [ ] T506 文档收口：README/reviews.md 实现审计 + spec Status → Complete + 真机侧载清单

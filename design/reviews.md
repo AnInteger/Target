@@ -243,6 +243,19 @@
 - **待裁项清零**：R1 留档 6 项 + 1 观察项已全部裁定（筛选档→R2 退役；日历口径→R2 所有日期+环=当日/月峰值；设置入口→R2 动态页头部+R3 双钮；置顶排序→R2 编辑置顶模式；菜单交互→R2 长按+文案照原型；编辑器分组→R2 属性行+选择器；灰底对比度→R3 维持）。**待用户终审「过」→ 8 屏冻结，解锁实现。**
 - **R3 终审裁定原话（2026-09-08）：「过」——8 屏全数冻结**（v3-goals 含画板①-⑤ / v3-activity ①-④ / v3-goal-detail / v3-milestones / v3-record-sheet / v3-goal-editor / v3-settings / v3-widget；冻结基准 = 本文件 R1-R3 修订终态 + tokens.css?v=v3b）。**FR-001 门禁关闭，006 进入实现相**（开发分支 feat/v3-app-redesign；用户裁定：单元测试范围收敛、全量测试待所有功能完成后统一执行）。
 
+### 006 实现审计
+
+#### Phase 4 走查与门禁（2026-09-08）
+
+- **门禁**：`flutter analyze` **0 issue** ✓ · `flutter test` **12/12 全绿** ✓（v3_data_test 9 例 + app_icon 3 例）。
+- **路由 redirect（Playwright 实测 5/5 ✓）**：/today→/goals · /review→/goals · /onboarding→/goals · /goals-all→/goals · /profile→/goals。
+- **视觉走查（截图 + 视觉模型；gstatic 字体 CDN 在 headless 环境阻断 → 文字零宽不可见，但布局/颜色/结构完整可验）**：
+  - **目标页空态·浅色**：淡紫→粉渐变 ✓ · 玻璃圆底靶心图标 ✓ · 蓝色胶囊 CTA ✓ · 浅玻璃双 tab dock（蓝 tint 选中 + 独立记录钮）✓ · iOS 风格配色 ✓
+  - **目标页空态·深色**：暗紫→黑渐变 ✓ · 深灰底座亮蓝图标 ✓ · 亮蓝 CTA ✓ · 暗玻璃 dock ✓ · iOS 暗色 ✓
+  - **动态页空态·浅色**：渐变 ✓ · 头部双圆钮（日历+人形）✓ · 周切换器箭头 ✓ · 本周投入白卡 ✓ · 里程碑汇总卡（橙旗+分隔线）✓ · 双 tab dock ✓
+- **环境限制留档**：Playwright headless Chromium 内 `fonts.gstatic.com` 被阻（curl 可通但 dynamic import 失败）→ CJK 字体零宽渲染 → 走查以布局截图替代语义树文本断言。部署环境（真机/正常网络）不受影响。
+- **数据层测试覆盖（v3_data_test.dart）**：settings 单例 · 计划原子创建 · 里程碑达成流（mark→记录生成/undo→撤除）· 置顶序全链（追加/取消压缩/拖拽重排）· 补记判定 · 备份 v7 全字段往返 · 旧版 v6 拒绝 · 周投入口径 · 日历逐日+峰值。抓出并修复 `getGoals()` 缺 orderBy 真缺陷。
+
 ### 004 v2 原型 · 五延展屏 · 全数冻结 · 2026-08-23
 
 - **送审物**：v2-goal-editor / v2-goal-detail / v2-settings / v2-notifications(?r3c) / v2-goals-all 五屏（R3 裁决已回填后的终态）

@@ -14,9 +14,10 @@ import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/relative_time.dart';
-import '../shared/record_meta.dart';
+
 import '../../core/stats/stats_engine.dart';
 import 'daily_calendar_sheet.dart';
+import '../shared/goal_card.dart' show goalIconData;
 
 class ActivityView extends ConsumerStatefulWidget {
   const ActivityView({super.key});
@@ -420,17 +421,13 @@ class _FeedRow extends StatelessWidget {
             brightness: TargetPalette.brightnessOf(context),
           );
 
-    // 节点图标：里程碑系橙色调，其余随目标色。
-    final icon = recordNodeIcon(
-      milestone: isMs,
-      linkedMilestone: linked,
-      hasDuration: record.durationMinutes != null,
-      hasBody: record.body != null && record.body!.trim().isNotEmpty,
-    );
-    final iconColor = isMs || linked ? p.milestone : color;
-    final iconBg = isMs || linked
-        ? p.milestoneTint
-        : color.withValues(alpha: 0.10);
+    // 图标 = 目标自身的图标与颜色（进展归属一目了然；
+    // 里程碑状态由文案行承载）。
+    final icon = goal == null
+        ? CupertinoIcons.scope
+        : goalIconData(goal.iconKey);
+    final iconColor = color;
+    final iconBg = color.withValues(alpha: 0.10);
 
     return AppCard(
       margin: const EdgeInsets.only(bottom: 8),
@@ -461,10 +458,18 @@ class _FeedRow extends StatelessWidget {
                   style: text.bodyL.copyWith(fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 3),
-                // 行 2：目标 · 秒级时间 · 投入 · 里程碑状态。
+                // 行 2：所属目标（进展归属主体，独立成行）。
+                Text(
+                  item.goalName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.bodyS.copyWith(
+                      color: p.onSurfaceVariant, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 2),
+                // 行 3：秒级时间 · 投入 · 里程碑状态。
                 Text(
                   [
-                    item.goalName,
                     timestampLabel(
                       record.day,
                       today,
@@ -473,6 +478,7 @@ class _FeedRow extends StatelessWidget {
                     if (record.durationMinutes != null)
                       Copy.feedDuration(record.durationMinutes!),
                     if (linked) Copy.recordMilestoneLink(linkedMilestoneTitle!),
+                    if (isMs) Copy.statusAchieved,
                   ].join(' · '),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,

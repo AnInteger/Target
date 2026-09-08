@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>目标 · Target（v3 · iOS 原生 / 006 门禁稿）</title>
-<link rel="stylesheet" href="../tokens.css?v=v3a">
+<link rel="stylesheet" href="../tokens.css?v=v3b">
 <style>
   /* ============================================================
      v3-goals · 目标页（tab 1）
@@ -87,20 +87,25 @@
                background: none; border: none; cursor: pointer; padding: 0; }
   section + section { margin-top: var(--space-6); }
 
-  /* ---- 置顶大卡 ---- */
+  /* ---- 置顶大卡（R1 裁定：两栏——大图标左栏 + 文字列缩进） ---- */
   .pcard { width: 100%; text-align: left; background: var(--surface);
            border-radius: var(--radius-lg); border: none; cursor: pointer;
            box-shadow: var(--shadow-low); padding: var(--space-4);
            display: block; }
   .pcard:active { transform: scale(.99); }
+  .pcard .cols { display: flex; gap: var(--space-4); align-items: flex-start; }
+  .pcard .bigicon { flex: none; width: 56px; height: 56px; }
+  .pcard .bigicon svg { width: 56px; height: 56px; }
+  .pcard .bd { flex: 1; min-width: 0; }
   .pcard .top { display: flex; justify-content: space-between; align-items: center; }
-  .pcard .cat { display: flex; align-items: center; gap: var(--space-2); }
-  .pcard .cat svg { width: 20px; height: 20px; }
-  .pcard .cat span { font: 500 13px/1 var(--font-stack); }
+  .pcard .cat { font: 600 17px/1.2 var(--font-stack); }
+  .pcard .top svg.chev { width: 14px; height: 14px; color: var(--on-surface-tertiary); opacity: .55; }
   .pcard h2 { font: var(--font-title-l); letter-spacing: -0.3px;
-              margin: var(--space-2) 0 3px; color: var(--on-surface); }
-  .pcard .meta { font: var(--font-body-s); color: var(--on-surface-tertiary); margin: 0; }
-  .pcard .note { font: var(--font-body-m); color: var(--on-surface); margin: 2px 0 0; }
+              margin: 6px 0 0; color: var(--on-surface); }
+  .pcard .meta { font: var(--font-body-s); color: var(--on-surface-tertiary);
+                 margin: 10px 0 0; }
+  .pcard .note-main { font: var(--font-body-m); color: var(--on-surface); margin: 2px 0 0; }
+  .pcard .note-sub { font: var(--font-body-m); color: var(--on-surface-variant); margin: 2px 0 0; }
   .pcard .ms { border-top: 0.5px solid var(--divider); margin: var(--space-3) 0 0;
                padding-top: var(--space-3); display: flex; align-items: center;
                gap: 10px; }
@@ -145,26 +150,34 @@
                 font: 600 17px/1 var(--font-stack); padding: 14px var(--space-6);
                 border-radius: var(--radius-full); box-shadow: var(--shadow-cta); }
 
-  /* ---- Liquid Glass 底栏 ---- */
+  /* ---- 底部导航（R1 裁定：参照 iOS 玻璃导航条——深蓝玻璃胶囊 +
+       大圆角近胶囊形；选中 = 白色玻璃透镜 + 白色内容） ---- */
   .dock { position: absolute; left: 0; right: 0; bottom: 0;
           display: flex; justify-content: space-between; gap: 10px;
           padding: 4px var(--space-4) 28px; }
-  .dock .tabs { flex: 1; display: flex; border-radius: var(--radius-lg); overflow: hidden;
-                background: var(--glass-shell);
+  .dock .tabs { flex: 1; display: flex; gap: 4px; padding: 4px;
+                border-radius: 30px;
+                background: var(--glass-dock);
                 backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
                 -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-                border: 0.5px solid var(--glass-border);
-                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight); }
+                border: 0.5px solid rgba(255, 255, 255, 0.38);
+                box-shadow: 0 4px 18px rgba(0, 32, 90, 0.28),
+                            inset 0 0.5px 0 rgba(255, 255, 255, 0.45); }
   .dock .tab { flex: 1; position: relative; border: none; background: none; cursor: pointer;
                display: flex; flex-direction: column; align-items: center; gap: 2px;
-               padding: 10px 0; color: var(--on-surface-tertiary); }
+               padding: 10px 0; color: rgba(255, 255, 255, 0.72);
+               border-radius: 26px; }
   .dock .tab svg { width: 22px; height: 22px; }
   .dock .tab span { font: 500 10px/1 var(--font-stack); }
-  .dock .tab.on { color: var(--accent); }
-  .dock .tab.on::before { content: ""; position: absolute; inset: 4px 8px;
-                           border-radius: var(--radius-md); background: var(--accent-tint); }
+  .dock .tab.on { color: #ffffff; }
+  .dock .tab.on span { font-weight: 600; }
+  .dock .tab.on::before { content: ""; position: absolute; inset: 3px 6px;
+                           border-radius: 23px;
+                           background: rgba(255, 255, 255, 0.22);
+                           box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.55),
+                                       0 1px 4px rgba(0, 20, 60, 0.18); }
   .dock .tab > * { position: relative; }
-  .dock .rec { width: 56px; flex: none; border-radius: var(--radius-lg); cursor: pointer;
+  .dock .rec { width: 56px; flex: none; border-radius: 30px; cursor: pointer;
                background: var(--glass-shell); border: 0.5px solid var(--glass-border);
                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight);
                backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
@@ -223,35 +236,45 @@
       <section>
         <div class="sec"><span class="t">置顶</span><button class="link">编辑</button></div>
         <button class="pcard">
-          <div class="top">
-            <span class="cat" style="color: var(--palette-blue)">
+          <div class="cols">
+            <span class="bigicon" style="color: var(--palette-blue)">
               <svg viewBox="0 0 24 24" fill="none"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 21c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M14.5 9l1.5-3.5 3 1.5-3 4-1.5-2z" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span>运动与健康</span>
             </span>
-            <svg class="chev" viewBox="0 0 24 24" fill="none" style="width:14px;height:14px;color:var(--on-surface-tertiary);opacity:.55"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <h2>自在地游泳</h2>
-          <p class="meta">最近记录 · 今天</p>
-          <p class="note">练习换气 30 分钟，终于找到了呼吸的节奏。</p>
-          <div class="ms">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <div>
-              <p class="k">下个里程碑</p>
-              <p class="v">连续游完 500 米</p>
+            <div class="bd">
+              <div class="top">
+                <span class="cat" style="color: var(--palette-blue)">运动与健康</span>
+                <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h2>自在地游泳</h2>
+              <p class="meta">最近记录 · 今天</p>
+              <p class="note-main">练习换气 30 分钟</p>
+              <p class="note-sub">终于找到了呼吸的节奏。</p>
+              <div class="ms">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <div>
+                  <p class="k">下个里程碑</p>
+                  <p class="v">连续游完 500 米</p>
+                </div>
+              </div>
             </div>
           </div>
         </button>
         <button class="pcard">
-          <div class="top">
-            <span class="cat" style="color: var(--palette-orange)">
+          <div class="cols">
+            <span class="bigicon" style="color: var(--palette-orange)">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2h7v16H4a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M13 2h7a1 1 0 011 1v14a1 1 0 01-1 1h-7V2z"/><path d="M3 20h18v2H3z"/></svg>
-              <span>学习与成长</span>
             </span>
-            <svg viewBox="0 0 24 24" fill="none" style="width:14px;height:14px;color:var(--on-surface-tertiary);opacity:.55"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <div class="bd">
+              <div class="top">
+                <span class="cat" style="color: var(--palette-orange)">学习与成长</span>
+                <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h2>让阅读成为日常</h2>
+              <p class="meta">最近记录 · 昨天</p>
+              <p class="note-main">读完《悉达多》</p>
+              <p class="note-sub">记下 3 段感想。</p>
+            </div>
           </div>
-          <h2>让阅读成为日常</h2>
-          <p class="meta">最近记录 · 昨天</p>
-          <p class="note">读完《悉达多》，记下 3 段感想。</p>
         </button>
       </section>
       <section>
@@ -312,21 +335,26 @@
       <section>
         <div class="sec"><span class="t">置顶</span><button class="link">编辑</button></div>
         <button class="pcard">
-          <div class="top">
-            <span class="cat" style="color: var(--palette-blue)">
+          <div class="cols">
+            <span class="bigicon" style="color: var(--palette-blue)">
               <svg viewBox="0 0 24 24" fill="none"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 21c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M14.5 9l1.5-3.5 3 1.5-3 4-1.5-2z" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span>运动与健康</span>
             </span>
-            <svg viewBox="0 0 24 24" fill="none" style="width:14px;height:14px;color:var(--on-surface-tertiary);opacity:.55"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <h2>自在地游泳</h2>
-          <p class="meta">最近记录 · 今天</p>
-          <p class="note">练习换气 30 分钟，终于找到了呼吸的节奏。</p>
-          <div class="ms">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <div>
-              <p class="k">下个里程碑</p>
-              <p class="v">连续游完 500 米</p>
+            <div class="bd">
+              <div class="top">
+                <span class="cat" style="color: var(--palette-blue)">运动与健康</span>
+                <svg class="chev" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h2>自在地游泳</h2>
+              <p class="meta">最近记录 · 今天</p>
+              <p class="note-main">练习换气 30 分钟</p>
+              <p class="note-sub">终于找到了呼吸的节奏。</p>
+              <div class="ms">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <div>
+                  <p class="k">下个里程碑</p>
+                  <p class="v">连续游完 500 米</p>
+                </div>
+              </div>
             </div>
           </div>
         </button>
@@ -432,14 +460,18 @@
       <section>
         <div class="sec"><span class="t">置顶</span><button class="link">编辑</button></div>
         <button class="pcard" style="opacity:.55">
-          <div class="top">
-            <span class="cat" style="color: var(--palette-blue)">
+          <div class="cols">
+            <span class="bigicon" style="color: var(--palette-blue)">
               <svg viewBox="0 0 24 24" fill="none"><path d="M2 17c1.5 0 2.5-1 4-1s2.5 1 4 1 2.5-1 4-1 2.5 1 4 1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="19" cy="5" r="2" fill="currentColor"/><path d="M8 13l4-4 2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span>运动与健康</span>
             </span>
+            <div class="bd">
+              <div class="top">
+                <span class="cat" style="color: var(--palette-blue)">运动与健康</span>
+              </div>
+              <h2>自在地游泳</h2>
+              <p class="meta">最近记录 · 今天</p>
+            </div>
           </div>
-          <h2>自在地游泳</h2>
-          <p class="meta">最近记录 · 今天</p>
         </button>
       </section>
     </div>

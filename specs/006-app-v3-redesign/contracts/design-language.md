@@ -1,8 +1,17 @@
 # 006 契约 · 设计语言 v3（iOS 原生 + 局部 Liquid Glass）
 
-- 真源：原型期 = `design/tokens.css`（?v=v3a）；实现期 = `lib/app/design_tokens.dart`
+- 真源：原型期 = `design/tokens.css`（?v=v3b）；实现期 = `lib/app/design_tokens.dart`
   为真源，CSS 与 `ios/TargetWidgets/DesignTokens.swift` 为镜像。
 - **改值一次提交内三端同步**（沿用 002 契约 §2-4），token_contract_test 对账。
+
+## 0. 字体（R1 裁定：苹果原生优先）
+
+- 栈：`-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+  "PingFang SC", "HarmonyOS Sans SC", "Inter", "Microsoft YaHei", system-ui`。
+- 苹果设备 = SF Pro（西文/数字）+ PingFang SC（中文），**系统自带、不内嵌**
+  （SF 许可禁止再分发）；Inter 仅作非苹果设备回退（原型内嵌 latin 子集）。
+- iOS App（Dart）侧：直接使用平台默认字体（SF/PingFang），**不打包字体文件**；
+  Web 构建同栈回退。
 
 ## 1. 语义色（浅 / 深成对，成键缺一即契约失败）
 
@@ -32,11 +41,25 @@
 
 - 头部渐变（tab 屏专属，非全屏底幕）：浅 `180deg #e2d5f0 0% → #edd8e8 18% → #f2f2f7 42%`；
   深 `#362f4a → #2b2539 16% → #161618 40% → #000`。
-- Liquid Glass 三档（仅限：底栏胶囊、悬浮记录钮、头部圆形控件、上下文菜单、小组件）：
-  - shell：rgba(242,242,247,.72) / rgba(28,28,30,.72) · blur 24 · saturate 180%/160%
-  - card：rgba(255,255,255,.62) / rgba(44,44,46,.62) · blur 12
-  - border/highlight：0.5px 白 65%/白 12% + inset 0.5px 白 85%/白 18%
+- Liquid Glass 档位（R1 裁定后）：
+  - **dock**（底栏双 tab 胶囊，R1 裁定深蓝玻璃）：浅 `rgba(0,61,153,.62)` /
+    深 `rgba(16,96,214,.60)` · blur 24 · saturate 180%/160% · 0.5px 白 38% 描边 +
+    inset 白 45% 高光 · 圆角 30px（近胶囊）；**选中效果 = 白色玻璃透镜**
+    （`rgba(255,255,255,.22)` 内嵌胶囊 + inset 高光），选中内容纯白加粗，
+    未选中白 72%
+  - shell（记录钮等中性悬浮件）：rgba(242,242,247,.72) / rgba(28,28,30,.72) · blur 24
+  - card（头部圆形控件）：rgba(255,255,255,.62) / rgba(44,44,46,.62) · blur 12
+  - border/highlight：中性档 白 65%/白 12% + inset 白 85%/白 18%
 - 玻璃不用于正文卡（白卡保持实底，保证对比度可计算）。
+
+## 2½. 弹层系统样式（R1 裁定）
+
+- **sheet（记录/编辑器/里程碑/筛选/日历）一律系统形态**：顶部系统 grabber；
+  头部三段 = 左「取消」（17px 蓝）· 中标题（17/600）· 右「保存/完成」（17/600 蓝，
+  不可用态灰）；不再使用圆形 ✕/✓ 图标按钮。
+- 对话框（备份冲突确认等）：系统 alert 形态——圆角卡 + 居中标题/正文 +
+  底部等分双动作（hairline 分隔，主行动加粗）。
+- 上下文菜单（⋯）：玻璃浮层 + 右侧图标 + hairline 分组，危险组独立间隔 + 红。
 
 ## 3. 字阶（SF 阶梯）
 

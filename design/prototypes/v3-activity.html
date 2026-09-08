@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>动态 · Target（v3 · iOS 原生 / 006 门禁稿）</title>
-<link rel="stylesheet" href="../tokens.css?v=v3a">
+<link rel="stylesheet" href="../tokens.css?v=v3b">
 <style>
   /* ============================================================
      v3-activity · 动态页（tab 2）
@@ -148,26 +148,33 @@
   .empty .d { font: var(--font-body-m); color: var(--on-surface-variant);
               margin: 0; line-height: 1.6; }
 
-  /* dock（与 v3-goals 同构） */
+  /* dock（R1 裁定：iOS 玻璃导航条——深蓝胶囊+白色玻璃选中透镜，与 v3-goals 同构） */
   .dock { position: absolute; left: 0; right: 0; bottom: 0;
           display: flex; justify-content: space-between; gap: 10px;
           padding: 4px var(--space-4) 28px; }
-  .dock .tabs { flex: 1; display: flex; border-radius: var(--radius-lg); overflow: hidden;
-                background: var(--glass-shell);
+  .dock .tabs { flex: 1; display: flex; gap: 4px; padding: 4px;
+                border-radius: 30px;
+                background: var(--glass-dock);
                 backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
                 -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-                border: 0.5px solid var(--glass-border);
-                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight); }
+                border: 0.5px solid rgba(255, 255, 255, 0.38);
+                box-shadow: 0 4px 18px rgba(0, 32, 90, 0.28),
+                            inset 0 0.5px 0 rgba(255, 255, 255, 0.45); }
   .dock .tab { flex: 1; position: relative; border: none; background: none; cursor: pointer;
                display: flex; flex-direction: column; align-items: center; gap: 2px;
-               padding: 10px 0; color: var(--on-surface-tertiary); }
+               padding: 10px 0; color: rgba(255, 255, 255, 0.72);
+               border-radius: 26px; }
   .dock .tab svg { width: 22px; height: 22px; }
   .dock .tab span { font: 500 10px/1 var(--font-stack); }
-  .dock .tab.on { color: var(--accent); }
-  .dock .tab.on::before { content: ""; position: absolute; inset: 4px 8px;
-                           border-radius: var(--radius-md); background: var(--accent-tint); }
+  .dock .tab.on { color: #ffffff; }
+  .dock .tab.on span { font-weight: 600; }
+  .dock .tab.on::before { content: ""; position: absolute; inset: 3px 6px;
+                           border-radius: 23px;
+                           background: rgba(255, 255, 255, 0.22);
+                           box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.55),
+                                       0 1px 4px rgba(0, 20, 60, 0.18); }
   .dock .tab > * { position: relative; }
-  .dock .rec { width: 56px; flex: none; border-radius: var(--radius-lg); cursor: pointer;
+  .dock .rec { width: 56px; flex: none; border-radius: 30px; cursor: pointer;
                background: var(--glass-shell); border: 0.5px solid var(--glass-border);
                box-shadow: var(--glass-shadow), inset 0 0.5px 0 var(--glass-highlight);
                backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
@@ -186,15 +193,12 @@
             background: var(--divider); }
   .sh-head { display: flex; justify-content: space-between; align-items: center;
              padding: var(--space-3) var(--space-5); flex: none; }
-  .sh-head .x { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
-                background: var(--surface); box-shadow: var(--shadow-low); cursor: pointer;
-                display: flex; align-items: center; justify-content: center; }
-  .sh-head .x svg { width: 13px; height: 13px; color: var(--on-surface); }
+  .sh-head .cancel, .sh-head .done { border: none; background: none; cursor: pointer;
+                font: 400 17px/1 var(--font-stack); color: var(--accent-text);
+                padding: 8px 0; min-width: 48px; }
+  .sh-head .cancel { text-align: left; }
+  .sh-head .done { font-weight: 600; text-align: right; }
   .sh-head .t { font: var(--font-title-m); color: var(--on-surface); }
-  .sh-head .ok { width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
-                 background: var(--accent); cursor: pointer;
-                 display: flex; align-items: center; justify-content: center; }
-  .sh-head .ok svg { width: 16px; height: 16px; color: var(--accent-on); }
   .sh-body { overflow-y: auto; padding: 0 var(--space-5) var(--space-8); }
 
   /* 筛选选项 */
@@ -466,9 +470,9 @@
       <div class="sheet">
         <div class="grab"><i></i></div>
         <div class="sh-head">
-          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <button class="cancel">取消</button>
           <span class="t">筛选</span>
-          <button class="ok"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="done">完成</button>
         </div>
         <div class="sh-body">
           <div class="opt-group">
@@ -536,9 +540,9 @@
       <div class="sheet">
         <div class="grab"><i></i></div>
         <div class="sh-head">
-          <button class="x"><svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
+          <button class="cancel">取消</button>
           <span class="t">每日投入</span>
-          <span style="width:36px"></span>
+          <span style="min-width:48px"></span>
         </div>
         <div class="sh-body">
           <div class="cal">

@@ -15,7 +15,6 @@ import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/frequency_pattern.dart';
-import '../../core/models/relative_time.dart';
 import '../shared/record_sheet.dart';
 import 'goal_menu.dart';
 import 'milestones_view.dart';
@@ -35,6 +34,12 @@ class GoalDetailPage extends ConsumerWidget {
         ?.where((g) => g.id == goalId)
         .firstOrNull;
     if (goal == null) {
+      // 目标已删除/不存在：下一帧自动返回，避免空白详情页。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
+      });
       return CupertinoPageScaffold(
         backgroundColor: p.background,
         child: const SizedBox(),
@@ -167,6 +172,10 @@ class GoalDetailPage extends ConsumerWidget {
                     isLast: i == records.length - 1,
                     today: today,
                     color: color,
+                    milestoneTitle: milestones
+                        .where((m) => m.id == r.milestoneId)
+                        .firstOrNull
+                        ?.title,
                   ),
               ],
             ),
@@ -338,6 +347,7 @@ class _TimelineRow extends StatelessWidget {
     required this.isLast,
     required this.today,
     required this.color,
+    this.milestoneTitle,
   });
 
   final ProgressRecord record;
@@ -345,18 +355,40 @@ class _TimelineRow extends StatelessWidget {
   final LocalDate today;
   final Color color;
 
+  /// 关联里程碑标题（无关联为 null）。
+  final String? milestoneTitle;
+
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
     final isMilestone = record.kind == RecordKind.milestoneAchievement;
-    final nodeColor = isMilestone
+    final linkedMilestone =
+        !isMilestone && milestoneTitle != null && milestoneTitle!.isNotEmpty;
+    final body = record.body;
+    final hasBody = !isMilestone && body != null && body.trim().isNotEmpty;
+    final hasDuration = record.durationMinutes != null;
+
+    // 节点图形多样化：里程碑达成/关联 > 时长 > 心得 > 默认记录。
+    final milestoneNode = isMilestone || linkedMilestone;
+    final nodeIcon = isMilestone
+        ? CupertinoIcons.flag_fill
+        : milestoneNode
+        ? CupertinoIcons.flag
+        : hasDuration
+        ? CupertinoIcons.clock
+        : hasBody
+        ? CupertinoIcons.doc_text
+        : CupertinoIcons.square_pencil;
+    final nodeColor = milestoneNode
         ? p.milestone
-        : (isLast ? p.accent : p.divider);
-    final nodeBg = isMilestone
+        : (isLast ? p.accent : p.onSurfaceVariant);
+    final nodeBg = milestoneNode
         ? p.milestoneTint
         : (isLast ? p.accentTint : p.divider);
-    final dayLabel = relativeDayLabel(record.day, today);
+
+    // 内容卡仅在有正文（或里程碑达成）时渲染。
+    final showCard = isMilestone || hasBody;
 
     return IntrinsicHeight(
       child: Row(
@@ -373,13 +405,7 @@ class _TimelineRow extends StatelessWidget {
                     color: nodeBg,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    isMilestone
-                        ? CupertinoIcons.flag_fill
-                        : CupertinoIcons.square_pencil,
-                    size: 15,
-                    color: nodeColor,
-                  ),
+                  child: Icon(nodeIcon, size: 15, color: nodeColor),
                 ),
                 if (!isLast)
                   Expanded(
@@ -405,45 +431,21 @@ class _TimelineRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    dayLabel,
+                    _metaLine(hasDuration, linkedMilestone),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
                   ),
-                  const SizedBox(height: 8),
-                  AppCard(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isMilestone ? record.title : (record.body ?? ''),
-                          style: text.bodyM.copyWith(color: p.onSurface),
-                        ),
-                        if (!isMilestone &&
-                            record.body != null &&
-                            record.body!.trim().isNotEmpty)
-                          const SizedBox(height: 0),
-                        if (record.durationMinutes != null) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(
-                                CupertinoIcons.clock,
-                                size: 13,
-                                color: p.onSurfaceTertiary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                Copy.durationMinutes(record.durationMinutes!),
-                                style: text.bodyS.copyWith(
-                                  color: p.onSurfaceTertiary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
+                  if (showCard) ...[
+                    const SizedBox(height: 8),
+                    AppCard(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        isMilestone ? record.title : body!,
+                        style: text.bodyM.copyWith(color: p.onSurface),
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -452,4 +454,26 @@ class _TimelineRow extends StatelessWidget {
       ),
     );
   }
+
+  /// 元信息行：日期时间（精确到秒）· 时长 · 关联里程碑。
+  String _metaLine(bool hasDuration, bool linkedMilestone) {
+    final local = record.createdAt.toLocal();
+    final time =
+        '${_two(local.hour)}:${_two(local.minute)}:${_two(local.second)}';
+    final String dayLabel;
+    if (record.day == today) {
+      dayLabel = '${Copy.today} $time';
+    } else if (record.day == today.addDays(-1)) {
+      dayLabel = '${Copy.yesterday} $time';
+    } else {
+      dayLabel = '${local.month}月${local.day}日 $time';
+    }
+    return [
+      dayLabel,
+      if (hasDuration) Copy.durationMinutes(record.durationMinutes!),
+      if (linkedMilestone) Copy.recordMilestoneLink(milestoneTitle!),
+    ].join(' · ');
+  }
 }
+
+String _two(int n) => n.toString().padLeft(2, '0');

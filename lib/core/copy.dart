@@ -199,6 +199,9 @@ abstract final class Copy {
   static const yesterday = '昨天';
   static String daysAgo(int n) => '$n 天前';
 
+  // ---- 记录元信息 ----
+  static String recordMilestoneLink(String title) => '里程碑 · $title';
+
   // ---- 通用导航 ----
   static const back = '返回';
 

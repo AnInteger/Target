@@ -199,7 +199,10 @@ class _WeekNav extends StatelessWidget {
           Text(
             '${week.monday.month}月${week.monday.day}日 — '
             '${week.sunday.month}月${week.sunday.day}日',
-            style: text.bodyM.copyWith(fontWeight: FontWeight.w500),
+            style: Theme.of(context)
+                .textTheme
+                .bodyM
+                .copyWith(fontWeight: FontWeight.w500),
           ),
           const SizedBox(width: 16),
           _navBtn(context, Icons.chevron_right, () => onChange(week.next)),

@@ -1,11 +1,14 @@
 /// 目标管理菜单（长按卡片 / 详情 ⋯）：三组——推进/管理/危险，
 /// 按状态显隐（phase 1 状态机语义；R2 裁定入口=长按）。
+/// v3.1：CupertinoActionSheet（危险项 destructive）+ CupertinoAlertDialog
+/// 删除确认。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
 import '../../core/models/entities.dart';
@@ -24,133 +27,111 @@ Future<void> showGoalMenu(
 
   final menu = <_MenuEntry>[
     if (goal.status == GoalStatus.active)
-      _MenuEntry(Copy.menuRecord, Icons.add, () {
+      _MenuEntry(Copy.menuRecord, () {
         close();
         showRecordSheet(context, goalId: goal.id);
       }),
-    _MenuEntry(Copy.menuEdit, Icons.edit_outlined, () {
+    _MenuEntry(Copy.menuEdit, () {
       close();
       context.push('/goal-editor?id=${goal.id}');
     }),
     if (goal.status != GoalStatus.archived)
       _MenuEntry(
         goal.pinned ? Copy.menuUnpin : Copy.menuPin,
-        goal.pinned ? Icons.push_pin : Icons.push_pin_outlined,
         () {
           close();
           ref.read(goalRepoProvider).setPinned(goal.id, !goal.pinned);
         },
       ),
     switch (goal.status) {
-      GoalStatus.active => _MenuEntry(Copy.menuPause, Icons.pause, () {
+      GoalStatus.active => _MenuEntry(Copy.menuPause, () {
           close();
           transit(GoalStatus.paused);
         }),
-      GoalStatus.paused => _MenuEntry(Copy.menuResume, Icons.play_arrow, () {
+      GoalStatus.paused => _MenuEntry(Copy.menuResume, () {
           close();
           transit(GoalStatus.active);
         }),
-      _ => const _MenuEntry('', Icons.hide_source, null),
+      _ => const _MenuEntry('', null),
     },
     if (goal.status == GoalStatus.active || goal.status == GoalStatus.paused)
-      _MenuEntry(Copy.menuAchieve, Icons.check, () {
+      _MenuEntry(Copy.menuAchieve, () {
         close();
         transit(GoalStatus.achieved);
       }),
     if (goal.status == GoalStatus.achieved)
-      _MenuEntry(Copy.menuReopen, Icons.restart_alt, () {
+      _MenuEntry(Copy.menuReopen, () {
         close();
         transit(GoalStatus.active);
       }),
     if (goal.status != GoalStatus.archived)
-      _MenuEntry(Copy.menuArchive, Icons.archive_outlined, () {
+      _MenuEntry(Copy.menuArchive, () {
         close();
         transit(GoalStatus.archived);
       }),
     if (goal.status == GoalStatus.archived)
-      _MenuEntry(Copy.menuUnarchive, Icons.unarchive_outlined, () {
+      _MenuEntry(Copy.menuUnarchive, () {
         close();
         transit(GoalStatus.active);
       }),
   ].where((e) => e.onTap != null && e.label.isNotEmpty).toList();
 
-  return showModalBottomSheet<void>(
+  return showCupertinoModalPopup<void>(
     context: context,
     useRootNavigator: true,
-    backgroundColor: Colors.transparent,
-    builder: (sheetContext) => _GoalMenuSheet(
-      menu: menu,
-      danger: _MenuEntry(Copy.menuDelete, Icons.delete_outline, () async {
-        Navigator.of(sheetContext).pop();
-        final confirmed = await _confirmDelete(context, goal);
-        if (confirmed) await ref.read(goalRepoProvider).deleteGoal(goal.id);
-      }),
+    builder: (sheetContext) => CupertinoActionSheet(
+      title: Text(goal.name, maxLines: 1),
+      actions: [
+        for (final e in menu)
+          CupertinoActionSheetAction(
+            onPressed: e.onTap!,
+            child: Text(e.label),
+          ),
+        CupertinoActionSheetAction(
+          isDestructiveAction: true,
+          onPressed: () async {
+            Navigator.of(sheetContext).pop();
+            final confirmed = await _confirmDelete(context, goal);
+            if (confirmed) {
+              await ref.read(goalRepoProvider).deleteGoal(goal.id);
+            }
+          },
+          child: const Text(Copy.menuDelete),
+        ),
+      ],
+      cancelButton: CupertinoActionSheetAction(
+        onPressed: () => Navigator.of(sheetContext).pop(),
+        child: const Text(Copy.cancel),
+      ),
     ),
   );
 }
 
 class _MenuEntry {
-  const _MenuEntry(this.label, this.icon, this.onTap);
+  const _MenuEntry(this.label, this.onTap);
 
   final String label;
-  final IconData icon;
   final VoidCallback? onTap;
 }
 
-class _GoalMenuSheet extends StatelessWidget {
-  const _GoalMenuSheet({required this.menu, required this.danger});
-
-  final List<_MenuEntry> menu;
-  final _MenuEntry danger;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.all(8),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final e in menu)
-            ListTile(
-              leading: Icon(e.icon, size: 20),
-              title: Text(e.label),
-              onTap: e.onTap,
-            ),
-          const Divider(height: 1),
-          ListTile(
-            leading:
-                Icon(danger.icon, size: 20, color: theme.colorScheme.error),
-            title: Text(
-              danger.label,
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-            onTap: danger.onTap,
-          ),
-          const SizedBox(height: 4),
-        ],
-      ),
-    );
-  }
-}
-
 Future<bool> _confirmDelete(BuildContext context, Goal goal) async {
-  final ok = await showDialog<bool>(
+  final p = TargetPalette.of(context);
+  final ok = await showCupertinoDialog<bool>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
+    barrierDismissible: true,
+    builder: (dialogContext) => CupertinoAlertDialog(
       title: Text(Copy.deleteConfirmTitle(goal.name)),
       content: const Text(Copy.deleteConfirmBody),
       actions: [
-        TextButton(
+        CupertinoDialogAction(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text(Copy.cancel),
+          child: Text(
+            Copy.cancel,
+            style: TextStyle(color: p.onSurface),
+          ),
         ),
-        TextButton(
+        CupertinoDialogAction(
+          isDestructiveAction: true,
           onPressed: () => Navigator.of(dialogContext).pop(true),
           child: const Text(Copy.menuDelete),
         ),

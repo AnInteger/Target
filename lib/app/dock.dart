@@ -1,18 +1,19 @@
-/// v3 底部导航（R2 定稿：iOS 健康 floating tab bar 参照）。
+/// v3.1 底部导航（iOS 健康 floating tab bar 参照；官方 Cupertino 组件）。
 ///
-/// 左：双 tab 浅玻璃胶囊（30px 近胶囊圆角；选中 = 蓝色着色，无底色块）。
-/// 右：记录钮（同材质浅玻璃，笔形图标）。
+/// 左：双 tab 不透明胶囊（30px 近胶囊圆角；选中 = 蓝色着色）。
+/// 右：记录钮（同材质，笔形图标）。
+/// v3.1 裁定：放弃 Liquid Glass 手绘仿制（效果差且模糊有性能隐患），
+/// 改为 surface 实底 + 发丝描边 + 既有 shadowMid——视觉层级不变。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
-import '../core/copy.dart';
 import 'design_tokens.dart';
 
 /// 底部导航：[tabs] = (路由路径, 标签, 图标)；[activePath] 当前分支；
 /// [onTapTab]/[onRecord] 回调。
-class LiquidGlassDock extends StatelessWidget {
-  const LiquidGlassDock({
+class AppDock extends StatelessWidget {
+  const AppDock({
     super.key,
     required this.tabs,
     required this.activePath,
@@ -33,31 +34,27 @@ class LiquidGlassDock extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(4),
+            child: DecoratedBox(
               decoration: BoxDecoration(
-                color: p.glassShell,
+                color: p.surface,
                 borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: p.glassBorder, width: 0.5),
+                border: Border.all(color: p.divider, width: 0.5),
                 boxShadow: p.shadowMid,
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(30),
-                child: BackdropFilterShell(
-                  blur: p.blur,
-                  child: Row(
-                    children: [
-                      for (final (path, label, icon) in tabs)
-                        Expanded(
-                          child: _DockTab(
-                            label: label,
-                            icon: icon,
-                            selected: path == activePath,
-                            onTap: () => onTapTab(path),
-                          ),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    for (final (path, label, icon) in tabs)
+                      Expanded(
+                        child: _DockTab(
+                          label: label,
+                          icon: icon,
+                          selected: path == activePath,
+                          onTap: () => onTapTab(path),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -67,19 +64,6 @@ class LiquidGlassDock extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// 玻璃模糊容器（web 降级 = 半透明实底；原生 blur 生效）。
-class BackdropFilterShell extends StatelessWidget {
-  const BackdropFilterShell({super.key, required this.blur, required this.child});
-
-  final double blur;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return child;
   }
 }
 
@@ -100,9 +84,11 @@ class _DockTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
     final color = selected ? p.accent : p.onSurface;
-    return InkWell(
-      onTap: onTap,
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.square(48),
       borderRadius: BorderRadius.circular(26),
+      onPressed: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Column(
@@ -136,17 +122,22 @@ class _RecordButton extends StatelessWidget {
     return SizedBox(
       width: 56,
       height: 62,
-      child: Material(
-        color: p.glassShell,
-        borderRadius: BorderRadius.circular(30),
-        child: InkWell(
-          onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: p.surface,
           borderRadius: BorderRadius.circular(30),
-          child: Center(
-            child: Tooltip(
-              message: Copy.recordProgress,
-              child: Icon(Icons.edit_outlined, size: 20, color: p.onSurface),
-            ),
+          border: Border.all(color: p.divider, width: 0.5),
+          boxShadow: p.shadowMid,
+        ),
+        child: CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.square(62),
+          borderRadius: BorderRadius.circular(30),
+          onPressed: onTap,
+          child: Icon(
+            CupertinoIcons.square_pencil,
+            size: 20,
+            color: p.onSurface,
           ),
         ),
       ),

@@ -1,9 +1,12 @@
 /// v3 图标与颜色选择器（sheet）：38 枚目录图标 + 9 色板单选。
+/// v3.1：Cupertino 重写（AppSheet 容器；网格/色板点选为手势格子，
+/// 选中态样式不变）。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 import '../../app/design_tokens.dart';
+import '../../app/sheet.dart';
 import '../../core/models/goal_icon_catalog.dart';
 import '../shared/goal_card.dart' show goalIconData;
 
@@ -13,11 +16,8 @@ Future<(String, String)?> showGoalIconPicker(
   required String initialIconKey,
   required String initialColorKey,
 }) {
-  return showModalBottomSheet<(String, String)>(
-    context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
+  return showAppSheet<(String, String)>(
+    context,
     builder: (_) => _IconPickerSheet(
       initialIconKey: initialIconKey,
       initialColorKey: initialColorKey,
@@ -45,57 +45,25 @@ class _IconPickerSheetState extends State<_IconPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
-    final brightness = Theme.of(context).brightness;
+    final brightness = TargetPalette.brightnessOf(context);
     final color = GoalPalette.byKey(_colorKey, brightness: brightness);
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.8,
-      decoration: BoxDecoration(
-        color: p.background,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.xl),
-        ),
+    return AppSheet(
+      maxHeightFactor: 0.8,
+      title: '图标与颜色',
+      leading: HeaderTextButton(
+        label: '取消',
+        onTap: () => Navigator.of(context).pop(),
+      ),
+      trailing: HeaderTextButton(
+        label: '完成',
+        emphasized: true,
+        onTap: () => Navigator.of(context).pop((_iconKey, _colorKey)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 4),
-            width: 40,
-            height: 5,
-            decoration: BoxDecoration(
-              color: p.divider,
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Text(
-                    '取消',
-                    style: text.bodyL.copyWith(color: p.accentText),
-                  ),
-                ),
-                Expanded(
-                  child: Center(
-                    child: Text('图标与颜色', style: text.titleM),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop((_iconKey, _colorKey)),
-                  child: Text(
-                    '完成',
-                    style: text.bodyL
-                        .copyWith(color: p.accentText, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
+          Flexible(
             child: GridView.builder(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -107,8 +75,7 @@ class _IconPickerSheetState extends State<_IconPickerSheet> {
               itemBuilder: (_, i) {
                 final entry = GoalIconCatalog.values[i];
                 final selected = entry.key == _iconKey;
-                return InkWell(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
+                return GestureDetector(
                   onTap: () => setState(() => _iconKey = entry.key),
                   child: Container(
                     decoration: BoxDecoration(

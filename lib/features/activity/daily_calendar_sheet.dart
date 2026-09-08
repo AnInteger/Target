@@ -1,12 +1,18 @@
 /// 日历每日投入 sheet（R2 定稿：点「日历」直达；范围所有日期，
 /// 月导航；每格环 = 当日投入 / 当月峰值，参考 iOS 健康）。
+/// v3.1：Cupertino 重写——AppSheet 容器、CupertinoButton 月导航、
+/// 自绘进度环（CupertinoActivityIndicator 不支持进度值）。
 library;
 
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
+import '../../app/sheet.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
@@ -16,11 +22,8 @@ Future<void> showDailyCalendarSheet(
   BuildContext context,
   List<ProgressRecord> records,
 ) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
+  return showAppSheet(
+    context,
     builder: (_) => const _DailyCalendarSheet(),
   );
 }
@@ -39,7 +42,7 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     final today = LocalDate.fromDateTime(DateTime.now());
     final records =
         ref.watch(recordsProvider).value ?? const <ProgressRecord>[];
@@ -50,126 +53,88 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
     );
     final peak = StatsEngine.monthPeak(days);
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: p.background,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.xl),
-        ),
+    return AppSheet(
+      maxHeightFactor: 0.85,
+      title: Copy.dailyInvestmentTitle,
+      leading: HeaderTextButton(
+        label: Copy.cancel,
+        onTap: () => Navigator.of(context).pop(),
       ),
-      child: Column(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
         children: [
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 4),
-            width: 40,
-            height: 5,
-            decoration: BoxDecoration(
-              color: p.divider,
-              borderRadius: BorderRadius.circular(3),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.square(36),
+                onPressed: () => setState(
+                  () => _month = DateTime(_month.year, _month.month - 1),
+                ),
+                child: const Icon(CupertinoIcons.chevron_back, size: 18),
+              ),
+              Text('${_month.year}年${_month.month}月',
+                  style: text.titleM),
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.square(36),
+                onPressed: () => setState(
+                  () => _month = DateTime(_month.year, _month.month + 1),
+                ),
+                child: const Icon(CupertinoIcons.chevron_forward, size: 18),
+              ),
+            ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
+          const SizedBox(height: 8),
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Text(
-                    Copy.cancel,
-                    style: text.bodyL.copyWith(color: p.accentText),
-                  ),
+                Row(
+                  children: [
+                    for (final w in ['一', '二', '三', '四', '五', '六', '日'])
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            w,
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: p.onSurfaceTertiary),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                Expanded(
-                  child: Center(
-                    child: Text(Copy.dailyInvestmentTitle,
-                        style: text.titleM),
-                  ),
-                ),
-                const SizedBox(width: 48),
+                const SizedBox(height: 6),
+                _monthGrid(context, days, peak, today),
               ],
             ),
           ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left, size: 18),
-                      onPressed: () => setState(
-                        () => _month = DateTime(_month.year, _month.month - 1),
-                      ),
-                    ),
-                    Text('${_month.year}年${_month.month}月',
-                        style: text.titleM),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right, size: 18),
-                      onPressed: () => setState(
-                        () => _month = DateTime(_month.year, _month.month + 1),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(16),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
-                    color: p.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    boxShadow: p.shadowLow,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          for (final w in ['一', '二', '三', '四', '五', '六', '日'])
-                            Expanded(
-                              child: Center(
-                                child: Text(
-                                  w,
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: p.onSurfaceTertiary),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      _monthGrid(context, days, peak, today),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                            color: p.divider, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                    Text(Copy.calendarLegendNone,
-                        style: text.bodyS
-                            .copyWith(color: p.onSurfaceVariant)),
-                    const SizedBox(width: 16),
-                    Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                            color: p.accent, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                    Text(Copy.calendarLegendRing,
-                        style: text.bodyS
-                            .copyWith(color: p.onSurfaceVariant)),
-                  ],
-                ),
-              ],
-            ),
+                      color: p.divider, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text(Copy.calendarLegendNone,
+                  style: text.bodyS
+                      .copyWith(color: p.onSurfaceVariant)),
+              const SizedBox(width: 16),
+              Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                      color: p.accent, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text(Copy.calendarLegendRing,
+                  style: text.bodyS
+                      .copyWith(color: p.onSurfaceVariant)),
+            ],
           ),
         ],
       ),
@@ -210,9 +175,9 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: selected
-                                ? Border.all(color: Theme.of(context)
-                                    .extension<TargetPalette>()!
-                                    .accent, width: 1.5)
+                                ? Border.all(
+                                    color: TargetPalette.of(context).accent,
+                                    width: 1.5)
                                 : null,
                           ),
                           padding: const EdgeInsets.all(2),
@@ -233,6 +198,7 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
   }
 }
 
+/// 进度环（track+弧）——自绘替代 Material CircularProgressIndicator。
 class _Ring extends StatelessWidget {
   const _Ring({required this.progress, required this.minutes});
 
@@ -248,11 +214,13 @@ class _Ring extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          CircularProgressIndicator(
-            value: progress == 0 ? 0 : progress.clamp(0.08, 1),
-            strokeWidth: 3.5,
-            backgroundColor: p.divider,
-            valueColor: AlwaysStoppedAnimation(p.accent),
+          CustomPaint(
+            size: const Size(34, 34),
+            painter: _RingPainter(
+              progress: progress == 0 ? 0 : progress.clamp(0.08, 1),
+              track: p.divider,
+              arc: p.accent,
+            ),
           ),
           if (minutes > 0)
             Text(
@@ -267,4 +235,44 @@ class _Ring extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RingPainter extends CustomPainter {
+  const _RingPainter({
+    required this.progress,
+    required this.track,
+    required this.arc,
+  });
+
+  final double progress;
+  final Color track;
+  final Color arc;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = 3.5;
+    final rect = Offset.zero & size;
+    final radius = (size.shortestSide - stroke) / 2;
+    final center = rect.center;
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..isAntiAlias = true;
+    canvas.drawCircle(center, radius, paint..color = track);
+    if (progress > 0) {
+      canvas.drawArc(
+        rect.deflate(stroke / 2),
+        -math.pi / 2,
+        2 * math.pi * progress,
+        false,
+        paint..color = arc,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) =>
+      old.progress != progress ||
+      old.track != track ||
+      old.arc != arc;
 }

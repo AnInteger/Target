@@ -1,13 +1,18 @@
-/// v3 设计令牌（iOS 原生 + 局部 Liquid Glass）。
+/// v3 设计令牌（iOS 原生 Cupertino 风格）。
 ///
 /// 真源镜像：design/tokens.css（?v=v3b）↔ 本文件 ↔
 /// ios/TargetWidgets/DesignTokens.swift——改值一次提交内三端同步
 /// （006 contracts/design-language.md）。
 /// 字体：平台默认（iOS=SF Pro/PingFang，不打包字体文件）。
 /// 标题族字重统一 600（R2 裁定：PingFang 止于 Semibold）。
+///
+/// v3.1（Cupertino 重构）：令牌脱离 Material ThemeExtension，配色值
+/// 原样保留；退役 Liquid Glass 仿制令牌（glassShell/glassCard/
+/// glassBorder/glassHighlight/blur）——组件全面改用官方 Cupertino 库，
+/// 不再手绘玻璃（design/ 与 ios/ 侧镜像变量不动，供原型/原生组件自用）。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 // ---------------------------------------------------------------------------
 // 分类色板（iOS 系统色 · 浅深成对；goals.colorKey 值域）
@@ -46,10 +51,20 @@ abstract final class GoalPalette {
 }
 
 // ---------------------------------------------------------------------------
-// TargetPalette（ThemeExtension）
+// TargetPalette（v3.1 起为纯常量类，经 context 亮度解析）
 // ---------------------------------------------------------------------------
 
-class TargetPalette extends ThemeExtension<TargetPalette> {
+///
+/// ### 语义槽位
+/// * [background]——页面底色（iOS 分组底）；
+/// * [surface]/[surfaceAlt]——卡片 / 卡上内嵌控件底；
+/// * [onSurface] 一族——主文 / 次文（AA）/ 三档（时间戳、占位）；
+/// * [accent] 一族——行动色、实底按钮标签、淡底、正文级蓝；
+/// * [milestone] 一族——里程碑橙系；
+/// * [positive]/[warning]/[danger]——达成/落后/危险；
+/// * [headerGrad]——tab 屏头部渐变；
+/// * [shadow*]——卡 / 悬浮 / sheet / 主行动钮光晕。
+class TargetPalette {
   const TargetPalette({
     required this.background,
     required this.surface,
@@ -73,11 +88,6 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
     required this.danger,
     required this.dangerOn,
     required this.headerGrad,
-    required this.glassShell,
-    required this.glassCard,
-    required this.glassBorder,
-    required this.glassHighlight,
-    required this.blur,
     required this.shadowLow,
     required this.shadowMid,
     required this.shadowHigh,
@@ -102,7 +112,7 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
   final Color accent;
   final Color accentOn;
 
-  /// 选中态淡底（tab 胶囊透镜语境之外的内嵌底）。
+  /// 选中态淡底（tab 胶囊之外的内嵌底）。
   final Color accentTint;
 
   /// 正文级蓝（链接；≥4.5:1）。
@@ -133,13 +143,6 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
 
   /// tab 屏头部渐变（淡紫→粉→灰；深色暗紫系；自上而下）。
   final List<Color> headerGrad;
-
-  /// Liquid Glass（R2 定稿：dock/记录钮/头部控件 = 浅玻璃）。
-  final Color glassShell;
-  final Color glassCard;
-  final Color glassBorder;
-  final Color glassHighlight;
-  final double blur;
 
   /// 阴影：low=卡 / mid=悬浮 / high=sheet / cta=主行动钮光晕。
   final List<BoxShadow> shadowLow;
@@ -176,11 +179,6 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
       Color(0xFFF2F2F7),
       Color(0xFFF2F2F7),
     ],
-    glassShell: Color(0xB8F2F2F7),
-    glassCard: Color(0x9EFFFFFF),
-    glassBorder: Color(0xA6FFFFFF),
-    glassHighlight: Color(0xD9FFFFFF),
-    blur: 24,
     shadowLow: [BoxShadow(offset: Offset(0, 1), blurRadius: 6, color: Color(0x12000000))],
     shadowMid: [BoxShadow(offset: Offset(0, 2), blurRadius: 16, color: Color(0x1A000000))],
     shadowHigh: [BoxShadow(offset: Offset(0, -6), blurRadius: 40, color: Color(0x2E000000))],
@@ -216,129 +214,22 @@ class TargetPalette extends ThemeExtension<TargetPalette> {
       Color(0xFF161618),
       Color(0xFF000000),
     ],
-    glassShell: Color(0xB81C1C1E),
-    glassCard: Color(0x9E2C2C2E),
-    glassBorder: Color(0x1FFFFFFF),
-    glassHighlight: Color(0x2EFFFFFF),
-    blur: 24,
     shadowLow: [BoxShadow(offset: Offset(0, 1), blurRadius: 6, color: Color(0x59000000))],
     shadowMid: [BoxShadow(offset: Offset(0, 2), blurRadius: 16, color: Color(0x73000000))],
     shadowHigh: [BoxShadow(offset: Offset(0, -6), blurRadius: 40, color: Color(0x8C000000))],
     shadowCta: [BoxShadow(offset: Offset(0, 4), blurRadius: 14, color: Color(0x660A84FF))],
   );
 
-  /// 取当前主题注入的令牌（[AppTheme] 恒安装，非空）。
+  /// 当前上下文的亮暗（CupertinoApp 无 Material Theme）。
+  static Brightness brightnessOf(BuildContext context) =>
+      CupertinoTheme.maybeBrightnessOf(context) ??
+      MediaQuery.platformBrightnessOf(context);
+
+  /// 取当前亮暗对应的令牌。
   static TargetPalette of(BuildContext context) =>
-      Theme.of(context).extension<TargetPalette>()!;
-
-  @override
-  TargetPalette copyWith({
-    Color? background,
-    Color? surface,
-    Color? surfaceAlt,
-    Color? onSurface,
-    Color? onSurfaceVariant,
-    Color? onSurfaceTertiary,
-    Color? accent,
-    Color? accentOn,
-    Color? accentTint,
-    Color? accentText,
-    Color? milestone,
-    Color? milestoneTint,
-    Color? milestoneText,
-    Color? positive,
-    Color? positiveFill,
-    Color? positiveOn,
-    Color? warning,
-    Color? divider,
-    Color? scrim,
-    Color? danger,
-    Color? dangerOn,
-    List<Color>? headerGrad,
-    Color? glassShell,
-    Color? glassCard,
-    Color? glassBorder,
-    Color? glassHighlight,
-    double? blur,
-    List<BoxShadow>? shadowLow,
-    List<BoxShadow>? shadowMid,
-    List<BoxShadow>? shadowHigh,
-    List<BoxShadow>? shadowCta,
-  }) =>
-      TargetPalette(
-        background: background ?? this.background,
-        surface: surface ?? this.surface,
-        surfaceAlt: surfaceAlt ?? this.surfaceAlt,
-        onSurface: onSurface ?? this.onSurface,
-        onSurfaceVariant: onSurfaceVariant ?? this.onSurfaceVariant,
-        onSurfaceTertiary: onSurfaceTertiary ?? this.onSurfaceTertiary,
-        accent: accent ?? this.accent,
-        accentOn: accentOn ?? this.accentOn,
-        accentTint: accentTint ?? this.accentTint,
-        accentText: accentText ?? this.accentText,
-        milestone: milestone ?? this.milestone,
-        milestoneTint: milestoneTint ?? this.milestoneTint,
-        milestoneText: milestoneText ?? this.milestoneText,
-        positive: positive ?? this.positive,
-        positiveFill: positiveFill ?? this.positiveFill,
-        positiveOn: positiveOn ?? this.positiveOn,
-        warning: warning ?? this.warning,
-        divider: divider ?? this.divider,
-        scrim: scrim ?? this.scrim,
-        danger: danger ?? this.danger,
-        dangerOn: dangerOn ?? this.dangerOn,
-        headerGrad: headerGrad ?? this.headerGrad,
-        glassShell: glassShell ?? this.glassShell,
-        glassCard: glassCard ?? this.glassCard,
-        glassBorder: glassBorder ?? this.glassBorder,
-        glassHighlight: glassHighlight ?? this.glassHighlight,
-        blur: blur ?? this.blur,
-        shadowLow: shadowLow ?? this.shadowLow,
-        shadowMid: shadowMid ?? this.shadowMid,
-        shadowHigh: shadowHigh ?? this.shadowHigh,
-        shadowCta: shadowCta ?? this.shadowCta,
-      );
-
-  @override
-  TargetPalette lerp(TargetPalette? other, double t) {
-    if (other is! TargetPalette) return this;
-    return TargetPalette(
-      background: Color.lerp(background, other.background, t)!,
-      surface: Color.lerp(surface, other.surface, t)!,
-      surfaceAlt: Color.lerp(surfaceAlt, other.surfaceAlt, t)!,
-      onSurface: Color.lerp(onSurface, other.onSurface, t)!,
-      onSurfaceVariant: Color.lerp(onSurfaceVariant, other.onSurfaceVariant, t)!,
-      onSurfaceTertiary: Color.lerp(onSurfaceTertiary, other.onSurfaceTertiary, t)!,
-      accent: Color.lerp(accent, other.accent, t)!,
-      accentOn: Color.lerp(accentOn, other.accentOn, t)!,
-      accentTint: Color.lerp(accentTint, other.accentTint, t)!,
-      accentText: Color.lerp(accentText, other.accentText, t)!,
-      milestone: Color.lerp(milestone, other.milestone, t)!,
-      milestoneTint: Color.lerp(milestoneTint, other.milestoneTint, t)!,
-      milestoneText: Color.lerp(milestoneText, other.milestoneText, t)!,
-      positive: Color.lerp(positive, other.positive, t)!,
-      positiveFill: Color.lerp(positiveFill, other.positiveFill, t)!,
-      positiveOn: Color.lerp(positiveOn, other.positiveOn, t)!,
-      warning: Color.lerp(warning, other.warning, t)!,
-      divider: Color.lerp(divider, other.divider, t)!,
-      scrim: Color.lerp(scrim, other.scrim, t)!,
-      danger: Color.lerp(danger, other.danger, t)!,
-      dangerOn: Color.lerp(dangerOn, other.dangerOn, t)!,
-      headerGrad: [
-        for (var i = 0; i < headerGrad.length; i++)
-          Color.lerp(headerGrad[i], other.headerGrad[i], t)!,
-      ],
-      glassShell: Color.lerp(glassShell, other.glassShell, t)!,
-      glassCard: Color.lerp(glassCard, other.glassCard, t)!,
-      glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
-      glassHighlight: Color.lerp(glassHighlight, other.glassHighlight, t)!,
-      blur: blur + (other.blur - blur) * t,
-      shadowLow: BoxShadow.lerpList(shadowLow, other.shadowLow, t) ?? shadowLow,
-      shadowMid: BoxShadow.lerpList(shadowMid, other.shadowMid, t) ?? shadowMid,
-      shadowHigh: BoxShadow.lerpList(shadowHigh, other.shadowHigh, t) ?? shadowHigh,
-      shadowCta: BoxShadow.lerpList(shadowCta, other.shadowCta, t) ?? shadowCta,
-    );
-  }
+      brightnessOf(context) == Brightness.light
+          ? TargetPalette.light
+          : TargetPalette.dark;
 }
 
 // ---------------------------------------------------------------------------
@@ -386,231 +277,109 @@ abstract final class AppMotion {
 }
 
 // ---------------------------------------------------------------------------
-// 字阶便捷取用（Material 15 槽位的子集命名；数字恒 tabular）
+// 字阶（SF 阶梯；全档 tabular；标题族 600——R2 裁定）
 // ---------------------------------------------------------------------------
 
-extension AppTextStyle on TextTheme {
+/// 字阶取用（v3.1 起独立于 Material TextTheme）。
+///
+/// 用法：`final text = AppText.of(context); Text(t, style: text.titleM)`。
+/// 颜色按旧 v3 Material 字阶等价烘焙（标题/正文=主文，bodyM/S=次文，
+/// labelS=三档）；调用点沿用 `.copyWith` 微调。
+class AppText {
+  AppText._(this._p);
+
+  final TargetPalette _p;
+
+  /// 当前上下文的字阶（颜色随亮暗令牌）。
+  static AppText of(BuildContext context) =>
+      AppText._(TargetPalette.of(context));
+
+  static const _tabular = [FontFeature.tabularFigures()];
+
+  // 标题族（600）。
+
   /// displayL：34 / 600（tab 屏大标题）。
-  TextStyle get displayL => displayLarge!;
+  late final TextStyle displayL =
+      _title(34, letterSpacing: -0.02);
 
   /// displayM：32 / 600（次级屏题）。
-  TextStyle get displayM => displayMedium!;
+  late final TextStyle displayM =
+      _title(32, letterSpacing: -0.02);
 
   /// displayS：26 / 600（sheet 主标题）。
-  TextStyle get displayS => displaySmall!;
+  late final TextStyle displayS = _title(26, letterSpacing: -0.01);
 
   /// titleL：22 / 600（卡题/大数字）。
-  TextStyle get titleL => titleLarge!;
+  late final TextStyle titleL = _title(22);
 
   /// titleM：17 / 600（区块头/行主文）。
-  TextStyle get titleM => titleMedium!;
+  late final TextStyle titleM = _title(17);
 
   /// titleS：15 / 600（行内强调）。
-  TextStyle get titleS => titleSmall!;
+  late final TextStyle titleS = _title(15);
 
-  /// bodyL：17 / 400（iOS body）。
-  TextStyle get bodyL => bodyLarge!;
+  // 正文族（400）。
 
-  /// bodyM：15 / 400。
-  TextStyle get bodyM => bodyMedium!;
+  /// bodyL：17 / 400（iOS body；主文色）。
+  late final TextStyle bodyL = _body(17, color: _p.onSurface);
 
-  /// bodyS：13 / 400（辅助）。
-  TextStyle get bodyS => bodySmall!;
+  /// bodyM：15 / 400（次文色）。
+  late final TextStyle bodyM = _body(15, color: _p.onSurfaceVariant);
 
-  /// labelS：11 / 400。
-  TextStyle get labelS => labelSmall!;
+  /// bodyS：13 / 400（辅助；次文色）。
+  late final TextStyle bodyS = _body(13, color: _p.onSurfaceVariant);
+
+  /// labelS：11 / 400（三档色）。
+  late final TextStyle labelS = _body(11, color: _p.onSurfaceTertiary);
+
+  TextStyle _title(double size, {double? letterSpacing}) => TextStyle(
+        fontSize: size,
+        fontWeight: FontWeight.w600,
+        letterSpacing: letterSpacing,
+        color: _p.onSurface,
+        fontFeatures: _tabular,
+      );
+
+  TextStyle _body(double size, {required Color color}) => TextStyle(
+        fontSize: size,
+        fontWeight: FontWeight.w400,
+        color: color,
+        fontFeatures: _tabular,
+      );
 }
 
 // ---------------------------------------------------------------------------
-// App 主题
+// App 主题（Cupertino）
 // ---------------------------------------------------------------------------
 
 abstract final class AppTheme {
-  static ThemeData light() => _build(TargetPalette.light, Brightness.light);
+  /// 亮暗 → 令牌。
+  static TargetPalette paletteOf(Brightness brightness) =>
+      brightness == Brightness.light ? TargetPalette.light : TargetPalette.dark;
 
-  static ThemeData dark() => _build(TargetPalette.dark, Brightness.dark);
-
-  static ThemeData _build(TargetPalette p, Brightness brightness) {
-    final scheme = ColorScheme(
-      brightness: brightness,
-      primary: p.accent,
-      onPrimary: p.accentOn,
-      secondary: p.positiveFill,
-      onSecondary: p.positiveOn,
-      tertiary: p.milestone,
-      onTertiary: p.milestoneText,
-      error: p.danger,
-      onError: p.dangerOn,
-      surface: p.surface,
-      onSurface: p.onSurface,
-      onSurfaceVariant: p.onSurfaceVariant,
-      surfaceContainerLowest: brightness == Brightness.light
-          ? const Color(0xFFFFFFFF)
-          : const Color(0xFF000000),
-      surfaceContainerLow: p.surface,
-      surfaceContainer: p.surfaceAlt,
-      surfaceContainerHigh: brightness == Brightness.light
-          ? const Color(0xFFEBEBF0)
-          : const Color(0xFF2C2C2E),
-      surfaceContainerHighest: brightness == Brightness.light
-          ? const Color(0xFFE3E3EA)
-          : const Color(0xFF343436),
-      outline: p.onSurfaceTertiary,
-      outlineVariant: p.divider,
-      inverseSurface: brightness == Brightness.light
-          ? const Color(0xFF2C2C2E)
-          : const Color(0xFFF2F2F7),
-      onInverseSurface: brightness == Brightness.light
-          ? const Color(0xFFF2F2F7)
-          : const Color(0xFF1C1C1E),
-      scrim: p.scrim,
-    );
-    final text = _textTheme(p);
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      scaffoldBackgroundColor: p.background,
-      textTheme: text,
-      extensions: [p],
-    ).copyWith(
-      appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
-        foregroundColor: p.onSurface,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: text.titleMedium,
-      ),
-      cardTheme: CardThemeData(
-        color: p.surface,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          side: BorderSide(color: p.divider),
-        ),
-        margin: const EdgeInsets.symmetric(
-          horizontal: AppSpace.s4,
-          vertical: AppSpace.s1,
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          shape: const StadiumBorder(),
-          backgroundColor: p.accent,
-          foregroundColor: p.accentOn,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpace.s5,
-            vertical: AppSpace.s4,
-          ),
-        ),
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: p.surface,
-        contentTextStyle: text.bodyM.copyWith(color: p.onSurface),
-        actionTextColor: p.accentText,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(color: p.divider),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(color: p.divider),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(color: p.accent, width: 1.5),
-        ),
-      ),
-      dividerTheme: DividerThemeData(color: p.divider, thickness: 1, space: 1),
-    );
-  }
-
-  /// SF 阶梯 → Material 槽位（全档 tabular；标题族 600——R2 裁定）。
-  static TextTheme _textTheme(TargetPalette p) {
-    const f = [FontFeature.tabularFigures()];
+  /// 令牌 + 亮暗 → CupertinoThemeData。
+  ///
+  /// 注：CupertinoApp 无 darkTheme/themeMode 参数，由 [TargetApp] 按三档
+  /// 设置先行解析亮暗后传入唯一 theme（brightness 必须显式固定）。
+  static CupertinoThemeData cupertino(TargetPalette p, Brightness brightness) {
+    final text = AppText._(p);
     final on = p.onSurface;
-    final variant = p.onSurfaceVariant;
-    final tertiary = p.onSurfaceTertiary;
-    return TextTheme(
-      displayLarge: TextStyle(
-        fontSize: 34,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.02,
-        color: on,
-        fontFeatures: f,
-      ),
-      displayMedium: TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.02,
-        color: on,
-        fontFeatures: f,
-      ),
-      displaySmall: TextStyle(
-        fontSize: 26,
-        fontWeight: FontWeight.w600,
-        letterSpacing: -0.01,
-        color: on,
-        fontFeatures: f,
-      ),
-      headlineMedium: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        color: on,
-        fontFeatures: f,
-      ),
-      titleLarge: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        color: on,
-        fontFeatures: f,
-      ),
-      titleMedium: TextStyle(
-        fontSize: 17,
-        fontWeight: FontWeight.w600,
-        color: on,
-        fontFeatures: f,
-      ),
-      titleSmall: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        color: on,
-        fontFeatures: f,
-      ),
-      bodyLarge: TextStyle(
-        fontSize: 17,
-        fontWeight: FontWeight.w400,
-        color: on,
-        fontFeatures: f,
-      ),
-      bodyMedium: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w400,
-        color: variant,
-        fontFeatures: f,
-      ),
-      bodySmall: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w400,
-        color: variant,
-        fontFeatures: f,
-      ),
-      labelSmall: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w400,
-        color: tertiary,
-        fontFeatures: f,
-      ),
-      labelLarge: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: variant,
-        fontFeatures: f,
+    final bodyL = text.bodyL.copyWith(color: on);
+    return CupertinoThemeData(
+      brightness: brightness,
+      primaryColor: p.accent,
+      primaryContrastingColor: p.accentOn,
+      scaffoldBackgroundColor: p.background,
+      barBackgroundColor: p.surface,
+      textTheme: CupertinoTextThemeData(
+        textStyle: bodyL,
+        actionTextStyle: text.bodyL.copyWith(color: p.accentText),
+        navTitleTextStyle: text.titleM.copyWith(color: on),
+        navLargeTitleTextStyle: text.displayL.copyWith(color: on),
+        navActionTextStyle: text.bodyL.copyWith(color: p.accentText),
+        pickerTextStyle: text.bodyM.copyWith(color: on),
+        dateTimePickerTextStyle: text.bodyM.copyWith(color: on),
+        tabLabelTextStyle: text.bodyS.copyWith(color: on),
       ),
     );
   }

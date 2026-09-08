@@ -1,23 +1,25 @@
 /// v3 编辑置顶模式（R2 定稿：健康「编辑列表」参照）。
+/// v3.1：Cupertino 重写（AppSheet + CupertinoButton；列表拖拽沿用
+/// widgets 库 ReorderableListView）。
 ///
 /// 置顶行 = 「−」移出 + 名称 + 「≡」拖拽；其他目标行 = 图钉加入；
-/// 顶部居中标题 + 右上蓝 ✓ 完成。
+/// 顶部居中标题 + 右上完成。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart'
+    show ReorderableDragStartListener, ReorderableListView;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
+import '../../app/sheet.dart';
 import '../../core/copy.dart';
 import '../../core/models/entities.dart';
 
 Future<void> showEditPinned(BuildContext context) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
+  return showAppSheet(
+    context,
     builder: (_) => const _EditPinnedSheet(),
   );
 }
@@ -35,7 +37,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
     final order = _pinnedOrder ??
         goals.where((g) => g.pinned).map((g) => g.id).toList();
@@ -45,112 +47,72 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
     ].whereType<Goal>().toList();
     final others = goals.where((g) => !g.pinned).toList(growable: false);
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.92,
-      decoration: BoxDecoration(
-        color: p.background,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(AppRadius.xl),
-        ),
+    return AppSheet(
+      maxHeightFactor: 0.92,
+      title: Copy.editPinnedTitle,
+      trailing: HeaderTextButton(
+        label: Copy.done,
+        emphasized: true,
+        onTap: _save,
       ),
-      child: Column(
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 4),
-            width: 40,
-            height: 5,
-            decoration: BoxDecoration(
-              color: p.divider,
-              borderRadius: BorderRadius.circular(3),
+          _sectionTitle(context, Copy.pinnedSection),
+          if (pinned.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                Copy.editPinnedOthers,
+                style:
+                    text.bodyS.copyWith(color: p.onSurfaceVariant),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-              children: [
-                const SizedBox(width: 36),
-                Expanded(
-                  child: Center(
-                    child: Text(Copy.editPinnedTitle, style: text.titleM),
-                  ),
-                ),
-                SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      shape: const CircleBorder(),
-                    ),
-                    onPressed: _save,
-                    child: const Icon(Icons.check, size: 18),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              children: [
-                _sectionTitle(context, Copy.pinnedSection),
-                if (pinned.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      Copy.editPinnedOthers,
-                      style:
-                          text.bodyS.copyWith(color: p.onSurfaceVariant),
-                    ),
-                  ),
-                ReorderableListView(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  buildDefaultDragHandles: false,
-                  onReorderItem: (oldIndex, newIndex) {
-                    setState(() {
-                      final list = [...pinned.map((g) => g.id)];
-                      final id = list.removeAt(oldIndex);
-                      list.insert(newIndex, id);
-                      _pinnedOrder = list;
-                    });
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            onReorderItem: (oldIndex, newIndex) {
+              setState(() {
+                final list = [...pinned.map((g) => g.id)];
+                final id = list.removeAt(oldIndex);
+                list.insert(newIndex, id);
+                _pinnedOrder = list;
+              });
+            },
+            children: [
+              for (final (i, g) in pinned.indexed)
+                _pinRow(
+                  key: ValueKey(g.id),
+                  goal: g,
+                  index: i,
+                  onRemove: () async {
+                    await ref
+                        .read(goalRepoProvider)
+                        .setPinned(g.id, false);
+                    setState(() => _pinnedOrder = null);
                   },
-                  children: [
-                    for (final (i, g) in pinned.indexed)
-                      _pinRow(
-                        key: ValueKey(g.id),
-                        goal: g,
-                        index: i,
-                        onRemove: () async {
-                          await ref
-                              .read(goalRepoProvider)
-                              .setPinned(g.id, false);
-                          setState(() => _pinnedOrder = null);
-                        },
-                      ),
-                  ],
                 ),
-                const SizedBox(height: 20),
-                _sectionTitle(context, Copy.editPinnedOthers),
-                for (final g in others)
-                  _pinAddRow(
-                    key: ValueKey('o-${g.id}'),
-                    goal: g,
-                    onPin: () async {
-                      await ref.read(goalRepoProvider).setPinned(g.id, true);
-                      setState(() => _pinnedOrder = null);
-                    },
-                  ),
-              ],
-            ),
+            ],
           ),
+          const SizedBox(height: 20),
+          _sectionTitle(context, Copy.editPinnedOthers),
+          for (final g in others)
+            _pinAddRow(
+              key: ValueKey('o-${g.id}'),
+              goal: g,
+              onPin: () async {
+                await ref.read(goalRepoProvider).setPinned(g.id, true);
+                setState(() => _pinnedOrder = null);
+              },
+            ),
         ],
       ),
     );
   }
 
   Widget _sectionTitle(BuildContext context, String s) {
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
       child: Text(s, style: text.titleM),
@@ -164,7 +126,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
     required VoidCallback onRemove,
   }) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Container(
       key: key,
       decoration: BoxDecoration(
@@ -176,7 +138,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
         children: [
           const SizedBox(width: 12),
           _circleButton(
-            Icons.remove,
+            CupertinoIcons.minus,
             p.onSurfaceVariant,
             onRemove,
           ),
@@ -194,7 +156,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
             index: index,
             child: Padding(
               padding: const EdgeInsets.all(14),
-              child: Icon(Icons.drag_indicator,
+              child: Icon(CupertinoIcons.line_horizontal_3,
                   size: 22, color: p.onSurfaceTertiary),
             ),
           ),
@@ -209,7 +171,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
     required VoidCallback onPin,
   }) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Container(
       key: key,
       decoration: BoxDecoration(
@@ -220,7 +182,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
       child: Row(
         children: [
           const SizedBox(width: 12),
-          _circleButton(Icons.push_pin_outlined, p.accent, onPin),
+          _circleButton(CupertinoIcons.pin, p.accent, onPin),
           const SizedBox(width: 12),
           Expanded(
             child: Padding(
@@ -238,15 +200,20 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
   }
 
   Widget _circleButton(IconData icon, Color color, VoidCallback onTap) {
+    final p = TargetPalette.of(context);
     return SizedBox(
       width: 28,
       height: 28,
-      child: Material(
-        color: Theme.of(context).extension<TargetPalette>()!.surfaceAlt,
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: p.surfaceAlt,
+          shape: BoxShape.circle,
+        ),
+        child: CupertinoButton(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.square(28),
+          borderRadius: BorderRadius.circular(14),
+          onPressed: onTap,
           child: Icon(icon, size: 16, color: color),
         ),
       ),

@@ -1,10 +1,13 @@
 /// v3 里程碑页：接下来（⋯ 菜单：标记达成/编辑/删除）+ 已达成；
 /// 达成即生成达成记录（FR-003）。
+/// v3.1：Cupertino 重写——CupertinoPageScaffold、CupertinoListTile、
+/// CupertinoActionSheet、CupertinoAlertDialog + CupertinoTextField。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
@@ -18,7 +21,7 @@ class MilestonesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     final goal = ref
         .watch(goalsProvider)
         .valueOrNull
@@ -30,19 +33,22 @@ class MilestonesPage extends ConsumerWidget {
         milestones.where((m) => !m.isDone).toList(growable: false);
     final done = milestones.where((m) => m.isDone).toList(growable: false);
 
-    return Scaffold(
+    return CupertinoPageScaffold(
       backgroundColor: p.background,
-      body: SafeArea(
+      child: SafeArea(
         bottom: false,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              padding: const EdgeInsets.fromLTRB(12, 8, 20, 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _circleBtn(context, Icons.chevron_left,
-                      () => Navigator.of(context).pop()),
+                  CircleIconButton(
+                    size: 40,
+                    iconSize: 16,
+                    icon: CupertinoIcons.chevron_back,
+                    onTap: () => Navigator.of(context).pop(),
+                  ),
                   Expanded(
                     child: Center(
                       child: Text(
@@ -53,7 +59,12 @@ class MilestonesPage extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  _circleBtn(context, Icons.add, () => _add(context, ref)),
+                  CircleIconButton(
+                    size: 40,
+                    iconSize: 16,
+                    icon: CupertinoIcons.add,
+                    onTap: () => _add(context, ref),
+                  ),
                 ],
               ),
             ),
@@ -90,9 +101,9 @@ class MilestonesPage extends ConsumerWidget {
                       child: Column(
                         children: [
                           for (final (i, m) in pending.indexed) ...[
-                            if (i > 0) Divider(height: 1, color: p.divider),
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
+                            if (i > 0) HairlineDivider(indent: 60),
+                            CupertinoListTile(
+                              backgroundColor: p.surface,
                               title: Text(m.title, style: text.titleM),
                               subtitle: Column(
                                 crossAxisAlignment:
@@ -111,10 +122,11 @@ class MilestonesPage extends ConsumerWidget {
                                   ),
                                 ],
                               ),
-                              trailing: _circleBtn(
-                                context,
-                                Icons.more_horiz,
-                                () => _menu(context, ref, m),
+                              trailing: CircleIconButton(
+                                size: 34,
+                                iconSize: 14,
+                                icon: CupertinoIcons.ellipsis,
+                                onTap: () => _menu(context, ref, m),
                               ),
                             ),
                           ],
@@ -137,9 +149,9 @@ class MilestonesPage extends ConsumerWidget {
                       child: Column(
                         children: [
                           for (final (i, m) in done.indexed) ...[
-                            if (i > 0) Divider(height: 1, color: p.divider),
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
+                            if (i > 0) HairlineDivider(indent: 60),
+                            CupertinoListTile(
+                              backgroundColor: p.surface,
                               leading: Container(
                                 width: 36,
                                 height: 36,
@@ -147,7 +159,7 @@ class MilestonesPage extends ConsumerWidget {
                                   color: p.milestoneTint,
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(Icons.flag,
+                                child: Icon(CupertinoIcons.flag_fill,
                                     size: 18, color: p.milestone),
                               ),
                               title: Text(m.title, style: text.bodyL),
@@ -201,33 +213,35 @@ class MilestonesPage extends ConsumerWidget {
     );
   }
 
-  Widget _circleBtn(BuildContext context, IconData icon, VoidCallback onTap) {
-    final p = TargetPalette.of(context);
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: Material(
-        color: p.surface,
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: Icon(icon, size: 16, color: p.onSurface),
-        ),
-      ),
-    );
-  }
-
   Future<void> _menu(
     BuildContext context,
     WidgetRef ref,
     Milestone m,
   ) async {
-    final action = await showModalBottomSheet<String>(
+    final action = await showCupertinoModalPopup<String>(
       context: context,
       useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _MilestoneMenu(m: m),
+      builder: (sheetContext) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(sheetContext).pop('done'),
+            child: Text(Copy.milestoneMenuDone),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () => Navigator.of(sheetContext).pop('edit'),
+            child: Text(Copy.milestoneMenuEdit),
+          ),
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(sheetContext).pop('delete'),
+            child: Text(Copy.milestoneMenuDelete),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.of(sheetContext).pop(),
+          child: const Text(Copy.cancel),
+        ),
+      ),
     );
     if (action == null) return;
     switch (action) {
@@ -249,31 +263,29 @@ class MilestonesPage extends ConsumerWidget {
 
   Future<String?> _achieveNote(BuildContext context) async {
     final controller = TextEditingController();
-    final p = TargetPalette.of(context);
-    final note = await showDialog<String>(
+    final note = await showCupertinoDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(Copy.milestoneMenuDone),
-        content: TextField(
-          controller: controller,
-          maxLines: 2,
-          decoration: InputDecoration(
-            hintText: '这一步的感觉（选填）',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: p.divider),
-            ),
+      barrierDismissible: true,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: Text(Copy.milestoneMenuDone),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: CupertinoTextField(
+            controller: controller,
+            maxLines: 2,
+            placeholder: '这一步的感觉（选填）',
           ),
         ),
         actions: [
-          TextButton(
+          CupertinoDialogAction(
             onPressed: () => Navigator.of(dialogContext).pop(''),
-            child: const Text(Copy.cancel),
+            child: Text(Copy.cancel),
           ),
-          FilledButton(
+          CupertinoDialogAction(
+            isDefaultAction: true,
             onPressed: () =>
                 Navigator.of(dialogContext).pop(controller.text),
-            child: const Text(Copy.done),
+            child: Text(Copy.done),
           ),
         ],
       ),
@@ -288,49 +300,11 @@ class MilestonesPage extends ConsumerWidget {
   ) async {
     final title = TextEditingController(text: m.title);
     final desc = TextEditingController(text: m.description ?? '');
-    final p = TargetPalette.of(context);
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(Copy.milestoneMenuEdit),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: title,
-              decoration: InputDecoration(
-                labelText: Copy.milestoneFieldTitle,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide(color: p.divider),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: desc,
-              maxLines: 2,
-              decoration: InputDecoration(
-                labelText: Copy.milestoneFieldDesc,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide(color: p.divider),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(Copy.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(Copy.save),
-          ),
-        ],
-      ),
+    final saved = await _showMilestoneForm(
+      context,
+      title: Copy.milestoneMenuEdit,
+      titleController: title,
+      descController: desc,
     );
     if (saved == true) {
       await ref.read(milestoneRepoProvider).update(
@@ -346,50 +320,12 @@ class MilestonesPage extends ConsumerWidget {
   Future<void> _add(BuildContext context, WidgetRef ref) async {
     final title = TextEditingController();
     final desc = TextEditingController();
-    final p = TargetPalette.of(context);
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text(Copy.milestonesAdd),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: title,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: Copy.milestoneFieldTitle,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide(color: p.divider),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: desc,
-              maxLines: 2,
-              decoration: InputDecoration(
-                labelText: Copy.milestoneFieldDesc,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  borderSide: BorderSide(color: p.divider),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text(Copy.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text(Copy.save),
-          ),
-        ],
-      ),
+    final saved = await _showMilestoneForm(
+      context,
+      title: Copy.milestonesAdd,
+      titleController: title,
+      descController: desc,
+      autofocus: true,
     );
     if (saved == true && title.text.trim().isNotEmpty) {
       await ref.read(milestoneRepoProvider).add(
@@ -403,47 +339,51 @@ class MilestonesPage extends ConsumerWidget {
           );
     }
   }
-}
 
-class _MilestoneMenu extends StatelessWidget {
-  const _MilestoneMenu({required this.m});
-
-  final Milestone m;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      margin: const EdgeInsets.all(8),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.flag_outlined, size: 20),
-            title: const Text(Copy.milestoneMenuDone),
-            onTap: () => Navigator.of(context).pop('done'),
+  /// 里程碑标题/描述表单对话框（新增与编辑共用）。
+  Future<bool?> _showMilestoneForm(
+    BuildContext context, {
+    required String title,
+    required TextEditingController titleController,
+    required TextEditingController descController,
+    bool autofocus = false,
+  }) {
+    final text = AppText.of(context);
+    return showCupertinoDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => CupertinoAlertDialog(
+        title: Text(title),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            children: [
+              CupertinoTextField(
+                controller: titleController,
+                autofocus: autofocus,
+                placeholder: Copy.milestoneFieldTitle,
+                style: text.bodyM,
+              ),
+              const SizedBox(height: 12),
+              CupertinoTextField(
+                controller: descController,
+                maxLines: 2,
+                placeholder: Copy.milestoneFieldDesc,
+                style: text.bodyM,
+              ),
+            ],
           ),
-          ListTile(
-            leading: const Icon(Icons.edit_outlined, size: 20),
-            title: const Text(Copy.milestoneMenuEdit),
-            onTap: () => Navigator.of(context).pop('edit'),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(Copy.cancel),
           ),
-          const Divider(height: 1),
-          ListTile(
-            leading: Icon(Icons.delete_outline,
-                size: 20, color: theme.colorScheme.error),
-            title: Text(
-              Copy.milestoneMenuDelete,
-              style: TextStyle(color: theme.colorScheme.error),
-            ),
-            onTap: () => Navigator.of(context).pop('delete'),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(Copy.save),
           ),
-          const SizedBox(height: 4),
         ],
       ),
     );

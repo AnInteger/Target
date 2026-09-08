@@ -1,8 +1,9 @@
 /// v3 路由（006 IA）：/goals 默认 + /activity 分支 + push 详情/里程碑/
 /// 编辑器/设置；旧路由 redirect 兜底；深链 target:// 同步。
+/// v3.1：转场改 CupertinoPage（iOS 右进左出）。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -30,14 +31,14 @@ GoRouter _build() => GoRouter(
       routes: [
         GoRoute(
           path: '/goal-editor',
-          pageBuilder: (context, state) => _fadePush(
+          pageBuilder: (context, state) => _cupertinoPush(
             state,
             GoalEditorPage(goalId: state.uri.queryParameters['id']),
           ),
         ),
         GoRoute(
           path: '/goal/:id',
-          pageBuilder: (context, state) => _fadePush(
+          pageBuilder: (context, state) => _cupertinoPush(
             state,
             GoalDetailPage(goalId: state.pathParameters['id']!),
           ),
@@ -45,7 +46,7 @@ GoRouter _build() => GoRouter(
         GoRoute(
           path: '/settings',
           pageBuilder: (context, state) =>
-              _fadePush(state, const SettingsView()),
+              _cupertinoPush(state, const SettingsView()),
         ),
         StatefulShellRoute.indexedStack(
           builder: (_, _, shell) => AppShell(navigationShell: shell),
@@ -68,13 +69,10 @@ GoRouter _build() => GoRouter(
       ],
     );
 
-CustomTransitionPage<void> _fadePush(GoRouterState state, Widget child) {
-  return CustomTransitionPage<void>(
+CupertinoPage<void> _cupertinoPush(GoRouterState state, Widget child) {
+  return CupertinoPage<void>(
     key: state.pageKey,
     child: child,
-    transitionDuration: const Duration(milliseconds: 250),
-    transitionsBuilder: (_, animation, _, child) =>
-        FadeTransition(opacity: animation, child: child),
   );
 }
 

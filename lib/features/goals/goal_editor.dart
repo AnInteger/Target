@@ -1,13 +1,19 @@
 /// v3 目标编辑器（R2 定稿：属性行 + 选择器 sheet；名称必填即可保存）。
+/// v3.1：Cupertino 组件重写——CupertinoListSection/ListTile 属性行、
+/// CupertinoTextField、CupertinoSwitch、CupertinoSlidingSegmentedControl、
+/// CupertinoActionSheet/CupertinoDatePicker 选择器。
 library;
 
 import 'dart:async' show unawaited;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
+import '../../app/sheet.dart';
+import '../../app/toast.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
@@ -57,11 +63,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     final editing = widget.goalId != null;
     if (editing && !_loaded) _loadExisting();
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
 
-    return Scaffold(
+    return CupertinoPageScaffold(
       backgroundColor: p.background,
-      body: SafeArea(
+      child: SafeArea(
         bottom: false,
         child: Column(
           children: [
@@ -92,96 +98,118 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _card(
-                    child: Column(
-                      children: [
-                        _row(
-                          Copy.fieldCategory,
+                  _propertySection(
+                    context,
+                    children: [
+                      CupertinoListTile(
+                        title: Text(Copy.fieldCategory),
+                        additionalInfo: Text(
                           _category == null
                               ? Copy.categoryUncategorized
                               : Copy.categoryOf(_category!.name),
-                          onTap: _pickCategory,
+                          style: text.bodyM,
                         ),
-                        _divider(),
-                        _row(
-                          Copy.fieldIconColor,
-                          '',
-                          onTap: _pickIcon,
-                          trailing: Row(
-                            children: [
-                              Icon(
-                                goalIconData(_iconKey),
-                                size: 18,
-                                color: GoalPalette.byKey(
-                                  _colorKey ??
-                                      (_category?.defaultColorKey ??
-                                          'gray'),
-                                  brightness: Theme.of(context).brightness,
-                                ),
+                        trailing: _chevron(context),
+                        backgroundColor: p.surface,
+                        onTap: _pickCategory,
+                      ),
+                      CupertinoListTile(
+                        title: Text(Copy.fieldIconColor),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              goalIconData(_iconKey),
+                              size: 18,
+                              color: GoalPalette.byKey(
+                                _colorKey ??
+                                    (_category?.defaultColorKey ?? 'gray'),
+                                brightness:
+                                    TargetPalette.brightnessOf(context),
                               ),
-                              const SizedBox(width: 8),
-                              _colorDot(context),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 8),
+                            _colorDot(context),
+                            const SizedBox(width: 8),
+                            _chevron(context),
+                          ],
                         ),
-                        _divider(),
-                        _row(
-                          Copy.fieldPinned,
-                          '',
-                          trailing: Switch(
-                            value: _pinned,
-                            onChanged: (v) => setState(() => _pinned = v),
-                          ),
+                        backgroundColor: p.surface,
+                        onTap: _pickIcon,
+                      ),
+                      CupertinoListTile(
+                        title: Text(Copy.fieldPinned),
+                        trailing: CupertinoSwitch(
+                          value: _pinned,
+                          activeTrackColor: p.accent,
+                          onChanged: (v) => setState(() => _pinned = v),
                         ),
-                        _divider(),
-                        _row(
-                          Copy.fieldTargetDate,
+                        backgroundColor: p.surface,
+                      ),
+                      CupertinoListTile(
+                        title: Text(Copy.fieldTargetDate),
+                        additionalInfo: Text(
                           _targetDate == null
                               ? Copy.dateNone
                               : _targetDate!.isoString,
-                          onTap: _pickDate,
+                          style: text.bodyM,
                         ),
-                        _divider(),
-                        _row(
-                          Copy.fieldFrequency,
+                        trailing: _chevron(context),
+                        backgroundColor: p.surface,
+                        onTap: _pickDate,
+                      ),
+                      CupertinoListTile(
+                        title: Text(Copy.fieldFrequency),
+                        additionalInfo: Text(
                           _frequency == null
                               ? Copy.freqNone
                               : _frequencyLabel(_frequency!),
-                          onTap: _pickFrequency,
+                          style: text.bodyM,
                         ),
-                      ],
-                    ),
+                        trailing: _chevron(context),
+                        backgroundColor: p.surface,
+                        onTap: _pickFrequency,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   _label(Copy.reminderGroup),
-                  _card(
-                    child: Column(
-                      children: [
-                        _row(
-                          Copy.reminderToggle,
-                          '',
-                          trailing: Switch(
-                            value: _reminderEnabled,
-                            onChanged: (v) =>
-                                setState(() => _reminderEnabled = v),
-                          ),
+                  _propertySection(
+                    context,
+                    children: [
+                      CupertinoListTile(
+                        title: Text(Copy.reminderToggle),
+                        trailing: CupertinoSwitch(
+                          value: _reminderEnabled,
+                          activeTrackColor: p.accent,
+                          onChanged: (v) =>
+                              setState(() => _reminderEnabled = v),
                         ),
-                        if (_reminderEnabled) ...[
-                          _divider(),
-                          _row(
-                            Copy.reminderTime,
+                        backgroundColor: p.surface,
+                      ),
+                      if (_reminderEnabled) ...[
+                        CupertinoListTile(
+                          title: Text(Copy.reminderTime),
+                          additionalInfo: Text(
                             _reminderTime.isoString,
-                            onTap: _pickTime,
+                            style: text.bodyM,
                           ),
-                          _divider(),
-                          _row(
-                            Copy.reminderCadence,
+                          trailing: _chevron(context),
+                          backgroundColor: p.surface,
+                          onTap: _pickTime,
+                        ),
+                        CupertinoListTile(
+                          title: Text(Copy.reminderCadence),
+                          additionalInfo: Text(
                             _cadenceLabel(_reminderCadence),
-                            onTap: _pickCadence,
+                            style: text.bodyM,
                           ),
-                        ],
+                          trailing: _chevron(context),
+                          backgroundColor: p.surface,
+                          onTap: _pickCadence,
+                        ),
                       ],
-                    ),
+                    ],
                   ),
                   const SizedBox(height: 20),
                   _label(
@@ -194,31 +222,29 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                           Row(
                             children: [
                               Expanded(
-                                child: TextField(
+                                child: CupertinoTextField(
                                   controller: t,
-                                  style: text.bodyL
-                                      .copyWith(fontWeight: FontWeight.w600),
-                                  decoration: InputDecoration(
-                                    hintText: Copy.milestoneFieldTitle,
-                                    border: InputBorder.none,
-                                  ),
+                                  style: text.bodyL.copyWith(
+                                      fontWeight: FontWeight.w600),
+                                  placeholder: Copy.milestoneFieldTitle,
+                                  decoration: _transparentFieldDecoration,
                                 ),
                               ),
-                              IconButton(
-                                icon: Icon(Icons.close,
-                                    size: 16, color: p.danger),
+                              CupertinoButton(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.square(30),
                                 onPressed: () =>
                                     setState(() => _milestones.removeAt(i)),
+                                child: Icon(CupertinoIcons.xmark,
+                                    size: 16, color: p.danger),
                               ),
                             ],
                           ),
-                          TextField(
+                          CupertinoTextField(
                             controller: d,
                             style: text.bodyM,
-                            decoration: InputDecoration(
-                              hintText: Copy.milestoneFieldDesc,
-                              border: InputBorder.none,
-                            ),
+                            placeholder: Copy.milestoneFieldDesc,
+                            decoration: _transparentFieldDecoration,
                           ),
                         ],
                       ),
@@ -232,7 +258,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                         ))),
                     child: Row(
                       children: [
-                        Icon(Icons.flag_outlined,
+                        Icon(CupertinoIcons.flag,
                             size: 18, color: p.onSurfaceVariant),
                         const SizedBox(width: 12),
                         Text(
@@ -261,18 +287,14 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   // ---- 头部（系统样式文本按钮） ----
 
   Widget _header(BuildContext context, bool editing) {
-    final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
         children: [
-          GestureDetector(
+          HeaderTextButton(
+            label: Copy.cancel,
             onTap: () => Navigator.of(context).pop(),
-            child: Text(
-              Copy.cancel,
-              style: text.bodyL.copyWith(color: p.accentText),
-            ),
           ),
           Expanded(
             child: Center(
@@ -282,15 +304,10 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
               ),
             ),
           ),
-          GestureDetector(
+          HeaderTextButton(
+            label: Copy.save,
+            emphasized: true,
             onTap: _canSave ? _save : null,
-            child: Text(
-              Copy.save,
-              style: text.bodyL.copyWith(
-                color: _canSave ? p.accentText : p.onSurfaceTertiary,
-                fontWeight: _canSave ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
           ),
         ],
       ),
@@ -299,35 +316,43 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
 
   // ---- 组件 ----
 
-  Widget _card({required Widget child, VoidCallback? onTap}) {
+  BoxDecoration get _transparentFieldDecoration => const BoxDecoration(
+        color: CupertinoColors.transparent,
+      );
+
+  Widget _chevron(BuildContext context) {
     final p = TargetPalette.of(context);
-    return Material(
-      color: p.surface,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppSpace.s4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            boxShadow: p.shadowLow,
-          ),
-          child: child,
-        ),
-      ),
-    );
+    return Icon(CupertinoIcons.chevron_forward,
+        size: 14, color: p.onSurfaceTertiary.withValues(alpha: 0.6));
   }
 
-  Widget _divider() {
+  Widget _card({required Widget child, VoidCallback? onTap}) {
+    return AppCard(padding: const EdgeInsets.all(AppSpace.s4), onTap: onTap, child: child);
+  }
+
+  Widget _propertySection(
+    BuildContext context, {
+    required List<Widget> children,
+  }) {
     final p = TargetPalette.of(context);
-    return Divider(height: 1, color: p.divider);
+    return CupertinoListSection.insetGrouped(
+      margin: EdgeInsets.zero,
+      topMargin: null,
+      backgroundColor: CupertinoColors.transparent,
+      hasLeading: false,
+      separatorColor: p.divider,
+      decoration: BoxDecoration(
+        color: p.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: p.shadowLow,
+      ),
+      children: children,
+    );
   }
 
   Widget _label(String s) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child:
@@ -343,73 +368,34 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     ValueChanged<String>? onChanged,
   }) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
             style: text.bodyS.copyWith(color: p.onSurfaceVariant)),
         const SizedBox(height: 6),
-        TextField(
+        CupertinoTextField(
           controller: controller,
           maxLines: maxLines,
           onChanged: onChanged,
           style: text.bodyL,
-          decoration: InputDecoration(
-            hintText: hint,
-            isDense: true,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: p.divider),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: p.divider),
-            ),
+          placeholder: hint,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: p.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: p.divider, width: 0.5),
           ),
         ),
       ],
     );
   }
 
-  Widget _row(
-    String label,
-    String value, {
-    VoidCallback? onTap,
-    Widget? trailing,
-  }) {
-    final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: text.bodyL)),
-            if (value.isNotEmpty)
-              Text(
-                value,
-                style: text.bodyM.copyWith(color: p.onSurfaceVariant),
-              ),
-            if (trailing != null) ...[
-              const SizedBox(width: 8),
-              trailing,
-            ],
-            if (trailing == null)
-              Icon(Icons.chevron_right,
-                  size: 14,
-                  color: p.onSurfaceTertiary.withValues(alpha: 0.6)),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _colorDot(BuildContext context) {
     final color = GoalPalette.byKey(
       _colorKey ?? (_category?.defaultColorKey ?? 'gray'),
-      brightness: Theme.of(context).brightness,
+      brightness: TargetPalette.brightnessOf(context),
     );
     return Container(
       width: 24,
@@ -421,33 +407,13 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   // ---- 选择器 ----
 
   Future<void> _pickCategory() async {
-    final p = TargetPalette.of(context);
-    final chosen = await showModalBottomSheet<GoalCategory>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: BoxDecoration(
-          color: p.background,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadius.xl),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 14),
-              for (final c in GoalCategory.values)
-                ListTile(
-                  title: Text(Copy.categoryOf(c.name)),
-                  onTap: () => Navigator.of(context).pop(c),
-                ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        ),
-      ),
+    final chosen = await showAppChoiceSheet<GoalCategory>(
+      context,
+      title: Copy.fieldCategory,
+      selected: _category,
+      options: [
+        for (final c in GoalCategory.values) (c, Copy.categoryOf(c.name)),
+      ],
     );
     if (chosen != null) {
       setState(() {
@@ -472,119 +438,128 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   }
 
   Future<void> _pickDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate:
-          _targetDate == null
-              ? DateTime.now()
-              : DateTime(_targetDate!.year, _targetDate!.month, _targetDate!.day),
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    final now = DateTime.now();
+    final picked = await showAppDatePicker(
+      context,
+      initial: _targetDate == null
+          ? now
+          : DateTime(
+              _targetDate!.year, _targetDate!.month, _targetDate!.day),
+      first: now.subtract(const Duration(days: 365)),
+      last: now.add(const Duration(days: 3650)),
     );
     if (picked != null) setState(() => _targetDate = LocalDate.fromDateTime(picked));
   }
 
   Future<void> _pickFrequency() async {
-    final p = TargetPalette.of(context);
     var weeklyTimes = 3;
     final weekdays = <int>{1, 3};
     var mode = 0; // 0 不设 1 每天 2 每周N次 3 指定星期
 
-    final confirmed = await showModalBottomSheet<bool>(
-      context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+    final confirmed = await showAppSheet<bool>(
+      context,
       builder: (_) => StatefulBuilder(
-        builder: (sheetContext, setSheet) => Container(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-          decoration: BoxDecoration(
-            color: p.background,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppRadius.xl),
+        builder: (sheetContext, setSheet) {
+          final text = AppText.of(sheetContext);
+          return AppSheet(
+            resizeForKeyboard: false,
+            title: Copy.frequencySheetTitle,
+            leading: HeaderTextButton(
+              label: Copy.cancel,
+              onTap: () => Navigator.of(sheetContext).pop(false),
             ),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Center(
-                    child: Text(
-                      Copy.frequencySheetTitle,
-                      style: Theme.of(sheetContext).textTheme.titleM,
-                    ),
-                  ),
-                ),
-                Text(Copy.frequencyQuestion),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+            trailing: HeaderTextButton(
+              label: Copy.done,
+              emphasized: true,
+              onTap: () => Navigator.of(sheetContext).pop(true),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final (i, label) in [
-                      Copy.freqNone,
-                      Copy.freqDaily,
-                      Copy.freqWeekly,
-                      Copy.freqWeekdays,
-                    ].indexed)
-                      ChoiceChip(
-                        label: Text(label),
-                        selected: mode == i,
-                        onSelected: (_) => setSheet(() => mode = i),
-                      ),
-                  ],
-                ),
-                if (mode == 2)
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () => setSheet(
-                            () => weeklyTimes = (weeklyTimes - 1).clamp(1, 7)),
-                      ),
-                      Text('$weeklyTimes 次 / 周'),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline),
-                        onPressed: () => setSheet(
-                            () => weeklyTimes = (weeklyTimes + 1).clamp(1, 7)),
-                      ),
-                    ],
-                  ),
-                if (mode == 3)
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      for (final d in [1, 2, 3, 4, 5, 6, 7])
-                        FilterChip(
-                          label: Text('一二三四五六日'[d - 1]),
-                          selected: weekdays.contains(d),
-                          onSelected: (on) => setSheet(() {
-                            on ? weekdays.add(d) : weekdays.remove(d);
-                          }),
+                    Text(Copy.frequencyQuestion),
+                    const SizedBox(height: 12),
+                    CupertinoSlidingSegmentedControl<int>(
+                      groupValue: mode,
+                      onValueChanged: (m) => setSheet(() => mode = m!),
+                      children: {
+                        for (final (i, label) in [
+                          Copy.freqNone,
+                          Copy.freqDaily,
+                          Copy.freqWeekly,
+                          Copy.freqWeekdays,
+                        ].indexed)
+                          i: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 4, horizontal: 2),
+                            child: Text(label),
+                          ),
+                      },
+                    ),
+                    if (mode == 2)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Row(
+                          children: [
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.square(36),
+                              onPressed: () => setSheet(() =>
+                                  weeklyTimes = (weeklyTimes - 1).clamp(1, 7)),
+                              child: const Icon(
+                                  CupertinoIcons.minus_circled,
+                                  size: 26),
+                            ),
+                            SizedBox(
+                              width: 120,
+                              child: Center(
+                                child: Text('$weeklyTimes 次 / 周',
+                                    style: text.titleM),
+                              ),
+                            ),
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.square(36),
+                              onPressed: () => setSheet(() =>
+                                  weeklyTimes = (weeklyTimes + 1).clamp(1, 7)),
+                              child: const Icon(
+                                  CupertinoIcons.add_circled,
+                                  size: 26),
+                            ),
+                          ],
                         ),
-                    ],
-                  ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(sheetContext).pop(false),
-                      child: const Text(Copy.cancel),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.of(sheetContext).pop(true),
-                      child: const Text(Copy.done),
-                    ),
+                      ),
+                    if (mode == 3)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final d in [1, 2, 3, 4, 5, 6, 7])
+                              PillSelectButton<void>(
+                                label: '一二三四五六日'[d - 1],
+                                selected: weekdays.contains(d),
+                                onTap: () => setSheet(() {
+                                  weekdays.contains(d)
+                                      ? weekdays.remove(d)
+                                      : weekdays.add(d);
+                                }),
+                              ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 8),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
     if (confirmed != true) return;
@@ -602,44 +577,23 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   }
 
   Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: _reminderTime.hour, minute: _reminderTime.minute),
+    final picked = await showAppTimePicker(
+      context,
+      initial: _reminderTime,
     );
     if (picked != null) {
-      setState(
-          () => _reminderTime = LocalTime(picked.hour, picked.minute));
+      setState(() => _reminderTime = picked);
     }
   }
 
   Future<void> _pickCadence() async {
-    final p = TargetPalette.of(context);
-    final chosen = await showModalBottomSheet<Cadence>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: BoxDecoration(
-          color: p.background,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadius.xl),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 14),
-              for (final c in Cadence.values)
-                ListTile(
-                  title: Text(_cadenceLabel(c)),
-                  onTap: () => Navigator.of(context).pop(c),
-                ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        ),
-      ),
+    final chosen = await showAppChoiceSheet<Cadence>(
+      context,
+      title: Copy.reminderCadence,
+      selected: _reminderCadence,
+      options: [
+        for (final c in Cadence.values) (c, _cadenceLabel(c)),
+      ],
     );
     if (chosen != null) setState(() => _reminderCadence = chosen);
   }
@@ -757,9 +711,8 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     }
 
     if (mounted) {
+      AppToast.show(context, Copy.editorGoalSavedToast);
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text(Copy.editorGoalSavedToast)));
     }
   }
 }

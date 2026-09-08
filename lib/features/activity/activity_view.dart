@@ -1,10 +1,13 @@
 /// v3 动态页（tab 2）：周切换 + 本周投入柱状卡 + 里程碑汇总 +
 /// feed（记录/达成混排）+「日历」直达每日投入（所有日期，R2/R3 定稿）。
+/// v3.1：Cupertino 组件重写。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
@@ -12,7 +15,6 @@ import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import '../../core/models/relative_time.dart';
 import '../../core/stats/stats_engine.dart';
-import '../goals/goals_view.dart' show GlassCircleButton;
 import 'daily_calendar_sheet.dart';
 
 class ActivityView extends ConsumerStatefulWidget {
@@ -30,6 +32,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
+    final text = AppText.of(context);
     final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
     final records =
         ref.watch(recordsProvider).value ?? const <ProgressRecord>[];
@@ -64,36 +67,29 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(Copy.activityTitle,
-                              style:
-                                  Theme.of(context).textTheme.displayL),
+                          Text(Copy.activityTitle, style: text.displayL),
                           const SizedBox(height: 2),
                           Text(
                             Copy.activitySubtitle,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyM
-                                .copyWith(color: p.onSurfaceVariant),
+                            style:
+                                text.bodyM.copyWith(color: p.onSurfaceVariant),
                           ),
                         ],
                       ),
                     ),
-                    // R3 定稿：双玻璃圆钮（日历直达 + 设置）。
+                    // R3 定稿：双圆钮（日历直达 + 设置）。
                     Row(
                       children: [
-                        GlassCircleButton(
-                          icon: Icons.calendar_today_outlined,
-                          tooltip: Copy.calendarEntry,
+                        CircleIconButton(
+                          icon: CupertinoIcons.calendar,
                           onTap: () =>
                               showDailyCalendarSheet(context, records),
                         ),
                         const SizedBox(width: 8),
                         const SizedBox(height: 8),
-                        GlassCircleButton(
-                          icon: Icons.person_outline,
-                          tooltip: Copy.settingsTitle,
-                          onTap: () =>
-                              _goSettings(),
+                        CircleIconButton(
+                          icon: CupertinoIcons.person,
+                          onTap: _goSettings,
                         ),
                       ],
                     ),
@@ -126,18 +122,16 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(Copy.recentFeed,
-                          style: Theme.of(context).textTheme.titleM),
+                      child: Text(Copy.recentFeed, style: text.titleM),
                     ),
-                    GestureDetector(
-                      onTap: () =>
+                    CupertinoButton(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.square(32),
+                      onPressed: () =>
                           showDailyCalendarSheet(context, records),
                       child: Text(
                         Copy.calendarEntry,
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyM
-                            .copyWith(color: p.accentText),
+                        style: text.bodyM.copyWith(color: p.accentText),
                       ),
                     ),
                   ],
@@ -177,7 +171,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
 
   void _goSettings() {
     // R2/R3 定稿：设置入口在动态页头部。
-    Navigator.of(context, rootNavigator: false);
+    context.push('/settings');
   }
 }
 
@@ -189,41 +183,34 @@ class _WeekNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _navBtn(context, Icons.chevron_left, () => onChange(week.previous)),
+          CircleIconButton(
+            icon: CupertinoIcons.chevron_back,
+            size: 32,
+            iconSize: 14,
+            foregroundColor: TargetPalette.of(context).onSurfaceTertiary,
+            onTap: () => onChange(week.previous),
+          ),
           const SizedBox(width: 16),
           Text(
             '${week.monday.month}月${week.monday.day}日 — '
             '${week.sunday.month}月${week.sunday.day}日',
-            style: Theme.of(context)
-                .textTheme
-                .bodyM
-                .copyWith(fontWeight: FontWeight.w500),
+            style: text.bodyM.copyWith(fontWeight: FontWeight.w500),
           ),
           const SizedBox(width: 16),
-          _navBtn(context, Icons.chevron_right, () => onChange(week.next)),
+          CircleIconButton(
+            icon: CupertinoIcons.chevron_forward,
+            size: 32,
+            iconSize: 14,
+            foregroundColor: TargetPalette.of(context).onSurfaceTertiary,
+            onTap: () => onChange(week.next),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _navBtn(BuildContext context, IconData icon, VoidCallback onTap) {
-    final p = TargetPalette.of(context);
-    return SizedBox(
-      width: 32,
-      height: 32,
-      child: Material(
-        color: p.surface,
-        shape: const CircleBorder(),
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: onTap,
-          child: Icon(icon, size: 14, color: p.onSurfaceTertiary),
-        ),
       ),
     );
   }
@@ -245,15 +232,10 @@ class _WeekCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     final maxMin = week.perDayMinutes.fold<int>(0, (m, v) => v > m ? v : m);
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(AppSpace.s4),
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -334,14 +316,9 @@ class _MilestoneCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
-    return Container(
+    final text = AppText.of(context);
+    return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
-      ),
       child: Row(
         children: [
           Container(
@@ -351,7 +328,7 @@ class _MilestoneCard extends StatelessWidget {
               color: p.milestoneTint,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.flag, size: 22, color: p.milestone),
+            child: Icon(CupertinoIcons.flag_fill, size: 22, color: p.milestone),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(Copy.milestoneCardTitle, style: text.titleM)),
@@ -361,7 +338,7 @@ class _MilestoneCard extends StatelessWidget {
               width: 0.5, height: 28, color: p.divider, margin: const EdgeInsets.symmetric(horizontal: 16)),
           _stat(context, Copy.milestonePending,
               Copy.milestoneCount(summary.pendingAll)),
-          Icon(Icons.chevron_right,
+          Icon(CupertinoIcons.chevron_forward,
               size: 14,
               color: p.onSurfaceTertiary.withValues(alpha: 0.6)),
         ],
@@ -370,7 +347,7 @@ class _MilestoneCard extends StatelessWidget {
   }
 
   Widget _stat(BuildContext context, String k, String v) {
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Column(
       children: [
         Text(k, style: text.labelS),
@@ -394,21 +371,16 @@ class _FeedRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     final goal =
         goals.where((g) => g.id == item.goalId).firstOrNull;
     final color = goal == null
         ? p.onSurfaceVariant
-        : GoalPalette.byKey(goal.colorKey,
-            brightness: Theme.of(context).brightness);
-    return Container(
+        : GoalPalette.byKey(
+            goal.colorKey, brightness: TargetPalette.brightnessOf(context));
+    return AppCard(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -423,7 +395,7 @@ class _FeedRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(
-              item.isMilestone ? Icons.flag : Icons.edit_outlined,
+              item.isMilestone ? CupertinoIcons.flag_fill : CupertinoIcons.square_pencil,
               size: 17,
               color: item.isMilestone ? p.milestone : color,
             ),
@@ -473,14 +445,9 @@ class _EmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
-    return Container(
+    final text = AppText.of(context);
+    return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
-      ),
       child: Column(
         children: [
           Text(title,

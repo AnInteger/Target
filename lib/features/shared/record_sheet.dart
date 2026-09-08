@@ -1,14 +1,19 @@
 /// v3 记录进展 sheet（富记录；R1–R3 定稿，系统样式头部）。
+/// v3.1：Cupertino 组件重写——AppSheet 容器、CupertinoTextField、
+/// CupertinoListTile meta 行、ActionSheet/DatePicker 选择器、AppToast。
 ///
 /// 全局记录钮 / 详情 CTA / 菜单共用；目标切换（暂停/归档不列）；
 /// 标题必填 + 正文 + 时长快捷档 + 日期（今天/昨天/更早）+ 里程碑关联。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
+import '../../app/sheet.dart';
+import '../../app/toast.dart';
 import '../../core/copy.dart';
 import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
@@ -18,11 +23,8 @@ Future<void> showRecordSheet(
   BuildContext context, {
   String? goalId,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useRootNavigator: true,
-    backgroundColor: Colors.transparent,
+  return showAppSheet(
+    context,
     builder: (_) => _RecordSheet(initialGoalId: goalId),
   );
 }
@@ -64,8 +66,7 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     final goals =
         ref.watch(goalsProvider).value ?? const <Goal>[];
     final recordable = goals
@@ -81,102 +82,48 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
         .toList();
     final today = ref.watch(todayProvider);
 
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.92,
-        ),
-        decoration: BoxDecoration(
-          color: p.background,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadius.xl),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            grabber(context),
-            _header(context),
-            Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                children: [
-                  if (recordable.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(Copy.goalsEmptyBody,
-                          style: text.bodyM,
-                          textAlign: TextAlign.center),
-                    )
-                  else ...[
-                    _label(context, Copy.recordGoalLabel),
-                    _goalSelector(context, recordable, goal),
-                    const SizedBox(height: 16),
-                    _label(context, Copy.recordWhatLabel),
-                    _editorCard(context),
-                    const SizedBox(height: 20),
-                    _label(context, Copy.recordDuration),
-                    _metaRows(context, milestones, today),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: Text(
-                        Copy.recordSlogan,
-                        style: text.bodyS
-                            .copyWith(color: p.onSurfaceVariant),
-                      ),
-                    ),
-                  ],
-                ],
+    return AppSheet(
+      resizeForKeyboard: true,
+      maxHeightFactor: 0.92,
+      title: Copy.recordSheetTitle,
+      leading: HeaderTextButton(
+        label: Copy.cancel,
+        onTap: () => Navigator.of(context).pop(),
+      ),
+      trailing: HeaderTextButton(
+        label: Copy.save,
+        emphasized: true,
+        onTap: _canSave ? _save : null,
+      ),
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+        children: [
+          if (recordable.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(Copy.goalsEmptyBody,
+                  style: text.bodyM,
+                  textAlign: TextAlign.center),
+            )
+          else ...[
+            _label(context, Copy.recordGoalLabel),
+            _goalSelector(context, recordable, goal),
+            const SizedBox(height: 16),
+            _label(context, Copy.recordWhatLabel),
+            _editorCard(context),
+            const SizedBox(height: 20),
+            _label(context, Copy.recordDuration),
+            _metaRows(context, milestones, today),
+            const SizedBox(height: 12),
+            Center(
+              child: Text(
+                Copy.recordSlogan,
+                style: text.bodyS
+                    .copyWith(color: TargetPalette.of(context).onSurfaceVariant),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget grabber(BuildContext context) => Container(
-        margin: const EdgeInsets.only(top: 10, bottom: 4),
-        width: 40,
-        height: 5,
-        decoration: BoxDecoration(
-          color: TargetPalette.of(context).divider,
-          borderRadius: BorderRadius.circular(3),
-        ),
-      );
-
-  Widget _header(BuildContext context) {
-    final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Text(
-              Copy.cancel,
-              style: text.bodyL.copyWith(color: p.accentText),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: Text(Copy.recordSheetTitle, style: text.titleM),
-            ),
-          ),
-          GestureDetector(
-            onTap: _canSave ? _save : null,
-            child: Text(
-              Copy.save,
-              style: text.bodyL.copyWith(
-                color: _canSave ? p.accentText : p.onSurfaceTertiary,
-                fontWeight: _canSave ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -184,7 +131,7 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
 
   Widget _label(BuildContext context, String s) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
       child: Text(
@@ -196,62 +143,59 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
 
   Widget _goalSelector(BuildContext context, List<Goal> goals, Goal? cur) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     if (cur == null) return const SizedBox.shrink();
     final color = GoalPalette.byKey(
-        cur.colorKey, brightness: Theme.of(context).brightness);
-    return Material(
-      color: p.surface,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        onTap: () => setState(() => _switching = !_switching),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpace.s4),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Icon(_goalIcon(cur), size: 18, color: color),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      cur.name,
-                      style: text.bodyL
-                          .copyWith(fontWeight: FontWeight.w600),
-                    ),
+        cur.colorKey, brightness: TargetPalette.brightnessOf(context));
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpace.s4),
+      child: Column(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _switching = !_switching),
+            child: Row(
+              children: [
+                Icon(_goalIcon(cur), size: 18, color: color),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    cur.name,
+                    style: text.bodyL
+                        .copyWith(fontWeight: FontWeight.w600),
                   ),
-                  Icon(Icons.unfold_more,
-                      size: 16, color: p.onSurfaceTertiary),
-                ],
-              ),
-              if (_switching)
-                for (final g in goals.where((g) => g.id != cur.id))
-                  InkWell(
-                    onTap: () => setState(() {
-                      _goalId = g.id;
-                      _milestoneId = null;
-                      _switching = false;
-                    }),
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Row(
-                        children: [
-                          Icon(_goalIcon(g),
-                              size: 18,
-                              color: GoalPalette.byKey(
-                                  g.colorKey,
-                                  brightness:
-                                      Theme.of(context).brightness)),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text(g.name, style: text.bodyL)),
-                        ],
-                      ),
-                    ),
-                  ),
-            ],
+                ),
+                Icon(CupertinoIcons.chevron_up_chevron_down,
+                    size: 16, color: p.onSurfaceTertiary),
+              ],
+            ),
           ),
-        ),
+          if (_switching)
+            for (final g in goals.where((g) => g.id != cur.id))
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() {
+                  _goalId = g.id;
+                  _milestoneId = null;
+                  _switching = false;
+                }),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
+                    children: [
+                      Icon(_goalIcon(g),
+                          size: 18,
+                          color: GoalPalette.byKey(
+                              g.colorKey,
+                              brightness:
+                                  TargetPalette.brightnessOf(context))),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(g.name, style: text.bodyL)),
+                    ],
+                  ),
+                ),
+              ),
+        ],
       ),
     );
   }
@@ -260,38 +204,30 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
 
   Widget _editorCard(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
-    return Container(
+    final text = AppText.of(context);
+    return AppCard(
       padding: const EdgeInsets.all(AppSpace.s4),
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
-      ),
       child: Column(
         children: [
-          TextField(
+          CupertinoTextField(
             controller: _title,
             onChanged: (_) => setState(() {}),
             style: text.bodyL.copyWith(fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              hintText: Copy.recordTitleHint,
-              border: InputBorder.none,
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: p.divider, width: 0.5),
+            placeholder: Copy.recordTitleHint,
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: p.divider, width: 0.5),
               ),
             ),
           ),
           const SizedBox(height: 10),
-          TextField(
+          CupertinoTextField(
             controller: _body,
             maxLines: 4,
             minLines: 3,
             style: text.bodyM,
-            decoration: InputDecoration(
-              hintText: Copy.recordBodyHint,
-              border: InputBorder.none,
-            ),
+            placeholder: Copy.recordBodyHint,
+            decoration: const BoxDecoration(),
           ),
         ],
       ),
@@ -304,108 +240,76 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
     LocalDate today,
   ) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     final day = _day ?? today;
-    return Container(
+    return CupertinoListSection.insetGrouped(
+      margin: EdgeInsets.zero,
+      topMargin: null,
+      backgroundColor: CupertinoColors.transparent,
+      separatorColor: p.divider,
       decoration: BoxDecoration(
         color: p.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.schedule, size: 17),
-            title: Text(Copy.recordDuration, style: text.bodyL),
-            trailing: Text(
-              _duration == null
-                  ? Copy.recordMilestonePick
-                  : Copy.durationMinutes(_duration!),
-              style: text.bodyM.copyWith(color: p.onSurfaceVariant),
-            ),
-            onTap: _pickDuration,
+      children: [
+        CupertinoListTile(
+          leading: Icon(CupertinoIcons.clock, size: 20, color: p.onSurface),
+          title: Text(Copy.recordDuration),
+          additionalInfo: Text(
+            _duration == null
+                ? Copy.recordMilestonePick
+                : Copy.durationMinutes(_duration!),
+            style: text.bodyM,
           ),
-          Divider(height: 1, color: p.divider),
-          ListTile(
-            leading: const Icon(Icons.calendar_today_outlined, size: 17),
-            title: Text(Copy.recordDate, style: text.bodyL),
-            trailing: Text(
-              day.isoString,
-              style: text.bodyM.copyWith(color: p.onSurfaceVariant),
-            ),
-            onTap: () => _pickDate(today),
+          backgroundColor: p.surface,
+          onTap: _pickDuration,
+        ),
+        CupertinoListTile(
+          leading: Icon(CupertinoIcons.calendar, size: 20, color: p.onSurface),
+          title: Text(Copy.recordDate),
+          additionalInfo: Text(
+            day.isoString,
+            style: text.bodyM,
           ),
-          Divider(height: 1, color: p.divider),
-          ListTile(
-            leading: const Icon(Icons.flag_outlined, size: 17),
-            title: Text(Copy.recordMilestone, style: text.bodyL),
-            trailing: Text(
-              _milestoneId == null
-                  ? Copy.recordMilestonePick
-                  : milestones
-                      .firstWhere((m) => m.id == _milestoneId)
-                      .title,
-              style: text.bodyM.copyWith(color: p.onSurfaceVariant),
-            ),
-            onTap: () => _pickMilestone(milestones),
+          backgroundColor: p.surface,
+          onTap: () => _pickDate(today),
+        ),
+        CupertinoListTile(
+          leading: Icon(CupertinoIcons.flag, size: 20, color: p.onSurface),
+          title: Text(Copy.recordMilestone),
+          additionalInfo: Text(
+            _milestoneId == null
+                ? Copy.recordMilestonePick
+                : milestones
+                    .firstWhere((m) => m.id == _milestoneId)
+                    .title,
+            style: text.bodyM,
           ),
-        ],
-      ),
+          backgroundColor: p.surface,
+          onTap: () => _pickMilestone(milestones),
+        ),
+      ],
     );
   }
 
   Future<void> _pickDuration() async {
-    final p = TargetPalette.of(context);
-    final chosen = await showModalBottomSheet<int>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        decoration: BoxDecoration(
-          color: p.background,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadius.xl),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 14),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(Copy.durationQuestion,
-                    style: Theme.of(context).textTheme.titleM),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final m in _durations)
-                      ActionChip(
-                        label: Text(Copy.durationMinutes(m)),
-                        onPressed: () =>
-                            Navigator.of(sheetContext).pop(m),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
+    final chosen = await showAppChoiceSheet<int>(
+      context,
+      title: Copy.durationQuestion,
+      selected: _duration,
+      options: [
+        for (final m in _durations) (m, Copy.durationMinutes(m)),
+      ],
     );
     if (chosen != null) setState(() => _duration = chosen);
   }
 
   Future<void> _pickDate(LocalDate today) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 1)),
+    final picked = await showAppDatePicker(
+      context,
+      initial: DateTime.now(),
+      first: DateTime(2020),
+      last: DateTime.now().add(const Duration(days: 1)),
     );
     if (picked != null) {
       setState(() => _day = LocalDate.fromDateTime(picked));
@@ -414,37 +318,14 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
 
   Future<void> _pickMilestone(List<Milestone> milestones) async {
     if (milestones.isEmpty) return;
-    final p = TargetPalette.of(context);
-    final chosen = await showModalBottomSheet<String>(
-      context: context,
-      useRootNavigator: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => Container(
-        decoration: BoxDecoration(
-          color: p.background,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppRadius.xl),
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 14),
-              for (final m in milestones)
-                ListTile(
-                  title: Text(m.title),
-                  onTap: () => Navigator.of(sheetContext).pop(m.id),
-                ),
-              ListTile(
-                title: Text(Copy.recordMilestonePick),
-                onTap: () => Navigator.of(sheetContext).pop(''),
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        ),
-      ),
+    final chosen = await showAppChoiceSheet<String>(
+      context,
+      title: Copy.recordMilestone,
+      selected: _milestoneId,
+      options: [
+        for (final m in milestones) (m.id, m.title),
+        ('', Copy.recordMilestonePick),
+      ],
     );
     if (chosen != null) setState(() => _milestoneId = chosen.isEmpty ? null : chosen);
   }
@@ -466,15 +347,12 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
           today: today,
         );
     if (!mounted) return;
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text(Copy.recordSavedToast),
-        action: SnackBarAction(
-          label: Copy.undo,
-          onPressed: () => ref.read(recordRepoProvider).remove(record.id),
-        ),
-      ),
+    AppToast.show(
+      context,
+      Copy.recordSavedToast,
+      actionLabel: Copy.undo,
+      onAction: () => ref.read(recordRepoProvider).remove(record.id),
     );
+    Navigator.of(context).pop();
   }
 }

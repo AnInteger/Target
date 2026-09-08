@@ -1,11 +1,14 @@
 /// v3 目标页（tab 1）：置顶大卡（两栏）+ 其他目标列表 + 空态 +
 /// 长按管理菜单 + 编辑置顶模式（R1–R3 定稿）。
+/// v3.1：Cupertino 组件重写（CircleIconButton / CupertinoButton.filled /
+/// CupertinoActivityIndicator）。
 library;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/controls.dart';
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
 import '../../core/copy.dart';
@@ -43,7 +46,7 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
       child: SafeArea(
         bottom: false,
         child: goalsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CupertinoActivityIndicator()),
           error: (e, _) => Center(child: Text('$e')),
           data: (goals) {
             if (goals.isEmpty) return _EmptyState(onCreate: () => _openEditor());
@@ -119,7 +122,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
       child: Row(
@@ -139,38 +142,11 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          GlassCircleButton(
-            icon: Icons.add,
+          CircleIconButton(
+            icon: CupertinoIcons.add,
             onTap: onCreate,
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 头部玻璃圆钮（新增/日历/设置等共用）。
-class GlassCircleButton extends StatelessWidget {
-  const GlassCircleButton({super.key, required this.icon, required this.onTap, this.tooltip});
-
-  final IconData icon;
-  final VoidCallback onTap;
-  final String? tooltip;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = TargetPalette.of(context);
-    return SizedBox(
-      width: 44,
-      height: 44,
-      child: Material(
-        color: p.glassCard,
-        borderRadius: BorderRadius.circular(22),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(22),
-          child: Icon(icon, size: 20, color: p.onSurface),
-        ),
       ),
     );
   }
@@ -186,15 +162,17 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
       child: Row(
         children: [
           Expanded(child: Text(title, style: text.titleM)),
           if (trailing != null)
-            GestureDetector(
-              onTap: onTrailing,
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: Size.square(32),
+              onPressed: onTrailing,
               child: Text(
                 trailing!,
                 style: text.bodyM.copyWith(color: p.accentText),
@@ -214,7 +192,7 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
-    final text = Theme.of(context).textTheme;
+    final text = AppText.of(context);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -223,12 +201,11 @@ class _EmptyState extends StatelessWidget {
             width: 88,
             height: 88,
             decoration: BoxDecoration(
-              color: p.glassCard,
+              color: p.surface,
               shape: BoxShape.circle,
-              border: Border.all(color: p.glassBorder, width: 0.5),
+              border: Border.all(color: p.divider, width: 0.5),
             ),
-            child: Icon(Icons.track_changes_outlined,
-                size: 36, color: p.accent),
+            child: Icon(CupertinoIcons.scope, size: 36, color: p.accent),
           ),
           const SizedBox(height: 12),
           Text(Copy.goalsEmptyTitle, style: text.titleM),
@@ -242,7 +219,10 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          FilledButton(onPressed: onCreate, child: Text(Copy.goalsEmptyCta)),
+          CupertinoButton.filled(
+            onPressed: onCreate,
+            child: Text(Copy.goalsEmptyCta),
+          ),
         ],
       ),
     );

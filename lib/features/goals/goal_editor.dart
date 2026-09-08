@@ -767,7 +767,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
 String _frequencyLabel(FrequencyPattern f) => switch (f) {
       DailyFrequency() => Copy.freqDaily,
       WeeklyFrequency(:final timesPerWeek) =>
-        '${Copy.freqWeekly}（${timesPerWeek}）',
+        '${Copy.freqWeekly}（$timesPerWeek）',
       WeekdaysFrequency() => Copy.freqWeekdays,
     };
 

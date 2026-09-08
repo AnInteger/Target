@@ -12,7 +12,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:target/app/app.dart';
 import 'package:target/app/design_tokens.dart';
 import 'package:target/app/providers.dart';
-import 'package:target/app/controls.dart';
 import 'package:target/core/copy.dart';
 import 'package:target/core/db/app_database.dart';
 import 'package:target/core/models/calendar_types.dart';

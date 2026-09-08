@@ -1,6 +1,7 @@
 # 006 任务清单
 
-> 纪律：T1xx 全部为「原型/规格」阶段；T2xx 起为代码任务，**T101 全屏冻结前不得开工**（FR-001）。
+> 纪律：T1xx 全部为「原型/规格」阶段；T2xx 起为代码任务，T101 已冻结（2026-09-08）。
+> 开发策略（用户裁定 2026-09-08）：分支 feat/v3-app-redesign；开发期单元测试范围收敛（随写仅留关键口径用例），**全量测试统一在 Phase 4 收口执行**，优先推进度。
 
 ## Phase 0 · 原型与规格
 
@@ -12,7 +13,7 @@
 - [x] T006 补画交互件：筛选 sheet（v3-activity ③）+ 日历投入视图（v3-activity ④）+ 管理菜单（v3-goals ④ / v3-goal-detail ③）
 - [x] T007 更新 index.html 评审入口 + reviews.md 送审记录（R1）
 - [x] T008 specs/006 落档（spec / data-model / contracts / tasks / quickstart / research）
-- [ ] T101 **R1 评审**：用户逐屏裁定；含六项待裁（筛选档/日历口径/设置入口/置顶排序形态/菜单文案/编辑器分组）→ 修订 → 冻结
+- [x] T101 评审闭环（R1→R2→R3 三轮，2026-09-08「过」；6 待裁项 + 1 观察项全裁定，见 reviews.md）
 - [ ] T102 令牌 Dart 镜像 design_tokens.dart + DesignTokens.swift + token_contract_test（三端对账）
 
 ## Phase 1 · 数据层重建（T101 冻结后）

@@ -1,11 +1,12 @@
-/// drift 持久化 schema —— 与领域实体 1:1 映射，不含业务规则。
+/// drift 持久化 schema v8（006 · 清库重建，无迁移链）。
 ///
-/// 存储约定（见 specs/001-life-goal-tracker/data-model.md + backup-format.md）：
-/// - LocalDate / WeekStart → TEXT "YYYY-MM-DD"（ISO，严格解析）
-/// - LocalTime            → TEXT "HH:mm"
-/// - Instant (DateTime)   → TEXT ISO-8601 UTC
-/// - FrequencyPattern     → TEXT JSON（与备份文件同一编码，frequency_pattern.dart）
-/// - 枚举                  → TEXT 枚举名（.name）
+/// 存储约定（specs/006-app-v3-redesign/data-model.md）：
+/// - LocalDate → TEXT "YYYY-MM-DD"（严格解析）
+/// - LocalTime → TEXT "HH:mm"
+/// - Instant (DateTime) → TEXT ISO-8601 UTC
+/// - FrequencyPattern → TEXT JSON（frequency_pattern.dart 同编码）
+/// - 枚举 → TEXT 枚举名（.name）
+/// 不建表：WeeklyReviews / FrequencyVersions / BusyMode* / CheckIns（退役）。
 library;
 
 import 'package:drift/drift.dart';
@@ -33,14 +34,10 @@ class _EnumText<T extends Enum> extends TypeConverter<T, String> {
   String toSql(T value) => value.name;
 }
 
-/// 003 v3：三类型 + 提醒频率档（值域见 entities.dart）。
-const goalTypeConverter = _EnumText<GoalType>(GoalType.values);
-const cadenceConverter = _EnumText<Cadence>(Cadence.values);
 const goalStatusConverter = _EnumText<GoalStatus>(GoalStatus.values);
-const frequencySourceConverter = _EnumText<FrequencySource>(
-  FrequencySource.values,
-);
-const checkInStatusConverter = _EnumText<CheckInStatus>(CheckInStatus.values);
+const cadenceConverter = _EnumText<Cadence>(Cadence.values);
+const recordKindConverter = _EnumText<RecordKind>(RecordKind.values);
+const categoryConverter = _EnumText<GoalCategory>(GoalCategory.values);
 
 class LocalDateText extends TypeConverter<LocalDate, String> {
   const LocalDateText();
@@ -50,16 +47,6 @@ class LocalDateText extends TypeConverter<LocalDate, String> {
 
   @override
   String toSql(LocalDate value) => value.isoString;
-}
-
-class WeekStartText extends TypeConverter<WeekStart, String> {
-  const WeekStartText();
-
-  @override
-  WeekStart fromSql(String fromDb) => WeekStart.parse(fromDb);
-
-  @override
-  String toSql(WeekStart value) => value.isoString;
 }
 
 class LocalTimeText extends TypeConverter<LocalTime, String> {
@@ -72,7 +59,6 @@ class LocalTimeText extends TypeConverter<LocalTime, String> {
   String toSql(LocalTime value) => value.isoString;
 }
 
-/// Instant：统一存 UTC ISO-8601。
 class IsoDateTimeText extends TypeConverter<DateTime, String> {
   const IsoDateTimeText();
 
@@ -98,143 +84,81 @@ class FrequencyPatternJson extends TypeConverter<FrequencyPattern, String> {
 // 表
 // ---------------------------------------------------------------------------
 
+@DataClassName('GoalRow')
 class Goals extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
-  // 003 v3：kind 重映射为三类型域（v2→v3 迁移见 app_database.dart）。
-  TextColumn get goalType => text().map(goalTypeConverter)();
+  TextColumn get why => text().nullable()();
+  TextColumn get categoryKey => text().nullable().map(categoryConverter)();
   TextColumn get iconKey => text()();
-  IntColumn get progressCadenceDays => integer().nullable()();
-  TextColumn get categoryOverride => text().nullable()();
+  TextColumn get colorKey => text()();
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+  IntColumn get pinnedOrder => integer().nullable()();
   TextColumn get targetDate => text().nullable().map(const LocalDateText())();
-  IntColumn get habitTargetPerWeek => integer().nullable()();
-  TextColumn get frequencyPattern =>
+  TextColumn get frequency =>
       text().nullable().map(const FrequencyPatternJson())();
-  TextColumn get archivedAt => text().nullable().map(const IsoDateTimeText())();
-  // 003 v3 退役：可空化 + 存量置 NULL（零丢失惯例：只藏不删，不上界面）。
-  TextColumn get colorKey => text().nullable()();
   TextColumn get status => text().map(goalStatusConverter)();
-  TextColumn get createdAt => text().map(const LocalDateText())();
-  TextColumn get deadline => text().nullable().map(const LocalDateText())();
-  // 003 v3 新增：手动「标记达成」时间戳（research D4；NULL=未达成，
-  // 与 GoalStatus.achieved 归档语义职责分离）。
   TextColumn get achievedAt => text().nullable().map(const IsoDateTimeText())();
-
-  /// US3 定义模型（002 B 案 envelope，schema v2 可空列，T014 定稿）：
-  /// motivation 动机 ≤60 字 / success_criterion 成功标准 ≤60 字 /
-  /// cue_scene 提醒场景 ≤40 字（空 = 回落默认时段）。旧目标全 NULL。
-  TextColumn get motivation => text().nullable()();
-  TextColumn get successCriterion => text().nullable()();
-  TextColumn get cueScene => text().nullable()();
+  TextColumn get archivedAt => text().nullable().map(const IsoDateTimeText())();
+  TextColumn get createdAt => text().map(const LocalDateText())();
 
   @override
   Set<Column> get primaryKey => {id};
 }
 
-class FrequencyVersions extends Table {
-  TextColumn get id => text()();
-  TextColumn get goalId => text().references(Goals, #id)();
-  TextColumn get effectiveFromWeek => text().map(const WeekStartText())();
-  TextColumn get pattern => text().map(const FrequencyPatternJson())();
-  TextColumn get source => text().map(frequencySourceConverter)();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class BusyModeSessions extends Table {
-  TextColumn get id => text()();
-  TextColumn get weekStart => text().map(const WeekStartText())();
-  TextColumn get startedAt => text().map(const IsoDateTimeText())();
-  TextColumn get endedAt => text().nullable().map(const IsoDateTimeText())();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-/// BusyModeSession.entries 的子行（sessionId, goalId, 降档频率）。
-class BusyModeEntries extends Table {
-  TextColumn get id => text()();
-  TextColumn get sessionId => text().references(BusyModeSessions, #id)();
-  TextColumn get goalId => text()();
-  TextColumn get downgraded => text().map(const FrequencyPatternJson())();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class CheckIns extends Table {
-  TextColumn get id => text()();
-  TextColumn get goalId => text().references(Goals, #id)();
-  TextColumn get day => text().map(const LocalDateText())();
-  TextColumn get createdAt => text().map(const IsoDateTimeText())();
-  BoolColumn get isBackfill => boolean()();
-  TextColumn get status => text().map(checkInStatusConverter)();
-
-  /// 一句话描述（FR-019，003 T044 / schema v4）：NULL=未填，
-  /// 显示层兜底「完成打卡」。
-  TextColumn get note => text().nullable()();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class MilestoneSteps extends Table {
+/// 富进展记录（替代 CheckIns；FR-002）。
+@DataClassName('RecordRow')
+class ProgressRecords extends Table {
   TextColumn get id => text()();
   TextColumn get goalId => text().references(Goals, #id)();
   TextColumn get title => text()();
+  TextColumn get body => text().nullable()();
+  IntColumn get durationMinutes => integer().nullable()();
+  TextColumn get day => text().map(const LocalDateText())();
+  TextColumn get createdAt => text().map(const IsoDateTimeText())();
+  BoolColumn get isBackfill => boolean().withDefault(const Constant(false))();
+  TextColumn get kind => text().map(recordKindConverter)();
+  TextColumn get milestoneId => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('MilestoneRow')
+class Milestones extends Table {
+  TextColumn get id => text()();
+  TextColumn get goalId => text().references(Goals, #id)();
+  TextColumn get title => text()();
+  TextColumn get description => text().nullable()();
   IntColumn get position => integer().withDefault(const Constant(0))();
-  BoolColumn get isDone => boolean()();
+  BoolColumn get isDone => boolean().withDefault(const Constant(false))();
   TextColumn get doneAt => text().nullable().map(const IsoDateTimeText())();
 
   @override
   Set<Column> get primaryKey => {id};
 }
 
+@DataClassName('ReminderRow')
 class Reminders extends Table {
   TextColumn get id => text()();
-  TextColumn get goalId => text().nullable().references(Goals, #id)();
+  TextColumn get goalId => text().references(Goals, #id)();
   TextColumn get time => text().map(const LocalTimeText())();
-  BoolColumn get isEnabled => boolean()();
-  // 003 v3 新增：提醒频率档（一天/三天/一周一次）；NULL 视为 daily。
-  TextColumn get cadence => text().nullable().map(cadenceConverter)();
-
-  @override
-  Set<Column> get primaryKey => {id};
-}
-
-class WeeklyReviews extends Table {
-  TextColumn get id => text()();
-  TextColumn get weekStart => text().map(const WeekStartText())();
-  TextColumn get settledAt => text().map(const IsoDateTimeText())();
-
-  /// GoalWeekStat 列表 JSON + decision JSON（编码见 repositories.dart）。
-  TextColumn get snapshotJson => text()();
-  TextColumn get decisionJson => text()();
-  TextColumn get note => text().nullable()();
+  BoolColumn get isEnabled => boolean().withDefault(const Constant(false))();
+  TextColumn get cadence => text().map(cadenceConverter)();
 
   @override
   Set<Column> get primaryKey => {id};
 }
 
 /// Settings 单例：固定 id = 1 一行。
+@DataClassName('SettingsRow')
 class SettingsRows extends Table {
   IntColumn get id => integer().withDefault(const Constant(1))();
-  TextColumn get dailyBriefTime => text().map(const LocalTimeText())();
-  // 003 v3 新增（research D7）：账号资料；NULL = 默认「我」+ 默认枚。
   TextColumn get nickname => text().nullable()();
   TextColumn get avatarKey => text().nullable()();
-  BoolColumn get onboardingCompleted =>
-      boolean().withDefault(const Constant(false))();
-  BoolColumn get notificationDeniedAcknowledged =>
-      boolean().withDefault(const Constant(false))();
-  // 004 v5 新增（research D2）：主题偏好 TEXT 枚举
-  // （system|light|dark），NULL = 跟随系统（003 完结态行为）。
   TextColumn get themeMode => text().nullable()();
-  IntColumn get defaultShortCadenceDays => integer().nullable()();
-  IntColumn get defaultLongCadenceDays => integer().nullable()();
-  TextColumn get scoreAlgorithmStartedOn =>
-      text().nullable().map(const LocalDateText())();
+  BoolColumn get remindersEnabled =>
+      boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column> get primaryKey => {id};

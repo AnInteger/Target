@@ -1,531 +1,488 @@
-/// 仓储层：drift 表 ⇄ 领域实体映射 + 流式查询（tasks.md T011）。
+/// v3 仓库层（schema v8）：目标 / 里程碑（达成流）/ 富记录 / 提醒 / 设置。
 ///
-/// UI/业务只面向这里与领域模型，不触碰 drift 行类型（故 db 导入用别名，
-/// 领域类不加前缀直接使用）。业务规则（频率版本唯一性、
-/// 撤销不删除）在本层把关；"今天/下周"由服务层按注入时钟算好传入。
+/// 业务事务边界（specs/006 spec FR-003/004/010）：
+/// - 目标创建 = goal + milestones + reminder 原子落库；
+/// - 里程碑达成 = isDone/doneAt + 达成记录同事务（撤销同步撤除）；
+/// - 置顶 = pinnedOrder 序维护（置顶=追加至末位，取消=压缩序号）。
+/// UI/业务只面向这里与领域模型，不触碰 drift 行类型。
 library;
-
-import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
 import '../models/calendar_types.dart';
 import '../models/entities.dart';
-import '../models/frequency_pattern.dart';
-import 'app_database.dart' as db;
-import 'goal_row_mapper.dart';
+import 'app_database.dart';
 
 // ---------------------------------------------------------------------------
-// GoalRepository（含 FrequencyVersion / BusyModeSession 管理）
+// 行 ⇄ 实体映射（库内顶层共享）
+// ---------------------------------------------------------------------------
+
+GoalsCompanion goalCompanion(Goal g) => GoalsCompanion.insert(
+      id: g.id,
+      name: g.name,
+      why: Value(g.why),
+      categoryKey: Value(g.categoryKey),
+      iconKey: g.iconKey,
+      colorKey: g.colorKey,
+      pinned: Value(g.pinned),
+      pinnedOrder: Value(g.pinnedOrder),
+      targetDate: Value(g.targetDate),
+      frequency: Value(g.frequency),
+      status: g.status,
+      createdAt: g.createdAt,
+      achievedAt: Value(g.achievedAt),
+      archivedAt: Value(g.archivedAt),
+    );
+
+Goal goalFromRow(GoalRow r) => Goal(
+      id: r.id,
+      name: r.name,
+      why: r.why,
+      categoryKey: r.categoryKey,
+      iconKey: r.iconKey,
+      colorKey: r.colorKey,
+      pinned: r.pinned,
+      pinnedOrder: r.pinnedOrder,
+      targetDate: r.targetDate,
+      frequency: r.frequency,
+      status: r.status,
+      achievedAt: r.achievedAt,
+      archivedAt: r.archivedAt,
+      createdAt: r.createdAt,
+    );
+
+MilestonesCompanion milestoneCompanion(Milestone m, {int? position}) =>
+    MilestonesCompanion.insert(
+      id: m.id,
+      goalId: m.goalId,
+      title: m.title,
+      description: Value(m.description),
+      position: Value(position ?? m.position),
+      isDone: Value(m.isDone),
+      doneAt: Value(m.doneAt),
+    );
+
+Milestone milestoneFromRow(MilestoneRow r) => Milestone(
+      id: r.id,
+      goalId: r.goalId,
+      title: r.title,
+      description: r.description,
+      position: r.position,
+      isDone: r.isDone,
+      doneAt: r.doneAt,
+    );
+
+ProgressRecordsCompanion recordCompanion(ProgressRecord r) =>
+    ProgressRecordsCompanion.insert(
+      id: r.id,
+      goalId: r.goalId,
+      title: r.title,
+      body: Value(r.body),
+      durationMinutes: Value(r.durationMinutes),
+      day: r.day,
+      createdAt: r.createdAt,
+      isBackfill: Value(r.isBackfill),
+      kind: r.kind,
+      milestoneId: Value(r.milestoneId),
+    );
+
+ProgressRecord recordFromRow(RecordRow r) => ProgressRecord(
+      id: r.id,
+      goalId: r.goalId,
+      title: r.title,
+      body: r.body,
+      durationMinutes: r.durationMinutes,
+      day: r.day,
+      createdAt: r.createdAt,
+      isBackfill: r.isBackfill,
+      kind: r.kind,
+      milestoneId: r.milestoneId,
+    );
+
+RemindersCompanion reminderCompanion(Reminder r, {String? id}) =>
+    RemindersCompanion.insert(
+      id: id ?? r.id,
+      goalId: r.goalId,
+      time: r.time,
+      isEnabled: Value(r.isEnabled),
+      cadence: r.cadence,
+    );
+
+Reminder reminderFromRow(ReminderRow r) => Reminder(
+      id: r.id,
+      goalId: r.goalId,
+      time: r.time,
+      isEnabled: r.isEnabled,
+      cadence: r.cadence,
+    );
+
+// ---------------------------------------------------------------------------
+// GoalRepository
 // ---------------------------------------------------------------------------
 
 class GoalRepository {
   GoalRepository(this._db);
 
-  final db.AppDatabase _db;
-
-  // ---- Goal ----
+  final AppDatabase _db;
 
   Stream<List<Goal>> watchGoals() =>
-      _db.select(_db.goals).map(GoalRowMapper.fromRow).watch();
-
-  /// 未归档的 active 目标。
-  Stream<List<Goal>> watchActiveGoals() =>
-      (_db.select(_db.goals)..where(
-            (t) =>
-                t.status.equalsValue(GoalStatus.active) & t.archivedAt.isNull(),
-          ))
-          .map(GoalRowMapper.fromRow)
+      (_db.select(_db.goals)
+            ..orderBy([
+              (g) => OrderingTerm.desc(g.pinned),
+              (g) => OrderingTerm.asc(g.pinnedOrder),
+              (g) => OrderingTerm.desc(g.createdAt),
+            ]))
+          .map(goalFromRow)
           .watch();
 
-  Future<List<Goal>> getGoals() =>
-      _db.select(_db.goals).map(GoalRowMapper.fromRow).get();
+  Future<List<Goal>> getGoals() async =>
+      (await (_db.select(_db.goals).get())).map(goalFromRow).toList();
 
-  Future<Goal> create(Goal goal) async {
-    await _db.into(_db.goals).insert(GoalRowMapper.toCompanion(goal));
-    return goal;
-  }
+  Future<Goal> goalById(String id) async =>
+      goalFromRow(await (_db.select(_db.goals)..where((g) => g.id.equals(id)))
+          .getSingle());
 
-  Future<void> update(Goal goal) => (_db.update(
-    _db.goals,
-  )..where((t) => t.id.equals(goal.id))).write(GoalRowMapper.toCompanion(goal));
+  /// 完整目标创建（编辑器保存）：goal + 里程碑 + 提醒原子落库。
+  Future<Goal> createPlan(
+    Goal goal,
+    List<Milestone> milestones, {
+    Reminder? reminder,
+  }) =>
+      _db.transaction(() async {
+        await _db.into(_db.goals).insert(goalCompanion(goal));
+        for (final (i, m) in milestones.indexed) {
+          await _db
+              .into(_db.milestones)
+              .insert(milestoneCompanion(m, position: i));
+        }
+        if (reminder != null) {
+          await _db.into(_db.reminders).insert(reminderCompanion(reminder));
+        }
+        return goal;
+      });
 
-  /// 物理删除（004 v2 详情「删除目标」）：连带打卡/步骤/提醒/频率版本
-  /// 全部级联清行，事务保证不留悬空外键；周回顾快照自含 JSON 不受影响
-  /// （spec 边界：往周统计按历史记录口径呈现，不因删除崩坏）。
+  Future<void> update(Goal goal) =>
+      (_db.update(_db.goals)..where((g) => g.id.equals(goal.id)))
+          .write(goalCompanion(goal));
+
+  /// 删除为独立破坏性操作：级联清记录/里程碑/提醒（UI 层二次确认）。
   Future<void> deleteGoal(String goalId) => _db.transaction(() async {
-    await (_db.delete(
-      _db.checkIns,
-    )..where((t) => t.goalId.equals(goalId))).go();
-    await (_db.delete(
-      _db.milestoneSteps,
-    )..where((t) => t.goalId.equals(goalId))).go();
-    await (_db.delete(
-      _db.reminders,
-    )..where((t) => t.goalId.equals(goalId))).go();
-    await (_db.delete(
-      _db.frequencyVersions,
-    )..where((t) => t.goalId.equals(goalId))).go();
-    await (_db.delete(_db.goals)..where((t) => t.id.equals(goalId))).go();
-  });
+        await (_db.delete(_db.progressRecords)
+              ..where((r) => r.goalId.equals(goalId)))
+            .go();
+        await (_db.delete(_db.milestones)
+              ..where((m) => m.goalId.equals(goalId)))
+            .go();
+        await (_db.delete(_db.reminders)
+              ..where((r) => r.goalId.equals(goalId)))
+            .go();
+        await (_db.delete(_db.goals)..where((g) => g.id.equals(goalId))).go();
+      });
 
-  // ---- FrequencyVersion（003 T013 停写：整表只读保全）----
-  // 003 起频率概念退役为提醒 cadence，App 不再创建/修改/删除版本行；
-  // 存量行保留供编辑器回显（effectivePattern）与备份往返（importer
-  // 直插还原，不走本仓储）。写入 API（addInitial/addUserEdit/
-  // addBusyMode/removeBusyMode）已删除。
-
-  Future<List<FrequencyVersion>> versionsOf(String goalId) =>
-      (_db.select(_db.frequencyVersions)
-            ..where((t) => t.goalId.equals(goalId))
-            ..orderBy([(t) => OrderingTerm.asc(t.effectiveFromWeek)]))
-          .map(_toVersion)
-          .get();
-
-  /// 全量版本流（编辑器/详情回显供货）。
-  Stream<List<FrequencyVersion>> watchAllVersions() =>
-      (_db.select(_db.frequencyVersions)
-            ..orderBy([(t) => OrderingTerm.asc(t.effectiveFromWeek)]))
-          .map(_toVersion)
-          .watch();
-
-  static FrequencyVersion _toVersion(db.FrequencyVersion r) => FrequencyVersion(
-    id: r.id,
-    goalId: r.goalId,
-    effectiveFromWeek: r.effectiveFromWeek,
-    pattern: r.pattern,
-    source: r.source,
-  );
-
-  // ---- MilestoneStep ----
-
-  Stream<List<MilestoneStep>> watchStepsOf(String goalId) =>
-      (_db.select(_db.milestoneSteps)
-            ..where((t) => t.goalId.equals(goalId))
-            ..orderBy([
-              (t) => OrderingTerm.asc(t.position),
-              (t) => OrderingTerm.asc(t.id),
-            ]))
-          .map(_toStep)
-          .watch();
-
-  /// 全量里程碑流。评分引擎一次性按 goalId 分组，避免在 Provider 中动态
-  /// watch family 导致订阅数量和目标列表互相耦合。
-  Stream<List<MilestoneStep>> watchAllSteps() =>
-      (_db.select(_db.milestoneSteps)..orderBy([
-            (t) => OrderingTerm.asc(t.goalId),
-            (t) => OrderingTerm.asc(t.position),
-            (t) => OrderingTerm.asc(t.id),
-          ]))
-          .map(_toStep)
-          .watch();
-
-  Future<List<MilestoneStep>> stepsOf(String goalId) =>
-      (_db.select(_db.milestoneSteps)
-            ..where((t) => t.goalId.equals(goalId))
-            ..orderBy([
-              (t) => OrderingTerm.asc(t.position),
-              (t) => OrderingTerm.asc(t.id),
-            ]))
-          .map(_toStep)
-          .get();
-
-  Future<MilestoneStep> addStep(MilestoneStep s) async {
-    await _db
-        .into(_db.milestoneSteps)
-        .insert(
-          db.MilestoneStepsCompanion.insert(
-            goalId: s.goalId,
-            title: s.title,
-            position: Value(s.position),
-            isDone: s.isDone,
-            doneAt: Value(s.doneAt),
-            id: s.id,
-          ),
-        );
-    return s;
-  }
-
-  /// 拖拽重排持久化：按传入顺序整体重写 position（0..n-1，顺带归一化
-  /// 历史多步同位的脏数据）。
-  Future<void> reorderSteps(String goalId, List<String> orderedIds) =>
-      _db.batch((batch) {
-        for (final (i, id) in orderedIds.indexed) {
-          batch.update(
-            _db.milestoneSteps,
-            db.MilestoneStepsCompanion(position: Value(i)),
-            where: (t) => t.id.equals(id) & t.goalId.equals(goalId),
-          );
+  /// 置顶：pinnedOrder 追加至末位；取消置顶：置空并压缩其余序号。
+  Future<void> setPinned(String goalId, bool pinned) =>
+      _db.transaction(() async {
+        if (pinned) {
+          final max = _db.selectOnly(_db.goals)
+            ..addColumns([_db.goals.pinnedOrder.max()])
+            ..where(_db.goals.pinned.equals(true));
+          final current =
+              (await max.getSingle()).read(_db.goals.pinnedOrder.max()) ?? -1;
+          await (_db.update(_db.goals)..where((g) => g.id.equals(goalId)))
+              .write(GoalsCompanion(
+                pinned: const Value(true),
+                pinnedOrder: Value(current + 1),
+              ));
+        } else {
+          await (_db.update(_db.goals)..where((g) => g.id.equals(goalId)))
+              .write(const GoalsCompanion(
+                pinned: Value(false),
+                pinnedOrder: Value(null),
+              ));
+          await _compactPinnedOrder();
         }
       });
 
-  Future<void> updateStep(MilestoneStep s) =>
-      (_db.update(_db.milestoneSteps)..where((t) => t.id.equals(s.id))).write(
-        db.MilestoneStepsCompanion(
-          title: Value(s.title),
-          position: Value(s.position),
-          isDone: Value(s.isDone),
-          doneAt: Value(s.doneAt),
-        ),
-      );
-
-  Future<void> removeStep(String id) =>
-      (_db.delete(_db.milestoneSteps)..where((t) => t.id.equals(id))).go();
-
-  static MilestoneStep _toStep(db.MilestoneStep r) => MilestoneStep(
-    id: r.id,
-    goalId: r.goalId,
-    title: r.title,
-    position: r.position,
-    isDone: r.isDone,
-    doneAt: r.doneAt,
-  );
-
-  // ---- BusyModeSession ----
-
-  /// 会话 + 子行两表拼接：主表流式，子表随行查询（数据量小，v1 可接受）。
-  Stream<List<BusyModeSession>> watchSessions() async* {
-    await for (final rows in _db.select(_db.busyModeSessions).watch()) {
-      final sessions = <BusyModeSession>[];
-      for (final r in rows) {
-        final entries =
-            await (_db.select(_db.busyModeEntries)
-                  ..where((t) => t.sessionId.equals(r.id)))
-                .map(
-                  (e) =>
-                      BusyModeEntry(goalId: e.goalId, downgraded: e.downgraded),
-                )
-                .get();
-        sessions.add(
-          BusyModeSession(
-            id: r.id,
-            weekStart: r.weekStart,
-            entries: entries,
-            startedAt: r.startedAt,
-            endedAt: r.endedAt,
-          ),
-        );
+  Future<void> _compactPinnedOrder() async {
+    final pinned = await (_db.select(_db.goals)
+          ..where((g) => g.pinned.equals(true))
+          ..orderBy([(g) => OrderingTerm.asc(g.pinnedOrder)]))
+        .get();
+    for (final (i, row) in pinned.indexed) {
+      if (row.pinnedOrder != i) {
+        await (_db.update(_db.goals)..where((g) => g.id.equals(row.id)))
+            .write(GoalsCompanion(pinnedOrder: Value(i)));
       }
-      yield sessions;
     }
   }
 
-  Future<BusyModeSession> openSession(
-    WeekStart week,
-    List<BusyModeEntry> entries,
-    DateTime now,
-  ) async {
-    final session = BusyModeSession(
-      weekStart: week,
-      entries: entries,
-      startedAt: now.toUtc(),
-    );
-    await _db.transaction(() async {
-      await _db
-          .into(_db.busyModeSessions)
-          .insert(
-            db.BusyModeSessionsCompanion.insert(
-              id: session.id,
-              weekStart: week,
-              startedAt: session.startedAt,
-              endedAt: Value(session.endedAt),
+  /// 编辑置顶模式：按拖拽结果重写置顶序（0..n）。
+  Future<void> reorderPinned(List<String> orderedGoalIds) =>
+      _db.transaction(() async {
+        for (final (i, id) in orderedGoalIds.indexed) {
+          await (_db.update(_db.goals)
+                ..where((g) => g.id.equals(id) & g.pinned.equals(true)))
+              .write(GoalsCompanion(pinnedOrder: Value(i)));
+        }
+      });
+
+  /// 生命周期流转（状态机校验；达成/归档落时间戳）。
+  Future<void> transit(String goalId, GoalStatus to, DateTime now) async {
+    final goal = await goalById(goalId);
+    if (!goal.canTransitTo(to)) {
+      throw StateError('${goal.status.name} → ${to.name} 非法流转');
+    }
+    await (_db.update(_db.goals)..where((g) => g.id.equals(goalId))).write(
+          GoalsCompanion(
+            status: Value(to),
+            achievedAt: Value(
+              to == GoalStatus.achieved
+                  ? now
+                  : to == GoalStatus.active
+                      ? null
+                      : goal.achievedAt,
             ),
-          );
-      for (final e in entries) {
-        await _db
-            .into(_db.busyModeEntries)
-            .insert(
-              db.BusyModeEntriesCompanion.insert(
-                id: newId(),
-                sessionId: session.id,
-                goalId: e.goalId,
-                downgraded: e.downgraded,
-              ),
-            );
-      }
-    });
-    return session;
-  }
-
-  Future<void> endSession(BusyModeSession session, DateTime now) =>
-      (_db.update(_db.busyModeSessions)..where((t) => t.id.equals(session.id)))
-          .write(db.BusyModeSessionsCompanion(endedAt: Value(now.toUtc())));
-}
-
-// ---------------------------------------------------------------------------
-// CheckInRepository
-// ---------------------------------------------------------------------------
-
-class CheckInRepository {
-  CheckInRepository(this._db);
-
-  final db.AppDatabase _db;
-
-  Stream<List<CheckIn>> watchOf(String goalId) => (_db.select(
-    _db.checkIns,
-  )..where((t) => t.goalId.equals(goalId))).map(_to).watch();
-
-  Stream<List<CheckIn>> watchAll() => _db.select(_db.checkIns).map(_to).watch();
-
-  Future<List<CheckIn>> all() => _db.select(_db.checkIns).map(_to).get();
-
-  /// 打卡（当日/补签统一入口）；isBackfill 由实体构造自动判定；
-  /// note = 一句话描述（FR-019，可空，NULL 显示层兜底「完成打卡」）。
-  Future<CheckIn> add(
-    String goalId,
-    LocalDate day,
-    DateTime now, {
-    String? note,
-  }) async {
-    final c = CheckIn(
-      goalId: goalId,
-      day: day,
-      createdAt: now.toUtc(),
-      note: note,
-    );
-    await _db
-        .into(_db.checkIns)
-        .insert(
-          db.CheckInsCompanion.insert(
-            id: c.id,
-            goalId: c.goalId,
-            day: c.day,
-            createdAt: c.createdAt,
-            isBackfill: c.isBackfill,
-            status: c.status,
-            note: Value(c.note),
+            archivedAt: Value(
+              to == GoalStatus.archived
+                  ? now
+                  : to == GoalStatus.active
+                      ? null
+                      : goal.archivedAt,
+            ),
           ),
         );
-    return c;
   }
-
-  /// 撤销 = 置 revoked，不物理删除（SC-003）。
-  Future<void> revoke(String checkInId) =>
-      (_db.update(_db.checkIns)..where((t) => t.id.equals(checkInId))).write(
-        const db.CheckInsCompanion(status: Value(CheckInStatus.revoked)),
-      );
-
-  static CheckIn _to(db.CheckIn r) => CheckIn(
-    id: r.id,
-    goalId: r.goalId,
-    day: r.day,
-    createdAt: r.createdAt,
-    status: r.status,
-    note: r.note,
-  );
 }
 
 // ---------------------------------------------------------------------------
-// ReminderRepository
+// MilestoneRepository
+// ---------------------------------------------------------------------------
+
+class MilestoneRepository {
+  MilestoneRepository(this._db);
+
+  final AppDatabase _db;
+
+  Stream<List<Milestone>> watchOf(String goalId) =>
+      (_db.select(_db.milestones)
+            ..where((m) => m.goalId.equals(goalId))
+            ..orderBy([(m) => OrderingTerm.asc(m.position)]))
+          .map(milestoneFromRow)
+          .watch();
+
+  Stream<List<Milestone>> watchAll() =>
+      (_db.select(_db.milestones)
+            ..orderBy([(m) => OrderingTerm.asc(m.position)]))
+          .map(milestoneFromRow)
+          .watch();
+
+  Future<List<Milestone>> of(String goalId) async =>
+      (await (_db.select(_db.milestones)
+            ..where((m) => m.goalId.equals(goalId))
+            ..orderBy([(m) => OrderingTerm.asc(m.position)]))
+          .get())
+          .map(milestoneFromRow)
+          .toList();
+
+  Future<Milestone> add(Milestone m) async {
+    final next = await _nextPosition(m.goalId);
+    final row = m.copyWith(position: next);
+    await _db.into(_db.milestones).insert(milestoneCompanion(row));
+    return row;
+  }
+
+  Future<int> _nextPosition(String goalId) async {
+    final q = _db.selectOnly(_db.milestones)
+      ..addColumns([_db.milestones.position.max()])
+      ..where(_db.milestones.goalId.equals(goalId));
+    return ((await q.getSingle()).read(_db.milestones.position.max()) ?? -1) + 1;
+  }
+
+  Future<void> update(Milestone m) =>
+      (_db.update(_db.milestones)..where((x) => x.id.equals(m.id)))
+          .write(milestoneCompanion(m));
+
+  Future<void> remove(String id) => _db.transaction(() async {
+        // 普通记录的关联引用置空；达成记录随里程碑删除一并移除。
+        await (_db.update(_db.progressRecords)
+              ..where((r) =>
+                  r.milestoneId.equals(id) &
+                  r.kind.equalsValue(RecordKind.normal)))
+            .write(const ProgressRecordsCompanion(milestoneId: Value(null)));
+        await (_db.delete(_db.progressRecords)
+              ..where((r) =>
+                  r.milestoneId.equals(id) &
+                  r.kind.equalsValue(RecordKind.milestoneAchievement)))
+            .go();
+        await (_db.delete(_db.milestones)..where((x) => x.id.equals(id))).go();
+      });
+
+  /// 按目标重排（编辑器拖拽）。
+  Future<void> reorder(String goalId, List<String> orderedIds) =>
+      _db.transaction(() async {
+        for (final (i, id) in orderedIds.indexed) {
+          await (_db.update(_db.milestones)
+                ..where((x) => x.id.equals(id) & x.goalId.equals(goalId)))
+              .write(MilestonesCompanion(position: Value(i)));
+        }
+      });
+
+  /// 达成流（FR-003）：isDone/doneAt + 达成记录同事务；可附一句话。
+  Future<void> markDone(String milestoneId, {String? note, DateTime? now}) =>
+      _db.transaction(() async {
+        final row = await (_db.select(_db.milestones)
+              ..where((x) => x.id.equals(milestoneId)))
+            .getSingle();
+        final at = (now ?? DateTime.now()).toUtc();
+        await (_db.update(_db.milestones)
+              ..where((x) => x.id.equals(milestoneId)))
+            .write(MilestonesCompanion(
+              isDone: const Value(true),
+              doneAt: Value(at),
+            ));
+        await _db.into(_db.progressRecords).insert(recordCompanion(
+              ProgressRecord(
+                goalId: row.goalId,
+                title: row.title,
+                body:
+                    (note == null || note.trim().isEmpty) ? null : note.trim(),
+                day: LocalDate.fromDateTime(DateTime.now()),
+                createdAt: at,
+                kind: RecordKind.milestoneAchievement,
+                milestoneId: milestoneId,
+              ),
+            ));
+      });
+
+  /// 撤销达成：清 doneAt 并删除对应达成记录。
+  Future<void> undoDone(String milestoneId) => _db.transaction(() async {
+        await (_db.update(_db.milestones)
+              ..where((x) => x.id.equals(milestoneId)))
+            .write(const MilestonesCompanion(
+          isDone: Value(false),
+          doneAt: Value(null),
+        ));
+        await (_db.delete(_db.progressRecords)
+              ..where((r) =>
+                  r.milestoneId.equals(milestoneId) &
+                  r.kind.equalsValue(RecordKind.milestoneAchievement)))
+            .go();
+      });
+}
+
+// ---------------------------------------------------------------------------
+// RecordRepository
+// ---------------------------------------------------------------------------
+
+class RecordRepository {
+  RecordRepository(this._db);
+
+  final AppDatabase _db;
+
+  Stream<List<ProgressRecord>> watchOf(String goalId) =>
+      (_db.select(_db.progressRecords)
+            ..where((r) => r.goalId.equals(goalId))
+            ..orderBy([(r) => OrderingTerm.desc(r.createdAt)]))
+          .map(recordFromRow)
+          .watch();
+
+  Stream<List<ProgressRecord>> watchAll() =>
+      (_db.select(_db.progressRecords)
+            ..orderBy([(r) => OrderingTerm.desc(r.createdAt)]))
+          .map(recordFromRow)
+          .watch();
+
+  /// 写入：day 早于创建当日自动判 isBackfill（FR-002 补记）。
+  Future<ProgressRecord> add(ProgressRecord r, {LocalDate? today}) async {
+    final fallbackToday = LocalDate.fromDateTime(DateTime.now());
+    final isBackfill = r.day.isBefore(today ?? fallbackToday);
+    final row = ProgressRecord(
+      id: r.id,
+      goalId: r.goalId,
+      title: r.title,
+      body: r.body,
+      durationMinutes: r.durationMinutes,
+      day: r.day,
+      createdAt: r.createdAt,
+      isBackfill: isBackfill,
+      kind: r.kind,
+      milestoneId: r.milestoneId,
+    );
+    await _db.into(_db.progressRecords).insert(recordCompanion(row));
+    return row;
+  }
+
+  /// 撤销/删除单条记录（保存 toast 撤销与详情删除共用）。
+  Future<void> remove(String id) =>
+      (_db.delete(_db.progressRecords)..where((r) => r.id.equals(id))).go();
+}
+
+// ---------------------------------------------------------------------------
+// ReminderRepository / SettingsRepository
 // ---------------------------------------------------------------------------
 
 class ReminderRepository {
   ReminderRepository(this._db);
 
-  final db.AppDatabase _db;
+  final AppDatabase _db;
 
   Stream<List<Reminder>> watchAll() =>
-      _db.select(_db.reminders).map(_to).watch();
+      _db.select(_db.reminders).map(reminderFromRow).watch();
 
-  Future<List<Reminder>> all() => _db.select(_db.reminders).map(_to).get();
+  Future<List<Reminder>> all() async =>
+      (await (_db.select(_db.reminders).get())).map(reminderFromRow).toList();
 
-  Future<Reminder> upsert(Reminder r) async {
-    await _db
-        .into(_db.reminders)
-        .insert(
-          db.RemindersCompanion.insert(
-            id: r.id,
-            goalId: Value(r.goalId),
-            time: r.time,
-            isEnabled: r.isEnabled,
-            cadence: Value(r.cadence),
-          ),
-          mode: InsertMode.insertOrReplace,
-        );
-    return r;
+  Future<Reminder?> of(String goalId) async {
+    final rows = await (_db.select(_db.reminders)
+          ..where((r) => r.goalId.equals(goalId)))
+        .get();
+    return rows.isEmpty ? null : reminderFromRow(rows.first);
   }
 
-  Future<void> remove(String id) =>
-      (_db.delete(_db.reminders)..where((t) => t.id.equals(id))).go();
-
-  Future<void> removeByGoal(String goalId) =>
-      (_db.delete(_db.reminders)..where((t) => t.goalId.equals(goalId))).go();
-
-  static Reminder _to(db.Reminder r) => Reminder(
-    id: r.id,
-    goalId: r.goalId,
-    time: r.time,
-    isEnabled: r.isEnabled,
-    cadence: r.cadence,
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ReviewRepository（含 GoalWeekStat / decision 的 JSON 编解码）
-// ---------------------------------------------------------------------------
-
-class ReviewRepository {
-  ReviewRepository(this._db);
-
-  final db.AppDatabase _db;
-
-  Stream<List<WeeklyReview>> watchAll() =>
-      _db.select(_db.weeklyReviews).map(_to).watch();
-
-  Future<List<WeeklyReview>> all() =>
-      _db.select(_db.weeklyReviews).map(_to).get();
-
-  Future<void> save(WeeklyReview r) => _db
-      .into(_db.weeklyReviews)
-      .insert(
-        db.WeeklyReviewsCompanion.insert(
-          id: r.id,
-          weekStart: r.weekStart,
-          settledAt: r.settledAt,
-          snapshotJson: encodeSnapshot(r.snapshot),
-          decisionJson: encodeDecision(r.decision),
-          note: Value(r.note),
-        ),
-        mode: InsertMode.insertOrReplace,
-      );
-
-  static WeeklyReview _to(db.WeeklyReview r) => WeeklyReview(
-    id: r.id,
-    weekStart: r.weekStart,
-    settledAt: r.settledAt,
-    snapshot: decodeSnapshot(r.snapshotJson),
-    note: r.note,
-    decision: decodeDecision(r.decisionJson),
-  );
-
-  // ---- 编解码（备份文件复用同一格式，contracts/backup-format.md）----
-
-  static String encodeSnapshot(List<GoalWeekStat> stats) => jsonEncode(
-    stats
-        .map(
-          (s) => {
-            'goalId': s.goalId,
-            'metDays': s.metDays,
-            'totalChecks': s.totalChecks,
-            'backfillCount': s.backfillCount,
-            'busyModeApplied': s.busyModeApplied,
-          },
-        )
-        .toList(),
-  );
-
-  /// 003 口径收敛后的键；旧快照（applicableDays/completionRate）宽容
-  /// 读取——未知键忽略、缺失键取默认（001 惯例，快照仅留痕）。
-  static List<GoalWeekStat> decodeSnapshot(String json) =>
-      (jsonDecode(json) as List).map((e) {
-        final m = Map<String, dynamic>.from(e as Map);
-        return GoalWeekStat(
-          goalId: m['goalId'] as String,
-          metDays: m['metDays'] as int? ?? 0,
-          totalChecks: m['totalChecks'] as int? ?? 0,
-          backfillCount: m['backfillCount'] as int? ?? 0,
-          busyModeApplied: m['busyModeApplied'] as bool? ?? false,
-        );
-      }).toList();
-
-  static String encodeDecision(ReviewDecision d) {
-    switch (d) {
-      case ContinueDecision():
-        return jsonEncode({'type': 'continue'});
-      case AdjustDecision(:final newPattern):
-        return jsonEncode({'type': 'adjust', 'pattern': newPattern.toJson()});
-      case PauseDecision():
-        return jsonEncode({'type': 'pause'});
+  /// 每目标至多一条（v3 语义）；有则更新无则插入。
+  Future<void> upsert(Reminder r) async {
+    final existing = await of(r.goalId);
+    if (existing == null) {
+      await _db.into(_db.reminders).insert(reminderCompanion(r));
+    } else {
+      await (_db.update(_db.reminders)..where((x) => x.id.equals(existing.id)))
+          .write(reminderCompanion(r, id: existing.id));
     }
   }
 
-  static ReviewDecision decodeDecision(String json) {
-    final m = Map<String, dynamic>.from(jsonDecode(json) as Map);
-    return switch (m['type'] as String) {
-      'adjust' => AdjustDecision(
-        FrequencyPattern.fromJson(Map<String, dynamic>.from(m['pattern'])),
-      ),
-      'pause' => const PauseDecision(),
-      _ => const ContinueDecision(),
-    };
-  }
+  Future<void> removeByGoal(String goalId) =>
+      (_db.delete(_db.reminders)..where((r) => r.goalId.equals(goalId))).go();
 }
-
-// ---------------------------------------------------------------------------
-// SettingsRepository
-// ---------------------------------------------------------------------------
 
 class SettingsRepository {
   SettingsRepository(this._db);
 
-  final db.AppDatabase _db;
+  final AppDatabase _db;
 
-  /// onCreate 已插入单例行；防御性 get-or-create。
-  Stream<Settings> watch() => (_db.select(
-    _db.settingsRows,
-  )..where((t) => t.id.equals(1))).map(_to).watchSingle();
+  Stream<AppSettings> watch() =>
+      (_db.select(_db.settingsRows)..where((s) => s.id.equals(1)))
+          .watchSingle()
+          .map(_to);
 
-  Future<Settings> get() async {
-    final rows = await _db.select(_db.settingsRows).get();
-    if (rows.isNotEmpty) return _to(rows.first);
-    const fallback = Settings();
-    await _db
-        .into(_db.settingsRows)
-        .insert(
-          db.SettingsRowsCompanion.insert(
-            dailyBriefTime: fallback.dailyBriefTime,
-          ),
-        );
-    return fallback;
-  }
-
-  Future<void> update(Settings s) =>
-      (_db.update(_db.settingsRows)..where((t) => t.id.equals(1))).write(
-        db.SettingsRowsCompanion(
-          dailyBriefTime: Value(s.dailyBriefTime),
-          onboardingCompleted: Value(s.onboardingCompleted),
-          notificationDeniedAcknowledged: Value(
-            s.notificationDeniedAcknowledged,
-          ),
-          // 004 v5（D2）：NULL 与 'system' 等价，统一落 .name。
-          themeMode: Value(s.themeMode.name),
-          defaultShortCadenceDays: Value(s.defaultShortCadenceDays),
-          defaultLongCadenceDays: Value(s.defaultLongCadenceDays),
-          scoreAlgorithmStartedOn: Value(s.scoreAlgorithmStartedOn),
-        ),
+  Future<AppSettings> get() async => _to(
+        await (_db.select(_db.settingsRows)..where((s) => s.id.equals(1)))
+            .getSingle(),
       );
 
-  static Settings _to(db.SettingsRow r) => Settings(
-    dailyBriefTime: r.dailyBriefTime,
-    onboardingCompleted: r.onboardingCompleted,
-    notificationDeniedAcknowledged: r.notificationDeniedAcknowledged,
-    themeMode: AppThemeMode.parse(r.themeMode),
-    defaultShortCadenceDays: r.defaultShortCadenceDays ?? 7,
-    defaultLongCadenceDays: r.defaultLongCadenceDays ?? 14,
-    scoreAlgorithmStartedOn: r.scoreAlgorithmStartedOn,
-  );
-
-  /// 003 v3 账号资料（D7：单例行 nickname/avatar_key 两列）。
-  Stream<Profile> watchProfile() =>
-      (_db.select(_db.settingsRows)..where((t) => t.id.equals(1)))
-          .map((r) => Profile(nickname: r.nickname, avatarKey: r.avatarKey))
-          .watchSingle();
-
-  Future<Profile> getProfile() async {
-    final rows = await _db.select(_db.settingsRows).get();
-    return rows.isEmpty
-        ? Profile.empty
-        : Profile(
-            nickname: rows.first.nickname,
-            avatarKey: rows.first.avatarKey,
+  Future<void> update(AppSettings s) =>
+      (_db.update(_db.settingsRows)..where((x) => x.id.equals(1))).write(
+            SettingsRowsCompanion(
+              nickname: Value(s.nickname),
+              avatarKey: Value(s.avatarKey),
+              themeMode: Value(s.themeMode),
+              remindersEnabled: Value(s.remindersEnabled),
+            ),
           );
-  }
 
-  Future<void> updateProfile(Profile p) =>
-      (_db.update(_db.settingsRows)..where((t) => t.id.equals(1))).write(
-        db.SettingsRowsCompanion(
-          nickname: Value(p.nickname),
-          avatarKey: Value(p.avatarKey),
-        ),
+  AppSettings _to(SettingsRow r) => AppSettings(
+        nickname: r.nickname,
+        avatarKey: r.avatarKey,
+        themeMode: r.themeMode,
+        remindersEnabled: r.remindersEnabled,
       );
 }

@@ -1,192 +1,161 @@
-/// 统计引擎：所有界面数字的唯一事实来源。
+/// v3 统计引擎（006 FR-005/007）：投入时长口径的纯函数实现。
 ///
-/// 003 口径收敛（contracts/goal-type-model.md）：适用日/达标判定退役
-/// （FrequencyPattern.isApplicableOn 退出调用图），只生产——
-/// streak 连续留痕 / 周留痕天数 / 周记录数 / 全完成日。
-/// 打卡 = 一条有效 CheckIns；当日 ≥1 次 → 环满（0→1 封顶）。
-/// 三类型均打卡，引擎不按类型过滤（消费方自选活跃集）。
-///
+/// 旧评分/健康分/建议/连击/周结算 API 全部退役（spec 3.3 删除清单）。
+/// 口径：投入分钟数仅累计 durationMinutes 非空的记录；无时长记录
+/// 计入「记录数」但不计入分钟数。
 library;
 
 import '../models/calendar_types.dart';
 import '../models/entities.dart';
 
-/// 单目标单日状态（今日环 / 小组件快照 / 回顾页节奏条消费）。
-class DayStatus {
-  const DayStatus({
-    required this.goalId,
-    required this.doneCount,
-    required this.backfilledCount,
+/// 一周投入汇总（动态页统计卡）。
+class WeekInvestment {
+  const WeekInvestment({
+    required this.totalMinutes,
+    required this.recordCount,
+    required this.perDayMinutes,
   });
 
+  final int totalMinutes;
+
+  /// 周内全部记录数（含无时长记录与达成事件）。
+  final int recordCount;
+
+  /// 周一→周日逐日投入分钟（长度恒 7）。
+  final List<int> perDayMinutes;
+
+  int get hours => totalMinutes ~/ 60;
+
+  int get remainderMinutes => totalMinutes % 60;
+}
+
+/// 里程碑汇总（动态页里程碑卡：本周达成 / 全部待达成）。
+class MilestoneSummary {
+  const MilestoneSummary({
+    required this.achievedThisWeek,
+    required this.pendingAll,
+  });
+
+  final int achievedThisWeek;
+  final int pendingAll;
+}
+
+/// 单日投入（日历视图数据源）。
+class DailyInvestment {
+  const DailyInvestment({
+    required this.day,
+    required this.minutes,
+    required this.recordCount,
+  });
+
+  final LocalDate day;
+  final int minutes;
+  final int recordCount;
+}
+
+/// 动态 feed 条目（记录 + 达成事件混排；goal 名由 UI 目标表补充）。
+class FeedItem {
+  const FeedItem({
+    required this.record,
+    required this.goalId,
+    required this.goalName,
+  });
+
+  final ProgressRecord record;
   final String goalId;
+  final String goalName;
 
-  /// 当日有效打卡次数（超额如实计数）。
-  final int doneCount;
-
-  /// 当日补签次数。
-  final int backfilledCount;
-
-  /// 当日环：≥1 次打卡即满（0→1 封顶）。
-  bool get done => doneCount >= 1;
+  bool get isMilestone => record.kind == RecordKind.milestoneAchievement;
 }
 
-/// 生活电量：今日环均值（done 目标占比）；null = 无活跃目标（空态）。
-class LifeBattery {
-  const LifeBattery(this.percent);
-
-  final int? percent;
-}
-
-/// 一次 evaluate 的结果：按 goalId 查询各口径数字。
-class StatsEvaluation {
-  StatsEvaluation({
-    required List<Goal> goals,
-    required List<CheckIn> checkIns,
-    required LocalDate today,
-  }) : _goals = {for (final g in goals) g.id: g} {
-    for (final c in checkIns.where((c) => c.isValid)) {
-      _validByGoalDay
-          .putIfAbsent(c.goalId, () => {})
-          .putIfAbsent(c.day, () => [])
-          .add(c);
-    }
-    _today = today;
-  }
-
-  final Map<String, Goal> _goals;
-  final Map<String, Map<LocalDate, List<CheckIn>>> _validByGoalDay = {};
-  late final LocalDate _today;
-
-  /// [day] 缺省 = 注入的今天；目标未创建 → 恒零。
-  DayStatus dayStatusOf(String goalId, [LocalDate? day]) {
-    final d = day ?? _today;
-    final goal = _goals[goalId];
-    if (goal == null || d.isBefore(goal.createdAt)) return _zero(goalId);
-    final checks = _validByGoalDay[goalId]?[d] ?? const <CheckIn>[];
-    return DayStatus(
-      goalId: goalId,
-      doneCount: checks.length,
-      backfilledCount: checks.where((c) => c.isBackfill).length,
-    );
-  }
-
-  DayStatus _zero(String goalId) =>
-      DayStatus(goalId: goalId, doneCount: 0, backfilledCount: 0);
-
-  /// 单目标最近一次有效留痕日（无记录 → null；提醒排程 threeDay/weekly
-  /// 档的锚定日，contracts/goal-type-model）。
-  LocalDate? lastCheckInDayOf(String goalId) {
-    final days = _validByGoalDay[goalId]?.keys.toList();
-    if (days == null || days.isEmpty) return null;
-    days.sort((a, b) => a.compareTo(b));
-    return days.last;
-  }
-
-  /// 单目标 streak：自今日（或昨日）回溯的连续留痕天数。
-  /// 今天未留痕不扣（今天还有机会，自昨天起算）。
-  int streakOf(String goalId) {
-    final goal = _goals[goalId];
-    if (goal == null) return 0;
-    var streak = 0;
-    var day = dayStatusOf(goalId).done ? _today : _today.addDays(-1);
-    while (!day.isBefore(goal.createdAt)) {
-      if (!dayStatusOf(goalId, day).done) break;
-      streak++;
-      day = day.addDays(-1);
-    }
-    return streak;
-  }
-
-  /// 总 streak：任一目标留痕的连续天数（今日页头部语）。
-  int get totalStreak {
-    var streak = 0;
-    var day = _anyDone(_today) ? _today : _today.addDays(-1);
-    while (_anyDone(day)) {
-      streak++;
-      day = day.addDays(-1);
-    }
-    return streak;
-  }
-
-  bool _anyDone(LocalDate day) => _validByGoalDay.values.any(
-    (byDay) => (byDay[day] ?? const []).isNotEmpty,
-  );
-
-  /// 全完成日：当日全部活跃目标均留痕（无活跃目标 → false）。
-  bool get allCompleteToday {
-    final active = _goals.values.where((g) => g.isActive).toList();
-    if (active.isEmpty) return false;
-    return active.every((g) => dayStatusOf(g.id, _today).done);
-  }
-
-  /// 单目标周统计（周留痕 metDays / 周记录数 totalChecks）。
-  /// 本周实时：只算已过天数（不因周末未到稀释）。
-  GoalWeekStat weekStatOf(String goalId, WeekStart week) {
-    final goal = _goals[goalId];
-    if (goal == null) return _emptyStat(goalId);
-    final end = week.sunday.isAfter(_today) ? _today : week.sunday;
-    var metDays = 0, totalChecks = 0, backfillCount = 0;
-    for (var d = week.monday; d.isSameOrBefore(end); d = d.addDays(1)) {
-      if (d.isBefore(goal.createdAt)) continue;
-      final st = dayStatusOf(goalId, d);
-      if (st.done) metDays++;
-      totalChecks += st.doneCount;
-      backfillCount += st.backfilledCount;
-    }
-    return GoalWeekStat(
-      goalId: goalId,
-      metDays: metDays,
-      totalChecks: totalChecks,
-      backfillCount: backfillCount,
-    );
-  }
-
-  /// 总周统计（回顾页周摘要：留痕天数 / 记录数）。
-  GoalWeekStat totalWeekStat(WeekStart week) {
-    final end = week.sunday.isAfter(_today) ? _today : week.sunday;
-    var metDays = 0, totalChecks = 0, backfillCount = 0;
-    final seen = <LocalDate>{};
-    for (final byDay in _validByGoalDay.values) {
-      byDay.forEach((day, checks) {
-        if (day.isBefore(week.monday) || day.isAfter(end)) return;
-        totalChecks += checks.length;
-        backfillCount += checks.where((c) => c.isBackfill).length;
-        if (seen.add(day)) metDays++; // 每自然日只计一次
-      });
-    }
-    return GoalWeekStat(
-      goalId: '',
-      metDays: metDays,
-      totalChecks: totalChecks,
-      backfillCount: backfillCount,
-    );
-  }
-
-  /// 生活电量：活跃目标今日环均值（done 占比 ×100）。
-  LifeBattery get battery {
-    var done = 0, n = 0;
-    for (final g in _goals.values) {
-      if (!g.isActive) continue;
-      n++;
-      if (dayStatusOf(g.id, _today).done) done++;
-    }
-    return LifeBattery(n == 0 ? null : (done / n * 100).round());
-  }
-
-  GoalWeekStat _emptyStat(String goalId) => GoalWeekStat(
-    goalId: goalId,
-    metDays: 0,
-    totalChecks: 0,
-    backfillCount: 0,
-  );
-}
-
-/// 引擎入口：一次注入全量数据，返回可查询的评估结果。
 abstract final class StatsEngine {
-  static StatsEvaluation evaluate({
-    required List<Goal> goals,
-    required List<CheckIn> checkIns,
-    required LocalDate today,
-  }) => StatsEvaluation(goals: goals, checkIns: checkIns, today: today);
+  /// 周投入（FR-005）：分钟只累计带 durationMinutes 的记录。
+  /// 周索引 = ISO weekday − 1（周一=0 … 周日=6；contains 已保证同周）。
+  static WeekInvestment weekInvestment(
+    List<ProgressRecord> records,
+    WeekStart week,
+  ) {
+    final perDay = List<int>.filled(7, 0);
+    var total = 0, count = 0;
+    for (final r in records) {
+      if (!week.contains(r.day)) continue;
+      count++;
+      final m = r.durationMinutes;
+      if (m != null) {
+        total += m;
+        perDay[r.day.weekdayIso - 1] += m;
+      }
+    }
+    return WeekInvestment(
+      totalMinutes: total,
+      recordCount: count,
+      perDayMinutes: perDay,
+    );
+  }
+
+  /// 里程碑汇总：本周达成（doneAt 落周内）/ 全部待达成。
+  static MilestoneSummary milestoneSummary(
+    List<Milestone> milestones,
+    WeekStart week,
+  ) {
+    var achieved = 0, pending = 0;
+    for (final m in milestones) {
+      if (!m.isDone) {
+        pending++;
+      } else {
+        final at = m.doneAt;
+        if (at != null && week.contains(LocalDate.fromDateTime(at))) {
+          achieved++;
+        }
+      }
+    }
+    return MilestoneSummary(achievedThisWeek: achieved, pendingAll: pending);
+  }
+
+  /// 月度逐日投入（FR-007 日历）：返回该自然月有记录的天
+  /// （「范围所有日期」由 UI 按月导航逐月调用）。
+  static List<DailyInvestment> dailyInvestment(
+    List<ProgressRecord> records,
+    int year,
+    int month,
+  ) {
+    final byDay = <LocalDate, List<int>>{}; // [minutes, count]
+    for (final r in records) {
+      if (r.day.year != year || r.day.month != month) continue;
+      final slot = byDay.putIfAbsent(r.day, () => [0, 0]);
+      slot[0] += r.durationMinutes ?? 0;
+      slot[1]++;
+    }
+    final days = byDay.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return [
+      for (final e in days)
+        DailyInvestment(
+          day: e.key,
+          minutes: e.value[0],
+          recordCount: e.value[1],
+        ),
+    ];
+  }
+
+  /// 当月峰值分钟数（日历环 = 当日投入 / 当月峰值；峰值 0 时环为空轨）。
+  static int monthPeak(List<DailyInvestment> days) =>
+      days.fold(0, (m, d) => d.minutes > m ? d.minutes : m);
+
+  /// 动态 feed：全记录创建时刻倒序（达成事件混排）。
+  static List<FeedItem> activityFeed(
+    List<ProgressRecord> records,
+    Map<String, String> goalNames,
+  ) {
+    final items = [
+      for (final r in records)
+        FeedItem(
+          record: r,
+          goalId: r.goalId,
+          goalName: goalNames[r.goalId] ?? '',
+        ),
+    ];
+    items.sort((a, b) => b.record.createdAt.compareTo(a.record.createdAt));
+    return items;
+  }
 }

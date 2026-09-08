@@ -34,9 +34,14 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   final _name = TextEditingController();
   final _why = TextEditingController();
   GoalCategory? _category;
-  String _iconKey = 'target';
+  String _iconKey = 'explore';
   String? _colorKey;
-  bool _pinned = false;
+
+  /// 新建默认置顶（大卡样式即门面；编辑既有目标时由 loadExisting 覆盖）。
+  bool _pinned = true;
+
+  /// 用户已手动选过图标 → 分类联动不再覆盖。
+  bool _iconPicked = false;
   LocalDate? _targetDate;
   FrequencyPattern? _frequency;
   bool _reminderEnabled = false;
@@ -69,6 +74,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       backgroundColor: p.background,
       child: SafeArea(
         bottom: false,
+        minimum: const EdgeInsets.only(top: 12),
         child: Column(
           children: [
             _header(context, editing),
@@ -419,6 +425,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       setState(() {
         _category = chosen;
         _colorKey = chosen.defaultColorKey;
+        if (!_iconPicked) _iconKey = chosen.defaultIconKey;
       });
     }
   }
@@ -433,6 +440,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       setState(() {
         _iconKey = result.$1;
         _colorKey = result.$2;
+        _iconPicked = true;
       });
     }
   }
@@ -614,6 +622,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     _why.text = goal.why ?? '';
     _category = goal.categoryKey;
     _iconKey = goal.iconKey;
+    _iconPicked = true;
     _colorKey = goal.colorKey;
     _pinned = goal.pinned;
     _targetDate = goal.targetDate;

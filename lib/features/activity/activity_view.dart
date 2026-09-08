@@ -55,6 +55,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       ),
       child: SafeArea(
         bottom: false,
+        minimum: const EdgeInsets.only(top: 12),
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
@@ -118,11 +119,15 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+                padding: const EdgeInsets.fromLTRB(36, 4, 20, 12),
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(Copy.recentFeed, style: text.titleM),
+                      child: Text(
+                        Copy.recentFeed,
+                        style: text.titleS
+                            .copyWith(color: p.onSurfaceVariant),
+                      ),
                     ),
                     CupertinoButton(
                       padding: EdgeInsets.zero,
@@ -252,9 +257,11 @@ class _WeekCard extends StatelessWidget {
             style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
           ),
           const SizedBox(height: 16),
+          // 柱区（定高）：分钟数（14）+ 间距（3）+ 柱体（≤64）。
           SizedBox(
-            height: 88,
+            height: 81,
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 for (var d = 0; d < 7; d++) ...[
                   if (d > 0) const SizedBox(width: 4),
@@ -262,14 +269,20 @@ class _WeekCard extends StatelessWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text(
-                          '${week.perDayMinutes[d]}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: week.perDayMinutes[d] == 0
-                                ? p.onSurfaceTertiary
-                                    .withValues(alpha: 0.6)
-                                : p.onSurfaceTertiary,
+                        SizedBox(
+                          height: 14,
+                          child: Center(
+                            child: Text(
+                              '${week.perDayMinutes[d]}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                height: 1,
+                                color: week.perDayMinutes[d] == 0
+                                    ? p.onSurfaceTertiary
+                                        .withValues(alpha: 0.6)
+                                    : p.onSurfaceTertiary,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -289,13 +302,31 @@ class _WeekCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          _dayLabels[d],
-                          style: TextStyle(
-                              fontSize: 11, color: p.onSurfaceTertiary),
-                        ),
                       ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 5),
+          // 星期标签独立成行（定高）——与柱体底缘严格对齐。
+          SizedBox(
+            height: 14,
+            child: Row(
+              children: [
+                for (var d = 0; d < 7; d++) ...[
+                  if (d > 0) const SizedBox(width: 4),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        _dayLabels[d],
+                        style: TextStyle(
+                          fontSize: 11,
+                          height: 1,
+                          color: p.onSurfaceTertiary,
+                        ),
+                      ),
                     ),
                   ),
                 ],

@@ -81,10 +81,7 @@ class _TargetAppState extends ConsumerState<TargetApp> {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('zh'),
-        Locale('en'),
-      ],
+      supportedLocales: const [Locale('zh'), Locale('en')],
     );
   }
 }
@@ -108,13 +105,17 @@ class _AppShellState extends ConsumerState<AppShell> {
       final goals = ref.read(goalsProvider).value ?? const [];
       final reminders = ref.read(remindersProvider).value ?? const [];
       final settings = ref.read(settingsProvider).value;
-      await ref.read(reminderServiceProvider).replan(
+      await ref
+          .read(reminderServiceProvider)
+          .replan(
             goals: goals,
             reminders: reminders,
             enabled: settings?.remindersEnabled ?? true,
           );
       final records = ref.read(recordsProvider).value ?? const [];
-      await ref.read(widgetGatewayProvider).saveSnapshot(
+      await ref
+          .read(widgetGatewayProvider)
+          .saveSnapshot(
             buildTodaySnapshot(
               goals: goals,
               records: records,
@@ -142,17 +143,20 @@ class _AppShellState extends ConsumerState<AppShell> {
       child: Column(
         children: [
           Expanded(child: widget.navigationShell),
-          AppDock(
-            tabs: const [
-              ('/goals', '目标', CupertinoIcons.scope),
-              ('/activity', '动态', CupertinoIcons.chart_bar),
-            ],
-            activePath: onActivity ? '/activity' : '/goals',
-            onTapTab: (p) => widget.navigationShell.goBranch(
-                  p == '/activity' ? 1 : 0,
-                  initialLocation: p == (onActivity ? '/activity' : '/goals'),
-                ),
-            onRecord: () => showRecordSheet(context),
+          SafeArea(
+            top: false,
+            child: AppDock(
+              tabs: const [
+                ('/goals', '目标', CupertinoIcons.scope),
+                ('/activity', '动态', CupertinoIcons.chart_bar),
+              ],
+              activePath: onActivity ? '/activity' : '/goals',
+              onTapTab: (p) => widget.navigationShell.goBranch(
+                p == '/activity' ? 1 : 0,
+                initialLocation: p == (onActivity ? '/activity' : '/goals'),
+              ),
+              onRecord: () => showRecordSheet(context),
+            ),
           ),
         ],
       ),

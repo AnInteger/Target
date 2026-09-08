@@ -45,11 +45,19 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
       ),
       child: SafeArea(
         bottom: false,
+        minimum: const EdgeInsets.only(top: 12),
         child: goalsAsync.when(
           loading: () => const Center(child: CupertinoActivityIndicator()),
           error: (e, _) => Center(child: Text('$e')),
           data: (goals) {
-            if (goals.isEmpty) return _EmptyState(onCreate: () => _openEditor());
+            if (goals.isEmpty) {
+              return Column(
+                children: [
+                  _Header(onCreate: _openEditor),
+                  Expanded(child: _EmptyState(onCreate: _openEditor)),
+                ],
+              );
+            }
             final pinned =
                 goals.where((g) => g.pinned).toList(growable: false);
             final others =
@@ -76,7 +84,7 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                         records: records,
                         milestones: milestones,
                         today: today,
-                        onTap: () => context.go('/goal/${pinned[i].id}'),
+                        onTap: () => context.push('/goal/${pinned[i].id}'),
                         onLongPress: () =>
                             showGoalMenu(context, ref, pinned[i]),
                       ),
@@ -96,7 +104,7 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                         goal: others[i],
                         records: records,
                         today: today,
-                        onTap: () => context.go('/goal/${others[i].id}'),
+                        onTap: () => context.push('/goal/${others[i].id}'),
                         onLongPress: () =>
                             showGoalMenu(context, ref, others[i]),
                       ),
@@ -164,10 +172,15 @@ class _SectionHeader extends StatelessWidget {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+      padding: const EdgeInsets.fromLTRB(36, 4, 20, 12),
       child: Row(
         children: [
-          Expanded(child: Text(title, style: text.titleM)),
+          Expanded(
+            child: Text(
+              title,
+              style: text.titleS.copyWith(color: p.onSurfaceVariant),
+            ),
+          ),
           if (trailing != null)
             CupertinoButton(
               padding: EdgeInsets.zero,

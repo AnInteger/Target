@@ -45,7 +45,9 @@ class GoalDetailPage extends ConsumerWidget {
     final next = milestones.where((m) => !m.isDone).toList()
       ..sort((a, b) => a.position.compareTo(b.position));
     final color = GoalPalette.byKey(
-        goal.colorKey, brightness: TargetPalette.brightnessOf(context));
+      goal.colorKey,
+      brightness: TargetPalette.brightnessOf(context),
+    );
 
     return CupertinoPageScaffold(
       backgroundColor: p.background,
@@ -54,6 +56,7 @@ class GoalDetailPage extends ConsumerWidget {
         children: [
           SafeArea(
             bottom: false,
+            minimum: const EdgeInsets.only(top: 12),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: Row(
@@ -85,8 +88,7 @@ class GoalDetailPage extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     goal.why!,
-                    style:
-                        text.bodyM.copyWith(color: p.onSurfaceVariant),
+                    style: text.bodyM.copyWith(color: p.onSurfaceVariant),
                   ),
                 ],
               ],
@@ -101,8 +103,7 @@ class GoalDetailPage extends ConsumerWidget {
                     padding: const EdgeInsets.all(14),
                     onTap: () => Navigator.of(context).push(
                       CupertinoPageRoute<void>(
-                        builder: (_) =>
-                            MilestonesPage(goalId: goalId),
+                        builder: (_) => MilestonesPage(goalId: goalId),
                       ),
                     ),
                     child: Row(
@@ -114,29 +115,35 @@ class GoalDetailPage extends ConsumerWidget {
                             color: p.surfaceAlt,
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(CupertinoIcons.flag,
-                              size: 17, color: p.onSurface),
+                          child: Icon(
+                            CupertinoIcons.flag,
+                            size: 17,
+                            color: p.onSurface,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(Copy.milestoneEntryTitle,
-                                  style: text.titleM),
+                              Text(
+                                Copy.milestoneEntryTitle,
+                                style: text.titleM,
+                              ),
                               Text(
                                 Copy.nextWaypoint(next.first.title),
                                 style: text.bodyS.copyWith(
-                                    color: p.onSurfaceTertiary),
+                                  color: p.onSurfaceTertiary,
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        Icon(CupertinoIcons.chevron_forward,
-                            size: 14,
-                            color: p.onSurfaceTertiary
-                                .withValues(alpha: 0.6)),
+                        Icon(
+                          CupertinoIcons.chevron_forward,
+                          size: 14,
+                          color: p.onSurfaceTertiary.withValues(alpha: 0.6),
+                        ),
                       ],
                     ),
                   ),
@@ -158,22 +165,25 @@ class GoalDetailPage extends ConsumerWidget {
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              child: CupertinoButton(
-                color: p.accent,
-                disabledColor: p.surfaceAlt,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                onPressed: () => showRecordSheet(context, goalId: goalId),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(CupertinoIcons.square_pencil, size: 17),
-                    const SizedBox(width: 8),
-                    Text(
-                      Copy.recordProgress,
-                      style: text.titleM.copyWith(color: p.accentOn),
-                    ),
-                  ],
+              child: SizedBox(
+                width: double.infinity,
+                child: CupertinoButton(
+                  color: p.accent,
+                  disabledColor: p.surfaceAlt,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  onPressed: () => showRecordSheet(context, goalId: goalId),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(CupertinoIcons.square_pencil, size: 17),
+                      const SizedBox(width: 8),
+                      Text(
+                        Copy.recordProgress,
+                        style: text.titleM.copyWith(color: p.accentOn),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -202,9 +212,12 @@ class _TimelineRow extends StatelessWidget {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
     final isMilestone = record.kind == RecordKind.milestoneAchievement;
-    final nodeColor =
-        isMilestone ? p.milestone : (isLast ? p.accent : p.divider);
-    final nodeBg = isMilestone ? p.milestoneTint : (isLast ? p.accentTint : p.divider);
+    final nodeColor = isMilestone
+        ? p.milestone
+        : (isLast ? p.accent : p.divider);
+    final nodeBg = isMilestone
+        ? p.milestoneTint
+        : (isLast ? p.accentTint : p.divider);
     final dayLabel = relativeDayLabel(record.day, today);
 
     return IntrinsicHeight(
@@ -218,7 +231,10 @@ class _TimelineRow extends StatelessWidget {
                 Container(
                   width: 36,
                   height: 36,
-                  decoration: BoxDecoration(color: nodeBg, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: nodeBg,
+                    shape: BoxShape.circle,
+                  ),
                   child: Icon(
                     isMilestone
                         ? CupertinoIcons.flag_fill
@@ -246,16 +262,13 @@ class _TimelineRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isMilestone
-                        ? Copy.milestoneAchievedEntry
-                        : record.title,
+                    isMilestone ? Copy.milestoneAchievedEntry : record.title,
                     style: text.titleS,
                   ),
                   const SizedBox(height: 2),
                   Text(
                     dayLabel,
-                    style:
-                        text.bodyS.copyWith(color: p.onSurfaceTertiary),
+                    style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
                   ),
                   const SizedBox(height: 8),
                   AppCard(
@@ -265,8 +278,7 @@ class _TimelineRow extends StatelessWidget {
                       children: [
                         Text(
                           isMilestone ? record.title : (record.body ?? ''),
-                          style: text.bodyM
-                              .copyWith(color: p.onSurface),
+                          style: text.bodyM.copyWith(color: p.onSurface),
                         ),
                         if (!isMilestone &&
                             record.body != null &&
@@ -276,14 +288,17 @@ class _TimelineRow extends StatelessWidget {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(CupertinoIcons.clock,
-                                  size: 13, color: p.onSurfaceTertiary),
+                              Icon(
+                                CupertinoIcons.clock,
+                                size: 13,
+                                color: p.onSurfaceTertiary,
+                              ),
                               const SizedBox(width: 6),
                               Text(
-                                Copy.durationMinutes(
-                                    record.durationMinutes!),
+                                Copy.durationMinutes(record.durationMinutes!),
                                 style: text.bodyS.copyWith(
-                                    color: p.onSurfaceTertiary),
+                                  color: p.onSurfaceTertiary,
+                                ),
                               ),
                             ],
                           ),

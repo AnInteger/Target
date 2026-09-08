@@ -69,6 +69,21 @@ extension GoalCategoryX on GoalCategory {
     GoalCategory.other => 'gray',
   };
 
+  /// 分类默认图标（GoalIconCatalog 键；编辑器默认联动，手动改过则不覆盖）。
+  String get defaultIconKey => switch (this) {
+    GoalCategory.fitness => 'directions_run',
+    GoalCategory.learning => 'menu_book',
+    GoalCategory.language => 'translate',
+    GoalCategory.create => 'brush',
+    GoalCategory.travel => 'flight',
+    GoalCategory.finance => 'savings',
+    GoalCategory.life => 'home',
+    GoalCategory.mind => 'self_improvement',
+    GoalCategory.social => 'groups',
+    GoalCategory.pets => 'pets',
+    GoalCategory.other => 'explore',
+  };
+
   /// 图标域 → 分类建议（不静默决定，仅编辑器默认值；2026-08-26 §10 边界）。
   static GoalCategory suggestFor(GoalIconDomain domain) => switch (domain) {
     GoalIconDomain.fitness || GoalIconDomain.health => GoalCategory.fitness,

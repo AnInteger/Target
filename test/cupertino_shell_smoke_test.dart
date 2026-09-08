@@ -14,8 +14,13 @@ import 'package:target/app/design_tokens.dart';
 import 'package:target/app/providers.dart';
 import 'package:target/core/db/app_database.dart';
 import 'package:target/core/models/calendar_types.dart';
+import 'package:target/app/controls.dart';
+import 'package:target/core/copy.dart';
+import 'package:target/core/models/calendar_types.dart';
+import 'package:target/core/models/entities.dart';
 import 'package:target/core/platform/gateways.dart';
 import 'package:target/core/platform/widget_stub.dart';
+import 'package:target/features/shared/goal_card.dart' show GoalCard;
 
 class _FakeNotificationGateway implements NotificationGateway {
   @override
@@ -108,8 +113,8 @@ void main() {
     expect(app.theme?.brightness, Brightness.light);
     expect(app.theme?.scaffoldBackgroundColor, TargetPalette.light.background);
 
-    // dock 双 tab 与目标页空态 CTA。
-    expect(find.text('目标'), findsOneWidget);
+    // dock 双 tab 与目标页空态 CTA（"目标" = 空态头部大标题 + dock 标签）。
+    expect(find.text('目标'), findsWidgets);
     expect(find.text('动态'), findsOneWidget);
     expect(find.text('新建目标'), findsOneWidget);
 
@@ -123,5 +128,48 @@ void main() {
     final darkApp = tester.widget<CupertinoApp>(find.byType(CupertinoApp));
     expect(darkApp.theme?.brightness, Brightness.dark);
     expect(darkApp.theme?.scaffoldBackgroundColor, TargetPalette.dark.background);
+  });
+
+  testWidgets('目标详情流：卡片 → 详情内容 → 返回主页完好（回归 #2）', (tester) async {
+    final db = AppDatabase(NativeDatabase.memory());
+    final container = await _container(db);
+    addTearDown(() async {
+      container.dispose();
+      await db.close();
+    });
+    await container.read(goalRepoProvider).createPlan(
+      Goal(
+        id: 'g1',
+        name: '登顶测试目标',
+        createdAt: const LocalDate(2026, 9, 1),
+        pinned: true,
+      ),
+      const [],
+    );
+    await container.read(goalsProvider.future);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const TargetApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 主页：置顶大卡可见。
+    expect(find.text('登顶测试目标'), findsOneWidget);
+
+    // 点卡进详情：名称 + 记录进展 CTA（内容渲染且 CTA 撑满）。
+    await tester.tap(find.byType(GoalCard));
+    await tester.pumpAndSettle();
+    expect(find.text('登顶测试目标'), findsOneWidget);
+    expect(find.text(Copy.recordProgress), findsOneWidget);
+
+    // 返回：主页完好（置顶卡仍在，无白屏）。
+    await tester.tap(find.byType(CircleIconButton).first);
+    await tester.pumpAndSettle();
+    expect(find.text('登顶测试目标'), findsOneWidget);
+    expect(find.text(Copy.recordProgress), findsNothing);
+    expect(find.text('置顶'), findsOneWidget);
   });
 }

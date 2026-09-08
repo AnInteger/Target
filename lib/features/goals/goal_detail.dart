@@ -185,7 +185,11 @@ class GoalDetailPage extends ConsumerWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(CupertinoIcons.square_pencil, size: 17),
+                      Icon(
+                        CupertinoIcons.square_pencil,
+                        size: 17,
+                        color: p.accentOn,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         Copy.recordProgress,

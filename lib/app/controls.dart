@@ -130,6 +130,37 @@ class AppCard extends StatelessWidget {
   }
 }
 
+/// CupertinoSlidingSegmentedControl 子项文案（R10：与 PillSelectButton
+/// 同口径——选中 15/700 主文色，未选 15/500 次文色；两端分段控件一致）。
+class SegmentedLabel extends StatelessWidget {
+  const SegmentedLabel({
+    super.key,
+    required this.label,
+    required this.selected,
+  });
+
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = TargetPalette.of(context);
+    final text = AppText.of(context);
+    // 内距定高：分段控件的整体高度由子项撑起，各处一致。
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: (selected ? text.titleS : text.bodyM).copyWith(
+          color: selected ? p.onSurface : p.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
 /// iOS 发丝分隔线（0.5px）。
 class HairlineDivider extends StatelessWidget {
   const HairlineDivider({super.key, this.indent});

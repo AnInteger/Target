@@ -176,24 +176,14 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
                         final day = LocalDate(_month.year, _month.month, index);
                         final d = byDay[day];
                         final selected = day == today;
+                        // R10：今日 = 环心小圆点（不再套外环）；
+                        // 环只表投入比例，不再内嵌数字（三位数溢出）。
                         return Center(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: selected
-                                  ? Border.all(
-                                      color: TargetPalette.of(context).accent,
-                                      width: 1.5,
-                                    )
-                                  : null,
-                            ),
-                            padding: const EdgeInsets.all(2),
-                            child: _Ring(
-                              progress: d == null || peak == 0
-                                  ? 0
-                                  : d.minutes / peak,
-                              minutes: d?.minutes ?? 0,
-                            ),
+                          child: _Ring(
+                            progress: d == null || peak == 0
+                                ? 0
+                                : d.minutes / peak,
+                            isToday: selected,
                           ),
                         );
                       },
@@ -207,12 +197,13 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
   }
 }
 
-/// 进度环（track+弧）——自绘替代 Material CircularProgressIndicator。
+/// 进度环（track+弧，圆角端帽）——自绘替代 Material
+/// CircularProgressIndicator；[isToday] 时环心缀小圆点标记今日。
 class _Ring extends StatelessWidget {
-  const _Ring({required this.progress, required this.minutes});
+  const _Ring({required this.progress, this.isToday = false});
 
   final double progress;
-  final int minutes;
+  final bool isToday;
 
   @override
   Widget build(BuildContext context) {
@@ -231,13 +222,13 @@ class _Ring extends StatelessWidget {
               arc: p.accent,
             ),
           ),
-          if (minutes > 0)
-            Text(
-              minutes > 99 ? '··' : '$minutes',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
-                color: p.onSurface,
+          if (isToday)
+            Container(
+              width: 5,
+              height: 5,
+              decoration: BoxDecoration(
+                color: p.accent,
+                shape: BoxShape.circle,
               ),
             ),
         ],
@@ -266,6 +257,7 @@ class _RingPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round
       ..isAntiAlias = true;
     canvas.drawCircle(center, radius, paint..color = track);
     if (progress > 0) {

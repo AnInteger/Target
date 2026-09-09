@@ -215,23 +215,23 @@ class MilestonesPage extends ConsumerWidget {
       useRootNavigator: true,
       builder: (sheetContext) => CupertinoActionSheet(
         actions: [
-          CupertinoActionSheetAction(
+          AppAction(
             onPressed: () => Navigator.of(sheetContext).pop('done'),
-            child: Text(Copy.milestoneMenuDone),
+            label: Copy.milestoneMenuDone,
           ),
-          CupertinoActionSheetAction(
+          AppAction(
             onPressed: () => Navigator.of(sheetContext).pop('edit'),
-            child: Text(Copy.milestoneMenuEdit),
+            label: Copy.milestoneMenuEdit,
           ),
-          CupertinoActionSheetAction(
+          AppAction(
             isDestructiveAction: true,
             onPressed: () => Navigator.of(sheetContext).pop('delete'),
-            child: Text(Copy.milestoneMenuDelete),
+            label: Copy.milestoneMenuDelete,
           ),
         ],
-        cancelButton: CupertinoActionSheetAction(
+        cancelButton: AppAction(
           onPressed: () => Navigator.of(sheetContext).pop(),
-          child: const Text(Copy.cancel),
+          label: Copy.cancel,
         ),
       ),
     );

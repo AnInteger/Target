@@ -285,16 +285,66 @@ Future<T?> showAppChoiceSheet<T>(
       title: Text(title),
       actions: [
         for (final (value, label) in options)
-          CupertinoActionSheetAction(
+          AppAction(
             isDefaultAction: value == selected,
             onPressed: () => Navigator.of(sheetContext).pop(value),
-            child: Text(label),
+            label: label,
           ),
       ],
-      cancelButton: CupertinoActionSheetAction(
+      cancelButton: AppAction(
         onPressed: () => Navigator.of(sheetContext).pop(),
-        child: const Text('取消'),
+        label: '取消',
       ),
     ),
   );
+}
+
+/// 紧凑 action sheet 动作行（CupertinoActionSheet.actions 专用）。
+///
+/// SDK 的 CupertinoActionSheetAction 行高恒为 57.17（21px 大字 + 固定
+/// 内距，不可调）；本组件收紧至 46（R10 裁定），字级 17——分割线、
+/// 按压底色、下滑关闭等外壳行为仍由 CupertinoActionSheet 提供。
+class AppAction extends StatelessWidget {
+  const AppAction({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.isDestructiveAction = false,
+    this.isDefaultAction = false,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  /// 危险操作（红字）。
+  final bool isDestructiveAction;
+
+  /// 当前默认/选中项（加重）。
+  final bool isDefaultAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = TargetPalette.of(context);
+    final text = AppText.of(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: const Size.fromHeight(46),
+      borderRadius: BorderRadius.zero,
+      onPressed: onPressed,
+      child: SizedBox(
+        height: 46,
+        child: Center(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: text.bodyL.copyWith(
+              color: isDestructiveAction ? p.danger : p.accentText,
+              fontWeight: isDefaultAction ? FontWeight.w600 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

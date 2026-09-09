@@ -46,7 +46,7 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
       ),
       child: SafeArea(
         bottom: false,
-        minimum: const EdgeInsets.only(top: 12),
+        minimum: const EdgeInsets.only(top: 16),
         child: goalsAsync.when(
           loading: () => const Center(child: CupertinoActivityIndicator()),
           error: (e, _) => Center(child: Text('$e')),
@@ -113,7 +113,8 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                       ),
                     ),
                   ),
-                const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                // dock 悬浮层的通过余量（渐隐带 44 + dock ~72 + 呼吸）。
+                const SliverToBoxAdapter(child: SizedBox(height: 170)),
               ],
             );
           },
@@ -134,7 +135,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = AppText.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

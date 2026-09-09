@@ -55,12 +55,12 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       ),
       child: SafeArea(
         bottom: false,
-        minimum: const EdgeInsets.only(top: 12),
+        minimum: const EdgeInsets.only(top: 16),
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -161,7 +161,8 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                   ),
                 ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+            // dock 悬浮层的通过余量（渐隐带 44 + dock ~72 + 呼吸）。
+            const SliverToBoxAdapter(child: SizedBox(height: 170)),
           ],
         ),
       ),
@@ -196,10 +197,17 @@ class _WeekNav extends StatelessWidget {
             onTap: () => onChange(week.previous),
           ),
           const SizedBox(width: 16),
-          Text(
-            '${week.monday.month}月${week.monday.day}日 — '
-            '${week.sunday.month}月${week.sunday.day}日',
-            style: text.bodyM.copyWith(fontWeight: FontWeight.w500),
+          // 定宽：月/日位数变化时文字居中微调，两侧箭头不位移
+          // （数字已是 tabular 等宽，宽度差仅来自位数）。
+          SizedBox(
+            width: 172,
+            child: Text(
+              '${week.monday.month}月${week.monday.day}日 — '
+              '${week.sunday.month}月${week.sunday.day}日',
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: text.bodyM.copyWith(fontWeight: FontWeight.w500),
+            ),
           ),
           const SizedBox(width: 16),
           CircleIconButton(
@@ -282,8 +290,10 @@ class _WeekCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Container(
-                          height: maxMin == 0
-                              ? 0
+                          // 零数据日恒显 6px 微条（R10：空周与非空周的
+                          // 零值日口径一致，不再整周空白）。
+                          height: week.perDayMinutes[d] == 0
+                              ? 6
                               : (week.perDayMinutes[d] / maxMin * 64)
                                     .clamp(6, 64)
                                     .toDouble(),

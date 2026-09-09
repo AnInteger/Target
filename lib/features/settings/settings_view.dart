@@ -109,26 +109,17 @@ class SettingsView extends ConsumerWidget {
                               ),
                             ),
                         children: {
-                          'system': Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 4,
-                              horizontal: 2,
-                            ),
-                            child: Text(Copy.themeSystem),
+                          'system': SegmentedLabel(
+                            label: Copy.themeSystem,
+                            selected: mode == 'system',
                           ),
-                          'light': Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 4,
-                              horizontal: 2,
-                            ),
-                            child: Text(Copy.themeLight),
+                          'light': SegmentedLabel(
+                            label: Copy.themeLight,
+                            selected: mode == 'light',
                           ),
-                          'dark': Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 4,
-                              horizontal: 2,
-                            ),
-                            child: Text(Copy.themeDark),
+                          'dark': SegmentedLabel(
+                            label: Copy.themeDark,
+                            selected: mode == 'dark',
                           ),
                         },
                       ),
@@ -327,28 +318,28 @@ class SettingsView extends ConsumerWidget {
       useRootNavigator: true,
       builder: (sheetContext) => CupertinoActionSheet(
         actions: [
-          CupertinoActionSheetAction(
+          AppAction(
             onPressed: () => Navigator.of(sheetContext).pop('nickname'),
-            child: const Text(Copy.profileEditNickname),
+            label: Copy.profileEditNickname,
           ),
-          CupertinoActionSheetAction(
+          AppAction(
             onPressed: () => Navigator.of(sheetContext).pop('gallery'),
-            child: const Text(Copy.profileAvatarFromGallery),
+            label: Copy.profileAvatarFromGallery,
           ),
-          CupertinoActionSheetAction(
+          AppAction(
             onPressed: () => Navigator.of(sheetContext).pop('camera'),
-            child: const Text(Copy.profileAvatarFromCamera),
+            label: Copy.profileAvatarFromCamera,
           ),
           if (settings.avatarKey != null)
-            CupertinoActionSheetAction(
+            AppAction(
               isDestructiveAction: true,
               onPressed: () => Navigator.of(sheetContext).pop('remove'),
-              child: const Text(Copy.profileAvatarRemove),
+              label: Copy.profileAvatarRemove,
             ),
         ],
-        cancelButton: CupertinoActionSheetAction(
+        cancelButton: AppAction(
           onPressed: () => Navigator.of(sheetContext).pop(),
-          child: const Text(Copy.cancel),
+          label: Copy.cancel,
         ),
       ),
     );

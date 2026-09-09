@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/design_tokens.dart';
 import '../../app/providers.dart';
+import '../../app/sheet.dart' show AppAction;
 import '../../core/copy.dart';
 import '../../core/models/entities.dart';
 import '../shared/record_sheet.dart';
@@ -74,9 +75,8 @@ Future<void> showGoalMenu(BuildContext context, WidgetRef ref, Goal goal) {
     builder: (sheetContext) => CupertinoActionSheet(
       title: Text(goal.name, maxLines: 1),
       actions: [
-        for (final e in menu)
-          CupertinoActionSheetAction(onPressed: e.onTap!, child: Text(e.label)),
-        CupertinoActionSheetAction(
+        for (final e in menu) AppAction(onPressed: e.onTap!, label: e.label),
+        AppAction(
           isDestructiveAction: true,
           onPressed: () async {
             Navigator.of(sheetContext).pop();
@@ -85,12 +85,12 @@ Future<void> showGoalMenu(BuildContext context, WidgetRef ref, Goal goal) {
               await ref.read(goalRepoProvider).deleteGoal(goal.id);
             }
           },
-          child: const Text(Copy.menuDelete),
+          label: Copy.menuDelete,
         ),
       ],
-      cancelButton: CupertinoActionSheetAction(
+      cancelButton: AppAction(
         onPressed: () => Navigator.of(sheetContext).pop(),
-        child: const Text(Copy.cancel),
+        label: Copy.cancel,
       ),
     ),
   );

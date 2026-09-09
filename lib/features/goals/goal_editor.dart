@@ -512,13 +512,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                           Copy.freqWeekly,
                           Copy.freqWeekdays,
                         ].indexed)
-                          i: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 4,
-                              horizontal: 2,
-                            ),
-                            child: Text(label),
-                          ),
+                          i: SegmentedLabel(label: label, selected: i == mode),
                       },
                     ),
                     // 参数区定高（覆盖每周N次/指定星期/空三态），高度恒定
@@ -632,12 +626,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
               },
               children: {
                 for (final c in Cadence.values)
-                  c: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                      horizontal: 4,
-                    ),
-                    child: Text(_cadenceLabel(c)),
+                  c: SegmentedLabel(
+                    label: _cadenceLabel(c),
+                    selected: c == _reminderCadence,
                   ),
               },
             ),

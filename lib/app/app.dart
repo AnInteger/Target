@@ -86,7 +86,8 @@ class _TargetAppState extends ConsumerState<TargetApp> {
   }
 }
 
-/// 两 tab 壳：头部渐变由各分支屏自绘；dock 悬浮其上（内容自留底部空隙）。
+/// 两 tab 壳：头部渐变由各分支屏自绘；dock 悬浮于内容之上（R10），
+/// 内容滑入 dock 区时经渐隐带淡入底色（页面底部自留滚动余量）。
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key, required this.navigationShell});
 
@@ -140,22 +141,48 @@ class _AppShellState extends ConsumerState<AppShell> {
     return CupertinoPageScaffold(
       backgroundColor: p.background,
       resizeToAvoidBottomInset: false,
-      child: Column(
+      child: Stack(
         children: [
-          Expanded(child: widget.navigationShell),
-          SafeArea(
-            top: false,
-            child: AppDock(
-              tabs: const [
-                ('/goals', '目标', CupertinoIcons.scope),
-                ('/activity', '动态', CupertinoIcons.chart_bar),
+          // 内容全高铺满：滚动时从 dock 后方穿过，由渐隐带柔和过渡。
+          Positioned.fill(child: widget.navigationShell),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 渐隐过渡带（不拦截点按）：底色自透明 → 不透明。
+                IgnorePointer(
+                  child: Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          p.background.withValues(alpha: 0),
+                          p.background,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: AppDock(
+                    tabs: const [
+                      ('/goals', '目标', CupertinoIcons.scope),
+                      ('/activity', '动态', CupertinoIcons.chart_bar),
+                    ],
+                    activePath: onActivity ? '/activity' : '/goals',
+                    onTapTab: (p) => widget.navigationShell.goBranch(
+                      p == '/activity' ? 1 : 0,
+                      initialLocation:
+                          p == (onActivity ? '/activity' : '/goals'),
+                    ),
+                    onRecord: () => showRecordSheet(context),
+                  ),
+                ),
               ],
-              activePath: onActivity ? '/activity' : '/goals',
-              onTapTab: (p) => widget.navigationShell.goBranch(
-                p == '/activity' ? 1 : 0,
-                initialLocation: p == (onActivity ? '/activity' : '/goals'),
-              ),
-              onRecord: () => showRecordSheet(context),
             ),
           ),
         ],

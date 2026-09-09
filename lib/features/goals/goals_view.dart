@@ -29,7 +29,8 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
     final goalsAsync = ref.watch(goalsProvider);
-    final records = ref.watch(recordsProvider).value ?? const <ProgressRecord>[];
+    final records =
+        ref.watch(recordsProvider).value ?? const <ProgressRecord>[];
     final milestones =
         ref.watch(milestonesProvider).value ?? const <Milestone>[];
     final today = ref.watch(todayProvider);
@@ -39,7 +40,7 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0, 0.18, 0.42, 1],
+          stops: const [0, 0.30, 0.75, 1],
           colors: p.headerGrad,
         ),
       ),
@@ -58,10 +59,10 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                 ],
               );
             }
-            final pinned =
-                goals.where((g) => g.pinned).toList(growable: false);
-            final others =
-                goals.where((g) => !g.pinned).toList(growable: false);
+            final pinned = goals.where((g) => g.pinned).toList(growable: false);
+            final others = goals
+                .where((g) => !g.pinned)
+                .toList(growable: false);
             return CustomScrollView(
               slivers: [
                 SliverToBoxAdapter(child: _Header(onCreate: _openEditor)),
@@ -78,7 +79,9 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                   sliver: SliverList.builder(
                     itemCount: pinned.length,
                     itemBuilder: (_, i) => Padding(
-                      padding: EdgeInsets.only(bottom: i == pinned.length - 1 ? 0 : 12),
+                      padding: EdgeInsets.only(
+                        bottom: i == pinned.length - 1 ? 0 : 12,
+                      ),
                       child: GoalCard(
                         goal: pinned[i],
                         records: records,
@@ -138,16 +141,11 @@ class _Header extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(Copy.goalsTitle, style: text.displayL),
-              ],
+              children: [Text(Copy.goalsTitle, style: text.displayL)],
             ),
           ),
           const SizedBox(height: 8),
-          CircleIconButton(
-            icon: CupertinoIcons.add,
-            onTap: onCreate,
-          ),
+          CircleIconButton(icon: CupertinoIcons.add, onTap: onCreate),
         ],
       ),
     );
@@ -169,9 +167,7 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(36, 4, 20, 12),
       child: Row(
         children: [
-          Expanded(
-            child: Text(title, style: text.titleS),
-          ),
+          Expanded(child: Text(title, style: text.titleS)),
           if (trailing != null)
             CupertinoButton(
               padding: EdgeInsets.zero,

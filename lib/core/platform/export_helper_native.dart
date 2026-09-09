@@ -12,11 +12,13 @@ Future<void> exportFileBytes({
 }) async {
   await SharePlus.instance.share(
     ShareParams(
-      files: [XFile.fromData(
-        Uint8List.fromList(bytes),
-        name: fileName,
-        mimeType: mime,
-      )],
+      files: [
+        XFile.fromData(
+          Uint8List.fromList(bytes),
+          name: fileName,
+          mimeType: mime,
+        ),
+      ],
     ),
   );
 }

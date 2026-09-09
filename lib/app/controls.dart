@@ -87,7 +87,7 @@ class PillSelectButton<T> extends StatelessWidget {
   }
 }
 
-/// 分组卡容器（surface 底 + 圆角 lg + low 阴影 + 可选内边距）。
+/// 分组卡容器（surface 底 + 圆角 lg + 可选内边距；R9 起平贴无阴影）。
 /// 点按交互由内容层包 CupertinoButton / GestureDetector。
 class AppCard extends StatelessWidget {
   const AppCard({
@@ -112,11 +112,8 @@ class AppCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: p.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
       ),
-      child: padding == null
-          ? child
-          : Padding(padding: padding!, child: child),
+      child: padding == null ? child : Padding(padding: padding!, child: child),
     );
     if (margin != null) {
       current = Padding(padding: margin!, child: current);

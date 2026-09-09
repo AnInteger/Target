@@ -57,14 +57,11 @@ class BackupImporter {
     }
     final version = json['version'];
     if (version != kBackupVersion) {
-      throw BackupFormatException(
-        '不支持的备份版本（v$version），仅支持 v$kBackupVersion',
-      );
+      throw BackupFormatException('不支持的备份版本（v$version），仅支持 v$kBackupVersion');
     }
     final goalsJson = (json['goals'] as List<Object?>? ?? const [])
         .cast<Map<String, Object?>>();
-    final settingsJson =
-        json['settings'] as Map<String, Object?>? ?? const {};
+    final settingsJson = json['settings'] as Map<String, Object?>? ?? const {};
 
     var milestones = 0, reminders = 0, records = 0;
 
@@ -76,7 +73,9 @@ class BackupImporter {
       await _db.delete(_db.goals).go();
       await _db.delete(_db.settingsRows).go();
 
-      await _db.into(_db.settingsRows).insert(
+      await _db
+          .into(_db.settingsRows)
+          .insert(
             db.SettingsRowsCompanion.insert(
               id: const Value(1),
               nickname: Value(_s(settingsJson, 'nickname')),
@@ -89,7 +88,9 @@ class BackupImporter {
           );
 
       for (final g in goalsJson) {
-        await _db.into(_db.goals).insert(
+        await _db
+            .into(_db.goals)
+            .insert(
               db.GoalsCompanion.insert(
                 id: _req(g, 'id'),
                 name: _req(g, 'name'),
@@ -108,9 +109,12 @@ class BackupImporter {
               ),
             );
 
-        for (final m in (g['milestones'] as List<Object?>? ?? const [])
-            .cast<Map<String, Object?>>()) {
-          await _db.into(_db.milestones).insert(
+        for (final m
+            in (g['milestones'] as List<Object?>? ?? const [])
+                .cast<Map<String, Object?>>()) {
+          await _db
+              .into(_db.milestones)
+              .insert(
                 db.MilestonesCompanion.insert(
                   id: _req(m, 'id'),
                   goalId: _req(g, 'id'),
@@ -124,9 +128,12 @@ class BackupImporter {
           milestones++;
         }
 
-        for (final r in (g['reminders'] as List<Object?>? ?? const [])
-            .cast<Map<String, Object?>>()) {
-          await _db.into(_db.reminders).insert(
+        for (final r
+            in (g['reminders'] as List<Object?>? ?? const [])
+                .cast<Map<String, Object?>>()) {
+          await _db
+              .into(_db.reminders)
+              .insert(
                 db.RemindersCompanion.insert(
                   id: _req(r, 'id'),
                   goalId: _req(g, 'id'),
@@ -138,9 +145,12 @@ class BackupImporter {
           reminders++;
         }
 
-        for (final r in (g['records'] as List<Object?>? ?? const [])
-            .cast<Map<String, Object?>>()) {
-          await _db.into(_db.progressRecords).insert(
+        for (final r
+            in (g['records'] as List<Object?>? ?? const [])
+                .cast<Map<String, Object?>>()) {
+          await _db
+              .into(_db.progressRecords)
+              .insert(
                 db.ProgressRecordsCompanion.insert(
                   id: _req(r, 'id'),
                   goalId: _req(g, 'id'),
@@ -177,8 +187,7 @@ class BackupImporter {
     return v;
   }
 
-  static String? _s(Map<String, Object?> m, String key) =>
-      m[key] as String?;
+  static String? _s(Map<String, Object?> m, String key) => m[key] as String?;
 
   static LocalDate? _date(String? iso) =>
       iso == null ? null : LocalDate.parse(iso);
@@ -187,19 +196,19 @@ class BackupImporter {
       iso == null ? null : DateTime.parse(iso).toUtc();
 
   static GoalStatus _status(String? name) => GoalStatus.values.firstWhere(
-        (v) => v.name == name,
-        orElse: () => GoalStatus.active,
-      );
+    (v) => v.name == name,
+    orElse: () => GoalStatus.active,
+  );
 
   static Cadence _cadence(String? name) => Cadence.values.firstWhere(
-        (v) => v.name == name,
-        orElse: () => Cadence.daily,
-      );
+    (v) => v.name == name,
+    orElse: () => Cadence.daily,
+  );
 
   static RecordKind _kind(String? name) => RecordKind.values.firstWhere(
-        (v) => v.name == name,
-        orElse: () => RecordKind.normal,
-      );
+    (v) => v.name == name,
+    orElse: () => RecordKind.normal,
+  );
 
   static GoalCategory? _category(String? name) {
     if (name == null) return null;

@@ -83,8 +83,7 @@ class LocalDate implements Comparable<LocalDate> {
   LocalDate addDays(int n) => LocalDate._fromUtc(_utc.add(Duration(days: n)));
 
   /// 与 [other] 的天数差（this - other）。
-  int differenceInDays(LocalDate other) =>
-      _utc.difference(other._utc).inDays;
+  int differenceInDays(LocalDate other) => _utc.difference(other._utc).inDays;
 
   bool isBefore(LocalDate o) => compareTo(o) < 0;
   bool isAfter(LocalDate o) => compareTo(o) > 0;
@@ -203,7 +202,8 @@ class WeekStart implements Comparable<WeekStart> {
   String toString() => isoString;
 
   @override
-  bool operator ==(Object other) => other is WeekStart && other.monday == monday;
+  bool operator ==(Object other) =>
+      other is WeekStart && other.monday == monday;
 
   @override
   int get hashCode => monday.hashCode;

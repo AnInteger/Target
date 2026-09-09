@@ -18,10 +18,7 @@ import '../../core/copy.dart';
 import '../../core/models/entities.dart';
 
 Future<void> showEditPinned(BuildContext context) {
-  return showAppSheet(
-    context,
-    builder: (_) => const _EditPinnedSheet(),
-  );
+  return showAppSheet(context, builder: (_) => const _EditPinnedSheet());
 }
 
 class _EditPinnedSheet extends ConsumerStatefulWidget {
@@ -39,11 +36,10 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
     final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
-    final order = _pinnedOrder ??
-        goals.where((g) => g.pinned).map((g) => g.id).toList();
+    final order =
+        _pinnedOrder ?? goals.where((g) => g.pinned).map((g) => g.id).toList();
     final pinned = [
-      for (final id in order)
-        goals.where((g) => g.id == id).firstOrNull,
+      for (final id in order) goals.where((g) => g.id == id).firstOrNull,
     ].whereType<Goal>().toList();
     final others = goals.where((g) => !g.pinned).toList(growable: false);
 
@@ -64,8 +60,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
               padding: const EdgeInsets.all(16),
               child: Text(
                 Copy.editPinnedOthers,
-                style:
-                    text.bodyS.copyWith(color: p.onSurfaceVariant),
+                style: text.bodyS.copyWith(color: p.onSurfaceVariant),
               ),
             ),
           ReorderableListView(
@@ -87,9 +82,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
                   goal: g,
                   index: i,
                   onRemove: () async {
-                    await ref
-                        .read(goalRepoProvider)
-                        .setPinned(g.id, false);
+                    await ref.read(goalRepoProvider).setPinned(g.id, false);
                     setState(() => _pinnedOrder = null);
                   },
                 ),
@@ -137,11 +130,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
       child: Row(
         children: [
           const SizedBox(width: 12),
-          _circleButton(
-            CupertinoIcons.minus,
-            p.onSurfaceVariant,
-            onRemove,
-          ),
+          _circleButton(CupertinoIcons.minus, p.onSurfaceVariant, onRemove),
           const SizedBox(width: 12),
           Expanded(
             child: Padding(
@@ -156,8 +145,11 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
             index: index,
             child: Padding(
               padding: const EdgeInsets.all(14),
-              child: Icon(CupertinoIcons.line_horizontal_3,
-                  size: 22, color: p.onSurfaceTertiary),
+              child: Icon(
+                CupertinoIcons.line_horizontal_3,
+                size: 22,
+                color: p.onSurfaceTertiary,
+              ),
             ),
           ),
         ],
@@ -205,10 +197,7 @@ class _EditPinnedSheetState extends ConsumerState<_EditPinnedSheet> {
       width: 28,
       height: 28,
       child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: p.surfaceAlt,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: p.surfaceAlt, shape: BoxShape.circle),
         child: CupertinoButton(
           padding: EdgeInsets.zero,
           minimumSize: Size.square(28),

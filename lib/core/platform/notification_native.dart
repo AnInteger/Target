@@ -36,17 +36,25 @@ class NativeNotificationGateway implements NotificationGateway {
   @override
   Future<bool> requestPermission() async {
     await _ensureInit();
-    final ios = _plugin.resolvePlatformSpecificImplementation<
-        fln.IOSFlutterLocalNotificationsPlugin>();
-    final granted = await ios?.requestPermissions(alert: true, badge: true, sound: true);
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          fln.IOSFlutterLocalNotificationsPlugin
+        >();
+    final granted = await ios?.requestPermissions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
     return granted ?? false;
   }
 
   @override
   Future<bool> get isPermissionGranted async {
     await _ensureInit();
-    final ios = _plugin.resolvePlatformSpecificImplementation<
-        fln.IOSFlutterLocalNotificationsPlugin>();
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          fln.IOSFlutterLocalNotificationsPlugin
+        >();
     // v22 未提供只读查询：以"未拒绝过请求"近似——首次请求后系统记住了答复。
     return await ios?.requestPermissions() ?? false;
   }
@@ -112,5 +120,4 @@ class NativeNotificationGateway implements NotificationGateway {
   Stream<NotificationBanner> get banners => const Stream.empty();
 }
 
-NotificationGateway createNotificationGateway() =>
-    NativeNotificationGateway();
+NotificationGateway createNotificationGateway() => NativeNotificationGateway();

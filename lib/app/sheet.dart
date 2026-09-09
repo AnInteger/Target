@@ -60,8 +60,7 @@ class AppSheet extends StatelessWidget {
       constraints: maxHeightFactor == null
           ? null
           : BoxConstraints(
-              maxHeight:
-                  MediaQuery.of(context).size.height * maxHeightFactor!,
+              maxHeight: MediaQuery.of(context).size.height * maxHeightFactor!,
             ),
       decoration: BoxDecoration(
         color: backgroundColor ?? p.background,
@@ -74,19 +73,16 @@ class AppSheet extends StatelessWidget {
         children: [
           const SheetGrabber(),
           if (title != null)
-            SheetHeader(
-              title: title!,
-              leading: leading,
-              trailing: trailing,
-            ),
+            SheetHeader(title: title!, leading: leading, trailing: trailing),
           Flexible(child: child),
         ],
       ),
     );
     if (resizeForKeyboard) {
       current = Padding(
-        padding:
-            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: current,
       );
     }
@@ -135,9 +131,7 @@ class SheetHeader extends StatelessWidget {
         children: [
           SizedBox(width: 64, child: leading),
           Expanded(
-            child: Center(
-              child: Text(title, style: text.titleM, maxLines: 1),
-            ),
+            child: Center(child: Text(title, style: text.titleM, maxLines: 1)),
           ),
           SizedBox(
             width: 64,
@@ -176,7 +170,7 @@ class HeaderTextButton extends StatelessWidget {
         maxLines: 1,
         style: text.bodyL.copyWith(
           color: enabled ? p.accentText : p.onSurfaceTertiary,
-          fontWeight: emphasized && enabled ? FontWeight.w600 : FontWeight.w400,
+          fontWeight: emphasized && enabled ? FontWeight.w700 : FontWeight.w400,
         ),
       ),
     );
@@ -267,8 +261,7 @@ Future<LocalTime?> showAppTimePicker(
                   initial.hour,
                   initial.minute,
                 ),
-                onDateTimeChanged: (d) =>
-                    picked = LocalTime(d.hour, d.minute),
+                onDateTimeChanged: (d) => picked = LocalTime(d.hour, d.minute),
               ),
             ),
           ],

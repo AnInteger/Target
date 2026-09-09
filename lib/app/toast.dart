@@ -51,11 +51,7 @@ class AppToast {
 }
 
 class _ToastView extends StatefulWidget {
-  const _ToastView({
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
+  const _ToastView({required this.message, this.actionLabel, this.onAction});
 
   final String message;
   final String? actionLabel;
@@ -105,7 +101,9 @@ class _ToastViewState extends State<_ToastView> {
                       widget.message,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: text.bodyM.copyWith(color: const Color(0xFFF5F5F7)),
+                      style: text.bodyM.copyWith(
+                        color: const Color(0xFFF5F5F7),
+                      ),
                     ),
                   ),
                   if (widget.actionLabel != null) ...[
@@ -119,8 +117,10 @@ class _ToastViewState extends State<_ToastView> {
                       },
                       child: Text(
                         widget.actionLabel!,
-                        style: text.bodyM
-                            .copyWith(color: p.accentText, fontWeight: FontWeight.w600),
+                        style: text.bodyM.copyWith(
+                          color: p.accentText,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],

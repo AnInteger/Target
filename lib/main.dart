@@ -19,8 +19,7 @@ Future<void> main() async {
     if (route != null) container.read(routerProvider).go(route);
   });
 
-  runApp(UncontrolledProviderScope(
-    container: container,
-    child: const TargetApp(),
-  ));
+  runApp(
+    UncontrolledProviderScope(container: container, child: const TargetApp()),
+  );
 }

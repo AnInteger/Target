@@ -49,7 +49,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0, 0.18, 0.42, 1],
+          stops: const [0, 0.30, 0.75, 1],
           colors: p.headerGrad,
         ),
       ),
@@ -464,7 +464,9 @@ class _FeedRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: text.bodyS.copyWith(
-                      color: p.onSurfaceVariant, fontWeight: FontWeight.w500),
+                    color: p.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 // 行 3：秒级时间 · 投入 · 里程碑状态。

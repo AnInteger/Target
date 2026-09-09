@@ -126,8 +126,7 @@ abstract final class StatsEngine {
       slot[0] += r.durationMinutes ?? 0;
       slot[1]++;
     }
-    final days = byDay.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
+    final days = byDay.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
     return [
       for (final e in days)
         DailyInvestment(

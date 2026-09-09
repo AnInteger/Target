@@ -16,8 +16,7 @@ class ShareGatewayImpl implements ShareGateway {
     required String fileName,
     required List<int> bytes,
     required String mime,
-  }) =>
-      exportFileBytes(fileName: fileName, bytes: bytes, mime: mime);
+  }) => exportFileBytes(fileName: fileName, bytes: bytes, mime: mime);
 }
 
 ShareGateway createShareGateway() => ShareGatewayImpl();

@@ -18,11 +18,11 @@ import 'package:target/core/stats/stats_engine.dart';
 AppDatabase _db() => AppDatabase(NativeDatabase.memory());
 
 Goal _goal({String? id, bool pinned = false}) => Goal(
-      id: id,
-      name: '自在地游泳',
-      createdAt: const LocalDate(2026, 9, 1),
-      pinned: pinned,
-    );
+  id: id,
+  name: '自在地游泳',
+  createdAt: const LocalDate(2026, 9, 1),
+  pinned: pinned,
+);
 
 void main() {
   group('schema v8 基础', () {
@@ -79,8 +79,11 @@ void main() {
       ]);
       final m = (await ms.of(goal.id)).first;
 
-      await ms.markDone(m.id,
-          note: '比想象中从容。', now: DateTime.utc(2026, 9, 6, 10));
+      await ms.markDone(
+        m.id,
+        note: '比想象中从容。',
+        now: DateTime.utc(2026, 9, 6, 10),
+      );
       var all = await records.watchOf(goal.id).first;
       expect(all, hasLength(1));
       expect(all.first.kind, RecordKind.milestoneAchievement);
@@ -110,10 +113,7 @@ void main() {
       await repo.setPinned('a', true);
       await repo.setPinned('b', true);
       var goals = await repo.getGoals();
-      expect(
-        goals.where((g) => g.pinned).map((g) => g.pinnedOrder),
-        [0, 1],
-      );
+      expect(goals.where((g) => g.pinned).map((g) => g.pinnedOrder), [0, 1]);
 
       await repo.setPinned('a', false); // 取消 → b 压缩至 0
       goals = await repo.getGoals();
@@ -207,8 +207,9 @@ void main() {
         today: const LocalDate(2026, 9, 6),
       );
       await SettingsRepository(db).update(
-        (await SettingsRepository(db).get())
-            .copyWith(nickname: '星行', themeMode: 'dark'),
+        (await SettingsRepository(
+          db,
+        ).get()).copyWith(nickname: '星行', themeMode: 'dark'),
       );
 
       final exporter = BackupExporter(db);
@@ -250,17 +251,16 @@ void main() {
   group('统计 v3（FR-005/007）', () {
     test('周投入：分钟只计带时长记录；记录数全计', () {
       final week = WeekStart.of(const LocalDate(2026, 8, 31)); // 周一
-      List<ProgressRecord> r(String id, String day, int? minutes) =>
-          [
-            ProgressRecord(
-              id: id,
-              goalId: 'g',
-              title: 't',
-              durationMinutes: minutes,
-              day: LocalDate.parse(day),
-              createdAt: DateTime.utc(2026, 9, 1),
-            ),
-          ];
+      List<ProgressRecord> r(String id, String day, int? minutes) => [
+        ProgressRecord(
+          id: id,
+          goalId: 'g',
+          title: 't',
+          durationMinutes: minutes,
+          day: LocalDate.parse(day),
+          createdAt: DateTime.utc(2026, 9, 1),
+        ),
+      ];
       final records = [
         ...r('1', '2026-08-31', 30), // 周一 30
         ...r('2', '2026-09-03', null), // 周四无时长（计条不计分）

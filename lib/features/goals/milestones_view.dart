@@ -30,8 +30,7 @@ class MilestonesPage extends ConsumerWidget {
         .firstOrNull;
     final milestones =
         ref.watch(milestonesOfProvider(goalId)).value ?? const <Milestone>[];
-    final pending =
-        milestones.where((m) => !m.isDone).toList(growable: false);
+    final pending = milestones.where((m) => !m.isDone).toList(growable: false);
     final done = milestones.where((m) => m.isDone).toList(growable: false);
 
     return CupertinoPageScaffold(
@@ -72,9 +71,7 @@ class MilestonesPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(Copy.milestonesTitle, style: text.displayM),
-                ],
+                children: [Text(Copy.milestonesTitle, style: text.displayM)],
               ),
             ),
             Expanded(
@@ -86,8 +83,7 @@ class MilestonesPage extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
                       child: Text(
                         Copy.pendingGroup(pending.length),
-                        style: text.labelS
-                            .copyWith(color: p.onSurfaceVariant),
+                        style: text.labelS.copyWith(color: p.onSurfaceVariant),
                       ),
                     ),
                     _card(
@@ -100,19 +96,22 @@ class MilestonesPage extends ConsumerWidget {
                               backgroundColor: p.surface,
                               title: Text(m.title, style: text.titleM),
                               subtitle: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (m.description != null)
-                                    Text(m.description!,
-                                        style: text.bodyS.copyWith(
-                                            color: p.onSurfaceVariant)),
+                                    Text(
+                                      m.description!,
+                                      style: text.bodyS.copyWith(
+                                        color: p.onSurfaceVariant,
+                                      ),
+                                    ),
                                   Text(
                                     m.position >= 0
                                         ? _relatedCount(ref, m.id)
                                         : '',
                                     style: text.bodyS.copyWith(
-                                        color: p.onSurfaceTertiary),
+                                      color: p.onSurfaceTertiary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -134,8 +133,7 @@ class MilestonesPage extends ConsumerWidget {
                       padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
                       child: Text(
                         Copy.doneGroup(done.length),
-                        style: text.labelS
-                            .copyWith(color: p.onSurfaceVariant),
+                        style: text.labelS.copyWith(color: p.onSurfaceVariant),
                       ),
                     ),
                     _card(
@@ -153,14 +151,18 @@ class MilestonesPage extends ConsumerWidget {
                                   color: p.milestoneTint,
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(CupertinoIcons.flag_fill,
-                                    size: 18, color: p.milestone),
+                                child: Icon(
+                                  CupertinoIcons.flag_fill,
+                                  size: 18,
+                                  color: p.milestone,
+                                ),
                               ),
                               title: Text(m.title, style: text.bodyL),
                               subtitle: Text(
                                 '${m.doneAt?.toLocal().month ?? ''}月${m.doneAt?.toLocal().day ?? ''}日达成 · ${_relatedCount(ref, m.id)}',
                                 style: text.bodyS.copyWith(
-                                    color: p.onSurfaceVariant),
+                                  color: p.onSurfaceVariant,
+                                ),
                               ),
                             ),
                           ],
@@ -172,8 +174,7 @@ class MilestonesPage extends ConsumerWidget {
                   Center(
                     child: Text(
                       Copy.milestonesHint,
-                      style: text.bodyS
-                          .copyWith(color: p.onSurfaceVariant),
+                      style: text.bodyS.copyWith(color: p.onSurfaceVariant),
                     ),
                   ),
                 ],
@@ -188,9 +189,7 @@ class MilestonesPage extends ConsumerWidget {
   String _relatedCount(WidgetRef ref, String milestoneId) {
     final records =
         ref.watch(recordsProvider).value ?? const <ProgressRecord>[];
-    final n = records
-        .where((r) => r.milestoneId == milestoneId)
-        .length;
+    final n = records.where((r) => r.milestoneId == milestoneId).length;
     return n > 0 ? Copy.relatedRecords(n) : Copy.noRelatedRecords;
   }
 
@@ -203,7 +202,6 @@ class MilestonesPage extends ConsumerWidget {
         decoration: BoxDecoration(
           color: p.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: p.shadowLow,
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: child,
@@ -211,11 +209,7 @@ class MilestonesPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _menu(
-    BuildContext context,
-    WidgetRef ref,
-    Milestone m,
-  ) async {
+  Future<void> _menu(BuildContext context, WidgetRef ref, Milestone m) async {
     final action = await showCupertinoModalPopup<String>(
       context: context,
       useRootNavigator: true,
@@ -281,8 +275,7 @@ class MilestonesPage extends ConsumerWidget {
           ),
           CupertinoDialogAction(
             isDefaultAction: true,
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(controller.text),
+            onPressed: () => Navigator.of(dialogContext).pop(controller.text),
             child: Text(Copy.done),
           ),
         ],
@@ -291,11 +284,7 @@ class MilestonesPage extends ConsumerWidget {
     return note?.trim();
   }
 
-  Future<void> _edit(
-    BuildContext context,
-    WidgetRef ref,
-    Milestone m,
-  ) async {
+  Future<void> _edit(BuildContext context, WidgetRef ref, Milestone m) async {
     final title = TextEditingController(text: m.title);
     final desc = TextEditingController(text: m.description ?? '');
     final saved = await _showMilestoneForm(
@@ -305,11 +294,12 @@ class MilestonesPage extends ConsumerWidget {
       descController: desc,
     );
     if (saved == true) {
-      await ref.read(milestoneRepoProvider).update(
+      await ref
+          .read(milestoneRepoProvider)
+          .update(
             m.copyWith(
               title: title.text.trim(),
-              description:
-                  desc.text.trim().isEmpty ? null : desc.text.trim(),
+              description: desc.text.trim().isEmpty ? null : desc.text.trim(),
             ),
           );
     }
@@ -326,12 +316,13 @@ class MilestonesPage extends ConsumerWidget {
       autofocus: true,
     );
     if (saved == true && title.text.trim().isNotEmpty) {
-      await ref.read(milestoneRepoProvider).add(
+      await ref
+          .read(milestoneRepoProvider)
+          .add(
             Milestone(
               goalId: goalId,
               title: title.text.trim(),
-              description:
-                  desc.text.trim().isEmpty ? null : desc.text.trim(),
+              description: desc.text.trim().isEmpty ? null : desc.text.trim(),
               position: 0,
             ),
           );

@@ -36,7 +36,8 @@ sealed class FrequencyPattern {
 
   factory FrequencyPattern.fromJsonString(String s) =>
       FrequencyPattern.fromJson(
-          Map<String, dynamic>.from(jsonDecode(s) as Map));
+        Map<String, dynamic>.from(jsonDecode(s) as Map),
+      );
 
   /// [day] 是否为适用日（R4）。weekly 恒为 true（潜在适用日），
   /// 其"是否计入 N"由统计引擎按打卡记录判定。
@@ -55,8 +56,10 @@ class DailyFrequency extends FrequencyPattern {
   bool isApplicableOn(LocalDate day) => true;
 
   @override
-  Map<String, dynamic> toJson() =>
-      {'type': 'daily', 'targetPerDay': targetPerDay};
+  Map<String, dynamic> toJson() => {
+    'type': 'daily',
+    'targetPerDay': targetPerDay,
+  };
 
   @override
   String toString() => '每天 $targetPerDay 次';
@@ -79,8 +82,10 @@ class WeeklyFrequency extends FrequencyPattern {
   bool isApplicableOn(LocalDate day) => true; // 潜在适用日（R4）
 
   @override
-  Map<String, dynamic> toJson() =>
-      {'type': 'weekly', 'timesPerWeek': timesPerWeek};
+  Map<String, dynamic> toJson() => {
+    'type': 'weekly',
+    'timesPerWeek': timesPerWeek,
+  };
 
   @override
   String toString() => '每周 $timesPerWeek 次';
@@ -99,7 +104,7 @@ class WeeklyFrequency extends FrequencyPattern {
 /// Set.isEmpty，故不在此处检查）。
 class WeekdaysFrequency extends FrequencyPattern {
   const WeekdaysFrequency(this.days, this.targetPerDay)
-      : assert(targetPerDay >= 1);
+    : assert(targetPerDay >= 1);
 
   final Set<Weekday> days;
   final int targetPerDay;
@@ -109,10 +114,10 @@ class WeekdaysFrequency extends FrequencyPattern {
 
   @override
   Map<String, dynamic> toJson() => {
-        'type': 'weekdays',
-        'days': days.map((d) => d.isoNumber).toList()..sort(),
-        'targetPerDay': targetPerDay,
-      };
+    'type': 'weekdays',
+    'days': days.map((d) => d.isoNumber).toList()..sort(),
+    'targetPerDay': targetPerDay,
+  };
 
   @override
   String toString() {

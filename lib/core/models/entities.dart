@@ -129,12 +129,10 @@ class Goal {
          why == null || (why.trim().isNotEmpty && why.length <= 60),
          '为什么 1–60 字',
        ),
-       assert(
-         pinnedOrder == null || pinnedOrder >= 0,
-         '置顶序号 ≥0',
-       );
+       assert(pinnedOrder == null || pinnedOrder >= 0, '置顶序号 ≥0');
 
-  static String _categoryColorOf(GoalCategory? key) => key?.defaultColorKey ?? 'gray';
+  static String _categoryColorOf(GoalCategory? key) =>
+      key?.defaultColorKey ?? 'gray';
 
   final String id;
   final String name;
@@ -218,14 +216,15 @@ class Goal {
   /// 状态机（phase 1 语义）：active⇄paused、标记达成⇄重新打开、
   /// 归档⇄取消归档；删除为独立破坏性操作不入状态机。
   bool canTransitTo(GoalStatus to) => switch (status) {
-    GoalStatus.active => to == GoalStatus.paused ||
+    GoalStatus.active =>
+      to == GoalStatus.paused ||
           to == GoalStatus.achieved ||
           to == GoalStatus.archived,
-    GoalStatus.paused => to == GoalStatus.active ||
+    GoalStatus.paused =>
+      to == GoalStatus.active ||
           to == GoalStatus.achieved ||
           to == GoalStatus.archived,
-    GoalStatus.achieved => to == GoalStatus.active ||
-          to == GoalStatus.archived,
+    GoalStatus.achieved => to == GoalStatus.active || to == GoalStatus.archived,
     GoalStatus.archived => to == GoalStatus.active,
   };
 
@@ -321,7 +320,8 @@ class ProgressRecord {
          '正文 1–500 字',
        ),
        assert(
-         durationMinutes == null || (durationMinutes > 0 && durationMinutes <= 24 * 60),
+         durationMinutes == null ||
+             (durationMinutes > 0 && durationMinutes <= 24 * 60),
          '投入时长 1–1440 分钟',
        );
 

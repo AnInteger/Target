@@ -51,24 +51,39 @@ enum GoalIconDomain {
 
 /// 目标图标目录（38 枚 / 10 领域）。
 enum GoalIconCatalog {
-  directionsBike('directions_bike', GoalIconDomain.fitness,
-      Icons.directions_bike_rounded),
-  directionsRun('directions_run', GoalIconDomain.fitness,
-      Icons.directions_run_rounded),
+  directionsBike(
+    'directions_bike',
+    GoalIconDomain.fitness,
+    Icons.directions_bike_rounded,
+  ),
+  directionsRun(
+    'directions_run',
+    GoalIconDomain.fitness,
+    Icons.directions_run_rounded,
+  ),
   pool('pool', GoalIconDomain.fitness, Icons.pool_rounded),
   hiking('hiking', GoalIconDomain.fitness, Icons.hiking_rounded),
-  fitnessCenter('fitness_center', GoalIconDomain.fitness,
-      Icons.fitness_center_rounded),
+  fitnessCenter(
+    'fitness_center',
+    GoalIconDomain.fitness,
+    Icons.fitness_center_rounded,
+  ),
 
   menuBook('menu_book', GoalIconDomain.learning, Icons.menu_book_rounded),
   school('school', GoalIconDomain.learning, Icons.school_rounded),
   translate('translate', GoalIconDomain.learning, Icons.translate_rounded),
-  autoStories('auto_stories', GoalIconDomain.learning,
-      Icons.auto_stories_rounded),
+  autoStories(
+    'auto_stories',
+    GoalIconDomain.learning,
+    Icons.auto_stories_rounded,
+  ),
 
   favorite('favorite', GoalIconDomain.health, Icons.favorite_rounded),
-  monitorHeart('monitor_heart', GoalIconDomain.health,
-      Icons.monitor_heart_rounded),
+  monitorHeart(
+    'monitor_heart',
+    GoalIconDomain.health,
+    Icons.monitor_heart_rounded,
+  ),
   bedtime('bedtime', GoalIconDomain.health, Icons.bedtime_rounded),
   waterDrop('water_drop', GoalIconDomain.health, Icons.water_drop_rounded),
 
@@ -84,27 +99,38 @@ enum GoalIconCatalog {
   explore('explore', GoalIconDomain.travel, Icons.explore_rounded),
 
   savings('savings', GoalIconDomain.finance, Icons.savings_rounded),
-  trendingUp('trending_up', GoalIconDomain.finance,
-      Icons.trending_up_rounded),
-  accountBalanceWallet('account_balance_wallet', GoalIconDomain.finance,
-      Icons.account_balance_wallet_rounded),
+  trendingUp('trending_up', GoalIconDomain.finance, Icons.trending_up_rounded),
+  accountBalanceWallet(
+    'account_balance_wallet',
+    GoalIconDomain.finance,
+    Icons.account_balance_wallet_rounded,
+  ),
   paid('paid', GoalIconDomain.finance, Icons.paid_rounded),
 
   home('home', GoalIconDomain.life, Icons.home_rounded),
   restaurant('restaurant', GoalIconDomain.life, Icons.restaurant_rounded),
-  cleaningServices('cleaning_services', GoalIconDomain.life,
-      Icons.cleaning_services_rounded),
+  cleaningServices(
+    'cleaning_services',
+    GoalIconDomain.life,
+    Icons.cleaning_services_rounded,
+  ),
   eco('eco', GoalIconDomain.life, Icons.eco_rounded),
 
-  selfImprovement('self_improvement', GoalIconDomain.mind,
-      Icons.self_improvement_rounded),
+  selfImprovement(
+    'self_improvement',
+    GoalIconDomain.mind,
+    Icons.self_improvement_rounded,
+  ),
   spa('spa', GoalIconDomain.mind, Icons.spa_rounded),
   air('air', GoalIconDomain.mind, Icons.air_rounded),
   forest('forest', GoalIconDomain.mind, Icons.forest_rounded),
 
   groups('groups', GoalIconDomain.social, Icons.groups_rounded),
-  volunteerActivism('volunteer_activism', GoalIconDomain.social,
-      Icons.volunteer_activism_rounded),
+  volunteerActivism(
+    'volunteer_activism',
+    GoalIconDomain.social,
+    Icons.volunteer_activism_rounded,
+  ),
   forum('forum', GoalIconDomain.social, Icons.forum_rounded),
 
   pets('pets', GoalIconDomain.pets, Icons.pets_rounded);
@@ -149,6 +175,6 @@ const Map<String, String> legacyIconKeyMap = {
 };
 
 /// 迁移单个旧键：已知映射换域，未知键兜底 explore。
-String migrateIconKey(String? legacy) =>
-    legacy == null ? GoalIconCatalog.explore.key
-        : legacyIconKeyMap[legacy] ?? GoalIconCatalog.explore.key;
+String migrateIconKey(String? legacy) => legacy == null
+    ? GoalIconCatalog.explore.key
+    : legacyIconKeyMap[legacy] ?? GoalIconCatalog.explore.key;

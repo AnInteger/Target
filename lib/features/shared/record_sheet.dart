@@ -19,10 +19,7 @@ import '../../core/models/calendar_types.dart';
 import '../../core/models/entities.dart';
 import 'goal_card.dart' show goalIconData;
 
-Future<void> showRecordSheet(
-  BuildContext context, {
-  String? goalId,
-}) {
+Future<void> showRecordSheet(BuildContext context, {String? goalId}) {
   return showAppSheet(
     context,
     builder: (_) => _RecordSheet(initialGoalId: goalId),
@@ -67,19 +64,21 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
   @override
   Widget build(BuildContext context) {
     final text = AppText.of(context);
-    final goals =
-        ref.watch(goalsProvider).value ?? const <Goal>[];
+    final goals = ref.watch(goalsProvider).value ?? const <Goal>[];
     final recordable = goals
-        .where((g) =>
-            g.status == GoalStatus.active || g.status == GoalStatus.paused)
+        .where(
+          (g) => g.status == GoalStatus.active || g.status == GoalStatus.paused,
+        )
         .toList();
-    final goal = recordable.where((g) => g.id == _goalId).firstOrNull ??
+    final goal =
+        recordable.where((g) => g.id == _goalId).firstOrNull ??
         recordable.firstOrNull;
     _goalId = goal?.id;
-    final milestones = (ref.watch(milestonesOfProvider(_goalId ?? '')).value ??
-            const <Milestone>[])
-        .where((m) => !m.isDone)
-        .toList();
+    final milestones =
+        (ref.watch(milestonesOfProvider(_goalId ?? '')).value ??
+                const <Milestone>[])
+            .where((m) => !m.isDone)
+            .toList();
     final today = ref.watch(todayProvider);
 
     return AppSheet(
@@ -102,9 +101,11 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
           if (recordable.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(Copy.goalsEmptyBody,
-                  style: text.bodyM,
-                  textAlign: TextAlign.center),
+              child: Text(
+                Copy.goalsEmptyBody,
+                style: text.bodyM,
+                textAlign: TextAlign.center,
+              ),
             )
           else ...[
             _label(context, Copy.recordGoalLabel),
@@ -119,8 +120,9 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
             Center(
               child: Text(
                 Copy.recordSlogan,
-                style: text.bodyS
-                    .copyWith(color: TargetPalette.of(context).onSurfaceVariant),
+                style: text.bodyS.copyWith(
+                  color: TargetPalette.of(context).onSurfaceVariant,
+                ),
               ),
             ),
           ],
@@ -134,10 +136,7 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
     final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child: Text(
-        s,
-        style: text.bodyS.copyWith(color: p.onSurfaceVariant),
-      ),
+      child: Text(s, style: text.bodyS.copyWith(color: p.onSurfaceVariant)),
     );
   }
 
@@ -146,7 +145,9 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
     final text = AppText.of(context);
     if (cur == null) return const SizedBox.shrink();
     final color = GoalPalette.byKey(
-        cur.colorKey, brightness: TargetPalette.brightnessOf(context));
+      cur.colorKey,
+      brightness: TargetPalette.brightnessOf(context),
+    );
     return AppCard(
       padding: const EdgeInsets.all(AppSpace.s4),
       child: Column(
@@ -161,12 +162,14 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
                 Expanded(
                   child: Text(
                     cur.name,
-                    style: text.bodyL
-                        .copyWith(fontWeight: FontWeight.w600),
+                    style: text.bodyL.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
-                Icon(CupertinoIcons.chevron_up_chevron_down,
-                    size: 16, color: p.onSurfaceTertiary),
+                Icon(
+                  CupertinoIcons.chevron_up_chevron_down,
+                  size: 16,
+                  color: p.onSurfaceTertiary,
+                ),
               ],
             ),
           ),
@@ -183,12 +186,14 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
                   padding: const EdgeInsets.only(top: 12),
                   child: Row(
                     children: [
-                      Icon(_goalIcon(g),
-                          size: 18,
-                          color: GoalPalette.byKey(
-                              g.colorKey,
-                              brightness:
-                                  TargetPalette.brightnessOf(context))),
+                      Icon(
+                        _goalIcon(g),
+                        size: 18,
+                        color: GoalPalette.byKey(
+                          g.colorKey,
+                          brightness: TargetPalette.brightnessOf(context),
+                        ),
+                      ),
                       const SizedBox(width: 12),
                       Expanded(child: Text(g.name, style: text.bodyL)),
                     ],
@@ -212,12 +217,10 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
           CupertinoTextField(
             controller: _title,
             onChanged: (_) => setState(() {}),
-            style: text.bodyL.copyWith(fontWeight: FontWeight.w600),
+            style: text.bodyL.copyWith(fontWeight: FontWeight.w700),
             placeholder: Copy.recordTitleHint,
             decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: p.divider, width: 0.5),
-              ),
+              border: Border(bottom: BorderSide(color: p.divider, width: 0.5)),
             ),
           ),
           const SizedBox(height: 10),
@@ -267,10 +270,7 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
         CupertinoListTile(
           leading: Icon(CupertinoIcons.calendar, size: 20, color: p.onSurface),
           title: Text(Copy.recordDate),
-          additionalInfo: Text(
-            day.isoString,
-            style: text.bodyM,
-          ),
+          additionalInfo: Text(day.isoString, style: text.bodyM),
           backgroundColor: p.surface,
           onTap: () => _pickDate(today),
         ),
@@ -280,9 +280,7 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
           additionalInfo: Text(
             _milestoneId == null
                 ? Copy.recordMilestonePick
-                : milestones
-                    .firstWhere((m) => m.id == _milestoneId)
-                    .title,
+                : milestones.firstWhere((m) => m.id == _milestoneId).title,
             style: text.bodyM,
           ),
           backgroundColor: p.surface,
@@ -297,9 +295,7 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
       context,
       title: Copy.durationQuestion,
       selected: _duration,
-      options: [
-        for (final m in _durations) (m, Copy.durationMinutes(m)),
-      ],
+      options: [for (final m in _durations) (m, Copy.durationMinutes(m))],
     );
     if (chosen != null) setState(() => _duration = chosen);
   }
@@ -327,14 +323,18 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
         ('', Copy.recordMilestonePick),
       ],
     );
-    if (chosen != null) setState(() => _milestoneId = chosen.isEmpty ? null : chosen);
+    if (chosen != null) {
+      setState(() => _milestoneId = chosen.isEmpty ? null : chosen);
+    }
   }
 
   Future<void> _save() async {
     final goalId = _goalId;
     if (goalId == null || !_canSave) return;
     final today = ref.read(todayProvider);
-    final record = await ref.read(recordRepoProvider).add(
+    final record = await ref
+        .read(recordRepoProvider)
+        .add(
           ProgressRecord(
             goalId: goalId,
             title: _title.text.trim(),

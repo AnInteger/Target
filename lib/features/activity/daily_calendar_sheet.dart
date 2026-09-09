@@ -22,10 +22,7 @@ Future<void> showDailyCalendarSheet(
   BuildContext context,
   List<ProgressRecord> records,
 ) {
-  return showAppSheet(
-    context,
-    builder: (_) => const _DailyCalendarSheet(),
-  );
+  return showAppSheet(context, builder: (_) => const _DailyCalendarSheet());
 }
 
 class _DailyCalendarSheet extends ConsumerStatefulWidget {
@@ -74,8 +71,7 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
                 ),
                 child: const Icon(CupertinoIcons.chevron_back, size: 18),
               ),
-              Text('${_month.year}年${_month.month}月',
-                  style: text.titleM),
+              Text('${_month.year}年${_month.month}月', style: text.titleM),
               CupertinoButton(
                 padding: EdgeInsets.zero,
                 minimumSize: Size.square(36),
@@ -99,8 +95,9 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
                           child: Text(
                             w,
                             style: TextStyle(
-                                fontSize: 11,
-                                color: p.onSurfaceTertiary),
+                              fontSize: 11,
+                              color: p.onSurfaceTertiary,
+                            ),
                           ),
                         ),
                       ),
@@ -116,24 +113,32 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                      color: p.divider, shape: BoxShape.circle)),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: p.divider,
+                  shape: BoxShape.circle,
+                ),
+              ),
               const SizedBox(width: 6),
-              Text(Copy.calendarLegendNone,
-                  style: text.bodyS
-                      .copyWith(color: p.onSurfaceVariant)),
+              Text(
+                Copy.calendarLegendNone,
+                style: text.bodyS.copyWith(color: p.onSurfaceVariant),
+              ),
               const SizedBox(width: 16),
               Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                      color: p.accent, shape: BoxShape.circle)),
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: p.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
               const SizedBox(width: 6),
-              Text(Copy.calendarLegendRing,
-                  style: text.bodyS
-                      .copyWith(color: p.onSurfaceVariant)),
+              Text(
+                Copy.calendarLegendRing,
+                style: text.bodyS.copyWith(color: p.onSurfaceVariant),
+              ),
             ],
           ),
         ],
@@ -162,33 +167,37 @@ class _DailyCalendarSheetState extends ConsumerState<_DailyCalendarSheet> {
                 Expanded(
                   child: AspectRatio(
                     aspectRatio: 1,
-                    child: Builder(builder: (_) {
-                      final index = row * 7 + col - lead + 1;
-                      if (index < 1 || index > daysInMonth) {
-                        return const SizedBox.shrink();
-                      }
-                      final day = LocalDate(_month.year, _month.month, index);
-                      final d = byDay[day];
-                      final selected = day == today;
-                      return Center(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: selected
-                                ? Border.all(
-                                    color: TargetPalette.of(context).accent,
-                                    width: 1.5)
-                                : null,
+                    child: Builder(
+                      builder: (_) {
+                        final index = row * 7 + col - lead + 1;
+                        if (index < 1 || index > daysInMonth) {
+                          return const SizedBox.shrink();
+                        }
+                        final day = LocalDate(_month.year, _month.month, index);
+                        final d = byDay[day];
+                        final selected = day == today;
+                        return Center(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: selected
+                                  ? Border.all(
+                                      color: TargetPalette.of(context).accent,
+                                      width: 1.5,
+                                    )
+                                  : null,
+                            ),
+                            padding: const EdgeInsets.all(2),
+                            child: _Ring(
+                              progress: d == null || peak == 0
+                                  ? 0
+                                  : d.minutes / peak,
+                              minutes: d?.minutes ?? 0,
+                            ),
                           ),
-                          padding: const EdgeInsets.all(2),
-                          child: _Ring(
-                            progress:
-                                d == null || peak == 0 ? 0 : d.minutes / peak,
-                            minutes: d?.minutes ?? 0,
-                          ),
-                        ),
-                      );
-                    }),
+                        );
+                      },
+                    ),
                   ),
                 ),
             ],
@@ -272,7 +281,5 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress ||
-      old.track != track ||
-      old.arc != arc;
+      old.progress != progress || old.track != track || old.arc != arc;
 }

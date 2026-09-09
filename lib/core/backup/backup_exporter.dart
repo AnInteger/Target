@@ -43,8 +43,7 @@ class BackupExporter {
     final reminders = await _db.select(_db.reminders).get();
     final records = await _db.select(_db.progressRecords).get();
     final settingsRows = await _db.select(_db.settingsRows).get();
-    final settings =
-        settingsRows.isEmpty ? null : settingsRows.first;
+    final settings = settingsRows.isEmpty ? null : settingsRows.first;
 
     return {
       'format': kBackupFormat,
@@ -110,5 +109,5 @@ class BackupExporter {
           },
       ],
     };
-}
+  }
 }

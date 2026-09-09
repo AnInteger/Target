@@ -18,38 +18,38 @@ import 'app_database.dart';
 // ---------------------------------------------------------------------------
 
 GoalsCompanion goalCompanion(Goal g) => GoalsCompanion.insert(
-      id: g.id,
-      name: g.name,
-      why: Value(g.why),
-      categoryKey: Value(g.categoryKey),
-      iconKey: g.iconKey,
-      colorKey: g.colorKey,
-      pinned: Value(g.pinned),
-      pinnedOrder: Value(g.pinnedOrder),
-      targetDate: Value(g.targetDate),
-      frequency: Value(g.frequency),
-      status: g.status,
-      createdAt: g.createdAt,
-      achievedAt: Value(g.achievedAt),
-      archivedAt: Value(g.archivedAt),
-    );
+  id: g.id,
+  name: g.name,
+  why: Value(g.why),
+  categoryKey: Value(g.categoryKey),
+  iconKey: g.iconKey,
+  colorKey: g.colorKey,
+  pinned: Value(g.pinned),
+  pinnedOrder: Value(g.pinnedOrder),
+  targetDate: Value(g.targetDate),
+  frequency: Value(g.frequency),
+  status: g.status,
+  createdAt: g.createdAt,
+  achievedAt: Value(g.achievedAt),
+  archivedAt: Value(g.archivedAt),
+);
 
 Goal goalFromRow(GoalRow r) => Goal(
-      id: r.id,
-      name: r.name,
-      why: r.why,
-      categoryKey: r.categoryKey,
-      iconKey: r.iconKey,
-      colorKey: r.colorKey,
-      pinned: r.pinned,
-      pinnedOrder: r.pinnedOrder,
-      targetDate: r.targetDate,
-      frequency: r.frequency,
-      status: r.status,
-      achievedAt: r.achievedAt,
-      archivedAt: r.archivedAt,
-      createdAt: r.createdAt,
-    );
+  id: r.id,
+  name: r.name,
+  why: r.why,
+  categoryKey: r.categoryKey,
+  iconKey: r.iconKey,
+  colorKey: r.colorKey,
+  pinned: r.pinned,
+  pinnedOrder: r.pinnedOrder,
+  targetDate: r.targetDate,
+  frequency: r.frequency,
+  status: r.status,
+  achievedAt: r.achievedAt,
+  archivedAt: r.archivedAt,
+  createdAt: r.createdAt,
+);
 
 MilestonesCompanion milestoneCompanion(Milestone m, {int? position}) =>
     MilestonesCompanion.insert(
@@ -63,14 +63,14 @@ MilestonesCompanion milestoneCompanion(Milestone m, {int? position}) =>
     );
 
 Milestone milestoneFromRow(MilestoneRow r) => Milestone(
-      id: r.id,
-      goalId: r.goalId,
-      title: r.title,
-      description: r.description,
-      position: r.position,
-      isDone: r.isDone,
-      doneAt: r.doneAt,
-    );
+  id: r.id,
+  goalId: r.goalId,
+  title: r.title,
+  description: r.description,
+  position: r.position,
+  isDone: r.isDone,
+  doneAt: r.doneAt,
+);
 
 ProgressRecordsCompanion recordCompanion(ProgressRecord r) =>
     ProgressRecordsCompanion.insert(
@@ -87,17 +87,17 @@ ProgressRecordsCompanion recordCompanion(ProgressRecord r) =>
     );
 
 ProgressRecord recordFromRow(RecordRow r) => ProgressRecord(
-      id: r.id,
-      goalId: r.goalId,
-      title: r.title,
-      body: r.body,
-      durationMinutes: r.durationMinutes,
-      day: r.day,
-      createdAt: r.createdAt,
-      isBackfill: r.isBackfill,
-      kind: r.kind,
-      milestoneId: r.milestoneId,
-    );
+  id: r.id,
+  goalId: r.goalId,
+  title: r.title,
+  body: r.body,
+  durationMinutes: r.durationMinutes,
+  day: r.day,
+  createdAt: r.createdAt,
+  isBackfill: r.isBackfill,
+  kind: r.kind,
+  milestoneId: r.milestoneId,
+);
 
 RemindersCompanion reminderCompanion(Reminder r, {String? id}) =>
     RemindersCompanion.insert(
@@ -109,12 +109,12 @@ RemindersCompanion reminderCompanion(Reminder r, {String? id}) =>
     );
 
 Reminder reminderFromRow(ReminderRow r) => Reminder(
-      id: r.id,
-      goalId: r.goalId,
-      time: r.time,
-      isEnabled: r.isEnabled,
-      cadence: r.cadence,
-    );
+  id: r.id,
+  goalId: r.goalId,
+  time: r.time,
+  isEnabled: r.isEnabled,
+  cadence: r.cadence,
+);
 
 // ---------------------------------------------------------------------------
 // GoalRepository
@@ -126,100 +126,97 @@ class GoalRepository {
   final AppDatabase _db;
 
   Stream<List<Goal>> watchGoals() =>
-      (_db.select(_db.goals)
-            ..orderBy([
-              (g) => OrderingTerm.desc(g.pinned),
-              (g) => OrderingTerm.asc(g.pinnedOrder),
-              (g) => OrderingTerm.desc(g.createdAt),
-            ]))
+      (_db.select(_db.goals)..orderBy([
+            (g) => OrderingTerm.desc(g.pinned),
+            (g) => OrderingTerm.asc(g.pinnedOrder),
+            (g) => OrderingTerm.desc(g.createdAt),
+          ]))
           .map(goalFromRow)
           .watch();
 
   Future<List<Goal>> getGoals() async =>
-      (await (_db.select(_db.goals)
-            ..orderBy([
-              (g) => OrderingTerm.desc(g.pinned),
-              (g) => OrderingTerm.asc(g.pinnedOrder),
-              (g) => OrderingTerm.desc(g.createdAt),
-            ]))
-          .get())
+      (await (_db.select(_db.goals)..orderBy([
+                (g) => OrderingTerm.desc(g.pinned),
+                (g) => OrderingTerm.asc(g.pinnedOrder),
+                (g) => OrderingTerm.desc(g.createdAt),
+              ]))
+              .get())
           .map(goalFromRow)
           .toList();
 
-  Future<Goal> goalById(String id) async =>
-      goalFromRow(await (_db.select(_db.goals)..where((g) => g.id.equals(id)))
-          .getSingle());
+  Future<Goal> goalById(String id) async => goalFromRow(
+    await (_db.select(_db.goals)..where((g) => g.id.equals(id))).getSingle(),
+  );
 
   /// 完整目标创建（编辑器保存）：goal + 里程碑 + 提醒原子落库。
   Future<Goal> createPlan(
     Goal goal,
     List<Milestone> milestones, {
     Reminder? reminder,
-  }) =>
-      _db.transaction(() async {
-        await _db.into(_db.goals).insert(goalCompanion(goal));
-        for (final (i, m) in milestones.indexed) {
-          await _db
-              .into(_db.milestones)
-              .insert(milestoneCompanion(m, position: i));
-        }
-        if (reminder != null) {
-          await _db.into(_db.reminders).insert(reminderCompanion(reminder));
-        }
-        return goal;
-      });
+  }) => _db.transaction(() async {
+    await _db.into(_db.goals).insert(goalCompanion(goal));
+    for (final (i, m) in milestones.indexed) {
+      await _db.into(_db.milestones).insert(milestoneCompanion(m, position: i));
+    }
+    if (reminder != null) {
+      await _db.into(_db.reminders).insert(reminderCompanion(reminder));
+    }
+    return goal;
+  });
 
-  Future<void> update(Goal goal) =>
-      (_db.update(_db.goals)..where((g) => g.id.equals(goal.id)))
-          .write(goalCompanion(goal));
+  Future<void> update(Goal goal) => (_db.update(
+    _db.goals,
+  )..where((g) => g.id.equals(goal.id))).write(goalCompanion(goal));
 
   /// 删除为独立破坏性操作：级联清记录/里程碑/提醒（UI 层二次确认）。
   Future<void> deleteGoal(String goalId) => _db.transaction(() async {
-        await (_db.delete(_db.progressRecords)
-              ..where((r) => r.goalId.equals(goalId)))
-            .go();
-        await (_db.delete(_db.milestones)
-              ..where((m) => m.goalId.equals(goalId)))
-            .go();
-        await (_db.delete(_db.reminders)
-              ..where((r) => r.goalId.equals(goalId)))
-            .go();
-        await (_db.delete(_db.goals)..where((g) => g.id.equals(goalId))).go();
-      });
+    await (_db.delete(
+      _db.progressRecords,
+    )..where((r) => r.goalId.equals(goalId))).go();
+    await (_db.delete(
+      _db.milestones,
+    )..where((m) => m.goalId.equals(goalId))).go();
+    await (_db.delete(
+      _db.reminders,
+    )..where((r) => r.goalId.equals(goalId))).go();
+    await (_db.delete(_db.goals)..where((g) => g.id.equals(goalId))).go();
+  });
 
   /// 置顶：pinnedOrder 追加至末位；取消置顶：置空并压缩其余序号。
-  Future<void> setPinned(String goalId, bool pinned) =>
-      _db.transaction(() async {
-        if (pinned) {
-          final max = _db.selectOnly(_db.goals)
-            ..addColumns([_db.goals.pinnedOrder.max()])
-            ..where(_db.goals.pinned.equals(true));
-          final current =
-              (await max.getSingle()).read(_db.goals.pinnedOrder.max()) ?? -1;
-          await (_db.update(_db.goals)..where((g) => g.id.equals(goalId)))
-              .write(GoalsCompanion(
-                pinned: const Value(true),
-                pinnedOrder: Value(current + 1),
-              ));
-        } else {
-          await (_db.update(_db.goals)..where((g) => g.id.equals(goalId)))
-              .write(const GoalsCompanion(
-                pinned: Value(false),
-                pinnedOrder: Value(null),
-              ));
-          await _compactPinnedOrder();
-        }
-      });
+  Future<void> setPinned(String goalId, bool pinned) => _db.transaction(
+    () async {
+      if (pinned) {
+        final max = _db.selectOnly(_db.goals)
+          ..addColumns([_db.goals.pinnedOrder.max()])
+          ..where(_db.goals.pinned.equals(true));
+        final current =
+            (await max.getSingle()).read(_db.goals.pinnedOrder.max()) ?? -1;
+        await (_db.update(_db.goals)..where((g) => g.id.equals(goalId))).write(
+          GoalsCompanion(
+            pinned: const Value(true),
+            pinnedOrder: Value(current + 1),
+          ),
+        );
+      } else {
+        await (_db.update(_db.goals)..where((g) => g.id.equals(goalId))).write(
+          const GoalsCompanion(pinned: Value(false), pinnedOrder: Value(null)),
+        );
+        await _compactPinnedOrder();
+      }
+    },
+  );
 
   Future<void> _compactPinnedOrder() async {
-    final pinned = await (_db.select(_db.goals)
-          ..where((g) => g.pinned.equals(true))
-          ..orderBy([(g) => OrderingTerm.asc(g.pinnedOrder)]))
-        .get();
+    final pinned =
+        await (_db.select(_db.goals)
+              ..where((g) => g.pinned.equals(true))
+              ..orderBy([(g) => OrderingTerm.asc(g.pinnedOrder)]))
+            .get();
     for (final (i, row) in pinned.indexed) {
       if (row.pinnedOrder != i) {
-        await (_db.update(_db.goals)..where((g) => g.id.equals(row.id)))
-            .write(GoalsCompanion(pinnedOrder: Value(i)));
+        await (_db.update(_db.goals)..where((g) => g.id.equals(row.id))).write(
+          GoalsCompanion(pinnedOrder: Value(i)),
+        );
       }
     }
   }
@@ -241,24 +238,24 @@ class GoalRepository {
       throw StateError('${goal.status.name} → ${to.name} 非法流转');
     }
     await (_db.update(_db.goals)..where((g) => g.id.equals(goalId))).write(
-          GoalsCompanion(
-            status: Value(to),
-            achievedAt: Value(
-              to == GoalStatus.achieved
-                  ? now
-                  : to == GoalStatus.active
-                      ? null
-                      : goal.achievedAt,
-            ),
-            archivedAt: Value(
-              to == GoalStatus.archived
-                  ? now
-                  : to == GoalStatus.active
-                      ? null
-                      : goal.archivedAt,
-            ),
-          ),
-        );
+      GoalsCompanion(
+        status: Value(to),
+        achievedAt: Value(
+          to == GoalStatus.achieved
+              ? now
+              : to == GoalStatus.active
+              ? null
+              : goal.achievedAt,
+        ),
+        archivedAt: Value(
+          to == GoalStatus.archived
+              ? now
+              : to == GoalStatus.active
+              ? null
+              : goal.archivedAt,
+        ),
+      ),
+    );
   }
 }
 
@@ -286,9 +283,9 @@ class MilestoneRepository {
 
   Future<List<Milestone>> of(String goalId) async =>
       (await (_db.select(_db.milestones)
-            ..where((m) => m.goalId.equals(goalId))
-            ..orderBy([(m) => OrderingTerm.asc(m.position)]))
-          .get())
+                ..where((m) => m.goalId.equals(goalId))
+                ..orderBy([(m) => OrderingTerm.asc(m.position)]))
+              .get())
           .map(milestoneFromRow)
           .toList();
 
@@ -303,34 +300,33 @@ class MilestoneRepository {
     final q = _db.selectOnly(_db.milestones)
       ..addColumns([_db.milestones.position.max()])
       ..where(_db.milestones.goalId.equals(goalId));
-    return ((await q.getSingle()).read(_db.milestones.position.max()) ?? -1) + 1;
+    return ((await q.getSingle()).read(_db.milestones.position.max()) ?? -1) +
+        1;
   }
 
-  Future<void> update(Milestone m) =>
-      (_db.update(_db.milestones)..where((x) => x.id.equals(m.id)))
-          .write(milestoneCompanion(m));
+  Future<void> update(Milestone m) => (_db.update(
+    _db.milestones,
+  )..where((x) => x.id.equals(m.id))).write(milestoneCompanion(m));
 
   Future<void> remove(String id) => _db.transaction(() async {
-        // 普通记录的关联引用置空；达成记录随里程碑删除一并移除。
-        await (_db.update(_db.progressRecords)
-              ..where((r) =>
-                  r.milestoneId.equals(id) &
-                  r.kind.equalsValue(RecordKind.normal)))
-            .write(const ProgressRecordsCompanion(milestoneId: Value(null)));
-        await (_db.delete(_db.progressRecords)
-              ..where((r) =>
-                  r.milestoneId.equals(id) &
-                  r.kind.equalsValue(RecordKind.milestoneAchievement)))
-            .go();
-        await (_db.delete(_db.milestones)..where((x) => x.id.equals(id))).go();
-      });
+    // 普通记录的关联引用置空；达成记录随里程碑删除一并移除。
+    await (_db.update(_db.progressRecords)..where(
+          (r) =>
+              r.milestoneId.equals(id) & r.kind.equalsValue(RecordKind.normal),
+        ))
+        .write(const ProgressRecordsCompanion(milestoneId: Value(null)));
+    await (_db.delete(_db.progressRecords)..where(
+          (r) =>
+              r.milestoneId.equals(id) &
+              r.kind.equalsValue(RecordKind.milestoneAchievement),
+        ))
+        .go();
+    await (_db.delete(_db.milestones)..where((x) => x.id.equals(id))).go();
+  });
 
   /// 编辑器保存：整组替换（按位匹配保留既有 id/达成态；多余删除、
   /// 新增补位），维护「结构编辑只在编辑器」边界。
-  Future<void> reorderFromEditor(
-    String goalId,
-    List<Milestone> drafted,
-  ) =>
+  Future<void> reorderFromEditor(String goalId, List<Milestone> drafted) =>
       _db.transaction(() async {
         final existing = await of(goalId);
         for (final (i, m) in drafted.indexed) {
@@ -363,44 +359,48 @@ class MilestoneRepository {
   /// 达成流（FR-003）：isDone/doneAt + 达成记录同事务；可附一句话。
   Future<void> markDone(String milestoneId, {String? note, DateTime? now}) =>
       _db.transaction(() async {
-        final row = await (_db.select(_db.milestones)
-              ..where((x) => x.id.equals(milestoneId)))
-            .getSingle();
+        final row = await (_db.select(
+          _db.milestones,
+        )..where((x) => x.id.equals(milestoneId))).getSingle();
         final at = (now ?? DateTime.now()).toUtc();
-        await (_db.update(_db.milestones)
-              ..where((x) => x.id.equals(milestoneId)))
-            .write(MilestonesCompanion(
-              isDone: const Value(true),
-              doneAt: Value(at),
-            ));
-        await _db.into(_db.progressRecords).insert(recordCompanion(
-              ProgressRecord(
-                goalId: row.goalId,
-                title: row.title,
-                body:
-                    (note == null || note.trim().isEmpty) ? null : note.trim(),
-                day: LocalDate.fromDateTime(DateTime.now()),
-                createdAt: at,
-                kind: RecordKind.milestoneAchievement,
-                milestoneId: milestoneId,
+        await (_db.update(
+          _db.milestones,
+        )..where((x) => x.id.equals(milestoneId))).write(
+          MilestonesCompanion(isDone: const Value(true), doneAt: Value(at)),
+        );
+        await _db
+            .into(_db.progressRecords)
+            .insert(
+              recordCompanion(
+                ProgressRecord(
+                  goalId: row.goalId,
+                  title: row.title,
+                  body: (note == null || note.trim().isEmpty)
+                      ? null
+                      : note.trim(),
+                  day: LocalDate.fromDateTime(DateTime.now()),
+                  createdAt: at,
+                  kind: RecordKind.milestoneAchievement,
+                  milestoneId: milestoneId,
+                ),
               ),
-            ));
+            );
       });
 
   /// 撤销达成：清 doneAt 并删除对应达成记录。
   Future<void> undoDone(String milestoneId) => _db.transaction(() async {
-        await (_db.update(_db.milestones)
-              ..where((x) => x.id.equals(milestoneId)))
-            .write(const MilestonesCompanion(
-          isDone: Value(false),
-          doneAt: Value(null),
-        ));
-        await (_db.delete(_db.progressRecords)
-              ..where((r) =>
-                  r.milestoneId.equals(milestoneId) &
-                  r.kind.equalsValue(RecordKind.milestoneAchievement)))
-            .go();
-      });
+    await (_db.update(
+      _db.milestones,
+    )..where((x) => x.id.equals(milestoneId))).write(
+      const MilestonesCompanion(isDone: Value(false), doneAt: Value(null)),
+    );
+    await (_db.delete(_db.progressRecords)..where(
+          (r) =>
+              r.milestoneId.equals(milestoneId) &
+              r.kind.equalsValue(RecordKind.milestoneAchievement),
+        ))
+        .go();
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -466,9 +466,9 @@ class ReminderRepository {
       (await (_db.select(_db.reminders).get())).map(reminderFromRow).toList();
 
   Future<Reminder?> of(String goalId) async {
-    final rows = await (_db.select(_db.reminders)
-          ..where((r) => r.goalId.equals(goalId)))
-        .get();
+    final rows = await (_db.select(
+      _db.reminders,
+    )..where((r) => r.goalId.equals(goalId))).get();
     return rows.isEmpty ? null : reminderFromRow(rows.first);
   }
 
@@ -492,30 +492,30 @@ class SettingsRepository {
 
   final AppDatabase _db;
 
-  Stream<AppSettings> watch() =>
-      (_db.select(_db.settingsRows)..where((s) => s.id.equals(1)))
-          .watchSingle()
-          .map(_to);
+  Stream<AppSettings> watch() => (_db.select(
+    _db.settingsRows,
+  )..where((s) => s.id.equals(1))).watchSingle().map(_to);
 
   Future<AppSettings> get() async => _to(
-        await (_db.select(_db.settingsRows)..where((s) => s.id.equals(1)))
-            .getSingle(),
-      );
+    await (_db.select(
+      _db.settingsRows,
+    )..where((s) => s.id.equals(1))).getSingle(),
+  );
 
   Future<void> update(AppSettings s) =>
       (_db.update(_db.settingsRows)..where((x) => x.id.equals(1))).write(
-            SettingsRowsCompanion(
-              nickname: Value(s.nickname),
-              avatarKey: Value(s.avatarKey),
-              themeMode: Value(s.themeMode),
-              remindersEnabled: Value(s.remindersEnabled),
-            ),
-          );
+        SettingsRowsCompanion(
+          nickname: Value(s.nickname),
+          avatarKey: Value(s.avatarKey),
+          themeMode: Value(s.themeMode),
+          remindersEnabled: Value(s.remindersEnabled),
+        ),
+      );
 
   AppSettings _to(SettingsRow r) => AppSettings(
-        nickname: r.nickname,
-        avatarKey: r.avatarKey,
-        themeMode: r.themeMode,
-        remindersEnabled: r.remindersEnabled,
-      );
+    nickname: r.nickname,
+    avatarKey: r.avatarKey,
+    themeMode: r.themeMode,
+    remindersEnabled: r.remindersEnabled,
+  );
 }

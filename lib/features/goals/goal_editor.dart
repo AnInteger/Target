@@ -89,11 +89,19 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                   _card(
                     child: Column(
                       children: [
-                        _field(Copy.fieldName, _name, Copy.fieldNameHint,
-                            onChanged: (_) => setState(() {})),
+                        _field(
+                          Copy.fieldName,
+                          _name,
+                          Copy.fieldNameHint,
+                          onChanged: (_) => setState(() {}),
+                        ),
                         const SizedBox(height: 16),
-                        _field(Copy.fieldWhy, _why, Copy.fieldWhyHint,
-                            maxLines: 3),
+                        _field(
+                          Copy.fieldWhy,
+                          _why,
+                          Copy.fieldWhyHint,
+                          maxLines: 3,
+                        ),
                       ],
                     ),
                   ),
@@ -124,8 +132,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                               color: GoalPalette.byKey(
                                 _colorKey ??
                                     (_category?.defaultColorKey ?? 'gray'),
-                                brightness:
-                                    TargetPalette.brightnessOf(context),
+                                brightness: TargetPalette.brightnessOf(context),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -213,7 +220,8 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                   ),
                   const SizedBox(height: 20),
                   _label(
-                      editing ? Copy.milestoneGroup : Copy.firstMilestoneGroup),
+                    editing ? Copy.milestoneGroup : Copy.firstMilestoneGroup,
+                  ),
                   for (final (i, (t, d)) in _milestones.indexed) ...[
                     _card(
                       child: Column(
@@ -225,7 +233,8 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                                 child: CupertinoTextField(
                                   controller: t,
                                   style: text.bodyL.copyWith(
-                                      fontWeight: FontWeight.w600),
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                   placeholder: Copy.milestoneFieldTitle,
                                   decoration: _transparentFieldDecoration,
                                 ),
@@ -235,8 +244,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                                 minimumSize: Size.square(30),
                                 onPressed: () =>
                                     setState(() => _milestones.removeAt(i)),
-                                child: Icon(CupertinoIcons.xmark,
-                                    size: 16, color: p.danger),
+                                child: Icon(
+                                  CupertinoIcons.xmark,
+                                  size: 16,
+                                  color: p.danger,
+                                ),
                               ),
                             ],
                           ),
@@ -252,19 +264,23 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                     const SizedBox(height: 8),
                   ],
                   _card(
-                    onTap: () => setState(() => _milestones.add((
-                          TextEditingController(),
-                          TextEditingController(),
-                        ))),
+                    onTap: () => setState(
+                      () => _milestones.add((
+                        TextEditingController(),
+                        TextEditingController(),
+                      )),
+                    ),
                     child: Row(
                       children: [
-                        Icon(CupertinoIcons.flag,
-                            size: 18, color: p.onSurfaceVariant),
+                        Icon(
+                          CupertinoIcons.flag,
+                          size: 18,
+                          color: p.onSurfaceVariant,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           Copy.milestonesAdd,
-                          style:
-                              text.bodyL.copyWith(color: p.onSurfaceVariant),
+                          style: text.bodyL.copyWith(color: p.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -272,8 +288,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                   const SizedBox(height: 12),
                   Text(
                     Copy.editorNote,
-                    style:
-                        text.bodyS.copyWith(color: p.onSurfaceVariant),
+                    style: text.bodyS.copyWith(color: p.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -316,18 +331,24 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
 
   // ---- 组件 ----
 
-  BoxDecoration get _transparentFieldDecoration => const BoxDecoration(
-        color: CupertinoColors.transparent,
-      );
+  BoxDecoration get _transparentFieldDecoration =>
+      const BoxDecoration(color: CupertinoColors.transparent);
 
   Widget _chevron(BuildContext context) {
     final p = TargetPalette.of(context);
-    return Icon(CupertinoIcons.chevron_forward,
-        size: 14, color: p.onSurfaceTertiary.withValues(alpha: 0.6));
+    return Icon(
+      CupertinoIcons.chevron_forward,
+      size: 14,
+      color: p.onSurfaceTertiary.withValues(alpha: 0.6),
+    );
   }
 
   Widget _card({required Widget child, VoidCallback? onTap}) {
-    return AppCard(padding: const EdgeInsets.all(AppSpace.s4), onTap: onTap, child: child);
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpace.s4),
+      onTap: onTap,
+      child: child,
+    );
   }
 
   Widget _propertySection(
@@ -344,7 +365,6 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       decoration: BoxDecoration(
         color: p.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: p.shadowLow,
       ),
       children: children,
     );
@@ -355,8 +375,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     final text = AppText.of(context);
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 8),
-      child:
-          Text(s, style: text.bodyS.copyWith(color: p.onSurfaceVariant)),
+      child: Text(s, style: text.bodyS.copyWith(color: p.onSurfaceVariant)),
     );
   }
 
@@ -372,8 +391,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: text.bodyS.copyWith(color: p.onSurfaceVariant)),
+        Text(label, style: text.bodyS.copyWith(color: p.onSurfaceVariant)),
         const SizedBox(height: 6),
         CupertinoTextField(
           controller: controller,
@@ -445,12 +463,13 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       context,
       initial: _targetDate == null
           ? now
-          : DateTime(
-              _targetDate!.year, _targetDate!.month, _targetDate!.day),
+          : DateTime(_targetDate!.year, _targetDate!.month, _targetDate!.day),
       first: now.subtract(const Duration(days: 365)),
       last: now.add(const Duration(days: 3650)),
     );
-    if (picked != null) setState(() => _targetDate = LocalDate.fromDateTime(picked));
+    if (picked != null) {
+      setState(() => _targetDate = LocalDate.fromDateTime(picked));
+    }
   }
 
   Future<void> _pickFrequency() async {
@@ -495,7 +514,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                         ].indexed)
                           i: Padding(
                             padding: const EdgeInsets.symmetric(
-                                vertical: 4, horizontal: 2),
+                              vertical: 4,
+                              horizontal: 2,
+                            ),
                             child: Text(label),
                           ),
                       },
@@ -512,50 +533,56 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                                   CupertinoButton(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.square(36),
-                                    onPressed: () => setSheet(() =>
-                                        weeklyTimes =
-                                            (weeklyTimes - 1).clamp(1, 7)),
+                                    onPressed: () => setSheet(
+                                      () => weeklyTimes = (weeklyTimes - 1)
+                                          .clamp(1, 7),
+                                    ),
                                     child: const Icon(
-                                        CupertinoIcons.minus_circled,
-                                        size: 26),
+                                      CupertinoIcons.minus_circled,
+                                      size: 26,
+                                    ),
                                   ),
                                   SizedBox(
                                     width: 120,
                                     child: Center(
-                                      child: Text('$weeklyTimes 次 / 周',
-                                          style: text.titleM),
+                                      child: Text(
+                                        '$weeklyTimes 次 / 周',
+                                        style: text.titleM,
+                                      ),
                                     ),
                                   ),
                                   CupertinoButton(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.square(36),
-                                    onPressed: () => setSheet(() =>
-                                        weeklyTimes =
-                                            (weeklyTimes + 1).clamp(1, 7)),
+                                    onPressed: () => setSheet(
+                                      () => weeklyTimes = (weeklyTimes + 1)
+                                          .clamp(1, 7),
+                                    ),
                                     child: const Icon(
-                                        CupertinoIcons.add_circled,
-                                        size: 26),
+                                      CupertinoIcons.add_circled,
+                                      size: 26,
+                                    ),
                                   ),
                                 ],
                               )
                             : mode == 3
-                                ? Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: [
-                                      for (final d in [1, 2, 3, 4, 5, 6, 7])
-                                        PillSelectButton<void>(
-                                          label: '一二三四五六日'[d - 1],
-                                          selected: weekdays.contains(d),
-                                          onTap: () => setSheet(() {
-                                            weekdays.contains(d)
-                                                ? weekdays.remove(d)
-                                                : weekdays.add(d);
-                                          }),
-                                        ),
-                                    ],
-                                  )
-                                : const SizedBox.shrink(),
+                            ? Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final d in [1, 2, 3, 4, 5, 6, 7])
+                                    PillSelectButton<void>(
+                                      label: '一二三四五六日'[d - 1],
+                                      selected: weekdays.contains(d),
+                                      onTap: () => setSheet(() {
+                                        weekdays.contains(d)
+                                            ? weekdays.remove(d)
+                                            : weekdays.add(d);
+                                      }),
+                                    ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -572,20 +599,14 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       _frequency = switch (mode) {
         1 => const DailyFrequency(1),
         2 => WeeklyFrequency(weeklyTimes),
-        3 => WeekdaysFrequency(
-            weekdays.map(Weekday.fromIso).toSet(),
-            1,
-          ),
+        3 => WeekdaysFrequency(weekdays.map(Weekday.fromIso).toSet(), 1),
         _ => null,
       };
     });
   }
 
   Future<void> _pickTime() async {
-    final picked = await showAppTimePicker(
-      context,
-      initial: _reminderTime,
-    );
+    final picked = await showAppTimePicker(context, initial: _reminderTime);
     if (picked != null) {
       setState(() => _reminderTime = picked);
     }
@@ -613,7 +634,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
                 for (final c in Cadence.values)
                   c: Padding(
                     padding: const EdgeInsets.symmetric(
-                        vertical: 6, horizontal: 4),
+                      vertical: 6,
+                      horizontal: 4,
+                    ),
                     child: Text(_cadenceLabel(c)),
                   ),
               },
@@ -648,26 +671,28 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     _frequency = goal.frequency;
     _loaded = true;
     unawaited(
-        ref.read(reminderRepoProvider).of(goal.id).then((r) {
-      if (r != null && mounted) {
-        setState(() {
-          _reminderEnabled = r.isEnabled;
-          _reminderTime = r.time;
-          _reminderCadence = r.cadence;
-        });
-      }
-    }));
-    unawaited(
-        ref.read(milestonesOfProvider(goal.id).future).then((ms) {
-      if (!mounted) return;
-      setState(() {
-        for (final m in ms) {
-          final t = TextEditingController(text: m.title);
-          final d = TextEditingController(text: m.description ?? '');
-          _milestones.add((t, d));
+      ref.read(reminderRepoProvider).of(goal.id).then((r) {
+        if (r != null && mounted) {
+          setState(() {
+            _reminderEnabled = r.isEnabled;
+            _reminderTime = r.time;
+            _reminderCadence = r.cadence;
+          });
         }
-      });
-    }));
+      }),
+    );
+    unawaited(
+      ref.read(milestonesOfProvider(goal.id).future).then((ms) {
+        if (!mounted) return;
+        setState(() {
+          for (final m in ms) {
+            final t = TextEditingController(text: m.title);
+            final d = TextEditingController(text: m.description ?? '');
+            _milestones.add((t, d));
+          }
+        });
+      }),
+    );
   }
 
   Future<void> _save() async {
@@ -675,9 +700,11 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     final today = ref.read(todayProvider);
     final editing = widget.goalId != null;
     final existing = editing
-        ? ref.read(goalsProvider).valueOrNull
-        ?.where((g) => g.id == widget.goalId)
-            .firstOrNull
+        ? ref
+              .read(goalsProvider)
+              .valueOrNull
+              ?.where((g) => g.id == widget.goalId)
+              .firstOrNull
         : null;
 
     final goal = Goal(
@@ -710,18 +737,23 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
 
     if (editing) {
       await ref.read(goalRepoProvider).update(goal);
-      await ref.read(milestoneRepoProvider).reorderFromEditor(
-            goal.id,
-            milestones,
+      await ref
+          .read(milestoneRepoProvider)
+          .reorderFromEditor(goal.id, milestones);
+      await ref
+          .read(reminderRepoProvider)
+          .upsert(
+            Reminder(
+              goalId: goal.id,
+              time: _reminderTime,
+              isEnabled: _reminderEnabled,
+              cadence: _reminderCadence,
+            ),
           );
-      await ref.read(reminderRepoProvider).upsert(Reminder(
-            goalId: goal.id,
-            time: _reminderTime,
-            isEnabled: _reminderEnabled,
-            cadence: _reminderCadence,
-          ));
     } else {
-      await ref.read(goalRepoProvider).createPlan(
+      await ref
+          .read(goalRepoProvider)
+          .createPlan(
             goal,
             milestones,
             reminder: _reminderEnabled
@@ -746,14 +778,13 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
 }
 
 String _frequencyLabel(FrequencyPattern f) => switch (f) {
-      DailyFrequency() => Copy.freqDaily,
-      WeeklyFrequency(:final timesPerWeek) =>
-        '${Copy.freqWeekly}（$timesPerWeek）',
-      WeekdaysFrequency() => Copy.freqWeekdays,
-    };
+  DailyFrequency() => Copy.freqDaily,
+  WeeklyFrequency(:final timesPerWeek) => '${Copy.freqWeekly}（$timesPerWeek）',
+  WeekdaysFrequency() => Copy.freqWeekdays,
+};
 
 String _cadenceLabel(Cadence c) => switch (c) {
-      Cadence.daily => Copy.cadenceDaily,
-      Cadence.threeDay => Copy.cadenceThreeDay,
-      Cadence.weekly => Copy.cadenceWeekly,
-    };
+  Cadence.daily => Copy.cadenceDaily,
+  Cadence.threeDay => Copy.cadenceThreeDay,
+  Cadence.weekly => Copy.cadenceWeekly,
+};

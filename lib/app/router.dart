@@ -17,63 +17,56 @@ import 'app.dart';
 final routerProvider = Provider<GoRouter>((ref) => _build());
 
 GoRouter _build() => GoRouter(
-      initialLocation: '/goals',
-      redirect: (context, state) => switch (state.uri.path) {
-            '/today' ||
-            '/review' ||
-            '/progress' ||
-            '/onboarding' ||
-            '/profile' ||
-            '/goals-all' =>
-              '/goals',
-            _ => null,
-          },
-      routes: [
-        GoRoute(
-          path: '/goal-editor',
-          pageBuilder: (context, state) => _cupertinoPush(
-            state,
-            GoalEditorPage(goalId: state.uri.queryParameters['id']),
-          ),
+  initialLocation: '/goals',
+  redirect: (context, state) => switch (state.uri.path) {
+    '/today' ||
+    '/review' ||
+    '/progress' ||
+    '/onboarding' ||
+    '/profile' ||
+    '/goals-all' => '/goals',
+    _ => null,
+  },
+  routes: [
+    GoRoute(
+      path: '/goal-editor',
+      pageBuilder: (context, state) => _cupertinoPush(
+        state,
+        GoalEditorPage(goalId: state.uri.queryParameters['id']),
+      ),
+    ),
+    GoRoute(
+      path: '/goal/:id',
+      pageBuilder: (context, state) => _cupertinoPush(
+        state,
+        GoalDetailPage(goalId: state.pathParameters['id']!),
+      ),
+    ),
+    GoRoute(
+      path: '/settings',
+      pageBuilder: (context, state) =>
+          _cupertinoPush(state, const SettingsView()),
+    ),
+    StatefulShellRoute.indexedStack(
+      builder: (_, _, shell) => AppShell(navigationShell: shell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
+          ],
         ),
-        GoRoute(
-          path: '/goal/:id',
-          pageBuilder: (context, state) => _cupertinoPush(
-            state,
-            GoalDetailPage(goalId: state.pathParameters['id']!),
-          ),
-        ),
-        GoRoute(
-          path: '/settings',
-          pageBuilder: (context, state) =>
-              _cupertinoPush(state, const SettingsView()),
-        ),
-        StatefulShellRoute.indexedStack(
-          builder: (_, _, shell) => AppShell(navigationShell: shell),
-          branches: [
-            StatefulShellBranch(
-              routes: [
-                GoRoute(path: '/goals', builder: (_, _) => const GoalsView()),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/activity',
-                  builder: (_, _) => const ActivityView(),
-                ),
-              ],
-            ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(path: '/activity', builder: (_, _) => const ActivityView()),
           ],
         ),
       ],
-    );
+    ),
+  ],
+);
 
 CupertinoPage<void> _cupertinoPush(GoRouterState state, Widget child) {
-  return CupertinoPage<void>(
-    key: state.pageKey,
-    child: child,
-  );
+  return CupertinoPage<void>(key: state.pageKey, child: child);
 }
 
 /// target:// 深链 → 路由（goal 无 id 兜底 /goals）。

@@ -4,7 +4,8 @@
 /// ios/TargetWidgets/DesignTokens.swift——改值一次提交内三端同步
 /// （006 contracts/design-language.md）。
 /// 字体：平台默认（iOS=SF Pro/PingFang，不打包字体文件）。
-/// 标题族字重统一 600（R2 裁定：PingFang 止于 Semibold）。
+/// 标题族字重 700（R9：整体加重的裁定；iOS 中文 PingFang 止于
+/// Semibold 时由系统就近匹配，拉丁/数字走 SF Pro Bold）。
 ///
 /// v3.1（Cupertino 重构）：令牌脱离 Material ThemeExtension，配色值
 /// 原样保留；退役 Liquid Glass 仿制令牌（glassShell/glassCard/
@@ -108,7 +109,7 @@ class TargetPalette {
   final Color onSurfaceVariant;
   final Color onSurfaceTertiary;
 
-  /// 行动色（填充/图形）与实底按钮标签（17px/600 大字号档）。
+  /// 行动色（填充/图形）与实底按钮标签（17px/700 大字号档）。
   final Color accent;
   final Color accentOn;
 
@@ -179,10 +180,22 @@ class TargetPalette {
       Color(0xFFF2F2F7),
       Color(0xFFF2F2F7),
     ],
-    shadowLow: [BoxShadow(offset: Offset(0, 1), blurRadius: 6, color: Color(0x12000000))],
-    shadowMid: [BoxShadow(offset: Offset(0, 2), blurRadius: 16, color: Color(0x1A000000))],
-    shadowHigh: [BoxShadow(offset: Offset(0, -6), blurRadius: 40, color: Color(0x2E000000))],
-    shadowCta: [BoxShadow(offset: Offset(0, 4), blurRadius: 14, color: Color(0x59007AFF))],
+    shadowLow: [
+      BoxShadow(offset: Offset(0, 1), blurRadius: 6, color: Color(0x12000000)),
+    ],
+    shadowMid: [
+      BoxShadow(offset: Offset(0, 2), blurRadius: 16, color: Color(0x1A000000)),
+    ],
+    shadowHigh: [
+      BoxShadow(
+        offset: Offset(0, -6),
+        blurRadius: 40,
+        color: Color(0x2E000000),
+      ),
+    ],
+    shadowCta: [
+      BoxShadow(offset: Offset(0, 4), blurRadius: 14, color: Color(0x59007AFF)),
+    ],
   );
 
   /// 深色 · v3（iOS 暗色系：纯黑分组底 + #1C1C1E 卡）。
@@ -214,10 +227,22 @@ class TargetPalette {
       Color(0xFF161618),
       Color(0xFF000000),
     ],
-    shadowLow: [BoxShadow(offset: Offset(0, 1), blurRadius: 6, color: Color(0x59000000))],
-    shadowMid: [BoxShadow(offset: Offset(0, 2), blurRadius: 16, color: Color(0x73000000))],
-    shadowHigh: [BoxShadow(offset: Offset(0, -6), blurRadius: 40, color: Color(0x8C000000))],
-    shadowCta: [BoxShadow(offset: Offset(0, 4), blurRadius: 14, color: Color(0x660A84FF))],
+    shadowLow: [
+      BoxShadow(offset: Offset(0, 1), blurRadius: 6, color: Color(0x59000000)),
+    ],
+    shadowMid: [
+      BoxShadow(offset: Offset(0, 2), blurRadius: 16, color: Color(0x73000000)),
+    ],
+    shadowHigh: [
+      BoxShadow(
+        offset: Offset(0, -6),
+        blurRadius: 40,
+        color: Color(0x8C000000),
+      ),
+    ],
+    shadowCta: [
+      BoxShadow(offset: Offset(0, 4), blurRadius: 14, color: Color(0x660A84FF)),
+    ],
   );
 
   /// 当前上下文的亮暗（CupertinoApp 无 Material Theme）。
@@ -228,8 +253,8 @@ class TargetPalette {
   /// 取当前亮暗对应的令牌。
   static TargetPalette of(BuildContext context) =>
       brightnessOf(context) == Brightness.light
-          ? TargetPalette.light
-          : TargetPalette.dark;
+      ? TargetPalette.light
+      : TargetPalette.dark;
 }
 
 // ---------------------------------------------------------------------------
@@ -277,7 +302,7 @@ abstract final class AppMotion {
 }
 
 // ---------------------------------------------------------------------------
-// 字阶（SF 阶梯；全档 tabular；标题族 600——R2 裁定）
+// 字阶（SF 阶梯；全档 tabular；标题族 700、次文族 500——R9 裁定）
 // ---------------------------------------------------------------------------
 
 /// 字阶取用（v3.1 起独立于 Material TextTheme）。
@@ -296,56 +321,66 @@ class AppText {
 
   static const _tabular = [FontFeature.tabularFigures()];
 
-  // 标题族（600）。
+  // 标题族（700）。
 
-  /// displayL：34 / 600（tab 屏大标题）。
-  late final TextStyle displayL =
-      _title(34, letterSpacing: -0.02);
+  /// displayL：34 / 700（tab 屏大标题）。
+  late final TextStyle displayL = _title(34, letterSpacing: -0.02);
 
-  /// displayM：32 / 600（次级屏题）。
-  late final TextStyle displayM =
-      _title(32, letterSpacing: -0.02);
+  /// displayM：32 / 700（次级屏题）。
+  late final TextStyle displayM = _title(32, letterSpacing: -0.02);
 
-  /// displayS：26 / 600（sheet 主标题）。
+  /// displayS：26 / 700（sheet 主标题）。
   late final TextStyle displayS = _title(26, letterSpacing: -0.01);
 
-  /// titleL：22 / 600（卡题/大数字）。
+  /// titleL：22 / 700（卡题/大数字）。
   late final TextStyle titleL = _title(22);
 
-  /// titleM：17 / 600（区块头/行主文）。
+  /// titleM：17 / 700（区块头/行主文）。
   late final TextStyle titleM = _title(17);
 
-  /// titleS：15 / 600（行内强调）。
+  /// titleS：15 / 700（行内强调）。
   late final TextStyle titleS = _title(15);
 
-  // 正文族（400）。
+  // 正文族。
 
   /// bodyL：17 / 400（iOS body；主文色）。
   late final TextStyle bodyL = _body(17, color: _p.onSurface);
 
-  /// bodyM：15 / 400（次文色）。
-  late final TextStyle bodyM = _body(15, color: _p.onSurfaceVariant);
+  /// bodyM：15 / 500（次文色；R9 随标题族微升）。
+  late final TextStyle bodyM = _body(
+    15,
+    color: _p.onSurfaceVariant,
+    weight: FontWeight.w500,
+  );
 
-  /// bodyS：13 / 400（辅助；次文色）。
-  late final TextStyle bodyS = _body(13, color: _p.onSurfaceVariant);
+  /// bodyS：13 / 500（辅助；次文色）。
+  late final TextStyle bodyS = _body(
+    13,
+    color: _p.onSurfaceVariant,
+    weight: FontWeight.w500,
+  );
 
   /// labelS：11 / 400（三档色）。
   late final TextStyle labelS = _body(11, color: _p.onSurfaceTertiary);
 
   TextStyle _title(double size, {double? letterSpacing}) => TextStyle(
-        fontSize: size,
-        fontWeight: FontWeight.w600,
-        letterSpacing: letterSpacing,
-        color: _p.onSurface,
-        fontFeatures: _tabular,
-      );
+    fontSize: size,
+    fontWeight: FontWeight.w700,
+    letterSpacing: letterSpacing,
+    color: _p.onSurface,
+    fontFeatures: _tabular,
+  );
 
-  TextStyle _body(double size, {required Color color}) => TextStyle(
-        fontSize: size,
-        fontWeight: FontWeight.w400,
-        color: color,
-        fontFeatures: _tabular,
-      );
+  TextStyle _body(
+    double size, {
+    required Color color,
+    FontWeight weight = FontWeight.w400,
+  }) => TextStyle(
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+    fontFeatures: _tabular,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -373,10 +408,16 @@ abstract final class AppTheme {
       barBackgroundColor: p.surface,
       textTheme: CupertinoTextThemeData(
         textStyle: bodyL,
-        actionTextStyle: text.bodyL.copyWith(color: p.accentText),
+        actionTextStyle: text.bodyL.copyWith(
+          color: p.accentText,
+          fontWeight: FontWeight.w700,
+        ),
         navTitleTextStyle: text.titleM.copyWith(color: on),
         navLargeTitleTextStyle: text.displayL.copyWith(color: on),
-        navActionTextStyle: text.bodyL.copyWith(color: p.accentText),
+        navActionTextStyle: text.bodyL.copyWith(
+          color: p.accentText,
+          fontWeight: FontWeight.w700,
+        ),
         pickerTextStyle: text.bodyM.copyWith(color: on),
         dateTimePickerTextStyle: text.bodyM.copyWith(color: on),
         tabLabelTextStyle: text.bodyS.copyWith(color: on),

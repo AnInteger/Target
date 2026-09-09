@@ -32,8 +32,7 @@ class HomeWidgetGateway implements WidgetGateway {
 
   @override
   Future<void> saveSnapshot(Map<String, Object?> snapshot) async {
-    await HomeWidget.saveWidgetData<String>(
-        snapshotKey, jsonEncode(snapshot));
+    await HomeWidget.saveWidgetData<String>(snapshotKey, jsonEncode(snapshot));
     await HomeWidget.updateWidget(iOSName: iosWidgetName);
   }
 

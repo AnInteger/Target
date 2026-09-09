@@ -14,16 +14,11 @@ import '../../core/copy.dart';
 import '../../core/models/entities.dart';
 import '../shared/record_sheet.dart';
 
-Future<void> showGoalMenu(
-  BuildContext context,
-  WidgetRef ref,
-  Goal goal,
-) {
+Future<void> showGoalMenu(BuildContext context, WidgetRef ref, Goal goal) {
   void close() => Navigator.of(context, rootNavigator: true).pop();
 
-  void transit(GoalStatus to) => ref
-      .read(goalRepoProvider)
-      .transit(goal.id, to, DateTime.now().toUtc());
+  void transit(GoalStatus to) =>
+      ref.read(goalRepoProvider).transit(goal.id, to, DateTime.now().toUtc());
 
   final menu = <_MenuEntry>[
     if (goal.status == GoalStatus.active)
@@ -36,22 +31,19 @@ Future<void> showGoalMenu(
       context.push('/goal-editor?id=${goal.id}');
     }),
     if (goal.status != GoalStatus.archived)
-      _MenuEntry(
-        goal.pinned ? Copy.menuUnpin : Copy.menuPin,
-        () {
-          close();
-          ref.read(goalRepoProvider).setPinned(goal.id, !goal.pinned);
-        },
-      ),
+      _MenuEntry(goal.pinned ? Copy.menuUnpin : Copy.menuPin, () {
+        close();
+        ref.read(goalRepoProvider).setPinned(goal.id, !goal.pinned);
+      }),
     switch (goal.status) {
       GoalStatus.active => _MenuEntry(Copy.menuPause, () {
-          close();
-          transit(GoalStatus.paused);
-        }),
+        close();
+        transit(GoalStatus.paused);
+      }),
       GoalStatus.paused => _MenuEntry(Copy.menuResume, () {
-          close();
-          transit(GoalStatus.active);
-        }),
+        close();
+        transit(GoalStatus.active);
+      }),
       _ => const _MenuEntry('', null),
     },
     if (goal.status == GoalStatus.active || goal.status == GoalStatus.paused)
@@ -83,10 +75,7 @@ Future<void> showGoalMenu(
       title: Text(goal.name, maxLines: 1),
       actions: [
         for (final e in menu)
-          CupertinoActionSheetAction(
-            onPressed: e.onTap!,
-            child: Text(e.label),
-          ),
+          CupertinoActionSheetAction(onPressed: e.onTap!, child: Text(e.label)),
         CupertinoActionSheetAction(
           isDestructiveAction: true,
           onPressed: () async {
@@ -125,10 +114,7 @@ Future<bool> _confirmDelete(BuildContext context, Goal goal) async {
       actions: [
         CupertinoDialogAction(
           onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: Text(
-            Copy.cancel,
-            style: TextStyle(color: p.onSurface),
-          ),
+          child: Text(Copy.cancel, style: TextStyle(color: p.onSurface)),
         ),
         CupertinoDialogAction(
           isDestructiveAction: true,

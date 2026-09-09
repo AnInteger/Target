@@ -12,7 +12,11 @@ import '../models/calendar_types.dart';
 
 /// Web 模拟通知的横幅消息（AppShell 监听并渲染）。
 class NotificationBanner {
-  const NotificationBanner({required this.id, required this.title, required this.body});
+  const NotificationBanner({
+    required this.id,
+    required this.title,
+    required this.body,
+  });
 
   final int id;
   final String title;

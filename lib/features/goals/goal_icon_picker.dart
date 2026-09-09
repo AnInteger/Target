@@ -113,7 +113,10 @@ class _IconPickerSheetState extends State<_IconPickerSheet> {
                         shape: BoxShape.circle,
                         border: _colorKey == key
                             ? Border.all(
-                                color: p.onSurface, width: 2.5, strokeAlign: BorderSide.strokeAlignOutside)
+                                color: p.onSurface,
+                                width: 2.5,
+                                strokeAlign: BorderSide.strokeAlignOutside,
+                              )
                             : null,
                       ),
                     ),

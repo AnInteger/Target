@@ -267,7 +267,6 @@ class SettingsView extends ConsumerWidget {
         decoration: BoxDecoration(
           color: p.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: p.shadowLow,
         ),
         child: child,
       ),

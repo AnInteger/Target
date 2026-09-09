@@ -91,10 +91,9 @@ final milestonesProvider = StreamProvider<List<Milestone>>(
   (ref) => ref.watch(milestoneRepoProvider).watchAll(),
 );
 
-final milestonesOfProvider =
-    StreamProvider.family<List<Milestone>, String>(
-      (ref, goalId) => ref.watch(milestoneRepoProvider).watchOf(goalId),
-    );
+final milestonesOfProvider = StreamProvider.family<List<Milestone>, String>(
+  (ref, goalId) => ref.watch(milestoneRepoProvider).watchOf(goalId),
+);
 
 final recordsOfProvider = StreamProvider.family<List<ProgressRecord>, String>(
   (ref, goalId) => ref.watch(recordRepoProvider).watchOf(goalId),

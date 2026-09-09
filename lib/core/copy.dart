@@ -64,8 +64,7 @@ abstract final class Copy {
   static const noRelatedRecords = '还没有相关记录';
   static const milestoneFieldTitle = '里程碑名称';
   static const milestoneFieldDesc = '达成时是什么样？（可选）';
-  static const milestoneHint =
-      '达成后，你可以在里程碑菜单中标记，并记录这一步。';
+  static const milestoneHint = '达成后，你可以在里程碑菜单中标记，并记录这一步。';
   static const milestoneMenuDone = '标记为达成';
   static const milestoneMenuEdit = '编辑里程碑';
   static const milestoneMenuDelete = '删除';
@@ -118,8 +117,7 @@ abstract final class Copy {
   static const frequencyQuestion = '多久推进一次？';
   static String timesPerWeek(int n) => '$n 次 / 周';
   static const frequencyNote = '节奏只影响提醒排程与呈现，不做硬性考核。';
-  static const editorNote =
-      '只填名称即可保存；日期、节奏、提醒与里程碑都可创建后随时补充。';
+  static const editorNote = '只填名称即可保存；日期、节奏、提醒与里程碑都可创建后随时补充。';
   static const reminderGroup = '提醒（可选）';
   static const reminderToggle = '提醒';
   static const reminderTime = '时间';
@@ -165,8 +163,7 @@ abstract final class Copy {
   static const menuUnarchive = '取消归档';
   static const menuDelete = '删除';
   static String deleteConfirmTitle(String name) => '删除「$name」？';
-  static const deleteConfirmBody =
-      '该目标及其全部记录、里程碑与提醒将被删除，此操作不可恢复。';
+  static const deleteConfirmBody = '该目标及其全部记录、里程碑与提醒将被删除，此操作不可恢复。';
 
   // ---- 状态 / 分类 / 频率档 ----
   static const statusActive = '进行中';
@@ -181,18 +178,18 @@ abstract final class Copy {
   static const categoryUncategorized = '未分类';
 
   static String categoryOf(String key) => switch (key) {
-        'fitness' => '运动与健康',
-        'learning' => '学习与成长',
-        'language' => '语言学习',
-        'create' => '创作与表达',
-        'travel' => '旅行与探索',
-        'finance' => '理财',
-        'life' => '生活方式',
-        'mind' => '身心与冥想',
-        'social' => '社交与关系',
-        'pets' => '宠物',
-        _ => '其他',
-      };
+    'fitness' => '运动与健康',
+    'learning' => '学习与成长',
+    'language' => '语言学习',
+    'create' => '创作与表达',
+    'travel' => '旅行与探索',
+    'finance' => '理财',
+    'life' => '生活方式',
+    'mind' => '身心与冥想',
+    'social' => '社交与关系',
+    'pets' => '宠物',
+    _ => '其他',
+  };
 
   // ---- 相对时间 ----
   static const today = '今天';

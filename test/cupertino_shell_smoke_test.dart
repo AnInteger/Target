@@ -76,8 +76,7 @@ Future<ProviderContainer> _container(AppDatabase db) async {
       dbProvider.overrideWithValue(db),
       // 跨天 ticker 会留宿午夜 Timer（宿主测试环境禁止挂起计时器）。
       dayTickerProvider.overrideWithValue(null),
-      notificationGatewayProvider
-          .overrideWithValue(_FakeNotificationGateway()),
+      notificationGatewayProvider.overrideWithValue(_FakeNotificationGateway()),
       widgetGatewayProvider.overrideWithValue(StubWidgetGateway()),
       shareGatewayProvider.overrideWithValue(_FakeShareGateway()),
       filePickGatewayProvider.overrideWithValue(_FakeFilePickGateway()),
@@ -99,10 +98,7 @@ void main() {
     });
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const TargetApp(),
-      ),
+      UncontrolledProviderScope(container: container, child: const TargetApp()),
     );
     await tester.pumpAndSettle();
 
@@ -119,13 +115,18 @@ void main() {
     // 设置主题 = 深色 → 流更新 → CupertinoApp 重建为深色令牌。
     await container
         .read(settingsRepoProvider)
-        .update((await container.read(settingsProvider.future))
-            .copyWith(themeMode: 'dark'));
+        .update(
+          (await container.read(settingsProvider.future))
+              .copyWith(themeMode: 'dark'),
+        );
     await tester.pumpAndSettle();
 
     final darkApp = tester.widget<CupertinoApp>(find.byType(CupertinoApp));
     expect(darkApp.theme?.brightness, Brightness.dark);
-    expect(darkApp.theme?.scaffoldBackgroundColor, TargetPalette.dark.background);
+    expect(
+      darkApp.theme?.scaffoldBackgroundColor,
+      TargetPalette.dark.background,
+    );
   });
 
   testWidgets('目标详情流：卡片 → 详情内容 → 返回主页完好（回归 #2）', (tester) async {
@@ -135,22 +136,21 @@ void main() {
       container.dispose();
       await db.close();
     });
-    await container.read(goalRepoProvider).createPlan(
-      Goal(
-        id: 'g1',
-        name: '登顶测试目标',
-        createdAt: const LocalDate(2026, 9, 1),
-        pinned: true,
-      ),
-      const [],
-    );
+    await container
+        .read(goalRepoProvider)
+        .createPlan(
+          Goal(
+            id: 'g1',
+            name: '登顶测试目标',
+            createdAt: const LocalDate(2026, 9, 1),
+            pinned: true,
+          ),
+          const [],
+        );
     await container.read(goalsProvider.future);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const TargetApp(),
-      ),
+      UncontrolledProviderScope(container: container, child: const TargetApp()),
     );
     await tester.pumpAndSettle();
 

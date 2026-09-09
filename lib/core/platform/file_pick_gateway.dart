@@ -14,10 +14,7 @@ class FilePickGatewayImpl implements FilePickGateway {
     );
     final file = files.firstOrNull;
     if (file == null) return null;
-    return PickedFile(
-      name: file.name,
-      bytes: await file.readAsBytes(),
-    );
+    return PickedFile(name: file.name, bytes: await file.readAsBytes());
   }
 }
 

@@ -1,7 +1,6 @@
 /// v3 目标页（tab 1）：置顶大卡（两栏）+ 其他目标列表 + 空态 +
 /// 长按管理菜单 + 编辑置顶模式（R1–R3 定稿）。
-/// v3.1：Cupertino 组件重写（CircleIconButton / CupertinoButton.filled /
-/// CupertinoActivityIndicator）。
+/// v3.1：Cupertino 组件重写（CircleIconButton / CupertinoButton.filled）。
 library;
 
 import 'package:flutter/cupertino.dart';
@@ -46,9 +45,11 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
       ),
       child: SafeArea(
         bottom: false,
-        minimum: const EdgeInsets.only(top: 16),
+        // R11：顶部安全区（web/无刘海环境）加大到 40。
+        minimum: const EdgeInsets.only(top: 40),
         child: goalsAsync.when(
-          loading: () => const Center(child: CupertinoActivityIndicator()),
+          // R11b：去掉启动加载屏——数据就绪前仅显示页面底色。
+          loading: () => const SizedBox.shrink(),
           error: (e, _) => Center(child: Text('$e')),
           data: (goals) {
             if (goals.isEmpty) {
@@ -113,8 +114,8 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
                       ),
                     ),
                   ),
-                // dock 悬浮层的通过余量（渐隐带 44 + dock ~72 + 呼吸）。
-                const SliverToBoxAdapter(child: SizedBox(height: 170)),
+                // dock 悬浮层的通过余量（渐隐带 44 + dock ~78 + 呼吸）。
+                const SliverToBoxAdapter(child: SizedBox(height: 180)),
               ],
             );
           },
@@ -165,7 +166,8 @@ class _SectionHeader extends StatelessWidget {
     final p = TargetPalette.of(context);
     final text = AppText.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(36, 4, 20, 12),
+      // R11：右侧「编辑」与左侧「置顶」标题的边距对齐（36 = 卡内容缘）。
+      padding: const EdgeInsets.fromLTRB(36, 4, 36, 12),
       child: Row(
         children: [
           Expanded(child: Text(title, style: text.titleS)),

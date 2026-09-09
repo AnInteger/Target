@@ -126,7 +126,9 @@ class SheetHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final text = AppText.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      // R11：头部两侧按钮与 sheet 内容页缘一致（20），
+      // 不再贴近弹层左右边缘。
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       child: Row(
         children: [
           SizedBox(width: 64, child: leading),
@@ -202,6 +204,8 @@ Future<DateTime?> showAppDatePicker(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 CupertinoButton(
+                  // R11：文字落点距右缘 20（默认内距 15 过近）。
+                  padding: const EdgeInsets.fromLTRB(16, 10, 20, 10),
                   onPressed: () => Navigator.of(sheetContext).pop(picked),
                   child: const Text('完成'),
                 ),
@@ -244,6 +248,8 @@ Future<LocalTime?> showAppTimePicker(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 CupertinoButton(
+                  // R11：文字落点距右缘 20（默认内距 15 过近）。
+                  padding: const EdgeInsets.fromLTRB(16, 10, 20, 10),
                   onPressed: () => Navigator.of(sheetContext).pop(picked),
                   child: const Text('完成'),
                 ),

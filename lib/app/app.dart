@@ -143,8 +143,14 @@ class _AppShellState extends ConsumerState<AppShell> {
       resizeToAvoidBottomInset: false,
       child: Stack(
         children: [
-          // 内容全高铺满：滚动时从 dock 后方穿过，由渐隐带柔和过渡。
-          Positioned.fill(child: widget.navigationShell),
+          // 内容全高铺满：滚动时从 dock 后方穿过，由渐隐带柔和过渡；
+          // 分支切换时新分支淡入 + 自切换方向轻移（R11b）。
+          Positioned.fill(
+            child: _BranchFade(
+              index: widget.navigationShell.currentIndex,
+              child: widget.navigationShell,
+            ),
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: Column(
@@ -166,26 +172,94 @@ class _AppShellState extends ConsumerState<AppShell> {
                     ),
                   ),
                 ),
-                SafeArea(
-                  top: false,
-                  child: AppDock(
-                    tabs: const [
-                      ('/goals', '目标', CupertinoIcons.scope),
-                      ('/activity', '动态', CupertinoIcons.chart_bar),
-                    ],
-                    activePath: onActivity ? '/activity' : '/goals',
-                    onTapTab: (p) => widget.navigationShell.goBranch(
-                      p == '/activity' ? 1 : 0,
-                      initialLocation:
-                          p == (onActivity ? '/activity' : '/goals'),
+                // dock 区同色衬底：内容滑入此高度即被底色完全盖住
+                //（含 dock 左右两侧与胶囊/记录钮之间的空隙），与上方
+                // 渐隐带无缝衔接——不再露出一圈矩形底缘（R11）。
+                Container(
+                  color: p.background,
+                  child: SafeArea(
+                    top: false,
+                    child: AppDock(
+                      tabs: const [
+                        ('/goals', '目标', CupertinoIcons.scope),
+                        ('/activity', '动态', CupertinoIcons.chart_bar),
+                      ],
+                      activePath: onActivity ? '/activity' : '/goals',
+                      onTapTab: (p) => widget.navigationShell.goBranch(
+                        p == '/activity' ? 1 : 0,
+                        initialLocation:
+                            p == (onActivity ? '/activity' : '/goals'),
+                      ),
+                      onRecord: () => showRecordSheet(context),
                     ),
-                    onRecord: () => showRecordSheet(context),
                   ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 分支切换过渡（R11b）：目标 ↔ 动态切换时，新分支淡入并自切换
+/// 方向轻移进入（220ms）；启动首帧不播。
+class _BranchFade extends StatefulWidget {
+  const _BranchFade({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_BranchFade> createState() => _BranchFadeState();
+}
+
+class _BranchFadeState extends State<_BranchFade>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 220),
+  );
+  late final CurvedAnimation _curve = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOut,
+  );
+  var _fromRight = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.value = 1; // 首帧直接呈现，不播入场。
+  }
+
+  @override
+  void didUpdateWidget(covariant _BranchFade oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.index != widget.index) {
+      _fromRight = widget.index > oldWidget.index;
+      _controller.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _curve.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final drift = (_fromRight ? 1.0 : -1.0) * 0.02;
+    return FadeTransition(
+      opacity: _curve,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset(drift, 0),
+          end: Offset.zero,
+        ).animate(_curve),
+        child: widget.child,
       ),
     );
   }

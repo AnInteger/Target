@@ -82,10 +82,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                 children: [
-                  if (!editing) ...[
-                    Text(Copy.editorHeroTitle, style: text.displayS),
-                    const SizedBox(height: 20),
-                  ],
+                  // R11b：去掉口号式 hero 大标题（头部已有「添加目标」）。
                   _card(
                     child: Column(
                       children: [
@@ -304,7 +301,8 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
   Widget _header(BuildContext context, bool editing) {
     final text = AppText.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      // R11：头部按钮与页缘留出安全边距（与内容页缘 20 一致）。
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
           HeaderTextButton(
@@ -362,6 +360,9 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       backgroundColor: CupertinoColors.transparent,
       hasLeading: false,
       separatorColor: p.divider,
+      // 自带子项裁角固定 10；改由 decoration（28）出圆角、关闭内置
+      // 裁剪，避免两套半径相交出缺角（R11b 卡片圆角 28）。
+      clipBehavior: Clip.none,
       decoration: BoxDecoration(
         color: p.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),

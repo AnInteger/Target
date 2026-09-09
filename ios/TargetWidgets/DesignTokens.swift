@@ -113,6 +113,6 @@ enum DesignTokens {
     /// 圆角刻度（AppRadius.sm/md/lg/xl 的组件侧镜像）。
     static let radiusSm: CGFloat = 10
     static let radiusMd: CGFloat = 12
-    static let radiusLg: CGFloat = 16
-    static let radiusXl: CGFloat = 24
+    static let radiusLg: CGFloat = 28
+    static let radiusXl: CGFloat = 28
 }

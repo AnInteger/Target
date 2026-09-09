@@ -7,17 +7,15 @@ library;
 abstract final class Copy {
   // ---- 目标页 ----
   static const goalsTitle = '目标';
-  static const goalsSubtitle = '把想做的事，慢慢变成经历。';
   static const pinnedSection = '置顶';
   static const pinnedEdit = '编辑';
   static const othersSection = '其他目标';
   static const goalsEmptyTitle = '还没有目标';
-  static const goalsEmptyBody = '创建第一个目标，记录为目标做过的每一次努力。';
+  static const goalsEmptyBody = '创建第一个目标，开始记录。';
   static const goalsEmptyCta = '新建目标';
   static String lastRecordAt(String label) => '最近记录 · $label';
   static String hasRecordAt(String label) => '$label有新记录';
   static const noRecordYet = '尚未记录';
-  static const noRecordHint = '点击开始记录你的第一步';
   static const nextMilestoneLabel = '下个里程碑';
 
   // ---- 编辑置顶模式 ----
@@ -27,7 +25,6 @@ abstract final class Copy {
 
   // ---- 动态页 ----
   static const activityTitle = '动态';
-  static const activitySubtitle = '记录行动，见证改变。';
   static const weekInvestment = '本周投入';
   static String weekRecords(int n) => '共 $n 条记录';
   static String weekInvestmentValue(int h, int m) =>
@@ -41,7 +38,7 @@ abstract final class Copy {
   static String feedMilestone(String name) => '达成：$name';
   static String feedDuration(int minutes) => '投入 $minutes 分钟';
   static const activityEmptyTitle = '本周还没有记录';
-  static const activityEmptyBody = '从目标页或右下角记录按钮，留下第一次进展。';
+  static const activityEmptyBody = '可从目标页或右下角记录按钮开始。';
   static const dailyInvestmentTitle = '每日投入';
   static const calendarLegendNone = '无投入';
   static const calendarLegendRing = '环 = 当日投入 / 当月峰值';
@@ -56,7 +53,6 @@ abstract final class Copy {
 
   // ---- 里程碑页 ----
   static const milestonesTitle = '里程碑';
-  static const milestonesSubtitle = '为目标设路标，按自己的节奏前进。';
   static const milestonesAdd = '添加里程碑';
   static String pendingGroup(int n) => '接下来 · $n';
   static String doneGroup(int n) => '已达成 · $n';
@@ -64,28 +60,25 @@ abstract final class Copy {
   static const noRelatedRecords = '还没有相关记录';
   static const milestoneFieldTitle = '里程碑名称';
   static const milestoneFieldDesc = '达成时是什么样？（可选）';
-  static const milestoneHint = '达成后，你可以在里程碑菜单中标记，并记录这一步。';
   static const milestoneMenuDone = '标记为达成';
   static const milestoneMenuEdit = '编辑里程碑';
   static const milestoneMenuDelete = '删除';
-  static const milestonesHint = '点击里程碑查看记录，更多操作在右侧菜单中。';
+  static const milestonesHint = '点击里程碑查看记录。';
 
   // ---- 记录进展 sheet ----
   static const recordSheetTitle = '记录进展';
   static const recordGoalLabel = '关联目标';
   static const recordWhatLabel = '今天为目标做了什么？';
   static const recordTitleHint = '一句话标题（必填）';
-  static const recordBodyHint = '经过与心得（选填）。写下当时的感受或发现，回看时最有价值。';
+  static const recordBodyHint = '经过与心得（选填）';
   static const recordDuration = '投入时间';
   static const recordDate = '日期';
   static const recordMilestone = '关联里程碑';
   static const recordMilestonePick = '选择（可选）';
-  static const recordSlogan = '每一次尝试，都值得留下。';
   static const durationSheetTitle = '投入时间';
   static const durationQuestion = '大约投入了多久？';
   static String durationMinutes(int m) => '$m 分钟';
   static const durationCustom = '自定义…';
-  static const durationNote = '不填也可以——记录本身比数字更重要。';
   static const cancel = '取消';
   static const save = '保存';
   static const done = '完成';
@@ -96,12 +89,10 @@ abstract final class Copy {
   // ---- 编辑器 ----
   static const editorAddTitle = '添加目标';
   static const editorEditTitle = '编辑目标';
-  static const editorHeroTitle = '你想朝什么方向前进？';
-  static const editorHeroSubtitle = '目标可以是一件事，也可以是一种生活方式。';
   static const fieldName = '目标名称';
   static const fieldNameHint = '例如：自在地游泳';
   static const fieldWhy = '为什么想做？（可选）';
-  static const fieldWhyHint = '例如：放松地呼吸，享受在水里的感觉。';
+  static const fieldWhyHint = '例如：想在水里放松地呼吸';
   static const fieldCategory = '分类';
   static const fieldIconColor = '图标与颜色';
   static const fieldPinned = '置顶目标';
@@ -116,8 +107,7 @@ abstract final class Copy {
   static const frequencySheetTitle = '执行节奏';
   static const frequencyQuestion = '多久推进一次？';
   static String timesPerWeek(int n) => '$n 次 / 周';
-  static const frequencyNote = '节奏只影响提醒排程与呈现，不做硬性考核。';
-  static const editorNote = '只填名称即可保存；日期、节奏、提醒与里程碑都可创建后随时补充。';
+  static const editorNote = '只填名称即可保存，其余可随时补充。';
   static const reminderGroup = '提醒（可选）';
   static const reminderToggle = '提醒';
   static const reminderTime = '时间';
@@ -142,7 +132,7 @@ abstract final class Copy {
   static String backupLast(String date) => '上次：$date';
   static const aboutGroup = '关于';
   static const versionRow = '版本';
-  static const settingsFoot = 'Target · 记录为目标做过的每一次努力';
+  static const settingsFoot = 'Target';
   static const restoreConfirmTitle = '恢复备份？';
   static String restoreConfirmBody(String date, int goals, int records) =>
       '备份文件（$date）包含 $goals 个目标、$records 条记录。\n'

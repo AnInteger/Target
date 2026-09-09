@@ -38,7 +38,8 @@ class SettingsView extends ConsumerWidget {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 20, 16),
+              // R11：返回按钮退到页缘 20（安全边距，与内容一致）。
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               child: Row(
                 children: [
                   HeaderTextButton(

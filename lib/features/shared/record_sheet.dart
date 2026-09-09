@@ -116,15 +116,6 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
             const SizedBox(height: 20),
             _label(context, Copy.recordDuration),
             _metaRows(context, milestones, today),
-            const SizedBox(height: 12),
-            Center(
-              child: Text(
-                Copy.recordSlogan,
-                style: text.bodyS.copyWith(
-                  color: TargetPalette.of(context).onSurfaceVariant,
-                ),
-              ),
-            ),
           ],
         ],
       ),
@@ -250,6 +241,9 @@ class _RecordSheetState extends ConsumerState<_RecordSheet> {
       topMargin: null,
       backgroundColor: CupertinoColors.transparent,
       separatorColor: p.divider,
+      // 自带子项裁角固定 10；改由 decoration（28）出圆角、关闭内置
+      // 裁剪，避免两套半径相交出缺角（R11b 卡片圆角 28）。
+      clipBehavior: Clip.none,
       decoration: BoxDecoration(
         color: p.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),

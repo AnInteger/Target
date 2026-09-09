@@ -55,7 +55,8 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       ),
       child: SafeArea(
         bottom: false,
-        minimum: const EdgeInsets.only(top: 16),
+        // R11：顶部安全区（web/无刘海环境）加大到 40。
+        minimum: const EdgeInsets.only(top: 40),
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
@@ -111,7 +112,8 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(36, 4, 20, 12),
+                // R11：右侧「日历」与左侧「最近动态」标题的边距对齐（36）。
+                padding: const EdgeInsets.fromLTRB(36, 4, 36, 12),
                 child: Row(
                   children: [
                     Expanded(
@@ -161,8 +163,8 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                   ),
                 ),
               ),
-            // dock 悬浮层的通过余量（渐隐带 44 + dock ~72 + 呼吸）。
-            const SliverToBoxAdapter(child: SizedBox(height: 170)),
+            // dock 悬浮层的通过余量（渐隐带 44 + dock ~78 + 呼吸）。
+            const SliverToBoxAdapter(child: SizedBox(height: 180)),
           ],
         ),
       ),
@@ -183,7 +185,9 @@ class _WeekNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = AppText.of(context);
+    final style = AppText.of(
+      context,
+    ).bodyM.copyWith(fontWeight: FontWeight.w500);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -197,16 +201,25 @@ class _WeekNav extends StatelessWidget {
             onTap: () => onChange(week.previous),
           ),
           const SizedBox(width: 16),
-          // 定宽：月/日位数变化时文字居中微调，两侧箭头不位移
-          // （数字已是 tabular 等宽，宽度差仅来自位数）。
+          // R12：两半定宽、向中锚定——「—」恒在两钮正中，月/日位数
+          // 增减只向外缘生长，内侧字形与破折号都不位移。
           SizedBox(
-            width: 172,
+            width: 76,
             child: Text(
-              '${week.monday.month}月${week.monday.day}日 — '
+              '${week.monday.month}月${week.monday.day}日',
+              maxLines: 1,
+              textAlign: TextAlign.right,
+              style: style,
+            ),
+          ),
+          Text(' — ', style: style),
+          SizedBox(
+            width: 76,
+            child: Text(
               '${week.sunday.month}月${week.sunday.day}日',
               maxLines: 1,
-              textAlign: TextAlign.center,
-              style: text.bodyM.copyWith(fontWeight: FontWeight.w500),
+              textAlign: TextAlign.left,
+              style: style,
             ),
           ),
           const SizedBox(width: 16),
@@ -289,7 +302,10 @@ class _WeekCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 3),
+                        // R12：柱体收窄为定宽 24（原整列通宽），
+                        // 列内居中；零值微条同步收窄。
                         Container(
+                          width: 24,
                           // 零数据日恒显 6px 微条（R10：空周与非空周的
                           // 零值日口径一致，不再整周空白）。
                           height: week.perDayMinutes[d] == 0

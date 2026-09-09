@@ -4,8 +4,8 @@
 /// 右：记录钮（同材质，56×56 正圆，笔形图标）。
 /// v3.1 裁定：放弃 Liquid Glass 手绘仿制（效果差且模糊有性能隐患），
 /// 改为 surface 实底 + 发丝描边——平贴无阴影（R9：条形组件去投影）。
-/// R9 几何：整体高度压至 56（tab 图标 20 + 标签 10 + 内距收紧），
-/// 底边距 8（贴近 Home 指示条），页缘 20 收窄视觉宽度。
+/// R9 几何：整体高度压至 56（tab 图标 20 + 标签 10 + 内距收紧）。
+/// R11：页缘与底边距统一 20（左右为准），贴近 Home 指示条上方。
 library;
 
 import 'package:flutter/cupertino.dart';
@@ -32,7 +32,8 @@ class AppDock extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 2, 20, 8),
+      // R11：左/右/下边距一致（20；SafeArea 底部内边距之外）。
+      padding: const EdgeInsets.fromLTRB(20, 2, 20, 20),
       child: Row(
         children: [
           Expanded(

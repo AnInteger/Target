@@ -285,8 +285,12 @@ abstract final class AppScreen {
 abstract final class AppRadius {
   static const double sm = 10;
   static const double md = 12;
-  static const double lg = 16;
-  static const double xl = 24;
+
+  /// 标准卡片（R11b：与导航条胶囊同圆角 28）。
+  static const double lg = 28;
+
+  /// sheet 顶部/大容器（与卡片同步 28）。
+  static const double xl = 28;
 
   static const double full = 9999;
 }

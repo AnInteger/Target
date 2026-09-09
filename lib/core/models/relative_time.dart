@@ -11,11 +11,11 @@ String relativeDayLabel(LocalDate day, LocalDate today) {
   return Copy.daysAgo(diff);
 }
 
-/// 秒级时间标签：今天/昨天 HH:mm:ss，更早 M月d日 HH:mm:ss
-/// （记录日期可选、时分秒取记录当下——v3.1 详情/动态共用口径）。
+/// 分钟级时间标签：今天/昨天 HH:mm，更早 M月d日 HH:mm
+/// （记录日期可选、时分取记录当下——v3.1 详情/动态共用口径；
+/// R12 起秒级收窄为分钟）。
 String timestampLabel(LocalDate day, LocalDate today, DateTime local) {
-  final time =
-      '${_pad2(local.hour)}:${_pad2(local.minute)}:${_pad2(local.second)}';
+  final time = '${_pad2(local.hour)}:${_pad2(local.minute)}';
   if (day == today) return '${Copy.today} $time';
   if (day == today.addDays(-1)) return '${Copy.yesterday} $time';
   return '${local.month}月${local.day}日 $time';

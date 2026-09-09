@@ -74,7 +74,7 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
       backgroundColor: p.background,
       child: SafeArea(
         bottom: false,
-        minimum: const EdgeInsets.only(top: 12),
+        minimum: const EdgeInsets.only(top: AppScreen.safeTop),
         child: Column(
           children: [
             _header(context, editing),
@@ -354,20 +354,20 @@ class _GoalEditorPageState extends ConsumerState<GoalEditorPage> {
     required List<Widget> children,
   }) {
     final p = TargetPalette.of(context);
-    return CupertinoListSection.insetGrouped(
-      margin: EdgeInsets.zero,
-      topMargin: null,
-      backgroundColor: CupertinoColors.transparent,
-      hasLeading: false,
-      separatorColor: p.divider,
-      // 自带子项裁角固定 10；改由 decoration（28）出圆角、关闭内置
-      // 裁剪，避免两套半径相交出缺角（R11b 卡片圆角 28）。
-      clipBehavior: Clip.none,
-      decoration: BoxDecoration(
-        color: p.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+    // 外层统一裁角（R12b）：CupertinoListTile 自绘背景是直角矩形，
+    // 内置裁角又固定 10——外层 ClipRRect(28) 一刀切齐。
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: CupertinoListSection.insetGrouped(
+        margin: EdgeInsets.zero,
+        topMargin: null,
+        backgroundColor: CupertinoColors.transparent,
+        hasLeading: false,
+        separatorColor: p.divider,
+        clipBehavior: Clip.none,
+        decoration: const BoxDecoration(color: CupertinoColors.transparent),
+        children: children,
       ),
-      children: children,
     );
   }
 

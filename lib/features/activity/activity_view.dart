@@ -55,8 +55,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       ),
       child: SafeArea(
         bottom: false,
-        // R11：顶部安全区（web/无刘海环境）加大到 40。
-        minimum: const EdgeInsets.only(top: 40),
+        minimum: const EdgeInsets.only(top: AppScreen.safeTop),
         child: CustomScrollView(
           slivers: [
             SliverToBoxAdapter(
@@ -163,8 +162,11 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                   ),
                 ),
               ),
-            // dock 悬浮层的通过余量（渐隐带 44 + dock ~78 + 呼吸）。
+            // dock 通过余量（R12b）：定高 180 + 视口补齐（FillRemaining
+            // 仅补足剩余视口）——内容不足一屏时总高恰等于视口，
+            // 空态不再被 180 硬撑出可滑动余量。
             const SliverToBoxAdapter(child: SizedBox(height: 180)),
+            const SliverFillRemaining(hasScrollBody: false, child: SizedBox.shrink()),
           ],
         ),
       ),

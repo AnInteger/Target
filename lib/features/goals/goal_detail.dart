@@ -65,7 +65,7 @@ class GoalDetailPage extends ConsumerWidget {
         children: [
           SafeArea(
             bottom: false,
-            minimum: const EdgeInsets.only(top: 12),
+            minimum: const EdgeInsets.only(top: AppScreen.safeTop),
             child: Padding(
               // R11：返回按钮退到页缘 20（安全边距，与内容一致）。
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),

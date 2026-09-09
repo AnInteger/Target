@@ -34,7 +34,7 @@ class SettingsView extends ConsumerWidget {
       backgroundColor: p.background,
       child: SafeArea(
         bottom: false,
-        minimum: const EdgeInsets.only(top: 12),
+        minimum: const EdgeInsets.only(top: AppScreen.safeTop),
         child: Column(
           children: [
             Padding(

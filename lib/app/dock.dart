@@ -5,7 +5,7 @@
 /// v3.1 裁定：放弃 Liquid Glass 手绘仿制（效果差且模糊有性能隐患），
 /// 改为 surface 实底 + 发丝描边——平贴无阴影（R9：条形组件去投影）。
 /// R9 几何：整体高度压至 56（tab 图标 20 + 标签 10 + 内距收紧）。
-/// R11：页缘与底边距统一 20（左右为准），贴近 Home 指示条上方。
+/// R12b：底边距 0，直接贴 SafeArea 底缘（真机裁定）。
 library;
 
 import 'package:flutter/cupertino.dart';
@@ -32,8 +32,9 @@ class AppDock extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = TargetPalette.of(context);
     return Padding(
-      // R11：左/右/下边距一致（20；SafeArea 底部内边距之外）。
-      padding: const EdgeInsets.fromLTRB(20, 2, 20, 20),
+      // R12b：真机裁定 dock 偏高——底边距降一个页缘宽（20 → 0），
+      // 贴住 Home 指示条安全区上缘（同原生 tab 栏落位）。
+      padding: const EdgeInsets.fromLTRB(20, 2, 20, 0),
       child: Row(
         children: [
           Expanded(

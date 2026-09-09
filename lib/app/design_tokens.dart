@@ -276,6 +276,10 @@ abstract final class AppScreen {
   /// 页缘 20（R1 Figma px-5）。
   static const double padX = 20;
 
+  /// 全页统一顶部安全区（R12b：真机翻倍裁定；SafeArea minimum 用，
+  /// 有刘海时与系统 inset 取大者——六个页面同值，标题同高）。
+  static const double safeTop = 80;
+
   /// 卡缘 16。
   static const double cardPadX = 16;
   static const double titleTop = 8;

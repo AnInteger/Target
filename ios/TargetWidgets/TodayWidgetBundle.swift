@@ -332,6 +332,12 @@ struct GoalEntity: AppEntity {
     static let typeDisplayIdentifier = "goal"
     static let defaultQuery = GoalEntityQuery()
 
+    /// AppEntity 继承 TypeDisplayRepresentable 的必要实现
+    ///（选择器里该类目标的显示名）。
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        TypeDisplayRepresentation(name: "目标")
+    }
+
     let id: String
     let name: String
 
@@ -359,6 +365,7 @@ struct GoalEntityQuery: EntityQuery {
 /// 组件配置意图：选择要展示的目标（nil = 回退置顶首个）。
 struct SelectGoalIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource = "选择目标"
+    static var description = IntentDescription("选择要在组件上展示的目标")
 
     @Parameter(title: "目标")
     var goal: GoalEntity?
@@ -391,7 +398,7 @@ struct GoalPagesProvider: AppIntentTimelineProvider {
     }
 
     func placeholder(in context: Context) -> GoalPagesEntry {
-        GoalPagesEntry(date: Date(), page: resolvePage(SelectGoalIntent()))
+        GoalPagesEntry(date: Date(), page: GoalPagesWidgetData.pages().first)
     }
 
     func snapshot(

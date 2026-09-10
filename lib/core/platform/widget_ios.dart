@@ -17,6 +17,10 @@ class HomeWidgetGateway implements WidgetGateway {
   static const appGroupId = 'group.com.target.shared';
   static const iosWidgetName = 'TodayWidget';
 
+  /// R13 目标翻页小组件（GoalPagesWidget · systemMedium）——与今日
+  /// 小组件共用同一份快照（单键 JSON，schema v4 的 goals 字段）。
+  static const iosGoalPagesWidgetName = 'GoalPagesWidget';
+
   /// 快照整体 JSON 落在单键下（home_widget 只存基元；key 内部结构
   /// 仍遵循 contracts/widget-intent.md 的字段名，Swift 侧解码）。
   static const snapshotKey = 'snapshot';
@@ -33,7 +37,9 @@ class HomeWidgetGateway implements WidgetGateway {
   @override
   Future<void> saveSnapshot(Map<String, Object?> snapshot) async {
     await HomeWidget.saveWidgetData<String>(snapshotKey, jsonEncode(snapshot));
+    // 两个小组组件各自 reload timeline（读同一快照单键）。
     await HomeWidget.updateWidget(iOSName: iosWidgetName);
+    await HomeWidget.updateWidget(iOSName: iosGoalPagesWidgetName);
   }
 
   @override

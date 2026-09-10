@@ -13,7 +13,7 @@ abstract final class Copy {
   static const goalsEmptyTitle = '还没有目标';
   static const goalsEmptyBody = '创建第一个目标，开始记录。';
   static const goalsEmptyCta = '新建目标';
-  static String lastRecordAt(String label) => '最近记录 · $label';
+  static const recentRecordLabel = '最近记录';
   static String hasRecordAt(String label) => '$label有新记录';
   static const noRecordYet = '尚未记录';
   static const nextMilestoneLabel = '下个里程碑';

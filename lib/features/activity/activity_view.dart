@@ -49,126 +49,147 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0, 0.30, 0.75, 1],
+          stops: TargetPalette.headerGradStops,
           colors: p.headerGrad,
         ),
       ),
-      child: SafeArea(
-        bottom: false,
-        minimum: const EdgeInsets.only(top: AppScreen.safeTop),
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(Copy.activityTitle, style: text.displayL),
-                        ],
-                      ),
-                    ),
-                    // R3 定稿：双圆钮（日历直达 + 设置）。
-                    Row(
+      child: Stack(
+        children: [
+          // R13b：视口自 y=0 起（内容可滑入顶部渐隐带），起始边距移入
+          // 首 sliver 的 SliverPadding（随内容滚动）——不用 SafeArea
+          // 包滚动区。
+          CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: EdgeInsets.only(
+                  top: HeaderFadeBand.contentTop(context),
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleIconButton(
-                          icon: CupertinoIcons.calendar,
-                          onTap: () => showDailyCalendarSheet(context, records),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(Copy.activityTitle, style: text.displayL),
+                            ],
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        const SizedBox(height: 8),
-                        CircleIconButton(
-                          icon: CupertinoIcons.person,
-                          onTap: _goSettings,
+                        // R3 定稿：双圆钮（日历直达 + 设置）。
+                        Row(
+                          children: [
+                            CircleIconButton(
+                              icon: CupertinoIcons.calendar,
+                              onTap: () =>
+                                  showDailyCalendarSheet(context, records),
+                            ),
+                            const SizedBox(width: 8),
+                            const SizedBox(height: 8),
+                            CircleIconButton(
+                              icon: CupertinoIcons.person,
+                              onTap: _goSettings,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-            SliverToBoxAdapter(
-              child: _WeekNav(
-                week: _week,
-                onChange: (w) => setState(() => _week = w),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              sliver: SliverToBoxAdapter(
-                child: _WeekCard(week: week, weekStart: _week, today: today),
-              ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              sliver: SliverToBoxAdapter(
-                child: _MilestoneCard(summary: summary),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                // R11：右侧「日历」与左侧「最近动态」标题的边距对齐（36）。
-                padding: const EdgeInsets.fromLTRB(36, 4, 36, 12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        Copy.recentFeed,
-                        style: text.titleS.copyWith(color: p.onSurfaceVariant),
-                      ),
-                    ),
-                    CupertinoButton(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.square(32),
-                      onPressed: () => showDailyCalendarSheet(context, records),
-                      child: Text(
-                        Copy.calendarEntry,
-                        style: text.bodyM.copyWith(color: p.accentText),
-                      ),
-                    ),
-                  ],
+              SliverToBoxAdapter(
+                child: _WeekNav(
+                  week: _week,
+                  onChange: (w) => setState(() => _week = w),
                 ),
               ),
-            ),
-            if (feed.isEmpty)
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                 sliver: SliverToBoxAdapter(
-                  child: _EmptyCard(
-                    title: week.recordCount == 0
-                        ? Copy.activityEmptyTitle
-                        : Copy.recentFeed,
-                    body: Copy.activityEmptyBody,
-                  ),
+                  child: _WeekCard(week: week, weekStart: _week, today: today),
                 ),
-              )
-            else
+              ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                sliver: SliverList.builder(
-                  itemCount: feed.length,
-                  itemBuilder: (_, i) => _FeedRow(
-                    item: feed[i],
-                    goals: goals,
-                    today: today,
-                    linkedMilestoneTitle: milestones
-                        .where((m) => m.id == feed[i].record.milestoneId)
-                        .firstOrNull
-                        ?.title,
+                sliver: SliverToBoxAdapter(
+                  child: _MilestoneCard(summary: summary),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  // R11：右侧「日历」与左侧「最近动态」标题的边距对齐（36）。
+                  padding: const EdgeInsets.fromLTRB(36, 4, 36, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          Copy.recentFeed,
+                          style: text.titleS.copyWith(
+                            color: p.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      CupertinoButton(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.square(32),
+                        onPressed: () =>
+                            showDailyCalendarSheet(context, records),
+                        child: Text(
+                          Copy.calendarEntry,
+                          style: text.bodyM.copyWith(color: p.accentText),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            // dock 通过余量（R12b）：定高 180 + 视口补齐（FillRemaining
-            // 仅补足剩余视口）——内容不足一屏时总高恰等于视口，
-            // 空态不再被 180 硬撑出可滑动余量。
-            const SliverToBoxAdapter(child: SizedBox(height: 180)),
-            const SliverFillRemaining(hasScrollBody: false, child: SizedBox.shrink()),
-          ],
-        ),
+              if (feed.isEmpty)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  sliver: SliverToBoxAdapter(
+                    child: _EmptyCard(
+                      title: week.recordCount == 0
+                          ? Copy.activityEmptyTitle
+                          : Copy.recentFeed,
+                      body: Copy.activityEmptyBody,
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  sliver: SliverList.builder(
+                    itemCount: feed.length,
+                    itemBuilder: (_, i) => _FeedRow(
+                      item: feed[i],
+                      goals: goals,
+                      today: today,
+                      linkedMilestoneTitle: milestones
+                          .where((m) => m.id == feed[i].record.milestoneId)
+                          .firstOrNull
+                          ?.title,
+                    ),
+                  ),
+                ),
+              // dock 通过余量（R12b）：定高 180 + 视口补齐（FillRemaining
+              // 仅补足剩余视口）——内容不足一屏时总高恰等于视口，
+              // 空态不再被 180 硬撑出可滑动余量。
+              const SliverToBoxAdapter(child: SizedBox(height: 180)),
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: SizedBox.shrink(),
+              ),
+            ],
+          ),
+          // 顶部安全区渐隐带（R13b）：与 dock 渐隐带对称，内容滑过
+          // 顶部时柔和淡出。
+          HeaderFadeBand(
+            colors: p.headerGrad,
+            stops: TargetPalette.headerGradStops,
+          ),
+        ],
       ),
     );
   }
@@ -187,9 +208,8 @@ class _WeekNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = AppText.of(
-      context,
-    ).bodyM.copyWith(fontWeight: FontWeight.w500);
+    final style = AppText.of(context).bodyM
+        .copyWith(fontWeight: FontWeight.w500);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(

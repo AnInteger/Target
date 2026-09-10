@@ -39,89 +39,115 @@ class _GoalsViewState extends ConsumerState<GoalsView> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          stops: const [0, 0.30, 0.75, 1],
+          stops: TargetPalette.headerGradStops,
           colors: p.headerGrad,
         ),
       ),
-      child: SafeArea(
-        bottom: false,
-        minimum: const EdgeInsets.only(top: AppScreen.safeTop),
-        child: goalsAsync.when(
-          // R11b：去掉启动加载屏——数据就绪前仅显示页面底色。
-          loading: () => const SizedBox.shrink(),
-          error: (e, _) => Center(child: Text('$e')),
-          data: (goals) {
-            if (goals.isEmpty) {
-              return Column(
-                children: [
-                  _Header(onCreate: _openEditor),
-                  Expanded(child: _EmptyState(onCreate: _openEditor)),
-                ],
-              );
-            }
-            final pinned = goals.where((g) => g.pinned).toList(growable: false);
-            final others = goals
-                .where((g) => !g.pinned)
-                .toList(growable: false);
-            return CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: _Header(onCreate: _openEditor)),
-                if (pinned.isNotEmpty)
-                  SliverToBoxAdapter(
-                    child: _SectionHeader(
-                      title: Copy.pinnedSection,
-                      trailing: Copy.pinnedEdit,
-                      onTrailing: () => showEditPinned(context),
+      child: Stack(
+        children: [
+          goalsAsync.when(
+            // R11b：去掉启动加载屏——数据就绪前仅显示页面底色。
+            loading: () => const SizedBox.shrink(),
+            error: (e, _) => Center(child: Text('$e')),
+            data: (goals) {
+              if (goals.isEmpty) {
+                // 空态不滚动：SafeArea 照旧（无内容滑过顶部）。
+                return SafeArea(
+                  bottom: false,
+                  minimum: const EdgeInsets.only(top: AppScreen.safeTop),
+                  child: Column(
+                    children: [
+                      _Header(onCreate: _openEditor),
+                      Expanded(child: _EmptyState(onCreate: _openEditor)),
+                    ],
+                  ),
+                );
+              }
+              final pinned = goals
+                  .where((g) => g.pinned)
+                  .toList(growable: false);
+              final others = goals
+                  .where((g) => !g.pinned)
+                  .toList(growable: false);
+              // R13b：视口自 y=0 起（内容可滑入顶部渐隐带），起始边距
+              // 移入首 sliver 的 SliverPadding（随内容滚动）——不用
+              // SafeArea 包滚动区。
+              return CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: EdgeInsets.only(
+                      top: HeaderFadeBand.contentTop(context),
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: _Header(onCreate: _openEditor),
                     ),
                   ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  sliver: SliverList.builder(
-                    itemCount: pinned.length,
-                    itemBuilder: (_, i) => Padding(
-                      padding: EdgeInsets.only(
-                        bottom: i == pinned.length - 1 ? 0 : 12,
-                      ),
-                      child: GoalCard(
-                        goal: pinned[i],
-                        records: records,
-                        milestones: milestones,
-                        today: today,
-                        onTap: () => context.push('/goal/${pinned[i].id}'),
-                        onLongPress: () =>
-                            showGoalMenu(context, ref, pinned[i]),
+                  if (pinned.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: _SectionHeader(
+                        title: Copy.pinnedSection,
+                        trailing: Copy.pinnedEdit,
+                        onTrailing: () => showEditPinned(context),
                       ),
                     ),
-                  ),
-                ),
-                if (others.isNotEmpty)
-                  SliverToBoxAdapter(
-                    child: _SectionHeader(title: Copy.othersSection),
-                  ),
-                if (others.isNotEmpty)
                   SliverPadding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     sliver: SliverList.builder(
-                      itemCount: others.length,
-                      itemBuilder: (_, i) => OthersRow(
-                        goal: others[i],
-                        records: records,
-                        today: today,
-                        onTap: () => context.push('/goal/${others[i].id}'),
-                        onLongPress: () =>
-                            showGoalMenu(context, ref, others[i]),
+                      itemCount: pinned.length,
+                      itemBuilder: (_, i) => Padding(
+                        padding: EdgeInsets.only(
+                          bottom: i == pinned.length - 1 ? 0 : 12,
+                        ),
+                        child: GoalCard(
+                          goal: pinned[i],
+                          records: records,
+                          milestones: milestones,
+                          today: today,
+                          onTap: () => context.push('/goal/${pinned[i].id}'),
+                          onLongPress: () =>
+                              showGoalMenu(context, ref, pinned[i]),
+                        ),
                       ),
                     ),
                   ),
-                // dock 通过余量（R12b）：定高 180 + 视口补齐（FillRemaining
-                // 仅补足剩余视口）——内容不足一屏时总高恰等于视口，
-                // 空态不再被 180 硬撑出可滑动余量。
-                const SliverToBoxAdapter(child: SizedBox(height: 180)),
-                const SliverFillRemaining(hasScrollBody: false, child: SizedBox.shrink()),
-              ],
-            );
-          },
-        ),
+                  if (others.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: _SectionHeader(title: Copy.othersSection),
+                    ),
+                  if (others.isNotEmpty)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      sliver: SliverList.builder(
+                        itemCount: others.length,
+                        itemBuilder: (_, i) => OthersRow(
+                          goal: others[i],
+                          records: records,
+                          today: today,
+                          onTap: () => context.push('/goal/${others[i].id}'),
+                          onLongPress: () =>
+                              showGoalMenu(context, ref, others[i]),
+                        ),
+                      ),
+                    ),
+                  // dock 通过余量（R12b）：定高 180 + 视口补齐（FillRemaining
+                  // 仅补足剩余视口）——内容不足一屏时总高恰等于视口，
+                  // 空态不再被 180 硬撑出可滑动余量。
+                  const SliverToBoxAdapter(child: SizedBox(height: 180)),
+                  const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: SizedBox.shrink(),
+                  ),
+                ],
+              );
+            },
+          ),
+          // 顶部安全区渐隐带（R13b）：与 dock 渐隐带对称，内容滑过
+          // 顶部时柔和淡出。
+          HeaderFadeBand(
+            colors: p.headerGrad,
+            stops: TargetPalette.headerGradStops,
+          ),
+        ],
       ),
     );
   }

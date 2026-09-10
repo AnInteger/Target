@@ -142,7 +142,8 @@ class TargetPalette {
   final Color danger;
   final Color dangerOn;
 
-  /// tab 屏头部渐变（淡紫→粉→灰；深色暗紫系；自上而下）。
+  /// tab 屏头部渐变（R13：紫→粉→底，颜色跨度拉大；深色暗紫系；
+  /// 自上而下，纵向范围收窄至 [headerGradStops]）。
   final List<Color> headerGrad;
 
   /// 阴影：low=卡 / mid=悬浮 / high=sheet / cta=主行动钮光晕。
@@ -175,8 +176,8 @@ class TargetPalette {
     danger: Color(0xFFFF3B30),
     dangerOn: Color(0xFFFFFFFF),
     headerGrad: [
-      Color(0xFFE2D5F0),
-      Color(0xFFEDD8E8),
+      Color(0xFFC9B5F0),
+      Color(0xFFF0D2E2),
       Color(0xFFF2F2F7),
       Color(0xFFF2F2F7),
     ],
@@ -222,9 +223,9 @@ class TargetPalette {
     danger: Color(0xFFFF453A),
     dangerOn: Color(0xFFFFFFFF),
     headerGrad: [
-      Color(0xFF362F4A),
-      Color(0xFF2B2539),
-      Color(0xFF161618),
+      Color(0xFF4C3B82),
+      Color(0xFF382A58),
+      Color(0xFF131219),
       Color(0xFF000000),
     ],
     shadowLow: [
@@ -249,6 +250,10 @@ class TargetPalette {
   static Brightness brightnessOf(BuildContext context) =>
       CupertinoTheme.maybeBrightnessOf(context) ??
       MediaQuery.platformBrightnessOf(context);
+
+  /// [TargetPalette.headerGrad] 的配对 stops（R13：渐变纵向范围收窄——
+  /// 可见着色止于约屏高 26%，其下为纯底色；两 tab 页与顶部渐隐带共用）。
+  static const List<double> headerGradStops = [0, 0.12, 0.26, 0.38];
 
   /// 取当前亮暗对应的令牌。
   static TargetPalette of(BuildContext context) =>

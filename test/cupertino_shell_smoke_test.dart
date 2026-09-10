@@ -70,7 +70,7 @@ class _FakeFilePickGateway implements FilePickGateway {
   Future<PickedFile?> pickBackupFile() async => null;
 }
 
-Future<ProviderContainer> _container(AppDatabase db) async {
+Future<ProviderContainer> testContainer(AppDatabase db) async {
   final container = ProviderContainer(
     overrides: [
       dbProvider.overrideWithValue(db),
@@ -91,7 +91,7 @@ Future<ProviderContainer> _container(AppDatabase db) async {
 void main() {
   testWidgets('CupertinoApp 壳：dock 双 tab + 目标空态 + 深色切换', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());
-    final container = await _container(db);
+    final container = await testContainer(db);
     addTearDown(() async {
       container.dispose();
       await db.close();
@@ -131,7 +131,7 @@ void main() {
 
   testWidgets('目标详情流：卡片 → 详情内容 → 返回主页完好（回归 #2）', (tester) async {
     final db = AppDatabase(NativeDatabase.memory());
-    final container = await _container(db);
+    final container = await testContainer(db);
     addTearDown(() async {
       container.dispose();
       await db.close();

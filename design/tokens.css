@@ -35,16 +35,17 @@
      一、语义色 · 浅色（成对完整，契约 §2-2）
      ============================================================ */
 
-  /* 底幕：tab 屏头部「淡紫 → 粉 → 分组灰」三段纵向渐变
-     （Figma 定稿：0% #e2d5f0 / 18% #edd8e8 / 42% #f2f2f7） */
-  --bg-grad-1: #e2d5f0;
-  --bg-grad-2: #edd8e8;
+  /* 底幕：tab 屏头部「紫 → 粉 → 分组灰」三段纵向渐变
+     （R13：颜色跨度拉大、纵向范围收窄——0% #c9b5f0 / 12% #f0d2e2 /
+     26% #f2f2f7，其下为纯底色） */
+  --bg-grad-1: #c9b5f0;
+  --bg-grad-2: #f0d2e2;
   --bg-grad-3: #f2f2f7;
   --bg-grad-4: #f2f2f7;
   --bg-grad-angle: 180deg;
   --bg-grad-mid-1: 0%;
-  --bg-grad-mid-2: 18%;
-  --bg-grad-mid-3: 42%;
+  --bg-grad-mid-2: 12%;
+  --bg-grad-mid-3: 26%;
 
   /* 页面底色（渐变的近似均值，供对比度计算与非渐变兜底） */
   --background: #f2f2f7; /* iOS systemGroupedBackground */
@@ -203,14 +204,14 @@
    暗紫头部渐变 + 液态玻璃暗档）
    ============================================================ */
 [data-theme="dark"] {
-  --bg-grad-1: #362f4a;   /* 头部暗紫（浅色淡紫的暗档） */
-  --bg-grad-2: #2b2539;   /* 暗粉紫 */
-  --bg-grad-3: #161618;
+  --bg-grad-1: #4c3b82;   /* 头部紫（R13 跨度拉大的亮紫暗档） */
+  --bg-grad-2: #382a58;   /* 暗紫 */
+  --bg-grad-3: #131219;
   --bg-grad-4: #000000;
   --bg-grad-angle: 180deg;
   --bg-grad-mid-1: 0%;
-  --bg-grad-mid-2: 16%;
-  --bg-grad-mid-3: 40%;
+  --bg-grad-mid-2: 12%;
+  --bg-grad-mid-3: 26%;
   --background: #000000; /* iOS 暗色分组底 */
 
   --surface: #1c1c1e;       /* 暗色卡 */

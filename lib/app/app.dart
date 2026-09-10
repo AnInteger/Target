@@ -114,12 +114,14 @@ class _AppShellState extends ConsumerState<AppShell> {
             enabled: settings?.remindersEnabled ?? true,
           );
       final records = ref.read(recordsProvider).value ?? const [];
+      final milestones = ref.read(milestonesProvider).value ?? const [];
       await ref
           .read(widgetGatewayProvider)
           .saveSnapshot(
             buildTodaySnapshot(
               goals: goals,
               records: records,
+              milestones: milestones,
               today: ref.read(todayProvider),
               now: DateTime.now(),
             ),

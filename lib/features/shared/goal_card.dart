@@ -1,4 +1,4 @@
-/// 目标卡片组件：置顶大卡（两栏：56 图标列 + 缩进文字列）与其他目标行。
+/// 目标卡片组件：置顶大卡（R13 单栏定稿）与其他目标行。
 /// v3.1：Material+InkWell → AppCard（DecoratedBox + 手势）。
 library;
 
@@ -17,7 +17,8 @@ import '../../../core/models/relative_time.dart';
 /// 而非 UI 骨架，Cupertino 图标库无对应域覆盖面。
 IconData goalIconData(String iconKey) => GoalIconCatalog.byKey(iconKey).icon;
 
-/// 置顶大卡（两栏；R1/R2 定稿）。
+/// 置顶大卡（R13 单栏定稿：顶行图标+分类 → 全宽目标名 → 最近记录
+/// （标签/相对日两端对齐）→ 正文 → 分隔线 → 里程碑分区）。
 class GoalCard extends StatelessWidget {
   const GoalCard({
     super.key,
@@ -52,95 +53,110 @@ class GoalCard extends StatelessWidget {
           ..sort((a, b) => a.position.compareTo(b.position));
 
     return AppCard(
-      padding: const EdgeInsets.all(AppSpace.s4),
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
       onTap: onTap,
       onLongPress: onLongPress,
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(goalIconData(goal.iconKey), size: 56, color: color),
-          const SizedBox(width: AppSpace.s4),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        goal.categoryKey == null
-                            ? Copy.categoryUncategorized
-                            : Copy.categoryOf(goal.categoryKey!.name),
-                        style: text.titleS.copyWith(color: color),
-                      ),
-                    ),
-                    Icon(
-                      CupertinoIcons.chevron_forward,
-                      size: 16,
-                      color: p.onSurfaceTertiary.withValues(alpha: 0.6),
-                    ),
-                  ],
+          // 顶行：目标图标（保留目标色）+ 分类（中灰）+ 右缘箭头。
+          Row(
+            children: [
+              Icon(goalIconData(goal.iconKey), size: 28, color: color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  goal.categoryKey == null
+                      ? Copy.categoryUncategorized
+                      : Copy.categoryOf(goal.categoryKey!.name),
+                  style: text.bodyM.copyWith(color: p.onSurfaceTertiary),
                 ),
-                const SizedBox(height: 6),
-                Text(goal.name, style: text.titleL),
-                if (latest.isEmpty)
+              ),
+              Icon(
+                CupertinoIcons.chevron_forward,
+                size: 16,
+                color: p.onSurfaceTertiary.withValues(alpha: 0.6),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(goal.name, style: text.titleL),
+          if (latest.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                Copy.noRecordYet,
+                style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
+              ),
+            )
+          else ...[
+            const SizedBox(height: 22),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  Copy.recentRecordLabel,
+                  style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
+                ),
+                Text(
+                  relativeDayLabel(latest.first.day, today),
+                  style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              latest.first.title,
+              style: text.bodyM.copyWith(
+                color: p.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            if (latest.first.body != null &&
+                latest.first.body!.trim().isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                latest.first.body!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: text.bodyM.copyWith(color: p.onSurfaceVariant),
+              ),
+            ],
+          ],
+          if (next.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const HairlineDivider(),
                   Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      Copy.noRecordYet,
-                      style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
-                    ),
-                  )
-                else ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    Copy.lastRecordAt(
-                      relativeDayLabel(latest.first.day, today),
-                    ),
-                    style: text.bodyS.copyWith(color: p.onSurfaceTertiary),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(latest.first.title, style: text.bodyM),
-                  if (latest.first.body != null &&
-                      latest.first.body!.trim().isNotEmpty)
-                    Text(
-                      latest.first.body!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: text.bodyM.copyWith(color: p.onSurfaceVariant),
-                    ),
-                ],
-                if (next.isNotEmpty) ...[
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    padding: const EdgeInsets.only(top: 12),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: p.divider, width: 0.5),
-                      ),
-                    ),
+                    padding: const EdgeInsets.only(top: 14),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(
                           CupertinoIcons.flag,
-                          size: 15,
+                          size: 16,
                           color: p.onSurfaceTertiary,
                         ),
                         const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(Copy.nextMilestoneLabel, style: text.labelS),
-                            Text(next.first.title, style: text.bodyM),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(Copy.nextMilestoneLabel, style: text.labelS),
+                              const SizedBox(height: 2),
+                              Text(next.first.title, style: text.titleS),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );

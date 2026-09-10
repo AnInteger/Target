@@ -12,6 +12,7 @@ import '../features/goals/goal_detail.dart';
 import '../features/goals/goal_editor.dart';
 import '../features/goals/goals_view.dart';
 import '../features/settings/settings_view.dart';
+import '../features/settings/widget_preview.dart';
 import 'app.dart';
 
 final routerProvider = Provider<GoRouter>((ref) => _build());
@@ -46,6 +47,12 @@ GoRouter _build() => GoRouter(
       path: '/settings',
       pageBuilder: (context, state) =>
           _cupertinoPush(state, const SettingsView()),
+    ),
+    // 小组件设计预览（R13）：真机装机前在 Web 查看四种家族的渲染。
+    GoRoute(
+      path: '/widget-preview',
+      pageBuilder: (context, state) =>
+          _cupertinoPush(state, const WidgetPreviewPage()),
     ),
     StatefulShellRoute.indexedStack(
       builder: (_, _, shell) => AppShell(navigationShell: shell),
